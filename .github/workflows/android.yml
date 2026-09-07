@@ -47,6 +47,26 @@ jobs:
           path.write_text(text, encoding='utf-8')
           PY
 
+      - name: Fetch bundled Turkish meal
+        run: |
+          mkdir -p assets/data/translations
+          curl --fail --location --retry 3 \
+            --output assets/data/translations/tr_rwwad.json.gz \
+            https://raw.githubusercontent.com/Yi-Developer/Qurb-content/6c0a1571bcac95eaaf0d167d15e558ec3c2bb8e2/quran/translations/t_turkish_rwwad.json.gz
+          python3 - <<'PY'
+          import gzip, json
+          from pathlib import Path
+          path = Path('assets/data/translations/tr_rwwad.json.gz')
+          with gzip.open(path, 'rt', encoding='utf-8') as f:
+              data = json.load(f)
+          if len(data) != 6236:
+              raise SystemExit(f'Expected 6236 translated ayahs, got {len(data)}')
+          for key in ('1:1', '2:255', '114:6'):
+              if not data.get(key):
+                  raise SystemExit(f'Missing required verse: {key}')
+          print(f'Turkish meal verified: {len(data)} ayahs, {path.stat().st_size} compressed bytes')
+          PY
+
       - name: Get dependencies
         run: flutter pub get
 
