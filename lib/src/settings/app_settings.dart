@@ -6,6 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 enum ReaderDisplayMode { arabic, arabicAndTranslation, translation }
 
+enum ReaderLineSpacing { compact, normal, relaxed }
+
 enum VerseHighlightColor { yellow, green, blue, orange, pink }
 
 class AppSettings extends ChangeNotifier {
@@ -15,6 +17,8 @@ class AppSettings extends ChangeNotifier {
   static const _lastAyahKey = 'last_ayah';
   static const _readerModeKey = 'reader_mode';
   static const _arabicFontSizeKey = 'arabic_font_size';
+  static const _translationFontSizeKey = 'translation_font_size';
+  static const _readerLineSpacingKey = 'reader_line_spacing';
   static const _bookmarksKey = 'bookmarks';
   static const _notesKey = 'verse_notes';
   static const _highlightsKey = 'verse_highlights';
@@ -25,7 +29,9 @@ class AppSettings extends ChangeNotifier {
   int _lastSurah = 1;
   int _lastAyah = 1;
   ReaderDisplayMode _readerMode = ReaderDisplayMode.arabicAndTranslation;
+  ReaderLineSpacing _readerLineSpacing = ReaderLineSpacing.normal;
   double _arabicFontSize = 29;
+  double _translationFontSize = 17.5;
   Set<String> _bookmarks = <String>{};
   Map<String, String> _notes = <String, String>{};
   Map<String, String> _highlights = <String, String>{};
@@ -36,7 +42,21 @@ class AppSettings extends ChangeNotifier {
   int get lastSurah => _lastSurah;
   int get lastAyah => _lastAyah;
   ReaderDisplayMode get readerMode => _readerMode;
+  ReaderLineSpacing get readerLineSpacing => _readerLineSpacing;
   double get arabicFontSize => _arabicFontSize;
+  double get translationFontSize => _translationFontSize;
+
+  double get arabicLineHeight => switch (_readerLineSpacing) {
+        ReaderLineSpacing.compact => 1.78,
+        ReaderLineSpacing.normal => 2.02,
+        ReaderLineSpacing.relaxed => 2.22,
+      };
+
+  double get translationLineHeight => switch (_readerLineSpacing) {
+        ReaderLineSpacing.compact => 1.38,
+        ReaderLineSpacing.normal => 1.58,
+        ReaderLineSpacing.relaxed => 1.78,
+      };
 
   UnmodifiableSetView<String> get bookmarkKeys => UnmodifiableSetView(_bookmarks);
   UnmodifiableMapView<String, String> get noteEntries => UnmodifiableMapView(_notes);
@@ -83,7 +103,15 @@ class AppSettings extends ChangeNotifier {
       _ => ReaderDisplayMode.arabicAndTranslation,
     };
 
+    _readerLineSpacing = switch (prefs.getString(_readerLineSpacingKey)) {
+      'compact' => ReaderLineSpacing.compact,
+      'relaxed' => ReaderLineSpacing.relaxed,
+      _ => ReaderLineSpacing.normal,
+    };
+
     _arabicFontSize = (prefs.getDouble(_arabicFontSizeKey) ?? 29).clamp(22, 42);
+    _translationFontSize =
+        (prefs.getDouble(_translationFontSizeKey) ?? 17.5).clamp(14, 28);
     _bookmarks = (prefs.getStringList(_bookmarksKey) ?? const <String>[]).toSet();
     _notes = _decodeStringMap(prefs.getString(_notesKey));
     _highlights = _decodeStringMap(prefs.getString(_highlightsKey));
@@ -147,6 +175,22 @@ class AppSettings extends ChangeNotifier {
     );
   }
 
+  Future<void> setReaderLineSpacing(ReaderLineSpacing spacing) async {
+    if (_readerLineSpacing == spacing) return;
+    _readerLineSpacing = spacing;
+    notifyListeners();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _readerLineSpacingKey,
+      switch (spacing) {
+        ReaderLineSpacing.compact => 'compact',
+        ReaderLineSpacing.normal => 'normal',
+        ReaderLineSpacing.relaxed => 'relaxed',
+      },
+    );
+  }
+
   Future<void> setArabicFontSize(double value) async {
     final safe = value.clamp(22, 42).toDouble();
     if ((_arabicFontSize - safe).abs() < .1) return;
@@ -155,6 +199,16 @@ class AppSettings extends ChangeNotifier {
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble(_arabicFontSizeKey, safe);
+  }
+
+  Future<void> setTranslationFontSize(double value) async {
+    final safe = value.clamp(14, 28).toDouble();
+    if ((_translationFontSize - safe).abs() < .1) return;
+    _translationFontSize = safe;
+    notifyListeners();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_translationFontSizeKey, safe);
   }
 
   Future<void> saveReadingPosition({
