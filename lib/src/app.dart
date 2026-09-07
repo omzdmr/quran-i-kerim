@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'l10n/app_localizations.dart';
 import 'settings/app_settings.dart';
 import 'shell/app_shell.dart';
 import 'theme/app_theme.dart';
@@ -20,10 +22,18 @@ class QuranModernApp extends StatelessWidget {
           settings: settings,
           child: MaterialApp(
             debugShowCheckedModeBanner: false,
-            title: 'Kur’an-ı Kerim',
+            onGenerateTitle: (context) => context.l10n.appTitle,
             theme: AppTheme.light,
             darkTheme: AppTheme.dark,
             themeMode: settings.themeMode,
+            locale: settings.locale,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
             home: const AppShell(),
           ),
         );
