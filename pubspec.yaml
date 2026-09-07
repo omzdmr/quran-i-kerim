@@ -1,0 +1,21 @@
+name: quran_i_kerim
+description: Kur’an-ı Kerim, sesli Kuran, mealler ve okuma planları için hafif ve modern Flutter uygulaması.
+publish_to: "none"
+version: 0.2.0+2
+
+environment:
+  sdk: ">=3.8.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
