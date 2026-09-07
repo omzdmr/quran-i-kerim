@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:quran/quran.dart' as quran;
+
 import '../../data/surah_catalog.dart';
+import '../../data/translation_catalog.dart';
 import '../../settings/app_settings.dart';
 
 class QuranReaderScreen extends StatefulWidget {
@@ -26,6 +29,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final surah = surahByNumber(_surahNumber);
+    final settings = AppSettingsScope.of(context);
 
     return SafeArea(
       child: Column(
@@ -80,6 +84,9 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                   surahNumber: _surahNumber,
                   ayahNumber: index,
                   arabic: quran.getVerse(_surahNumber, index),
+                  arabicFontSize: settings.arabicFontSize,
+                  bookmarked: settings.isBookmarked(_surahNumber, index),
+                  hasNote: settings.noteFor(_surahNumber, index)?.isNotEmpty ?? false,
                   onTap: () => _openVerseActions(index),
                 );
               },
@@ -90,21 +97,19 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     );
   }
 
-  Widget _segment(String label, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-        child: Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w900),
+  Widget _segment(String label, VoidCallback onTap) => InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w900),
+          ),
         ),
-      ),
-    );
-  }
+      );
 
   Widget _surahHeader(SurahInfo surah) {
     final scheme = Theme.of(context).colorScheme;
@@ -145,11 +150,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
               quran.basmala,
               textDirection: TextDirection.rtl,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontFamily: 'serif',
-                fontSize: 25,
-                height: 1.9,
-              ),
+              style: const TextStyle(fontFamily: 'serif', fontSize: 25, height: 1.9),
             ),
           ],
           const SizedBox(height: 20),
@@ -171,14 +172,20 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
               ListTile(
                 leading: const Icon(Icons.text_fields_rounded),
                 title: const Text('Yazı tipi ve okuma görünümü'),
-                subtitle: const Text('Boyut, satır aralığı ve görünüm'),
-                onTap: () {},
+                subtitle: const Text('Arapça boyutu ve görünüm ayarları'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showReadingAppearance();
+                },
               ),
               ListTile(
                 leading: const Icon(Icons.translate_rounded),
-                title: const Text('Meal karşılaştır'),
-                subtitle: const Text('Meal paketleri bağlandığında aktif olacak'),
-                onTap: _showTranslations,
+                title: const Text('Meal seç'),
+                subtitle: const Text('İlk Türkçe meal paketi hazırlanıyor'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showTranslations();
+                },
               ),
               const ListTile(
                 leading: Icon(Icons.verified_outlined),
@@ -186,6 +193,59 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                 subtitle: Text('Tanzil.net · çevrimdışı ve değiştirilmeden'),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showReadingAppearance() async {
+    final settings = AppSettingsScope.of(context);
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 26),
+          child: StatefulBuilder(
+            builder: (context, setSheetState) => Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Okuma görünümü', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
+                const SizedBox(height: 22),
+                Row(
+                  children: [
+                    const Expanded(child: Text('Arapça yazı boyutu', style: TextStyle(fontWeight: FontWeight.w800))),
+                    Text(settings.arabicFontSize.round().toString()),
+                  ],
+                ),
+                Slider(
+                  min: 22,
+                  max: 42,
+                  divisions: 20,
+                  value: settings.arabicFontSize,
+                  onChanged: (value) {
+                    settings.setArabicFontSize(value);
+                    setSheetState(() {});
+                  },
+                ),
+                const SizedBox(height: 10),
+                const _ModePreview(
+                  title: 'Arapça',
+                  subtitle: 'Şu an aktif',
+                  selected: true,
+                ),
+                const _ModePreview(
+                  title: 'Arapça + meal',
+                  subtitle: 'Türkçe meal paketi eklenince açılacak',
+                ),
+                const _ModePreview(
+                  title: 'Sadece meal',
+                  subtitle: 'Türkçe meal paketi eklenince açılacak',
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -228,10 +288,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                           child: Text(
                             'Sureler',
                             textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w900,
-                            ),
+                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
                           ),
                         ),
                         const SizedBox(width: 48),
@@ -242,7 +299,6 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                     padding: const EdgeInsets.fromLTRB(18, 4, 18, 10),
                     child: TextField(
                       controller: controller,
-                      autofocus: false,
                       onChanged: (value) => setSheetState(() => query = value),
                       decoration: InputDecoration(
                         hintText: 'Sure adı veya numara ara',
@@ -277,13 +333,6 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                       },
                     ),
                   ),
-                  const Divider(height: 1),
-                  _LastReadTile(
-                    onTap: () {
-                      final last = AppSettingsScope.of(context).lastSurah;
-                      Navigator.pop(sheetContext, last);
-                    },
-                  ),
                 ],
               );
             },
@@ -295,14 +344,13 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     controller.dispose();
     if (picked == null || !mounted) return;
     setState(() => _surahNumber = picked);
-    await AppSettingsScope.of(context).saveReadingPosition(
-      surah: picked,
-      ayah: 1,
-    );
+    await AppSettingsScope.of(context).saveReadingPosition(surah: picked, ayah: 1);
   }
 
   Future<void> _showTranslations() async {
     final scheme = Theme.of(context).colorScheme;
+    final candidate = translationCatalog.first;
+
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -313,44 +361,36 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Mealler',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'Arapça Kuran metni çevrimdışı hazır. Türkçe ve diğer diller için yalnızca yeniden dağıtım ve ticari kullanım izni doğrulanmış mealler eklenecek.',
-                style: TextStyle(
-                  color: scheme.onSurfaceVariant,
-                  height: 1.45,
-                ),
-              ),
-              const SizedBox(height: 18),
+              const Text('Mealler', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 14),
               Container(
                 padding: const EdgeInsets.all(17),
                 decoration: BoxDecoration(
                   color: scheme.surfaceContainer,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.download_done_rounded),
-                    SizedBox(width: 13),
+                    const Icon(Icons.menu_book_rounded),
+                    const SizedBox(width: 13),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Paket sistemi hazır olacak',
-                            style: TextStyle(fontWeight: FontWeight.w850),
-                          ),
-                          SizedBox(height: 3),
-                          Text('Bir kez indir, internetsiz oku.'),
+                          Text('${candidate.code} · ${candidate.name}', style: const TextStyle(fontWeight: FontWeight.w800)),
+                          const SizedBox(height: 3),
+                          Text('${candidate.publisher} · ${candidate.source} · v${candidate.version}'),
                         ],
                       ),
                     ),
+                    const Icon(Icons.schedule_rounded),
                   ],
                 ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'Meal metnini lisans ve sürüm bilgisiyle birlikte paketliyoruz. Hazır olmadan başka bir metni Diyanet diye göstermeyeceğiz.',
+                style: TextStyle(color: scheme.onSurfaceVariant, height: 1.45),
               ),
             ],
           ),
@@ -360,44 +400,95 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   }
 
   Future<void> _openVerseActions(int ayahNumber) async {
-    await AppSettingsScope.of(context).saveReadingPosition(
-      surah: _surahNumber,
-      ayah: ayahNumber,
-    );
+    final settings = AppSettingsScope.of(context);
+    await settings.saveReadingPosition(surah: _surahNumber, ayah: ayahNumber);
     if (!mounted) return;
+
+    final surah = surahByNumber(_surahNumber);
+    final arabic = quran.getVerse(_surahNumber, ayahNumber);
 
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 0, 18, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${surahByNumber(_surahNumber).nameTr} $_surahNumber:$ayahNumber',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 16),
-              const Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  _ActionChip(Icons.bookmark_border_rounded, 'Kaydet'),
-                  _ActionChip(Icons.palette_outlined, 'Renklendir'),
-                  _ActionChip(Icons.note_alt_outlined, 'Not'),
-                  _ActionChip(Icons.headphones_outlined, 'Dinle'),
-                  _ActionChip(Icons.ios_share_outlined, 'Paylaş'),
-                  _ActionChip(Icons.auto_stories_outlined, 'Tefsir'),
-                ],
-              ),
-            ],
+      builder: (sheetContext) {
+        final saved = settings.isBookmarked(_surahNumber, ayahNumber);
+        final hasNote = settings.noteFor(_surahNumber, ayahNumber)?.isNotEmpty ?? false;
+
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 0, 18, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${surah.nameTr} $_surahNumber:$ayahNumber',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    _ActionChip(
+                      saved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+                      saved ? 'Kaydedildi' : 'Kaydet',
+                      onTap: () async {
+                        await settings.toggleBookmark(_surahNumber, ayahNumber);
+                        if (sheetContext.mounted) Navigator.pop(sheetContext);
+                      },
+                    ),
+                    _ActionChip(
+                      hasNote ? Icons.note_alt_rounded : Icons.note_alt_outlined,
+                      hasNote ? 'Notu düzenle' : 'Not',
+                      onTap: () {
+                        Navigator.pop(sheetContext);
+                        _editNote(ayahNumber);
+                      },
+                    ),
+                    _ActionChip(
+                      Icons.copy_rounded,
+                      'Kopyala',
+                      onTap: () async {
+                        await Clipboard.setData(ClipboardData(text: '$arabic\n\n${surah.nameTr} $_surahNumber:$ayahNumber'));
+                        if (!mounted) return;
+                        Navigator.pop(sheetContext);
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ayet kopyalandı')));
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
+        );
+      },
+    );
+  }
+
+  Future<void> _editNote(int ayahNumber) async {
+    final settings = AppSettingsScope.of(context);
+    final controller = TextEditingController(text: settings.noteFor(_surahNumber, ayahNumber) ?? '');
+
+    final value = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('${surahByNumber(_surahNumber).nameTr} $_surahNumber:$ayahNumber için not'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLines: 5,
+          decoration: const InputDecoration(hintText: 'Notunuzu yazın'),
         ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Vazgeç')),
+          FilledButton(onPressed: () => Navigator.pop(dialogContext, controller.text), child: const Text('Kaydet')),
+        ],
       ),
     );
+
+    controller.dispose();
+    if (value != null) await settings.setNote(_surahNumber, ayahNumber, value);
   }
 }
 
@@ -406,12 +497,18 @@ class _Verse extends StatelessWidget {
     required this.surahNumber,
     required this.ayahNumber,
     required this.arabic,
+    required this.arabicFontSize,
+    required this.bookmarked,
+    required this.hasNote,
     required this.onTap,
   });
 
   final int surahNumber;
   final int ayahNumber;
   final String arabic;
+  final double arabicFontSize;
+  final bool bookmarked;
+  final bool hasNote;
   final VoidCallback onTap;
 
   @override
@@ -429,30 +526,27 @@ class _Verse extends StatelessWidget {
               arabic,
               textDirection: TextDirection.rtl,
               textAlign: TextAlign.right,
-              style: const TextStyle(
-                fontFamily: 'serif',
-                fontSize: 29,
-                height: 2.05,
-              ),
+              style: TextStyle(fontFamily: 'serif', fontSize: arabicFontSize, height: 2.02),
             ),
-            const SizedBox(height: 7),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                decoration: BoxDecoration(
-                  color: scheme.surfaceContainer,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '$surahNumber:$ayahNumber',
-                  style: TextStyle(
-                    color: scheme.onSurfaceVariant,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                if (bookmarked) Icon(Icons.bookmark_rounded, size: 17, color: scheme.primary),
+                if (bookmarked && hasNote) const SizedBox(width: 5),
+                if (hasNote) Icon(Icons.note_alt_rounded, size: 17, color: scheme.primary),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '$surahNumber:$ayahNumber',
+                    style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w700),
                   ),
                 ),
-              ),
+              ],
             ),
           ],
         ),
@@ -461,12 +555,45 @@ class _Verse extends StatelessWidget {
   }
 }
 
+class _ModePreview extends StatelessWidget {
+  const _ModePreview({required this.title, required this.subtitle, this.selected = false});
+
+  final String title;
+  final String subtitle;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 9),
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: selected ? scheme.primaryContainer : scheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          Icon(selected ? Icons.check_circle_rounded : Icons.lock_outline_rounded, color: selected ? scheme.primary : scheme.onSurfaceVariant),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+                const SizedBox(height: 2),
+                Text(subtitle, style: TextStyle(color: scheme.onSurfaceVariant)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _SurahRow extends StatelessWidget {
-  const _SurahRow({
-    required this.surah,
-    required this.selected,
-    required this.onTap,
-  });
+  const _SurahRow({required this.surah, required this.selected, required this.onTap});
 
   final SurahInfo surah;
   final bool selected;
@@ -484,101 +611,28 @@ class _SurahRow extends StatelessWidget {
           width: 34,
           child: Text(
             '${surah.number}',
-            style: TextStyle(
-              color: selected ? scheme.primary : scheme.onSurfaceVariant,
-              fontWeight: FontWeight.w700,
-            ),
+            style: TextStyle(color: selected ? scheme.primary : scheme.onSurfaceVariant, fontWeight: FontWeight.w700),
           ),
         ),
-        title: Text(
-          surah.nameTr,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-        ),
+        title: Text(surah.nameTr, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
         subtitle: Text('${surah.verseCount} ayet'),
-        trailing: Text(
-          surah.nameAr,
-          textDirection: TextDirection.rtl,
-          style: const TextStyle(fontFamily: 'serif', fontSize: 20),
-        ),
-      ),
-    );
-  }
-}
-
-class _LastReadTile extends StatelessWidget {
-  const _LastReadTile({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final settings = AppSettingsScope.of(context);
-    final surah = surahByNumber(settings.lastSurah);
-    final scheme = Theme.of(context).colorScheme;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 10, 18, 14),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: Row(
-            children: [
-              Icon(Icons.history_rounded, color: scheme.primary),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Son okunan',
-                      style: TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${surah.nameTr} ${settings.lastSurah}:${settings.lastAyah}',
-                      style: TextStyle(color: scheme.onSurfaceVariant),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right_rounded),
-            ],
-          ),
-        ),
+        trailing: Text(surah.nameAr, textDirection: TextDirection.rtl, style: const TextStyle(fontFamily: 'serif', fontSize: 20)),
       ),
     );
   }
 }
 
 class _ActionChip extends StatelessWidget {
-  const _ActionChip(this.icon, this.label);
+  const _ActionChip(this.icon, this.label, {required this.onTap});
 
   final IconData icon;
   final String label;
+  final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      width: 104,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 24),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => ActionChip(
+        avatar: Icon(icon, size: 19),
+        label: Text(label),
+        onPressed: onTap,
+      );
 }
