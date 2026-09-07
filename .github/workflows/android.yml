@@ -17,13 +17,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-          cache: gradle
-
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -35,6 +28,13 @@ jobs:
 
       - name: Generate Android scaffold
         run: flutter create --platforms=android --org com.omzdmr --project-name quran_i_kerim .
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
 
       - name: Set Android app label
         run: |
