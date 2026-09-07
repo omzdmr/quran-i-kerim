@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import '../settings/settings_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -7,6 +8,7 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
 
     return SafeArea(
       child: ListView(
@@ -16,7 +18,7 @@ class ProfileScreen extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Siz',
+                  l10n.profile,
                   style: Theme.of(context).textTheme.headlineLarge,
                 ),
               ),
@@ -29,7 +31,7 @@ class ProfileScreen extends StatelessWidget {
                   );
                 },
                 icon: const Icon(Icons.settings_outlined),
-                tooltip: 'Ayarlar',
+                tooltip: l10n.settings,
               ),
             ],
           ),
@@ -51,16 +53,16 @@ class ProfileScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Misafir',
-                        style: TextStyle(
+                      Text(
+                        l10n.guest,
+                        style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        'Hesap açmadan da okuyabilirsiniz',
+                        l10n.guestDescription,
                         style: TextStyle(color: scheme.onSurfaceVariant),
                       ),
                     ],
@@ -76,21 +78,21 @@ class ProfileScreen extends StatelessWidget {
             '12 günlük seri',
             'Bu hafta 5 gün okudunuz',
           ),
-          const _Tile(
+          _Tile(
             Icons.bookmark_border_rounded,
-            'Kaydedilen ayetler',
+            l10n.savedVerses,
             null,
           ),
-          const _Tile(Icons.note_alt_outlined, 'Notlar', null),
-          const _Tile(
+          _Tile(Icons.note_alt_outlined, l10n.notes, null),
+          _Tile(
             Icons.download_done_rounded,
-            'İndirilenler',
-            'Mealler ve ses paketleri',
+            l10n.downloads,
+            l10n.downloadsDescription,
           ),
-          const _Tile(
+          _Tile(
             Icons.language_rounded,
-            'Dil ve Meal',
-            'Türkçe · Varsayılan',
+            l10n.languageAndTranslation,
+            l10n.currentLanguageAndTranslation,
           ),
         ],
       ),
