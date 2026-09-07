@@ -7,6 +7,7 @@ enum ReaderDisplayMode { arabic, arabicAndTranslation, translation }
 
 class AppSettings extends ChangeNotifier {
   static const _themeKey = 'theme_mode';
+  static const _localeKey = 'app_locale';
   static const _lastSurahKey = 'last_surah';
   static const _lastAyahKey = 'last_ayah';
   static const _readerModeKey = 'reader_mode';
@@ -15,6 +16,7 @@ class AppSettings extends ChangeNotifier {
   static const _notesKey = 'verse_notes';
 
   ThemeMode _themeMode = ThemeMode.system;
+  Locale? _locale;
   int _lastSurah = 1;
   int _lastAyah = 1;
   ReaderDisplayMode _readerMode = ReaderDisplayMode.arabic;
@@ -23,6 +25,7 @@ class AppSettings extends ChangeNotifier {
   Map<String, String> _notes = <String, String>{};
 
   ThemeMode get themeMode => _themeMode;
+  Locale? get locale => _locale;
   int get lastSurah => _lastSurah;
   int get lastAyah => _lastAyah;
   ReaderDisplayMode get readerMode => _readerMode;
@@ -35,6 +38,11 @@ class AppSettings extends ChangeNotifier {
       'dark' => ThemeMode.dark,
       _ => ThemeMode.system,
     };
+
+    final localeCode = prefs.getString(_localeKey);
+    _locale = localeCode == null || localeCode == 'system'
+        ? null
+        : Locale(localeCode);
 
     final savedSurah = prefs.getInt(_lastSurahKey) ?? 1;
     final savedAyah = prefs.getInt(_lastAyahKey) ?? 1;
@@ -75,6 +83,15 @@ class AppSettings extends ChangeNotifier {
         ThemeMode.system => 'system',
       },
     );
+  }
+
+  Future<void> setLocale(Locale? locale) async {
+    if (_locale?.languageCode == locale?.languageCode) return;
+    _locale = locale;
+    notifyListeners();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_localeKey, locale?.languageCode ?? 'system');
   }
 
   Future<void> setReaderMode(ReaderDisplayMode mode) async {
