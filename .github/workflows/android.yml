@@ -2,9 +2,7 @@ name: Android APK
 
 on:
   push:
-    branches:
-      - main
-      - feature/core-reader-v03
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
