@@ -11,27 +11,24 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int tab = 0;
+  int _tab = 0;
 
   static const _dailyVerseRefs = <(int, int)>[
-    (94, 5),
-    (94, 6),
-    (2, 286),
-    (13, 28),
-    (39, 53),
-    (65, 3),
-    (3, 139),
-    (2, 152),
-    (93, 5),
-    (20, 46),
-    (29, 69),
-    (14, 7),
+    (94, 5), (94, 6), (2, 286), (13, 28), (39, 53), (65, 3),
+    (3, 139), (2, 152), (93, 5), (20, 46), (29, 69), (14, 7),
   ];
 
   (int, int) get _todayVerse {
     final now = DateTime.now();
     final day = now.difference(DateTime(now.year)).inDays;
     return _dailyVerseRefs[day % _dailyVerseRefs.length];
+  }
+
+  String get _greeting {
+    final hour = DateTime.now().hour;
+    if (hour < 11) return 'Günaydın';
+    if (hour < 18) return 'İyi günler';
+    return 'İyi akşamlar';
   }
 
   @override
@@ -47,14 +44,14 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.fromLTRB(24, 22, 24, 4),
             child: Row(
               children: [
-                _tab('Bugün', 0),
+                _tabButton('Bugün', 0),
                 const SizedBox(width: 28),
-                _tab('Topluluk', 1),
+                _tabButton('Topluluk', 1),
               ],
             ),
           ),
           Expanded(
-            child: tab == 0
+            child: _tab == 0
                 ? ListView(
                     padding: const EdgeInsets.fromLTRB(20, 28, 20, 120),
                     children: [
@@ -62,7 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              'Günaydın',
+                              _greeting,
                               style: Theme.of(context).textTheme.headlineMedium,
                             ),
                           ),
@@ -76,16 +73,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 24),
                       _VerseCard(reference: _todayVerse),
                       const SizedBox(height: 18),
-                      _ContinueCard(
-                        surah: lastSurah,
-                        ayah: settings.lastAyah,
-                      ),
+                      _ContinueCard(surah: lastSurah, ayah: settings.lastAyah),
                       const SizedBox(height: 18),
                       const _InfoCard(
                         eyebrow: 'Bugünün 5 Dakikası',
                         title: 'Bugün Kuran ile biraz zaman geçirin.',
                         button: '4–6 dakika',
-                        trailing: Icon(Icons.auto_awesome_outlined, size: 54),
+                        icon: Icons.auto_awesome_outlined,
                       ),
                       const SizedBox(height: 32),
                       Text(
@@ -97,7 +91,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         eyebrow: 'Başlayacak bir yere mi ihtiyacınız var?',
                         title: 'Kuran’da zaman geçirmenize yardımcı olacak bir plan seçin.',
                         button: 'Planları keşfet',
-                        trailing: Icon(Icons.route_outlined, size: 56),
+                        icon: Icons.route_outlined,
                       ),
                     ],
                   )
@@ -108,11 +102,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _tab(String text, int index) {
+  Widget _tabButton(String text, int index) {
     final scheme = Theme.of(context).colorScheme;
-    final selected = tab == index;
+    final selected = _tab == index;
     return GestureDetector(
-      onTap: () => setState(() => tab = index),
+      onTap: () => setState(() => _tab = index),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -142,14 +136,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
 class _VerseCard extends StatelessWidget {
   const _VerseCard({required this.reference});
-
   final (int, int) reference;
 
   @override
   Widget build(BuildContext context) {
     final surah = surahByNumber(reference.$1);
-    final verse = quran.getVerse(reference.$1, reference.$2);
-
     return Container(
       constraints: const BoxConstraints(minHeight: 285),
       padding: const EdgeInsets.all(22),
@@ -171,10 +162,7 @@ class _VerseCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Günün Ayeti',
-            style: TextStyle(color: Colors.white70, fontSize: 15),
-          ),
+          const Text('Günün Ayeti', style: TextStyle(color: Colors.white70)),
           const SizedBox(height: 6),
           Text(
             '${surah.nameTr} ${reference.$1}:${reference.$2}',
@@ -186,7 +174,7 @@ class _VerseCard extends StatelessWidget {
           ),
           const SizedBox(height: 30),
           Text(
-            verse,
+            quran.getVerse(reference.$1, reference.$2),
             textDirection: TextDirection.rtl,
             textAlign: TextAlign.right,
             style: const TextStyle(
@@ -214,7 +202,6 @@ class _VerseCard extends StatelessWidget {
 
 class _ContinueCard extends StatelessWidget {
   const _ContinueCard({required this.surah, required this.ayah});
-
   final SurahInfo surah;
   final int ayah;
 
@@ -264,7 +251,6 @@ class _ContinueCard extends StatelessWidget {
 
 class _Stat extends StatelessWidget {
   const _Stat(this.icon, this.label);
-
   final IconData icon;
   final String label;
 
@@ -273,10 +259,7 @@ class _Stat extends StatelessWidget {
         children: [
           Icon(icon, size: 23, color: Colors.white),
           const SizedBox(height: 5),
-          Text(
-            label,
-            style: const TextStyle(color: Colors.white70, fontSize: 11),
-          ),
+          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 11)),
         ],
       );
 }
@@ -286,13 +269,12 @@ class _InfoCard extends StatelessWidget {
     required this.eyebrow,
     required this.title,
     required this.button,
-    required this.trailing,
+    required this.icon,
   });
-
   final String eyebrow;
   final String title;
   final String button;
-  final Widget trailing;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
@@ -309,18 +291,11 @@ class _InfoCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  eyebrow,
-                  style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 14),
-                ),
+                Text(eyebrow, style: TextStyle(color: scheme.onSurfaceVariant)),
                 const SizedBox(height: 7),
                 Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    height: 1.25,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: const TextStyle(fontSize: 22, height: 1.25, fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 14),
                 DecoratedBox(
@@ -330,23 +305,14 @@ class _InfoCard extends StatelessWidget {
                   ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-                    child: Text(
-                      button,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
+                    child: Text(button, style: const TextStyle(fontWeight: FontWeight.w700)),
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(width: 15),
-          SizedBox(
-            width: 88,
-            child: IconTheme(
-              data: IconThemeData(color: scheme.primary),
-              child: Center(child: trailing),
-            ),
-          ),
+          SizedBox(width: 88, child: Icon(icon, size: 54, color: scheme.primary)),
         ],
       ),
     );
@@ -371,18 +337,11 @@ class _CommunityPlaceholder extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Birlikte okumak',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
+              Text('Birlikte okumak', style: Theme.of(context).textTheme.headlineMedium),
               const SizedBox(height: 18),
               Text(
-                'Özel arkadaş grupları ve birlikte okuma planları daha sonra burada olacak. Açık, karmaşık bir sosyal ağ kurup moderasyon cehennemi yaratmıyoruz.',
-                style: TextStyle(
-                  color: scheme.onSurfaceVariant,
-                  fontSize: 17,
-                  height: 1.45,
-                ),
+                'Özel arkadaş grupları ve birlikte okuma planları daha sonraki sürümlerde burada yer alacak.',
+                style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 17, height: 1.45),
               ),
             ],
           ),
