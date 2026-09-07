@@ -18,6 +18,7 @@ class AppSettings extends ChangeNotifier {
   static const _bookmarksKey = 'bookmarks';
   static const _notesKey = 'verse_notes';
   static const _highlightsKey = 'verse_highlights';
+  static const _readingDaysKey = 'reading_days';
 
   ThemeMode _themeMode = ThemeMode.system;
   Locale? _locale;
@@ -28,6 +29,7 @@ class AppSettings extends ChangeNotifier {
   Set<String> _bookmarks = <String>{};
   Map<String, String> _notes = <String, String>{};
   Map<String, String> _highlights = <String, String>{};
+  Set<String> _readingDays = <String>{};
 
   ThemeMode get themeMode => _themeMode;
   Locale? get locale => _locale;
@@ -39,6 +41,23 @@ class AppSettings extends ChangeNotifier {
   UnmodifiableSetView<String> get bookmarkKeys => UnmodifiableSetView(_bookmarks);
   UnmodifiableMapView<String, String> get noteEntries => UnmodifiableMapView(_notes);
   UnmodifiableMapView<String, String> get highlightEntries => UnmodifiableMapView(_highlights);
+  UnmodifiableSetView<String> get readingDays => UnmodifiableSetView(_readingDays);
+
+  int get readingStreak {
+    if (_readingDays.isEmpty) return 0;
+    var cursor = DateTime.now();
+    var streak = 0;
+    while (_readingDays.contains(_dayKey(cursor))) {
+      streak++;
+      cursor = cursor.subtract(const Duration(days: 1));
+    }
+    return streak;
+  }
+
+  int get readingDaysThisYear {
+    final prefix = '${DateTime.now().year}-';
+    return _readingDays.where((day) => day.startsWith(prefix)).length;
+  }
 
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -68,6 +87,7 @@ class AppSettings extends ChangeNotifier {
     _bookmarks = (prefs.getStringList(_bookmarksKey) ?? const <String>[]).toSet();
     _notes = _decodeStringMap(prefs.getString(_notesKey));
     _highlights = _decodeStringMap(prefs.getString(_highlightsKey));
+    _readingDays = (prefs.getStringList(_readingDaysKey) ?? const <String>[]).toSet();
   }
 
   Map<String, String> _decodeStringMap(String? encoded) {
@@ -78,6 +98,12 @@ class AppSettings extends ChangeNotifier {
     } catch (_) {
       return <String, String>{};
     }
+  }
+
+  String _dayKey(DateTime date) {
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    return '${date.year}-$month-$day';
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
@@ -137,17 +163,27 @@ class AppSettings extends ChangeNotifier {
   }) async {
     final safeSurah = surah.clamp(1, 114).toInt();
     final safeAyah = ayah < 1 ? 1 : ayah;
-    if (_lastSurah == safeSurah && _lastAyah == safeAyah) return;
+    final today = _dayKey(DateTime.now());
+    final newReadingDay = _readingDays.add(today);
+    final positionChanged = _lastSurah != safeSurah || _lastAyah != safeAyah;
+
+    if (!newReadingDay && !positionChanged) return;
 
     _lastSurah = safeSurah;
     _lastAyah = safeAyah;
     notifyListeners();
 
     final prefs = await SharedPreferences.getInstance();
-    await Future.wait([
-      prefs.setInt(_lastSurahKey, safeSurah),
-      prefs.setInt(_lastAyahKey, safeAyah),
-    ]);
+    final writes = <Future<bool>>[];
+    if (positionChanged) {
+      writes.add(prefs.setInt(_lastSurahKey, safeSurah));
+      writes.add(prefs.setInt(_lastAyahKey, safeAyah));
+    }
+    if (newReadingDay) {
+      final days = _readingDays.toList()..sort();
+      writes.add(prefs.setStringList(_readingDaysKey, days));
+    }
+    await Future.wait(writes);
   }
 
   String verseKey(int surah, int ayah) => '$surah:$ayah';
