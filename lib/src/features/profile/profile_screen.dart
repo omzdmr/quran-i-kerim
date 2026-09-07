@@ -95,7 +95,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _ActivityCard(
+                  title: 'Kuran serisi',
+                  value: '${settings.readingStreak}',
+                  suffix: 'gün',
+                  icon: Icons.bolt_rounded,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _ActivityCard(
+                  title: 'Bu yıl okunan gün',
+                  value: '${settings.readingDaysThisYear}',
+                  suffix: 'gün',
+                  icon: Icons.calendar_month_rounded,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
           Row(
             children: [
               Expanded(
@@ -165,11 +187,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _filterChip(String label, _ArchiveFilter value) {
-    final selected = _filter == value;
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: ChoiceChip(
-        selected: selected,
+        selected: _filter == value,
         label: Text(label),
         avatar: switch (value) {
           _ArchiveFilter.all => const Icon(Icons.apps_rounded, size: 18),
@@ -190,7 +211,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     for (final entry in settings.highlightEntries.entries) {
       final parsed = _parseSelectionKey(entry.key);
       if (parsed == null) continue;
-      final color = VerseHighlightColor.values.where(
+      final matches = VerseHighlightColor.values.where(
         (value) => value.name == entry.value,
       );
       items.add(
@@ -198,7 +219,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           kind: _ArchiveKind.highlight,
           surah: parsed.$1,
           ayahs: parsed.$2,
-          highlight: color.isEmpty ? null : color.first,
+          highlight: matches.isEmpty ? null : matches.first,
         ),
       );
     }
@@ -263,8 +284,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ayahs.add(value);
     }
 
-    if (ayahs.isEmpty) return null;
-    return (surah, ayahs);
+    return ayahs.isEmpty ? null : (surah, ayahs);
   }
 }
 
@@ -307,6 +327,65 @@ class _ArchiveItem {
   }
 }
 
+class _ActivityCard extends StatelessWidget {
+  const _ActivityCard({
+    required this.title,
+    required this.value,
+    required this.suffix,
+    required this.icon,
+  });
+
+  final String title;
+  final String value;
+  final String suffix;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      height: 142,
+      padding: const EdgeInsets.all(17),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 2,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+              Icon(icon, color: scheme.primary, size: 21),
+            ],
+          ),
+          const Spacer(),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                value,
+                style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(width: 6),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 5),
+                child: Text(suffix, style: TextStyle(color: scheme.onSurfaceVariant)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _MetricCard extends StatelessWidget {
   const _MetricCard({
     required this.value,
@@ -333,10 +412,7 @@ class _MetricCard extends StatelessWidget {
         children: [
           Icon(icon, size: 20, color: scheme.primary),
           const Spacer(),
-          Text(
-            '$value',
-            style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900),
-          ),
+          Text('$value', style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900)),
           Text(
             label,
             maxLines: 1,
@@ -399,10 +475,7 @@ class _ArchiveCard extends StatelessWidget {
                     const SizedBox(width: 7),
                     Text(
                       label,
-                      style: TextStyle(
-                        color: accent,
-                        fontWeight: FontWeight.w800,
-                      ),
+                      style: TextStyle(color: accent, fontWeight: FontWeight.w800),
                     ),
                     const Spacer(),
                     Text(
@@ -421,11 +494,7 @@ class _ArchiveCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   textDirection: TextDirection.rtl,
                   textAlign: TextAlign.right,
-                  style: const TextStyle(
-                    fontFamily: 'serif',
-                    fontSize: 20,
-                    height: 1.7,
-                  ),
+                  style: const TextStyle(fontFamily: 'serif', fontSize: 20, height: 1.7),
                 ),
                 if (item.note != null && item.note!.isNotEmpty) ...[
                   const SizedBox(height: 10),
@@ -433,10 +502,7 @@ class _ArchiveCard extends StatelessWidget {
                     item.note!,
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: scheme.onSurfaceVariant,
-                      height: 1.4,
-                    ),
+                    style: TextStyle(color: scheme.onSurfaceVariant, height: 1.4),
                   ),
                 ],
               ],
@@ -473,11 +539,7 @@ class _EmptyArchive extends StatelessWidget {
         children: [
           Icon(Icons.menu_book_outlined, size: 38, color: scheme.primary),
           const SizedBox(height: 12),
-          Text(
-            text,
-            textAlign: TextAlign.center,
-            style: TextStyle(color: scheme.onSurfaceVariant),
-          ),
+          Text(text, textAlign: TextAlign.center, style: TextStyle(color: scheme.onSurfaceVariant)),
         ],
       ),
     );
@@ -506,10 +568,7 @@ class _SettingsTile extends StatelessWidget {
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
         subtitle: subtitle == null
             ? null
-            : Text(
-                subtitle!,
-                style: TextStyle(color: scheme.onSurfaceVariant),
-              ),
+            : Text(subtitle!, style: TextStyle(color: scheme.onSurfaceVariant)),
         trailing: const Icon(Icons.chevron_right),
       ),
     );
