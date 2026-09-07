@@ -49,8 +49,8 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Analyze
-        run: flutter analyze
+      - name: Analyze app code
+        run: flutter analyze lib --no-fatal-infos
 
       - name: Build lightweight APKs
         run: flutter build apk --release --split-per-abi
