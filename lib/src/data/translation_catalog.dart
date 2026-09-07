@@ -32,6 +32,6 @@ const translationCatalog = <TranslationInfo>[
     source: 'QuranEnc.com',
     version: '1.0.4',
     bundled: true,
-    available: false,
+    available: true,
   ),
 ];
