@@ -23,7 +23,7 @@ class AppSettings extends ChangeNotifier {
   Locale? _locale;
   int _lastSurah = 1;
   int _lastAyah = 1;
-  ReaderDisplayMode _readerMode = ReaderDisplayMode.arabic;
+  ReaderDisplayMode _readerMode = ReaderDisplayMode.arabicAndTranslation;
   double _arabicFontSize = 29;
   Set<String> _bookmarks = <String>{};
   Map<String, String> _notes = <String, String>{};
@@ -59,9 +59,9 @@ class AppSettings extends ChangeNotifier {
     _lastAyah = savedAyah < 1 ? 1 : savedAyah;
 
     _readerMode = switch (prefs.getString(_readerModeKey)) {
-      'arabic_translation' => ReaderDisplayMode.arabicAndTranslation,
+      'arabic' => ReaderDisplayMode.arabic,
       'translation' => ReaderDisplayMode.translation,
-      _ => ReaderDisplayMode.arabic,
+      _ => ReaderDisplayMode.arabicAndTranslation,
     };
 
     _arabicFontSize = (prefs.getDouble(_arabicFontSizeKey) ?? 29).clamp(22, 42);
