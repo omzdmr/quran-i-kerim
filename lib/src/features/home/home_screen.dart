@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:quran/quran.dart' as quran;
+import '../../data/surah_catalog.dart';
+import '../../settings/app_settings.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -10,9 +13,33 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int tab = 0;
 
+  static const _dailyVerseRefs = <(int, int)>[
+    (94, 5),
+    (94, 6),
+    (2, 286),
+    (13, 28),
+    (39, 53),
+    (65, 3),
+    (3, 139),
+    (2, 152),
+    (93, 5),
+    (20, 46),
+    (29, 69),
+    (14, 7),
+  ];
+
+  (int, int) get _todayVerse {
+    final now = DateTime.now();
+    final day = now.difference(DateTime(now.year)).inDays;
+    return _dailyVerseRefs[day % _dailyVerseRefs.length];
+  }
+
   @override
   Widget build(BuildContext context) {
-    final muted = Colors.white.withValues(alpha: .62);
+    final scheme = Theme.of(context).colorScheme;
+    final settings = AppSettingsScope.of(context);
+    final lastSurah = surahByNumber(settings.lastSurah);
+
     return SafeArea(
       child: Column(
         children: [
@@ -20,9 +47,9 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.fromLTRB(24, 22, 24, 4),
             child: Row(
               children: [
-                _Tab('Bugün', 0),
+                _tab('Bugün', 0),
                 const SizedBox(width: 28),
-                _Tab('Topluluk', 1),
+                _tab('Topluluk', 1),
               ],
             ),
           ),
@@ -39,28 +66,26 @@ class _HomeScreenState extends State<HomeScreen> {
                               style: Theme.of(context).textTheme.headlineMedium,
                             ),
                           ),
-                          const Icon(Icons.bolt_outlined, size: 30),
+                          Icon(Icons.bolt_outlined, size: 29, color: scheme.primary),
                           const SizedBox(width: 3),
                           const Text('12', style: TextStyle(fontSize: 16)),
                           const SizedBox(width: 18),
-                          const Icon(Icons.notifications_none_rounded, size: 30),
+                          const Icon(Icons.notifications_none_rounded, size: 29),
                         ],
                       ),
                       const SizedBox(height: 24),
-                      _VerseCard(muted: muted),
+                      _VerseCard(reference: _todayVerse),
                       const SizedBox(height: 18),
-                      _InfoCard(
-                        eyebrow: 'Hoş geldiniz',
-                        title: 'Kuran ile bağlantı kurmanın dört yolunu keşfedelim.',
-                        button: 'Devam',
-                        trailing: _RoundBadge('1 / 4'),
+                      _ContinueCard(
+                        surah: lastSurah,
+                        ayah: settings.lastAyah,
                       ),
                       const SizedBox(height: 18),
-                      _InfoCard(
+                      const _InfoCard(
                         eyebrow: 'Bugünün 5 Dakikası',
                         title: 'Bugün Kuran ile biraz zaman geçirin.',
                         button: '4–6 dakika',
-                        trailing: const Icon(Icons.auto_awesome_outlined, size: 56),
+                        trailing: Icon(Icons.auto_awesome_outlined, size: 54),
                       ),
                       const SizedBox(height: 32),
                       Text(
@@ -68,22 +93,23 @@ class _HomeScreenState extends State<HomeScreen> {
                         style: Theme.of(context).textTheme.headlineMedium,
                       ),
                       const SizedBox(height: 18),
-                      _InfoCard(
+                      const _InfoCard(
                         eyebrow: 'Başlayacak bir yere mi ihtiyacınız var?',
                         title: 'Kuran’da zaman geçirmenize yardımcı olacak bir plan seçin.',
-                        button: 'Planlar Bul',
-                        trailing: const Icon(Icons.route_outlined, size: 58),
+                        button: 'Planları keşfet',
+                        trailing: Icon(Icons.route_outlined, size: 56),
                       ),
                     ],
                   )
-                : _CommunityPlaceholder(muted: muted),
+                : const _CommunityPlaceholder(),
           ),
         ],
       ),
     );
   }
 
-  Widget _Tab(String text, int index) {
+  Widget _tab(String text, int index) {
+    final scheme = Theme.of(context).colorScheme;
     final selected = tab == index;
     return GestureDetector(
       onTap: () => setState(() => tab = index),
@@ -95,7 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
             style: TextStyle(
               fontSize: 25,
               fontWeight: FontWeight.w900,
-              color: selected ? Colors.white : Colors.white54,
+              color: selected ? scheme.onSurface : scheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 9),
@@ -104,7 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
             width: selected ? 88 : 0,
             height: 4,
             decoration: BoxDecoration(
-              color: const Color(0xFF70C9A9),
+              color: scheme.primary,
               borderRadius: BorderRadius.circular(5),
             ),
           ),
@@ -115,46 +141,67 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _VerseCard extends StatelessWidget {
-  const _VerseCard({required this.muted});
-  final Color muted;
+  const _VerseCard({required this.reference});
+
+  final (int, int) reference;
 
   @override
   Widget build(BuildContext context) {
+    final surah = surahByNumber(reference.$1);
+    final verse = quran.getVerse(reference.$1, reference.$2);
+
     return Container(
-      height: 310,
+      constraints: const BoxConstraints(minHeight: 285),
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF283A34), Color(0xFF1E2724)],
+          colors: [Color(0xFF315348), Color(0xFF182B25)],
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .12),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Günün Ayeti', style: TextStyle(color: muted, fontSize: 16)),
+          const Text(
+            'Günün Ayeti',
+            style: TextStyle(color: Colors.white70, fontSize: 15),
+          ),
           const SizedBox(height: 6),
-          const Text('İnşirah 94:6 · DİB',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
-          const Spacer(),
-          const Text(
-            'إِنَّ مَعَ الْعُسْرِ يُسْرًا',
+          Text(
+            '${surah.nameTr} ${reference.$1}:${reference.$2}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 21,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 30),
+          Text(
+            verse,
             textDirection: TextDirection.rtl,
-            style: TextStyle(fontFamily: 'serif', fontSize: 30, height: 1.7),
+            textAlign: TextAlign.right,
+            style: const TextStyle(
+              color: Colors.white,
+              fontFamily: 'serif',
+              fontSize: 28,
+              height: 1.85,
+            ),
           ),
-          const SizedBox(height: 10),
-          const Text(
-            'Meal metni burada seçilen çeviriye göre gösterilecek.',
-            style: TextStyle(fontFamily: 'serif', fontSize: 21, height: 1.35),
-          ),
-          const Spacer(),
+          const SizedBox(height: 24),
           const Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _Stat(Icons.favorite_border, 'Kaydet'),
-              _Stat(Icons.chat_bubble_outline, 'Not'),
+              _Stat(Icons.bookmark_border_rounded, 'Kaydet'),
+              _Stat(Icons.headphones_outlined, 'Dinle'),
               _Stat(Icons.ios_share_outlined, 'Paylaş'),
               _Stat(Icons.more_horiz, 'Daha fazla'),
             ],
@@ -165,16 +212,71 @@ class _VerseCard extends StatelessWidget {
   }
 }
 
+class _ContinueCard extends StatelessWidget {
+  const _ContinueCard({required this.surah, required this.ayah});
+
+  final SurahInfo surah;
+  final int ayah;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(19),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 54,
+            height: 54,
+            decoration: BoxDecoration(
+              color: scheme.primaryContainer,
+              borderRadius: BorderRadius.circular(17),
+            ),
+            child: Icon(Icons.menu_book_rounded, color: scheme.primary),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Kaldığınız yerden devam edin',
+                  style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${surah.nameTr} ${surah.number}:$ayah',
+                  style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right_rounded),
+        ],
+      ),
+    );
+  }
+}
+
 class _Stat extends StatelessWidget {
   const _Stat(this.icon, this.label);
+
   final IconData icon;
   final String label;
+
   @override
   Widget build(BuildContext context) => Column(
         children: [
-          Icon(icon, size: 24),
+          Icon(icon, size: 23, color: Colors.white),
           const SizedBox(height: 5),
-          Text(label, style: const TextStyle(fontSize: 12)),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white70, fontSize: 11),
+          ),
         ],
       );
 }
@@ -194,10 +296,11 @@ class _InfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF211F1F),
+        color: scheme.surfaceContainer,
         borderRadius: BorderRadius.circular(25),
       ),
       child: Row(
@@ -206,77 +309,85 @@ class _InfoCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(eyebrow,
-                    style: TextStyle(color: Colors.white.withValues(alpha: .62), fontSize: 15)),
+                Text(
+                  eyebrow,
+                  style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 14),
+                ),
                 const SizedBox(height: 7),
-                Text(title,
-                    style: const TextStyle(fontSize: 23, height: 1.25, fontWeight: FontWeight.w800)),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    height: 1.25,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
                 const SizedBox(height: 14),
                 DecoratedBox(
                   decoration: BoxDecoration(
-                    color: const Color(0xFF4B4949),
+                    color: scheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(22),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-                    child: Text(button, style: const TextStyle(fontWeight: FontWeight.w700)),
+                    child: Text(
+                      button,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(width: 15),
-          SizedBox(width: 92, child: Center(child: trailing)),
+          SizedBox(
+            width: 88,
+            child: IconTheme(
+              data: IconThemeData(color: scheme.primary),
+              child: Center(child: trailing),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-class _RoundBadge extends StatelessWidget {
-  const _RoundBadge(this.text);
-  final String text;
-  @override
-  Widget build(BuildContext context) => Container(
-        width: 78,
-        height: 78,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: const Color(0xFF70C9A9), width: 5),
-        ),
-        alignment: Alignment.center,
-        child: Text(text, style: const TextStyle(fontWeight: FontWeight.w900)),
-      );
-}
-
 class _CommunityPlaceholder extends StatelessWidget {
-  const _CommunityPlaceholder({required this.muted});
-  final Color muted;
+  const _CommunityPlaceholder();
 
   @override
-  Widget build(BuildContext context) => ListView(
-        padding: const EdgeInsets.fromLTRB(20, 72, 20, 120),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(28),
-            decoration: BoxDecoration(
-              color: const Color(0xFF211F1F),
-              borderRadius: BorderRadius.circular(30),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Kendini Çevrele', style: Theme.of(context).textTheme.headlineMedium),
-                const SizedBox(height: 22),
-                Text(
-                  'Arkadaşlarla okuma planları ve özel gruplar daha sonraki sürümde burada olacak.',
-                  style: TextStyle(color: muted, fontSize: 18, height: 1.45),
-                ),
-                const SizedBox(height: 22),
-                FilledButton(onPressed: () {}, child: const Text('Arkadaş Ekle')),
-              ],
-            ),
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 72, 20, 120),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainer,
+            borderRadius: BorderRadius.circular(30),
           ),
-        ],
-      );
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Birlikte okumak',
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+              const SizedBox(height: 18),
+              Text(
+                'Özel arkadaş grupları ve birlikte okuma planları daha sonra burada olacak. Açık, karmaşık bir sosyal ağ kurup moderasyon cehennemi yaratmıyoruz.',
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant,
+                  fontSize: 17,
+                  height: 1.45,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 }
