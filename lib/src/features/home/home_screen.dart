@@ -78,7 +78,14 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           Icon(Icons.bolt_outlined, size: 29, color: scheme.primary),
                           const SizedBox(width: 3),
-                          const Text('12', style: TextStyle(fontSize: 16)),
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 180),
+                            child: Text(
+                              '${settings.readingStreak}',
+                              key: ValueKey(settings.readingStreak),
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                          ),
                           const SizedBox(width: 18),
                           const Icon(Icons.notifications_none_rounded, size: 29),
                         ],
@@ -149,6 +156,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
 class _VerseCard extends StatelessWidget {
   const _VerseCard({required this.reference});
+
   final (int, int) reference;
 
   @override
@@ -244,6 +252,7 @@ class _VerseCard extends StatelessWidget {
 
 class _ContinueCard extends StatelessWidget {
   const _ContinueCard({required this.surah, required this.ayah});
+
   final SurahInfo surah;
   final int ayah;
 
@@ -293,6 +302,7 @@ class _ContinueCard extends StatelessWidget {
 
 class _Stat extends StatelessWidget {
   const _Stat(this.icon, this.label);
+
   final IconData icon;
   final String label;
 
@@ -313,6 +323,7 @@ class _InfoCard extends StatelessWidget {
     required this.button,
     required this.icon,
   });
+
   final String eyebrow;
   final String title;
   final String button;
@@ -337,7 +348,11 @@ class _InfoCard extends StatelessWidget {
                 const SizedBox(height: 7),
                 Text(
                   title,
-                  style: const TextStyle(fontSize: 22, height: 1.25, fontWeight: FontWeight.w800),
+                  style: const TextStyle(
+                    fontSize: 22,
+                    height: 1.25,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 const SizedBox(height: 14),
                 DecoratedBox(
@@ -347,7 +362,10 @@ class _InfoCard extends StatelessWidget {
                   ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-                    child: Text(button, style: const TextStyle(fontWeight: FontWeight.w700)),
+                    child: Text(
+                      button,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
                   ),
                 ),
               ],
@@ -379,11 +397,18 @@ class _CommunityPlaceholder extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Birlikte okumak', style: Theme.of(context).textTheme.headlineMedium),
+              Text(
+                'Birlikte okumak',
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
               const SizedBox(height: 18),
               Text(
                 'Özel arkadaş grupları ve birlikte okuma planları daha sonraki sürümlerde burada yer alacak.',
-                style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 17, height: 1.45),
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant,
+                  fontSize: 17,
+                  height: 1.45,
+                ),
               ),
             ],
           ),
