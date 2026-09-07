@@ -5,6 +5,7 @@ import '../features/home/home_screen.dart';
 import '../features/plans/plans_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/reader/quran_reader_screen.dart';
+import '../l10n/app_localizations.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -28,6 +29,7 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = context.l10n;
 
     return Scaffold(
       extendBody: true,
@@ -56,20 +58,20 @@ class _AppShellState extends State<AppShell> {
               ),
               child: Row(
                 children: [
-                  _navItem(0, Icons.home_outlined, Icons.home_rounded, 'Ana Sayfa'),
-                  _navItem(1, Icons.menu_book_outlined, Icons.menu_book_rounded, 'Kuran'),
+                  _navItem(0, Icons.home_outlined, Icons.home_rounded, l10n.navHome),
+                  _navItem(1, Icons.menu_book_outlined, Icons.menu_book_rounded, l10n.navQuran),
                   _navItem(
                     2,
                     Icons.library_add_check_outlined,
                     Icons.library_add_check_rounded,
-                    'Planlar',
+                    l10n.navPlans,
                   ),
-                  _navItem(3, Icons.search_rounded, Icons.search_rounded, 'Keşfedin'),
+                  _navItem(3, Icons.search_rounded, Icons.search_rounded, l10n.navDiscover),
                   _navItem(
                     4,
                     Icons.account_circle_outlined,
                     Icons.account_circle,
-                    'Siz',
+                    l10n.navProfile,
                   ),
                 ],
               ),
