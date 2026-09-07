@@ -9,6 +9,7 @@ import '../features/plans/plans_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/reader/quran_reader_screen.dart';
 import '../l10n/app_localizations.dart';
+import '../navigation/app_navigation.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -28,6 +29,25 @@ class _AppShellState extends State<AppShell> {
     DiscoverScreen(),
     ProfileScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    AppNavigation.instance.tabRequest.addListener(_handleTabRequest);
+  }
+
+  @override
+  void dispose() {
+    AppNavigation.instance.tabRequest.removeListener(_handleTabRequest);
+    super.dispose();
+  }
+
+  void _handleTabRequest() {
+    final requested = AppNavigation.instance.tabRequest.value;
+    if (requested == null) return;
+    _selectTab(requested, haptic: false);
+    AppNavigation.instance.consumeTabRequest();
+  }
 
   void _selectTab(int next, {bool haptic = true}) {
     final safe = next.clamp(0, _screens.length - 1).toInt();
@@ -60,8 +80,6 @@ class _AppShellState extends State<AppShell> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(35),
           child: BackdropFilter(
-            // Tek blur katmanı kullanıyoruz. Beş ayrı blur güzel görünür ama eski
-            // Android telefonları gereksiz yere sobaya çevirebilir.
             filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
             child: Container(
               height: 74,
