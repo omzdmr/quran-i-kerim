@@ -1,9 +1,12 @@
+import 'dart:collection';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum ReaderDisplayMode { arabic, arabicAndTranslation, translation }
+
+enum VerseHighlightColor { yellow, green, blue, orange, pink }
 
 class AppSettings extends ChangeNotifier {
   static const _themeKey = 'theme_mode';
@@ -14,6 +17,7 @@ class AppSettings extends ChangeNotifier {
   static const _arabicFontSizeKey = 'arabic_font_size';
   static const _bookmarksKey = 'bookmarks';
   static const _notesKey = 'verse_notes';
+  static const _highlightsKey = 'verse_highlights';
 
   ThemeMode _themeMode = ThemeMode.system;
   Locale? _locale;
@@ -23,6 +27,7 @@ class AppSettings extends ChangeNotifier {
   double _arabicFontSize = 29;
   Set<String> _bookmarks = <String>{};
   Map<String, String> _notes = <String, String>{};
+  Map<String, String> _highlights = <String, String>{};
 
   ThemeMode get themeMode => _themeMode;
   Locale? get locale => _locale;
@@ -30,6 +35,10 @@ class AppSettings extends ChangeNotifier {
   int get lastAyah => _lastAyah;
   ReaderDisplayMode get readerMode => _readerMode;
   double get arabicFontSize => _arabicFontSize;
+
+  UnmodifiableSetView<String> get bookmarkKeys => UnmodifiableSetView(_bookmarks);
+  UnmodifiableMapView<String, String> get noteEntries => UnmodifiableMapView(_notes);
+  UnmodifiableMapView<String, String> get highlightEntries => UnmodifiableMapView(_highlights);
 
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -57,15 +66,17 @@ class AppSettings extends ChangeNotifier {
 
     _arabicFontSize = (prefs.getDouble(_arabicFontSizeKey) ?? 29).clamp(22, 42);
     _bookmarks = (prefs.getStringList(_bookmarksKey) ?? const <String>[]).toSet();
+    _notes = _decodeStringMap(prefs.getString(_notesKey));
+    _highlights = _decodeStringMap(prefs.getString(_highlightsKey));
+  }
 
-    final notesJson = prefs.getString(_notesKey);
-    if (notesJson != null && notesJson.isNotEmpty) {
-      try {
-        final decoded = jsonDecode(notesJson) as Map<String, dynamic>;
-        _notes = decoded.map((key, value) => MapEntry(key, value.toString()));
-      } catch (_) {
-        _notes = <String, String>{};
-      }
+  Map<String, String> _decodeStringMap(String? encoded) {
+    if (encoded == null || encoded.isEmpty) return <String, String>{};
+    try {
+      final decoded = jsonDecode(encoded) as Map<String, dynamic>;
+      return decoded.map((key, value) => MapEntry(key, value.toString()));
+    } catch (_) {
+      return <String, String>{};
     }
   }
 
@@ -139,24 +150,62 @@ class AppSettings extends ChangeNotifier {
     ]);
   }
 
-  String _verseKey(int surah, int ayah) => '$surah:$ayah';
+  String verseKey(int surah, int ayah) => '$surah:$ayah';
 
-  bool isBookmarked(int surah, int ayah) => _bookmarks.contains(_verseKey(surah, ayah));
+  String selectionKey(int surah, Iterable<int> ayahs) {
+    final sorted = ayahs.toSet().toList()..sort();
+    if (sorted.isEmpty) return '$surah:1';
+    if (sorted.length == 1) return verseKey(surah, sorted.single);
+
+    var contiguous = true;
+    for (var i = 1; i < sorted.length; i++) {
+      if (sorted[i] != sorted[i - 1] + 1) {
+        contiguous = false;
+        break;
+      }
+    }
+    return contiguous
+        ? '$surah:${sorted.first}-${sorted.last}'
+        : '$surah:${sorted.join(',')}';
+  }
+
+  bool isBookmarked(int surah, int ayah) => _bookmarks.contains(verseKey(surah, ayah));
 
   Future<void> toggleBookmark(int surah, int ayah) async {
-    final key = _verseKey(surah, ayah);
+    final key = verseKey(surah, ayah);
     if (!_bookmarks.add(key)) _bookmarks.remove(key);
     notifyListeners();
+    await _persistBookmarks();
+  }
 
+  Future<void> bookmarkSelection(int surah, Iterable<int> ayahs) async {
+    for (final ayah in ayahs) {
+      _bookmarks.add(verseKey(surah, ayah));
+    }
+    notifyListeners();
+    await _persistBookmarks();
+  }
+
+  Future<void> _persistBookmarks() async {
     final prefs = await SharedPreferences.getInstance();
     final sorted = _bookmarks.toList()..sort();
     await prefs.setStringList(_bookmarksKey, sorted);
   }
 
-  String? noteFor(int surah, int ayah) => _notes[_verseKey(surah, ayah)];
+  String? noteFor(int surah, int ayah) => _notes[verseKey(surah, ayah)];
 
-  Future<void> setNote(int surah, int ayah, String text) async {
-    final key = _verseKey(surah, ayah);
+  String? noteForSelection(int surah, Iterable<int> ayahs) =>
+      _notes[selectionKey(surah, ayahs)];
+
+  Future<void> setNote(int surah, int ayah, String text) =>
+      setNoteForSelection(surah, <int>[ayah], text);
+
+  Future<void> setNoteForSelection(
+    int surah,
+    Iterable<int> ayahs,
+    String text,
+  ) async {
+    final key = selectionKey(surah, ayahs);
     final trimmed = text.trim();
     if (trimmed.isEmpty) {
       _notes.remove(key);
@@ -167,6 +216,40 @@ class AppSettings extends ChangeNotifier {
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_notesKey, jsonEncode(_notes));
+  }
+
+  VerseHighlightColor? highlightFor(int surah, int ayah) {
+    final stored = _highlights[verseKey(surah, ayah)];
+    if (stored == null) return null;
+    for (final color in VerseHighlightColor.values) {
+      if (color.name == stored) return color;
+    }
+    return null;
+  }
+
+  Future<void> setHighlight(
+    int surah,
+    int ayah,
+    VerseHighlightColor? color,
+  ) => setHighlightForSelection(surah, <int>[ayah], color);
+
+  Future<void> setHighlightForSelection(
+    int surah,
+    Iterable<int> ayahs,
+    VerseHighlightColor? color,
+  ) async {
+    for (final ayah in ayahs) {
+      final key = verseKey(surah, ayah);
+      if (color == null) {
+        _highlights.remove(key);
+      } else {
+        _highlights[key] = color.name;
+      }
+    }
+    notifyListeners();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_highlightsKey, jsonEncode(_highlights));
   }
 }
 
