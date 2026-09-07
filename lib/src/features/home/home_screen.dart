@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:quran/quran.dart' as quran;
 
 import '../../data/surah_catalog.dart';
 import '../../data/translation_catalog.dart';
 import '../../data/translation_repository.dart';
+import '../../navigation/app_navigation.dart';
 import '../../settings/app_settings.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -159,92 +161,104 @@ class _VerseCard extends StatelessWidget {
 
   final (int, int) reference;
 
+  void _openReader() {
+    HapticFeedback.selectionClick();
+    AppNavigation.instance.openReader(surah: reference.$1, ayah: reference.$2);
+  }
+
   @override
   Widget build(BuildContext context) {
     final surah = surahByNumber(reference.$1);
     final translation = translationCatalog.first;
 
-    return Container(
-      constraints: const BoxConstraints(minHeight: 330),
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _openReader,
         borderRadius: BorderRadius.circular(28),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF315348), Color(0xFF182B25)],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: .12),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Günün Ayeti', style: TextStyle(color: Colors.white70)),
-          const SizedBox(height: 6),
-          Text(
-            '${surah.nameTr} ${reference.$1}:${reference.$2} · ${translation.code}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
+        child: Ink(
+          constraints: const BoxConstraints(minHeight: 330),
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF315348), Color(0xFF182B25)],
             ),
-          ),
-          const SizedBox(height: 26),
-          Text(
-            quran.getVerse(reference.$1, reference.$2),
-            textDirection: TextDirection.rtl,
-            textAlign: TextAlign.right,
-            style: const TextStyle(
-              color: Colors.white,
-              fontFamily: 'serif',
-              fontSize: 27,
-              height: 1.8,
-            ),
-          ),
-          const SizedBox(height: 18),
-          FutureBuilder<String?>(
-            future: TranslationRepository.instance.turkishVerse(
-              reference.$1,
-              reference.$2,
-            ),
-            builder: (context, snapshot) {
-              if (snapshot.hasError) {
-                return const Text(
-                  'Türkçe meal şu anda gösterilemiyor.',
-                  style: TextStyle(color: Colors.white70, height: 1.5),
-                );
-              }
-              return AnimatedSwitcher(
-                duration: const Duration(milliseconds: 180),
-                child: Text(
-                  snapshot.data ?? 'Meal yükleniyor…',
-                  key: ValueKey(snapshot.data),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 17,
-                    height: 1.5,
-                  ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 24),
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _Stat(Icons.bookmark_border_rounded, 'Kaydet'),
-              _Stat(Icons.headphones_outlined, 'Dinle'),
-              _Stat(Icons.ios_share_outlined, 'Paylaş'),
-              _Stat(Icons.more_horiz, 'Daha fazla'),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: .12),
+                blurRadius: 24,
+                offset: const Offset(0, 10),
+              ),
             ],
           ),
-        ],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Günün Ayeti', style: TextStyle(color: Colors.white70)),
+              const SizedBox(height: 6),
+              Text(
+                '${surah.nameTr} ${reference.$1}:${reference.$2} · ${translation.code}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 26),
+              Text(
+                quran.getVerse(reference.$1, reference.$2),
+                textDirection: TextDirection.rtl,
+                textAlign: TextAlign.right,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontFamily: 'serif',
+                  fontSize: 27,
+                  height: 1.8,
+                ),
+              ),
+              const SizedBox(height: 18),
+              FutureBuilder<String?>(
+                future: TranslationRepository.instance.turkishVerse(
+                  reference.$1,
+                  reference.$2,
+                ),
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return const Text(
+                      'Türkçe meal şu anda gösterilemiyor.',
+                      style: TextStyle(color: Colors.white70, height: 1.5),
+                    );
+                  }
+                  return AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 180),
+                    child: Text(
+                      snapshot.data ?? 'Meal yükleniyor…',
+                      key: ValueKey(snapshot.data),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        height: 1.5,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 24),
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _Stat(Icons.bookmark_border_rounded, 'Kaydet'),
+                  _Stat(Icons.headphones_outlined, 'Dinle'),
+                  _Stat(Icons.ios_share_outlined, 'Paylaş'),
+                  _Stat(Icons.more_horiz, 'Daha fazla'),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -259,42 +273,49 @@ class _ContinueCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(19),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainer,
+    return Material(
+      color: scheme.surfaceContainer,
+      borderRadius: BorderRadius.circular(24),
+      child: InkWell(
         borderRadius: BorderRadius.circular(24),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 54,
-            height: 54,
-            decoration: BoxDecoration(
-              color: scheme.primaryContainer,
-              borderRadius: BorderRadius.circular(17),
-            ),
-            child: Icon(Icons.menu_book_rounded, color: scheme.primary),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Kaldığınız yerden devam edin',
-                  style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+        onTap: () {
+          HapticFeedback.selectionClick();
+          AppNavigation.instance.openReader(surah: surah.number, ayah: ayah);
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(19),
+          child: Row(
+            children: [
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  color: scheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(17),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '${surah.nameTr} ${surah.number}:$ayah',
-                  style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+                child: Icon(Icons.menu_book_rounded, color: scheme.primary),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Kaldığınız yerden devam edin',
+                      style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${surah.nameTr} ${surah.number}:$ayah',
+                      style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              const Icon(Icons.chevron_right_rounded),
+            ],
           ),
-          const Icon(Icons.chevron_right_rounded),
-        ],
+        ),
       ),
     );
   }
