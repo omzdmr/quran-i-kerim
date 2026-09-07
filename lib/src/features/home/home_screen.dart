@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:quran/quran.dart' as quran;
+
 import '../../data/surah_catalog.dart';
+import '../../data/translation_catalog.dart';
+import '../../data/translation_repository.dart';
 import '../../settings/app_settings.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -14,8 +17,18 @@ class _HomeScreenState extends State<HomeScreen> {
   int _tab = 0;
 
   static const _dailyVerseRefs = <(int, int)>[
-    (94, 5), (94, 6), (2, 286), (13, 28), (39, 53), (65, 3),
-    (3, 139), (2, 152), (93, 5), (20, 46), (29, 69), (14, 7),
+    (94, 5),
+    (94, 6),
+    (2, 286),
+    (13, 28),
+    (39, 53),
+    (65, 3),
+    (3, 139),
+    (2, 152),
+    (93, 5),
+    (20, 46),
+    (29, 69),
+    (14, 7),
   ];
 
   (int, int) get _todayVerse {
@@ -141,8 +154,10 @@ class _VerseCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final surah = surahByNumber(reference.$1);
+    final translation = translationCatalog.first;
+
     return Container(
-      constraints: const BoxConstraints(minHeight: 285),
+      constraints: const BoxConstraints(minHeight: 330),
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
@@ -165,14 +180,14 @@ class _VerseCard extends StatelessWidget {
           const Text('Günün Ayeti', style: TextStyle(color: Colors.white70)),
           const SizedBox(height: 6),
           Text(
-            '${surah.nameTr} ${reference.$1}:${reference.$2}',
+            '${surah.nameTr} ${reference.$1}:${reference.$2} · ${translation.code}',
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 21,
+              fontSize: 20,
               fontWeight: FontWeight.w900,
             ),
           ),
-          const SizedBox(height: 30),
+          const SizedBox(height: 26),
           Text(
             quran.getVerse(reference.$1, reference.$2),
             textDirection: TextDirection.rtl,
@@ -180,9 +195,36 @@ class _VerseCard extends StatelessWidget {
             style: const TextStyle(
               color: Colors.white,
               fontFamily: 'serif',
-              fontSize: 28,
-              height: 1.85,
+              fontSize: 27,
+              height: 1.8,
             ),
+          ),
+          const SizedBox(height: 18),
+          FutureBuilder<String?>(
+            future: TranslationRepository.instance.turkishVerse(
+              reference.$1,
+              reference.$2,
+            ),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return const Text(
+                  'Türkçe meal şu anda gösterilemiyor.',
+                  style: TextStyle(color: Colors.white70, height: 1.5),
+                );
+              }
+              return AnimatedSwitcher(
+                duration: const Duration(milliseconds: 180),
+                child: Text(
+                  snapshot.data ?? 'Meal yükleniyor…',
+                  key: ValueKey(snapshot.data),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 17,
+                    height: 1.5,
+                  ),
+                ),
+              );
+            },
           ),
           const SizedBox(height: 24),
           const Row(
