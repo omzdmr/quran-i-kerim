@@ -30,7 +30,7 @@ class _AppShellState extends State<AppShell> {
   ];
 
   void _selectTab(int next, {bool haptic = true}) {
-    final safe = next.clamp(0, _screens.length - 1);
+    final safe = next.clamp(0, _screens.length - 1).toInt();
     if (safe == _index) return;
     setState(() => _index = safe);
     if (haptic) HapticFeedback.selectionClick();
@@ -39,7 +39,10 @@ class _AppShellState extends State<AppShell> {
   int _indexForDx(double dx, double width) {
     if (width <= 0) return _index;
     final itemWidth = width / _screens.length;
-    return (dx / itemWidth).floor().clamp(0, _screens.length - 1);
+    return (dx / itemWidth)
+        .floor()
+        .clamp(0, _screens.length - 1)
+        .toInt();
   }
 
   @override
@@ -253,16 +256,12 @@ class _PressScaleState extends State<_PressScale> {
   Widget build(BuildContext context) {
     final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
 
-    return Listener(
+    return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onPointerDown: widget.enabled ? (_) => _setPressed(true) : null,
-      onPointerUp: widget.enabled
-          ? (_) {
-              _setPressed(false);
-              widget.onTap();
-            }
-          : null,
-      onPointerCancel: widget.enabled ? (_) => _setPressed(false) : null,
+      onTapDown: widget.enabled ? (_) => _setPressed(true) : null,
+      onTapCancel: widget.enabled ? () => _setPressed(false) : null,
+      onTapUp: widget.enabled ? (_) => _setPressed(false) : null,
+      onTap: widget.enabled ? widget.onTap : null,
       child: AnimatedScale(
         scale: _pressed && widget.enabled ? .94 : 1,
         duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 105),
