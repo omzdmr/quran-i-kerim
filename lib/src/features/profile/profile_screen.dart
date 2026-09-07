@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:quran/quran.dart' as quran;
 
 import '../../data/surah_catalog.dart';
+import '../../data/translation_repository.dart';
 import '../../l10n/app_localizations.dart';
+import '../../navigation/app_navigation.dart';
 import '../../settings/app_settings.dart';
 import '../settings/settings_screen.dart';
 
@@ -447,68 +450,104 @@ class _ArchiveCard extends StatelessWidget {
       _ArchiveKind.note => Icons.note_alt_rounded,
     };
 
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainer,
+    return Material(
+      color: scheme.surfaceContainer,
+      borderRadius: BorderRadius.circular(24),
+      child: InkWell(
         borderRadius: BorderRadius.circular(24),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 4,
-            height: 104,
-            decoration: BoxDecoration(
-              color: accent,
-              borderRadius: BorderRadius.circular(5),
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          AppNavigation.instance.openReader(
+            surah: item.surah,
+            ayah: item.ayahs.first,
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 4,
+                height: 132,
+                decoration: BoxDecoration(
+                  color: accent,
+                  borderRadius: BorderRadius.circular(5),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(icon, size: 17, color: accent),
-                    const SizedBox(width: 7),
-                    Text(
-                      label,
-                      style: TextStyle(color: accent, fontWeight: FontWeight.w800),
+                    Row(
+                      children: [
+                        Icon(icon, size: 17, color: accent),
+                        const SizedBox(width: 7),
+                        Text(
+                          label,
+                          style: TextStyle(color: accent, fontWeight: FontWeight.w800),
+                        ),
+                        const Spacer(),
+                        Flexible(
+                          child: Text(
+                            item.reference,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: scheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 2),
+                        Icon(Icons.chevron_right_rounded, size: 20, color: scheme.onSurfaceVariant),
+                      ],
                     ),
-                    const Spacer(),
+                    const SizedBox(height: 12),
                     Text(
-                      item.reference,
-                      style: TextStyle(
-                        color: scheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w700,
+                      item.arabic,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textDirection: TextDirection.rtl,
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(fontFamily: 'serif', fontSize: 20, height: 1.65),
+                    ),
+                    const SizedBox(height: 8),
+                    FutureBuilder<Map<String, String>>(
+                      future: TranslationRepository.instance.loadBundledTurkish(),
+                      builder: (context, snapshot) {
+                        final map = snapshot.data;
+                        if (map == null) return const SizedBox.shrink();
+                        final text = item.ayahs
+                            .take(3)
+                            .map((ayah) => map['${item.surah}:$ayah'])
+                            .whereType<String>()
+                            .join(' ');
+                        if (text.isEmpty) return const SizedBox.shrink();
+                        return Text(
+                          item.ayahs.length > 3 ? '$text …' : text,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: scheme.onSurfaceVariant, height: 1.4),
+                        );
+                      },
+                    ),
+                    if (item.note != null && item.note!.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'Not: ${item.note!}',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: scheme.onSurface, fontWeight: FontWeight.w700),
                       ),
-                    ),
+                    ],
                   ],
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  item.arabic,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  textDirection: TextDirection.rtl,
-                  textAlign: TextAlign.right,
-                  style: const TextStyle(fontFamily: 'serif', fontSize: 20, height: 1.7),
-                ),
-                if (item.note != null && item.note!.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  Text(
-                    item.note!,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: scheme.onSurfaceVariant, height: 1.4),
-                  ),
-                ],
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
