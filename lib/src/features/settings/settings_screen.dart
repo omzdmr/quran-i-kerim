@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import '../../settings/app_settings.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -8,56 +9,84 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final settings = AppSettingsScope.of(context);
     final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Ayarlar'),
+        title: Text(l10n.settings),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
         children: [
           Text(
-            'Görünüm',
+            l10n.appearance,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w900,
                 ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Uygulama cihazınızın temasını takip edebilir veya görünümü kendiniz seçebilirsiniz.',
+            l10n.appearanceDescription,
             style: TextStyle(
               color: scheme.onSurfaceVariant,
               height: 1.4,
             ),
           ),
           const SizedBox(height: 18),
-          _ThemeChoice(
-            title: 'Cihaz ayarını kullan',
-            subtitle: 'Telefon aydınlıksa aydınlık, koyuysa koyu tema',
+          _ChoiceTile(
+            title: l10n.useDeviceTheme,
+            subtitle: l10n.useDeviceThemeDescription,
             icon: Icons.brightness_auto_rounded,
-            value: ThemeMode.system,
             selected: settings.themeMode == ThemeMode.system,
             onTap: () => settings.setThemeMode(ThemeMode.system),
           ),
-          _ThemeChoice(
-            title: 'Aydınlık',
-            subtitle: 'Her zaman aydınlık görünüm',
+          _ChoiceTile(
+            title: l10n.lightTheme,
+            subtitle: l10n.lightThemeDescription,
             icon: Icons.light_mode_outlined,
-            value: ThemeMode.light,
             selected: settings.themeMode == ThemeMode.light,
             onTap: () => settings.setThemeMode(ThemeMode.light),
           ),
-          _ThemeChoice(
-            title: 'Koyu',
-            subtitle: 'Her zaman koyu görünüm',
+          _ChoiceTile(
+            title: l10n.darkTheme,
+            subtitle: l10n.darkThemeDescription,
             icon: Icons.dark_mode_outlined,
-            value: ThemeMode.dark,
             selected: settings.themeMode == ThemeMode.dark,
             onTap: () => settings.setThemeMode(ThemeMode.dark),
           ),
+          const SizedBox(height: 30),
+          Text(
+            l10n.language,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            l10n.languageDescription,
+            style: TextStyle(
+              color: scheme.onSurfaceVariant,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 18),
+          _ChoiceTile(
+            title: l10n.useDeviceLanguage,
+            subtitle: l10n.useDeviceLanguageDescription,
+            icon: Icons.language_rounded,
+            selected: settings.locale == null,
+            onTap: () => settings.setLocale(null),
+          ),
+          _ChoiceTile(
+            title: l10n.turkish,
+            subtitle: l10n.turkishDescription,
+            icon: Icons.translate_rounded,
+            selected: settings.locale?.languageCode == 'tr',
+            onTap: () => settings.setLocale(const Locale('tr')),
+          ),
           const SizedBox(height: 28),
           Text(
-            'Okuma',
+            l10n.reading,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w900,
                 ),
@@ -70,11 +99,11 @@ class SettingsScreen extends StatelessWidget {
             ),
             child: ListTile(
               leading: const Icon(Icons.history_rounded),
-              title: const Text(
-                'Kaldığım yeri hatırla',
-                style: TextStyle(fontWeight: FontWeight.w800),
+              title: Text(
+                l10n.rememberPosition,
+                style: const TextStyle(fontWeight: FontWeight.w800),
               ),
-              subtitle: const Text('Otomatik olarak açık'),
+              subtitle: Text(l10n.rememberPositionDescription),
               trailing: const Icon(Icons.check_circle_rounded),
             ),
           ),
@@ -84,12 +113,11 @@ class SettingsScreen extends StatelessWidget {
   }
 }
 
-class _ThemeChoice extends StatelessWidget {
-  const _ThemeChoice({
+class _ChoiceTile extends StatelessWidget {
+  const _ChoiceTile({
     required this.title,
     required this.subtitle,
     required this.icon,
-    required this.value,
     required this.selected,
     required this.onTap,
   });
@@ -97,7 +125,6 @@ class _ThemeChoice extends StatelessWidget {
   final String title;
   final String subtitle;
   final IconData icon;
-  final ThemeMode value;
   final bool selected;
   final VoidCallback onTap;
 
@@ -126,7 +153,7 @@ class _ThemeChoice extends StatelessWidget {
                         title,
                         style: const TextStyle(
                           fontSize: 16,
-                          fontWeight: FontWeight.w850,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                       const SizedBox(height: 3),
