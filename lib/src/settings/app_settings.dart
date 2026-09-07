@@ -24,7 +24,7 @@ class AppSettings extends ChangeNotifier {
 
     final savedSurah = prefs.getInt(_lastSurahKey) ?? 1;
     final savedAyah = prefs.getInt(_lastAyahKey) ?? 1;
-    _lastSurah = savedSurah.clamp(1, 114);
+    _lastSurah = savedSurah.clamp(1, 114).toInt();
     _lastAyah = savedAyah < 1 ? 1 : savedAyah;
   }
 
@@ -48,7 +48,7 @@ class AppSettings extends ChangeNotifier {
     required int surah,
     required int ayah,
   }) async {
-    final safeSurah = surah.clamp(1, 114);
+    final safeSurah = surah.clamp(1, 114).toInt();
     final safeAyah = ayah < 1 ? 1 : ayah;
     if (_lastSurah == safeSurah && _lastAyah == safeAyah) return;
 
