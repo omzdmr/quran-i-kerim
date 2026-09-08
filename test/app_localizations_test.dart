@@ -29,7 +29,7 @@ void main() {
     expect(l10n.appTitle, contains('القرآن'));
   });
 
-  test('primary Home, Discover and Plans copy exists in every locale', () {
+  test('primary feature copy exists in every locale', () {
     const keys = <String>[
       'today',
       'dailyVerse',
@@ -40,6 +40,18 @@ void main() {
       'readingPlans',
       'findPlans',
       'start',
+      'readerAppearance',
+      'quranSearchTitle',
+      'compareTexts',
+      'prayerSettings',
+      'chooseCity',
+      'monthlyPrayerTimes',
+      'fajr',
+      'isha',
+      'calculationMethod',
+      'translationSearchHint',
+      'downloadReady',
+      'translationInstalled',
     ];
 
     for (final locale in AppLocalizations.supportedLocales) {
