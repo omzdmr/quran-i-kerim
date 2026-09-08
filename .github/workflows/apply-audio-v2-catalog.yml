@@ -1,5 +1,5 @@
 name: Apply Audio v2 catalog
-# corrected Azeri catalog patch
+# corrected Azeri catalog patch with bundled content validation
 
 on:
   push:
@@ -32,6 +32,9 @@ jobs:
 
       - name: Format
         run: dart format lib/src/data/quran_audio_catalog.dart lib/src/data/translation_catalog.dart test/translation_catalog_test.dart
+
+      - name: Fetch bundled content
+        run: python3 tool/fetch_content.py
 
       - name: Resolve dependencies
         run: flutter pub get
