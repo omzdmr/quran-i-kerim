@@ -2,7 +2,7 @@ name: Android APK
 
 on:
   push:
-    branches: [ main, feature/localization-v01 ]
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
