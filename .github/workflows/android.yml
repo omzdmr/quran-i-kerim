@@ -2,7 +2,7 @@ name: Android APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, feature/localization-v01 ]
   workflow_dispatch:
 
 permissions:
@@ -61,6 +61,14 @@ jobs:
             -keystore .ci/test-signing.jks \
             -storepass android \
             -alias quran_test | grep -E "SHA256:|Owner:|Valid from:"
+
+      - name: Export stable test signing key
+        uses: actions/upload-artifact@v4
+        with:
+          name: quran-test-signing-key
+          path: .ci/test-signing.jks
+          if-no-files-found: error
+          retention-days: 1
 
       - name: Configure stable test signing
         run: |
