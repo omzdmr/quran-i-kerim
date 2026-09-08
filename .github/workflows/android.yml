@@ -94,13 +94,16 @@ jobs:
           path.write_text(text, encoding='utf-8')
           PY
 
-      - name: Set Android app label
+      - name: Configure Android manifest
         run: |
           python3 - <<'PY'
           from pathlib import Path
           path = Path('android/app/src/main/AndroidManifest.xml')
           text = path.read_text(encoding='utf-8')
           text = text.replace('android:label="quran_i_kerim"', 'android:label="Kur’an-ı Kerim"')
+          permission = '<uses-permission android:name="android.permission.INTERNET" />'
+          if permission not in text:
+              text = text.replace('<application', f'{permission}\n    <application', 1)
           path.write_text(text, encoding='utf-8')
           PY
 
@@ -114,7 +117,12 @@ jobs:
         run: flutter analyze lib --no-fatal-infos
 
       - name: Run tests
-        run: flutter test test/prayer_calculator_test.dart test/app_localizations_test.dart test/translation_repository_test.dart
+        run: >-
+          flutter test
+          test/prayer_calculator_test.dart
+          test/app_localizations_test.dart
+          test/translation_repository_test.dart
+          test/app_settings_source_test.dart
 
       - name: Build ARM64 test APK
         run: flutter build apk --release --target-platform android-arm64 --build-number=${{ github.run_number }}
