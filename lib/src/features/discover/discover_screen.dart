@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import '../prayer/presentation/prayer_screen.dart';
 
 class DiscoverScreen extends StatelessWidget {
   const DiscoverScreen({super.key});
@@ -16,6 +19,13 @@ class DiscoverScreen extends StatelessWidget {
       ('Korku', Color(0xFF747113), Icons.shield_outlined),
       ('Aile', Color(0xFF4A7080), Icons.groups_outlined),
     ];
+
+    void openPrayer() {
+      HapticFeedback.selectionClick();
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const PrayerScreen()),
+      );
+    }
 
     return SafeArea(
       child: ListView(
@@ -35,17 +45,19 @@ class DiscoverScreen extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 22),
-          const Row(
+          const SizedBox(height: 18),
+          _PrayerFeatureCard(onTap: openPrayer),
+          const SizedBox(height: 12),
+          Row(
             children: [
-              Expanded(
+              const Expanded(
                 child: _Shortcut(
                   Icons.library_add_check_outlined,
                   'Okuma Planları',
                 ),
               ),
-              SizedBox(width: 12),
-              Expanded(child: _Shortcut(Icons.menu_book_outlined, 'Ayetler')),
+              const SizedBox(width: 12),
+              const Expanded(child: _Shortcut(Icons.menu_book_outlined, 'Ayetler')),
             ],
           ),
           const SizedBox(height: 12),
@@ -102,6 +114,56 @@ class DiscoverScreen extends StatelessWidget {
             },
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PrayerFeatureCard extends StatelessWidget {
+  const _PrayerFeatureCard({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: scheme.surfaceContainer,
+      borderRadius: BorderRadius.circular(24),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: scheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(Icons.mosque_outlined, color: scheme.primary),
+              ),
+              const SizedBox(width: 14),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Namaz Vakitleri',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                    ),
+                    SizedBox(height: 3),
+                    Text('Geri sayım · Kıble · Aylık vakitler'),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded),
+            ],
+          ),
+        ),
       ),
     );
   }
