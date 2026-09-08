@@ -65,7 +65,7 @@ const translationCatalog = <TranslationInfo>[
     assetPath: 'assets/data/translations/tr_rwwad.json.gz',
     available: true,
     downloadable: false,
-    hasAudio: true,
+    hasAudio: false,
   ),
   TranslationInfo(
     id: englishTranslationId,
@@ -94,7 +94,7 @@ const translationCatalog = <TranslationInfo>[
     bundled: false,
     available: true,
     downloadable: true,
-    hasAudio: true,
+    hasAudio: false,
   ),
   TranslationInfo(
     id: 'russian_rwwad',
@@ -108,7 +108,7 @@ const translationCatalog = <TranslationInfo>[
     bundled: false,
     available: true,
     downloadable: true,
-    hasAudio: true,
+    hasAudio: false,
   ),
 ];
 

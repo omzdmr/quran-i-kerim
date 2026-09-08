@@ -31,6 +31,7 @@ void main() {
     await restored.load();
     expect(restored.locale?.languageCode, 'ru');
     expect(restored.selectedQuranSourceId, bundledTurkishTranslationId);
+    expect(restored.quranSourceWasUserSelected, isTrue);
     expect(restored.readerUsesArabic, isFalse);
   });
 }

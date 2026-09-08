@@ -4,6 +4,7 @@ import 'package:quran/quran.dart' as quran;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/surah_catalog.dart';
+import '../../data/surah_localization.dart';
 import '../../data/translation_catalog.dart';
 import '../../data/translation_repository.dart';
 import '../../l10n/app_localizations.dart';
@@ -53,7 +54,8 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  int _activityCount(AppSettings settings) => settings.bookmarkKeys.length +
+  int _activityCount(AppSettings settings) =>
+      settings.bookmarkKeys.length +
       settings.noteEntries.length +
       settings.highlightEntries.length;
 
@@ -122,7 +124,11 @@ class _HomeScreenState extends State<HomeScreen> {
                               style: Theme.of(context).textTheme.headlineMedium,
                             ),
                           ),
-                          Icon(Icons.bolt_outlined, size: 29, color: scheme.primary),
+                          Icon(
+                            Icons.bolt_outlined,
+                            size: 29,
+                            color: scheme.primary,
+                          ),
                           const SizedBox(width: 3),
                           AnimatedSwitcher(
                             duration: const Duration(milliseconds: 180),
@@ -133,7 +139,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                           const SizedBox(width: 18),
-                          const Icon(Icons.notifications_none_rounded, size: 29),
+                          const Icon(
+                            Icons.notifications_none_rounded,
+                            size: 29,
+                          ),
                         ],
                       ),
                       const SizedBox(height: 24),
@@ -256,21 +265,16 @@ class _VerseCardState extends State<_VerseCard> {
     );
   }
 
-  Future<String?> _preferredTranslationVerse(String languageCode) async {
-    final sourceId = defaultQuranSourceForLanguage(languageCode);
+  Future<String?> _preferredTranslationVerse(String sourceId) async {
     if (sourceId == arabicOriginalSourceId) return null;
-    final verses =
-        await TranslationRepository.instance.loadSourceVerses(sourceId);
+    final verses = await TranslationRepository.instance.loadSourceVerses(
+      sourceId,
+    );
     return verses['${widget.reference.$1}:${widget.reference.$2}'];
   }
 
   String _surahNameForLanguage(int surahNumber, String languageCode) =>
-      switch (languageCode) {
-        'ar' => quran.getSurahNameArabic(surahNumber),
-        'tr' => quran.getSurahNameTurkish(surahNumber),
-        'ru' => quran.getSurahNameRussian(surahNumber),
-        _ => quran.getSurahNameEnglish(surahNumber),
-      };
+      localizedSurahName(surahNumber, languageCode);
 
   String _homeText(String languageCode, String key) {
     const values = <String, Map<String, String>>{
@@ -310,10 +314,13 @@ class _VerseCardState extends State<_VerseCard> {
     final settings = AppSettingsScope.of(context);
     final l10n = context.l10n;
     final languageCode = l10n.locale.languageCode;
-    final homeSourceId = defaultQuranSourceForLanguage(languageCode);
+    final homeSourceId = settings.quranSourceWasUserSelected
+        ? settings.selectedQuranSourceId
+        : defaultQuranSourceForLanguage(languageCode);
     final translation = translationById(homeSourceId);
-    final sourceCode =
-        homeSourceId == arabicOriginalSourceId ? 'AR' : translation?.code ?? 'RWD';
+    final sourceCode = homeSourceId == arabicOriginalSourceId
+        ? 'AR'
+        : translation?.code ?? 'RWD';
 
     return Material(
       color: Colors.transparent,
@@ -381,7 +388,9 @@ class _VerseCardState extends State<_VerseCard> {
                 child: Text(
                   quran.getVerse(reference.$1, reference.$2),
                   maxLines: _expanded ? null : 4,
-                  overflow: _expanded ? TextOverflow.visible : TextOverflow.ellipsis,
+                  overflow: _expanded
+                      ? TextOverflow.visible
+                      : TextOverflow.ellipsis,
                   textDirection: TextDirection.rtl,
                   textAlign: TextAlign.right,
                   style: const TextStyle(
@@ -395,12 +404,15 @@ class _VerseCardState extends State<_VerseCard> {
               if (homeSourceId != arabicOriginalSourceId) ...[
                 const SizedBox(height: 18),
                 FutureBuilder<String?>(
-                  future: _preferredTranslationVerse(languageCode),
+                  future: _preferredTranslationVerse(homeSourceId),
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
                       return Text(
                         l10n.text('translationUnavailable'),
-                        style: const TextStyle(color: Colors.white70, height: 1.5),
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          height: 1.5,
+                        ),
                       );
                     }
                     return AnimatedSize(
@@ -408,10 +420,13 @@ class _VerseCardState extends State<_VerseCard> {
                       curve: Curves.easeOutCubic,
                       child: Text(
                         snapshot.data ?? l10n.text('translationLoading'),
-                        key: ValueKey('${settings.selectedQuranSourceId}:${snapshot.data}'),
+                        key: ValueKey(
+                          '${settings.selectedQuranSourceId}:${snapshot.data}',
+                        ),
                         maxLines: _expanded ? null : 3,
-                        overflow:
-                            _expanded ? TextOverflow.visible : TextOverflow.ellipsis,
+                        overflow: _expanded
+                            ? TextOverflow.visible
+                            : TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 17,
@@ -434,10 +449,7 @@ class _VerseCardState extends State<_VerseCard> {
                   ),
                   const SizedBox(width: 7),
                   Text(
-                    _homeText(
-                      languageCode,
-                      _expanded ? 'collapse' : 'expand',
-                    ),
+                    _homeText(languageCode, _expanded ? 'collapse' : 'expand'),
                     style: const TextStyle(
                       color: Colors.white70,
                       fontWeight: FontWeight.w700,
@@ -518,12 +530,18 @@ class _ContinueCard extends StatelessWidget {
                   children: [
                     Text(
                       l10n.text('continueReading'),
-                      style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+                      style: TextStyle(
+                        color: scheme.onSurfaceVariant,
+                        fontSize: 13,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       '${surah.nameTr} ${surah.number}:$ayah',
-                      style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+                      style: const TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ],
                 ),
@@ -545,12 +563,12 @@ class _Stat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-        children: [
-          Icon(icon, size: 23, color: Colors.white),
-          const SizedBox(height: 5),
-          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 11)),
-        ],
-      );
+    children: [
+      Icon(icon, size: 23, color: Colors.white),
+      const SizedBox(height: 5),
+      Text(label, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+    ],
+  );
 }
 
 class _InfoCard extends StatelessWidget {
@@ -598,15 +616,24 @@ class _InfoCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(22),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-                    child: Text(button, style: const TextStyle(fontWeight: FontWeight.w700)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 9,
+                    ),
+                    child: Text(
+                      button,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(width: 15),
-          SizedBox(width: 88, child: Icon(icon, size: 54, color: scheme.primary)),
+          SizedBox(
+            width: 88,
+            child: Icon(icon, size: 54, color: scheme.primary),
+          ),
         ],
       ),
     );
@@ -708,9 +735,8 @@ class _CommunityFeed extends StatelessWidget {
                   Expanded(
                     child: Text(
                       _text(languageCode, 'title'),
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w900,
-                          ),
+                      style: Theme.of(context).textTheme.titleLarge
+                          ?.copyWith(fontWeight: FontWeight.w900),
                     ),
                   ),
                 ],
@@ -718,10 +744,7 @@ class _CommunityFeed extends StatelessWidget {
               const SizedBox(height: 10),
               Text(
                 _text(languageCode, 'body'),
-                style: TextStyle(
-                  color: scheme.onSurfaceVariant,
-                  height: 1.45,
-                ),
+                style: TextStyle(color: scheme.onSurfaceVariant, height: 1.45),
               ),
             ],
           ),
@@ -736,18 +759,12 @@ class _CommunityFeed extends StatelessWidget {
             ),
             child: Text(
               _text(languageCode, 'empty'),
-              style: TextStyle(
-                color: scheme.onSurfaceVariant,
-                height: 1.5,
-              ),
+              style: TextStyle(color: scheme.onSurfaceVariant, height: 1.5),
             ),
           )
         else
           for (final item in items.take(30)) ...[
-            _ActivityCard(
-              item: item,
-              title: _text(languageCode, item.kind),
-            ),
+            _ActivityCard(item: item, title: _text(languageCode, item.kind)),
             const SizedBox(height: 10),
           ],
       ],
@@ -833,7 +850,10 @@ class _ActivityCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
+                    Text(
+                      title,
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       reference,
