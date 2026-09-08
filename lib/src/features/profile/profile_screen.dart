@@ -10,6 +10,7 @@ import '../../settings/app_settings.dart';
 import '../settings/settings_screen.dart';
 
 enum _ArchiveFilter { all, highlights, bookmarks, notes }
+
 enum _ArchiveKind { highlight, bookmark, note }
 
 class ProfileScreen extends StatefulWidget {
@@ -210,6 +211,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   List<_ArchiveItem> _archiveItems(AppSettings settings) {
     final items = <_ArchiveItem>[];
+    var fallbackOrder = 0;
 
     for (final entry in settings.highlightEntries.entries) {
       final parsed = _parseSelectionKey(entry.key);
@@ -219,10 +221,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
       items.add(
         _ArchiveItem(
+          key: entry.key,
           kind: _ArchiveKind.highlight,
           surah: parsed.$1,
           ayahs: parsed.$2,
           highlight: matches.isEmpty ? null : matches.first,
+          timestamp: settings.archiveTimestamp('highlight', entry.key),
+          fallbackOrder: fallbackOrder++,
         ),
       );
     }
@@ -232,9 +237,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (parsed == null) continue;
       items.add(
         _ArchiveItem(
+          key: key,
           kind: _ArchiveKind.bookmark,
           surah: parsed.$1,
           ayahs: parsed.$2,
+          timestamp: settings.archiveTimestamp('bookmark', key),
+          fallbackOrder: fallbackOrder++,
         ),
       );
     }
@@ -244,18 +252,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (parsed == null) continue;
       items.add(
         _ArchiveItem(
+          key: entry.key,
           kind: _ArchiveKind.note,
           surah: parsed.$1,
           ayahs: parsed.$2,
           note: entry.value,
+          sourceCode: settings.noteSourceForKey(entry.key),
+          timestamp: settings.archiveTimestamp('note', entry.key),
+          fallbackOrder: fallbackOrder++,
         ),
       );
     }
 
     items.sort((a, b) {
-      final surahCompare = a.surah.compareTo(b.surah);
-      if (surahCompare != 0) return surahCompare;
-      return a.ayahs.first.compareTo(b.ayahs.first);
+      final timeCompare = b.timestamp.compareTo(a.timestamp);
+      if (timeCompare != 0) return timeCompare;
+      return b.fallbackOrder.compareTo(a.fallbackOrder);
     });
     return items;
   }
@@ -293,18 +305,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
 class _ArchiveItem {
   const _ArchiveItem({
+    required this.key,
     required this.kind,
     required this.surah,
     required this.ayahs,
+    required this.timestamp,
+    required this.fallbackOrder,
     this.highlight,
     this.note,
+    this.sourceCode = 'RWD',
   });
 
+  final String key;
   final _ArchiveKind kind;
   final int surah;
   final List<int> ayahs;
   final VerseHighlightColor? highlight;
   final String? note;
+  final String sourceCode;
+  final int timestamp;
+  final int fallbackOrder;
 
   String get reference {
     final surahInfo = surahByNumber(surah);
@@ -324,9 +344,9 @@ class _ArchiveItem {
   }
 
   String get arabic {
-    final visible = ayahs.take(3);
+    final visible = ayahs.take(4);
     final text = visible.map((ayah) => quran.getVerse(surah, ayah)).join(' ');
-    return ayahs.length > 3 ? '$text …' : text;
+    return ayahs.length > 4 ? '$text …' : text;
   }
 }
 
@@ -374,12 +394,18 @@ class _ActivityCard extends StatelessWidget {
             children: [
               Text(
                 value,
-                style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w900),
+                style: const TextStyle(
+                  fontSize: 34,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               const SizedBox(width: 6),
               Padding(
                 padding: const EdgeInsets.only(bottom: 5),
-                child: Text(suffix, style: TextStyle(color: scheme.onSurfaceVariant)),
+                child: Text(
+                  suffix,
+                  style: TextStyle(color: scheme.onSurfaceVariant),
+                ),
               ),
             ],
           ),
@@ -415,7 +441,10 @@ class _MetricCard extends StatelessWidget {
         children: [
           Icon(icon, size: 20, color: scheme.primary),
           const Spacer(),
-          Text('$value', style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900)),
+          Text(
+            '$value',
+            style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900),
+          ),
           Text(
             label,
             maxLines: 1,
@@ -449,6 +478,8 @@ class _ArchiveCard extends StatelessWidget {
       _ArchiveKind.bookmark => Icons.bookmark_rounded,
       _ArchiveKind.note => Icons.note_alt_rounded,
     };
+    final showArabic =
+        item.kind == _ArchiveKind.note && item.sourceCode == 'AR';
 
     return Material(
       color: scheme.surfaceContainer,
@@ -464,88 +495,133 @@ class _ArchiveCard extends StatelessWidget {
         },
         child: Padding(
           padding: const EdgeInsets.all(18),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 4,
-                height: 132,
-                decoration: BoxDecoration(
-                  color: accent,
-                  borderRadius: BorderRadius.circular(5),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  width: 4,
+                  decoration: BoxDecoration(
+                    color: accent,
+                    borderRadius: BorderRadius.circular(5),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(icon, size: 17, color: accent),
-                        const SizedBox(width: 7),
-                        Text(
-                          label,
-                          style: TextStyle(color: accent, fontWeight: FontWeight.w800),
-                        ),
-                        const Spacer(),
-                        Flexible(
-                          child: Text(
-                            item.reference,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(icon, size: 17, color: accent),
+                          const SizedBox(width: 7),
+                          Text(
+                            label,
                             style: TextStyle(
-                              color: scheme.onSurfaceVariant,
-                              fontWeight: FontWeight.w700,
+                              color: accent,
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 2),
-                        Icon(Icons.chevron_right_rounded, size: 20, color: scheme.onSurfaceVariant),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      item.arabic,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      textDirection: TextDirection.rtl,
-                      textAlign: TextAlign.right,
-                      style: const TextStyle(fontFamily: 'serif', fontSize: 20, height: 1.65),
-                    ),
-                    const SizedBox(height: 8),
-                    FutureBuilder<Map<String, String>>(
-                      future: TranslationRepository.instance.loadBundledTurkish(),
-                      builder: (context, snapshot) {
-                        final map = snapshot.data;
-                        if (map == null) return const SizedBox.shrink();
-                        final text = item.ayahs
-                            .take(3)
-                            .map((ayah) => map['${item.surah}:$ayah'])
-                            .whereType<String>()
-                            .join(' ');
-                        if (text.isEmpty) return const SizedBox.shrink();
-                        return Text(
-                          item.ayahs.length > 3 ? '$text …' : text,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: scheme.onSurfaceVariant, height: 1.4),
-                        );
-                      },
-                    ),
-                    if (item.note != null && item.note!.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        'Not: ${item.note!}',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: scheme.onSurface, fontWeight: FontWeight.w700),
+                          if (item.kind == _ArchiveKind.note) ...[
+                            const SizedBox(width: 7),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 7,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: scheme.surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                item.sourceCode,
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ],
+                          const Spacer(),
+                          Flexible(
+                            child: Text(
+                              item.reference,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: scheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 2),
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            size: 20,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ],
                       ),
+                      const SizedBox(height: 12),
+                      if (showArabic)
+                        Text(
+                          item.arabic,
+                          maxLines: 4,
+                          overflow: TextOverflow.ellipsis,
+                          textDirection: TextDirection.rtl,
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(
+                            fontFamily: 'serif',
+                            fontSize: 20,
+                            height: 1.65,
+                          ),
+                        )
+                      else
+                        FutureBuilder<Map<String, String>>(
+                          future: TranslationRepository.instance
+                              .loadBundledTurkish(),
+                          builder: (context, snapshot) {
+                            final map = snapshot.data;
+                            if (map == null) {
+                              return const SizedBox.shrink();
+                            }
+                            final text = item.ayahs
+                                .take(4)
+                                .map((ayah) => map['${item.surah}:$ayah'])
+                                .whereType<String>()
+                                .join(' ');
+                            if (text.isEmpty) {
+                              return const SizedBox.shrink();
+                            }
+                            return Text(
+                              item.ayahs.length > 4 ? '$text …' : text,
+                              maxLines: 4,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontFamily: 'serif',
+                                fontSize: 18,
+                                height: 1.45,
+                              ),
+                            );
+                          },
+                        ),
+                      if (item.note != null && item.note!.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Text(
+                          'Not: ${item.note!}',
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: scheme.onSurface,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -578,7 +654,11 @@ class _EmptyArchive extends StatelessWidget {
         children: [
           Icon(Icons.menu_book_outlined, size: 38, color: scheme.primary),
           const SizedBox(height: 12),
-          Text(text, textAlign: TextAlign.center, style: TextStyle(color: scheme.onSurfaceVariant)),
+          Text(
+            text,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: scheme.onSurfaceVariant),
+          ),
         ],
       ),
     );
@@ -607,7 +687,10 @@ class _SettingsTile extends StatelessWidget {
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
         subtitle: subtitle == null
             ? null
-            : Text(subtitle!, style: TextStyle(color: scheme.onSurfaceVariant)),
+            : Text(
+                subtitle!,
+                style: TextStyle(color: scheme.onSurfaceVariant),
+              ),
         trailing: const Icon(Icons.chevron_right),
       ),
     );
@@ -615,9 +698,9 @@ class _SettingsTile extends StatelessWidget {
 }
 
 Color _highlightMaterialColor(VerseHighlightColor color) => switch (color) {
-      VerseHighlightColor.yellow => const Color(0xFFFFD84D),
-      VerseHighlightColor.green => const Color(0xFF65D996),
-      VerseHighlightColor.blue => const Color(0xFF68B7F5),
-      VerseHighlightColor.orange => const Color(0xFFFFB86A),
-      VerseHighlightColor.pink => const Color(0xFFF08BCB),
+      VerseHighlightColor.yellow => const Color(0xFFFFEB00),
+      VerseHighlightColor.green => const Color(0xFF45E879),
+      VerseHighlightColor.blue => const Color(0xFF18C4E8),
+      VerseHighlightColor.orange => const Color(0xFFFFB45E),
+      VerseHighlightColor.pink => const Color(0xFFE88AC6),
     };
