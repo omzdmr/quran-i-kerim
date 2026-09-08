@@ -6,7 +6,7 @@ import '../domain/prayer_city_catalog.dart';
 class PrayerCityPicker extends StatefulWidget {
   const PrayerCityPicker({required this.selectedCityId, super.key});
 
-  final String selectedCityId;
+  final String? selectedCityId;
 
   @override
   State<PrayerCityPicker> createState() => _PrayerCityPickerState();
