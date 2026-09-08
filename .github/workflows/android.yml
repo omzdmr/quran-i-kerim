@@ -2,7 +2,7 @@ name: Android APK
 
 on:
   push:
-    branches: [ main, feature/prayer-v01, feature/reader-ux-v04 ]
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
