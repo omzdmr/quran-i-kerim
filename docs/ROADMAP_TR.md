@@ -13,20 +13,21 @@ Bu dosya konuşmalarda alınan ürün kararlarını kalıcı tutar. Amaç, çeki
 - Kullanıcıya dinî içerik sunarken kaynak şeffaflığı korunur. Kaynaksız veya Allah adına kişiselleştirilmiş mesaj üretilmez.
 - AI soru-cevap ve pazar yeri ürün kapsamında değildir.
 
-## Şu an: çekirdek / iskelet
+## v0.3 Kuran çekirdeği — uygulandı
 
-Öncelik sırası:
+- 114 sure ve gerçek Arapça Kuran metni.
+- Temel Türkçe meal build sırasında uygulamanın asset paketine gömülür; çalışma anında internet gerekmez.
+- Arapça + meal / yalnız Arapça / yalnız meal görünümleri.
+- Arapça ve meal yazı boyutu ayrı; Sık / Normal / Ferah satır aralığı.
+- Tek veya çoklu ayet seçimi.
+- Vurgu renkleri, Kaydet, Not ve Kopyala; veriler cihazda tutulur.
+- Kuran araması: sure adı, `2:255` gibi referans ve offline Türkçe meal içinde kelime araması.
+- Ana Sayfadaki “Kaldığın Yerden Devam Et” ve Günün Ayeti doğrudan ilgili ayeti açar.
+- `Siz` arşivinde Vurgular / Kaydedilenler / Notlar listelenir; karta dokunmak ilgili ayeti açar.
+- Alt navigasyonda hafif glass yüzey, kayan seçim kapsülü, sürükleme ve haptic davranışı.
+- Flutter 3.47.2 üzerinde `flutter analyze` ve Android release APK build doğrulaması başarıyla geçti.
 
-1. Kuran okuyucu: 114 sure, gerçek Arapça metin, doğru navigasyon.
-2. Temel Türkçe meal: uygulamayla birlikte, çevrimdışı.
-3. Okuma görünümü: Arapça + meal / yalnız Arapça / yalnız meal.
-4. Okuyucu ayarları: Arapça ve meal boyutu ayrı; satır aralığı; ileride sınırlı sayıda kaliteli Kuran fontu.
-5. Kaldığın yeri hatırlama ve ana ekrandan devam etme.
-6. Ayet seçimi: tek veya çoklu ayet.
-7. Vurgulama renkleri, Kaydet, Not, Kopyala; sonra Paylaş, Görüntü, Karşılaştır, Dua.
-8. Sure/ayet ve meal içinde arama.
-9. `Siz` sekmesinde kişisel arşiv: Vurgular, Kaydedilenler, Notlar, Planlar; kayıtlar ilgili ayete geri götürür.
-10. Günün Ayeti: Arapça + seçili Türkçe meal, tamamen yerel veriyle.
+Bir sonraki Kuran çekirdeği cilaları: gerçek cihaz testi sonrası ölçü/typography düzeltmeleri, Paylaş/Görüntü/Karşılaştır/Dua eylemleri, seçili ayet akışında küçük UX iyileştirmeleri ve gerekiyorsa okuma konumunu kaydırmadan daha hassas takip etme.
 
 ## Sonraki ana modül: Namaz
 
@@ -37,6 +38,8 @@ Alt sekme eklenmez.
 - **Siz → Ayarlar → Namaz:** otomatik konum / manuel şehir, hesaplama yöntemi, standart/Hanefi ikindi, yüksek enlem kuralı, dakika düzeltmeleri, bildirimler.
 - Hesap mümkün olduğunca cihazda yapılır; konum sunucuya gönderilmez.
 - Hesaplama yöntemleri: Diyanet, MWL, Umm al-Qura, Egyptian, Karachi, ISNA vb.; bölgeye göre öneri yapılabilir ama kullanıcı değiştirebilir.
+- **Aylık Vakitler:** ay bazında tablo/liste; tüm vakitler veya tek vakit filtresi.
+- **Kıble:** pusula, sensör/kalibrasyon rehberi ve doğruluk uyarısı; mümkünse konum tamamen cihazda kalır.
 
 ## Keşfedin araçları
 
