@@ -171,92 +171,94 @@ class _VerseCard extends StatelessWidget {
     final surah = surahByNumber(reference.$1);
     final translation = translationCatalog.first;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: _openReader,
-        borderRadius: BorderRadius.circular(28),
-        child: Ink(
-          constraints: const BoxConstraints(minHeight: 330),
-          padding: const EdgeInsets.all(22),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(28),
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF315348), Color(0xFF182B25)],
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 330),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _openReader,
+          borderRadius: BorderRadius.circular(28),
+          child: Ink(
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF315348), Color(0xFF182B25)],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: .12),
+                  blurRadius: 24,
+                  offset: const Offset(0, 10),
+                ),
+              ],
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: .12),
-                blurRadius: 24,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Günün Ayeti', style: TextStyle(color: Colors.white70)),
-              const SizedBox(height: 6),
-              Text(
-                '${surah.nameTr} ${reference.$1}:${reference.$2} · ${translation.code}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Günün Ayeti', style: TextStyle(color: Colors.white70)),
+                const SizedBox(height: 6),
+                Text(
+                  '${surah.nameTr} ${reference.$1}:${reference.$2} · ${translation.code}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 26),
-              Text(
-                quran.getVerse(reference.$1, reference.$2),
-                textDirection: TextDirection.rtl,
-                textAlign: TextAlign.right,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontFamily: 'serif',
-                  fontSize: 27,
-                  height: 1.8,
+                const SizedBox(height: 26),
+                Text(
+                  quran.getVerse(reference.$1, reference.$2),
+                  textDirection: TextDirection.rtl,
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontFamily: 'serif',
+                    fontSize: 27,
+                    height: 1.8,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 18),
-              FutureBuilder<String?>(
-                future: TranslationRepository.instance.turkishVerse(
-                  reference.$1,
-                  reference.$2,
-                ),
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    return const Text(
-                      'Türkçe meal şu anda gösterilemiyor.',
-                      style: TextStyle(color: Colors.white70, height: 1.5),
-                    );
-                  }
-                  return AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 180),
-                    child: Text(
-                      snapshot.data ?? 'Meal yükleniyor…',
-                      key: ValueKey(snapshot.data),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 17,
-                        height: 1.5,
+                const SizedBox(height: 18),
+                FutureBuilder<String?>(
+                  future: TranslationRepository.instance.turkishVerse(
+                    reference.$1,
+                    reference.$2,
+                  ),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return const Text(
+                        'Türkçe meal şu anda gösterilemiyor.',
+                        style: TextStyle(color: Colors.white70, height: 1.5),
+                      );
+                    }
+                    return AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 180),
+                      child: Text(
+                        snapshot.data ?? 'Meal yükleniyor…',
+                        key: ValueKey(snapshot.data),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 17,
+                          height: 1.5,
+                        ),
                       ),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 24),
-              const Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _Stat(Icons.bookmark_border_rounded, 'Kaydet'),
-                  _Stat(Icons.headphones_outlined, 'Dinle'),
-                  _Stat(Icons.ios_share_outlined, 'Paylaş'),
-                  _Stat(Icons.more_horiz, 'Daha fazla'),
-                ],
-              ),
-            ],
+                    );
+                  },
+                ),
+                const SizedBox(height: 24),
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _Stat(Icons.bookmark_border_rounded, 'Kaydet'),
+                    _Stat(Icons.headphones_outlined, 'Dinle'),
+                    _Stat(Icons.ios_share_outlined, 'Paylaş'),
+                    _Stat(Icons.more_horiz, 'Daha fazla'),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
