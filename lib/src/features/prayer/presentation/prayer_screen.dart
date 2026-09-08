@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:timezone/timezone.dart' as tz;
 
+import '../../../l10n/app_localizations.dart';
 import '../application/prayer_calculator.dart';
 import '../application/prayer_preferences_store.dart';
 import '../domain/prayer_city_catalog.dart';
@@ -70,21 +71,21 @@ class _PrayerScreenState extends State<PrayerScreen> {
     return _scheduleFor(date);
   }
 
-  ({String label, DateTime time}) _nextPrayer() {
+  ({String id, DateTime time}) _nextPrayer() {
     final now = _now;
     final today = _scheduleFor(now);
     final candidates = [
-      (label: 'İmsak', time: today.fajr),
-      (label: 'Öğle', time: today.dhuhr),
-      (label: 'İkindi', time: today.asr),
-      (label: 'Akşam', time: today.maghrib),
-      (label: 'Yatsı', time: today.isha),
+      (id: 'fajr', time: today.fajr),
+      (id: 'dhuhr', time: today.dhuhr),
+      (id: 'asr', time: today.asr),
+      (id: 'maghrib', time: today.maghrib),
+      (id: 'isha', time: today.isha),
     ];
     for (final candidate in candidates) {
       if (candidate.time.isAfter(now)) return candidate;
     }
     final tomorrow = _scheduleFor(now.add(const Duration(days: 1)));
-    return (label: 'İmsak', time: tomorrow.fajr);
+    return (id: 'fajr', time: tomorrow.fajr);
   }
 
   Future<void> _pickCity() async {
@@ -121,24 +122,25 @@ class _PrayerScreenState extends State<PrayerScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
     final schedule = _shownSchedule;
     final next = _nextPrayer();
     final remaining = next.time.difference(_now);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Namaz Vakitleri'),
+        title: Text(l10n.prayerTimes),
         centerTitle: false,
         actions: [
           IconButton(
             onPressed: _openPrayerSettings,
             icon: const Icon(Icons.tune_rounded),
-            tooltip: 'Namaz ayarları',
+            tooltip: l10n.text('prayerSettings'),
           ),
           IconButton(
             onPressed: _pickCity,
             icon: const Icon(Icons.location_on_outlined),
-            tooltip: 'Şehir seç',
+            tooltip: l10n.text('chooseCity'),
           ),
         ],
       ),
@@ -188,7 +190,7 @@ class _PrayerScreenState extends State<PrayerScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Sıradaki · ${next.label}',
+                  '${l10n.text('nextPrayer')} · ${_prayerLabel(context, next.id)}',
                   style: TextStyle(
                     color: scheme.primary,
                     fontWeight: FontWeight.w900,
@@ -206,7 +208,7 @@ class _PrayerScreenState extends State<PrayerScreen> {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  '${_countdown(remaining)} kaldı',
+                  '${_countdown(remaining)} ${l10n.text('remaining')}',
                   style: TextStyle(
                     color: scheme.onSurfaceVariant,
                     fontSize: 17,
@@ -222,7 +224,7 @@ class _PrayerScreenState extends State<PrayerScreen> {
               Expanded(
                 child: _PrayerShortcut(
                   icon: Icons.explore_outlined,
-                  title: 'Kıble',
+                  title: l10n.text('qibla'),
                   subtitle: '${schedule.qiblaDegrees.round()}°',
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute<void>(
@@ -238,8 +240,9 @@ class _PrayerScreenState extends State<PrayerScreen> {
               Expanded(
                 child: _PrayerShortcut(
                   icon: Icons.calendar_month_outlined,
-                  title: 'Aylık vakitler',
-                  subtitle: _monthYear(_now),
+                  title: l10n.text('monthlyTimes'),
+                  subtitle: MaterialLocalizations.of(context)
+                      .formatMonthYear(_now),
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute<void>(
                       builder: (_) => MonthlyPrayerTimesScreen(
@@ -254,9 +257,9 @@ class _PrayerScreenState extends State<PrayerScreen> {
           ),
           const SizedBox(height: 18),
           SegmentedButton<bool>(
-            segments: const [
-              ButtonSegment(value: false, label: Text('Bugün')),
-              ButtonSegment(value: true, label: Text('Yarın')),
+            segments: [
+              ButtonSegment(value: false, label: Text(l10n.today)),
+              ButtonSegment(value: true, label: Text(l10n.text('tomorrow'))),
             ],
             selected: {_showTomorrow},
             onSelectionChanged: (value) {
@@ -267,9 +270,9 @@ class _PrayerScreenState extends State<PrayerScreen> {
           const SizedBox(height: 14),
           for (final row in schedule.rows)
             _PrayerTimeRow(
-              label: row.label,
+              label: _prayerLabel(context, row.id),
               time: _clock(row.time),
-              active: !_showTomorrow && row.label == next.label,
+              active: !_showTomorrow && row.id == next.id,
             ),
           const SizedBox(height: 14),
           Container(
@@ -285,7 +288,7 @@ class _PrayerScreenState extends State<PrayerScreen> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Vakitler cihazda hesaplanır; günlük internet gerekmez. Hesaplama yöntemi, İkindi tercihi, yüksek enlem kuralı ve dakika düzeltmeleri ayarlardan değiştirilebilir.',
+                    l10n.text('prayerOfflineInfo'),
                     style: TextStyle(
                       color: scheme.onSurfaceVariant,
                       height: 1.45,
@@ -312,7 +315,8 @@ class MonthlyPrayerTimesScreen extends StatefulWidget {
   final PrayerSettingsSnapshot settings;
 
   @override
-  State<MonthlyPrayerTimesScreen> createState() => _MonthlyPrayerTimesScreenState();
+  State<MonthlyPrayerTimesScreen> createState() =>
+      _MonthlyPrayerTimesScreenState();
 }
 
 class _MonthlyPrayerTimesScreenState extends State<MonthlyPrayerTimesScreen> {
@@ -330,6 +334,7 @@ class _MonthlyPrayerTimesScreenState extends State<MonthlyPrayerTimesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final days = DateUtils.getDaysInMonth(_month.year, _month.month);
     final schedules = [
       for (var day = 1; day <= days; day++)
@@ -343,7 +348,7 @@ class _MonthlyPrayerTimesScreenState extends State<MonthlyPrayerTimesScreen> {
     ];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Aylık Namaz Vakitleri')),
+      appBar: AppBar(title: Text(l10n.text('monthlyPrayerTimes'))),
       body: Column(
         children: [
           Padding(
@@ -360,7 +365,8 @@ class _MonthlyPrayerTimesScreenState extends State<MonthlyPrayerTimesScreen> {
                   child: Column(
                     children: [
                       Text(
-                        _monthYear(_month),
+                        MaterialLocalizations.of(context)
+                            .formatMonthYear(_month),
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w900,
@@ -369,7 +375,9 @@ class _MonthlyPrayerTimesScreenState extends State<MonthlyPrayerTimesScreen> {
                       Text(
                         widget.city.label,
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -392,19 +400,23 @@ class _MonthlyPrayerTimesScreenState extends State<MonthlyPrayerTimesScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               children: [
                 for (final option in const [
-                  ('all', 'Tümü'),
-                  ('fajr', 'İmsak'),
-                  ('sunrise', 'Güneş'),
-                  ('dhuhr', 'Öğle'),
-                  ('asr', 'İkindi'),
-                  ('maghrib', 'Akşam'),
-                  ('isha', 'Yatsı'),
+                  'all',
+                  'fajr',
+                  'sunrise',
+                  'dhuhr',
+                  'asr',
+                  'maghrib',
+                  'isha',
                 ]) ...[
                   ChoiceChip(
-                    label: Text(option.$2),
-                    selected: _filter == option.$1,
+                    label: Text(
+                      option == 'all'
+                          ? l10n.text('all')
+                          : _prayerLabel(context, option),
+                    ),
+                    selected: _filter == option,
                     onSelected: (_) {
-                      setState(() => _filter = option.$1);
+                      setState(() => _filter = option);
                       HapticFeedback.selectionClick();
                     },
                   ),
@@ -421,7 +433,10 @@ class _MonthlyPrayerTimesScreenState extends State<MonthlyPrayerTimesScreen> {
               separatorBuilder: (_, __) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
                 final schedule = schedules[index];
-                return _MonthlyDayCard(schedule: schedule, filter: _filter);
+                return _MonthlyDayCard(
+                  schedule: schedule,
+                  filter: _filter,
+                );
               },
             ),
           ),
@@ -444,9 +459,10 @@ class QiblaInfoScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
     final angle = qiblaDegrees * math.pi / 180;
     return Scaffold(
-      appBar: AppBar(title: const Text('Kıble')),
+      appBar: AppBar(title: Text(l10n.text('qibla'))),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(22, 18, 22, 32),
         children: [
@@ -468,7 +484,14 @@ class QiblaInfoScreen extends StatelessWidget {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  const Positioned(top: 15, child: Text('K', style: TextStyle(fontWeight: FontWeight.w900))),
+                  const Positioned(
+                    top: 15,
+                    child: Text(
+                      'N',
+                      textDirection: TextDirection.ltr,
+                      style: TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                  ),
                   Transform.rotate(
                     angle: angle,
                     child: Icon(
@@ -485,10 +508,11 @@ class QiblaInfoScreen extends StatelessWidget {
           Text(
             '${qiblaDegrees.round()}°',
             textAlign: TextAlign.center,
+            textDirection: TextDirection.ltr,
             style: const TextStyle(fontSize: 42, fontWeight: FontWeight.w900),
           ),
           Text(
-            'Kuzeye göre Kıble yönü',
+            l10n.text('qiblaNorthDescription'),
             textAlign: TextAlign.center,
             style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 16),
           ),
@@ -499,9 +523,9 @@ class QiblaInfoScreen extends StatelessWidget {
               color: scheme.surfaceContainer,
               borderRadius: BorderRadius.circular(22),
             ),
-            child: const Text(
-              'Telefonu düz tutun. Pusulayı kullanmadan önce cihazı 8 şekli çizerek kalibre etmek faydalıdır. Mıknatıslı kılıflar, metal yüzeyler ve elektronik cihazlar pusulayı etkileyebilir. Canlı sensör hizalaması sonraki adımda eklenecek.',
-              style: TextStyle(height: 1.5),
+            child: Text(
+              l10n.text('qiblaCalibrationInfo'),
+              style: const TextStyle(height: 1.5),
             ),
           ),
         ],
@@ -548,6 +572,7 @@ class _PrayerTimeRow extends StatelessWidget {
           ),
           Text(
             time,
+            textDirection: TextDirection.ltr,
             style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
           ),
         ],
@@ -623,7 +648,9 @@ class _MonthlyDayCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '${schedule.localDate.day} ${_months[schedule.localDate.month - 1]}',
+            MaterialLocalizations.of(context).formatMediumDate(
+              schedule.localDate,
+            ),
             style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 12),
@@ -638,7 +665,7 @@ class _MonthlyDayCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        row.label,
+                        _prayerLabel(context, row.id),
                         style: TextStyle(
                           color: scheme.onSurfaceVariant,
                           fontSize: 12,
@@ -647,6 +674,7 @@ class _MonthlyDayCard extends StatelessWidget {
                       ),
                       Text(
                         _clock(row.time),
+                        textDirection: TextDirection.ltr,
                         style: const TextStyle(fontWeight: FontWeight.w900),
                       ),
                     ],
@@ -660,25 +688,21 @@ class _MonthlyDayCard extends StatelessWidget {
   }
 }
 
-const _months = <String>[
-  'Ocak',
-  'Şubat',
-  'Mart',
-  'Nisan',
-  'Mayıs',
-  'Haziran',
-  'Temmuz',
-  'Ağustos',
-  'Eylül',
-  'Ekim',
-  'Kasım',
-  'Aralık',
-];
+String _prayerLabel(BuildContext context, String id) {
+  final l10n = context.l10n;
+  return switch (id) {
+    'fajr' => l10n.text('fajr'),
+    'sunrise' => l10n.text('sunrise'),
+    'dhuhr' => l10n.text('dhuhr'),
+    'asr' => l10n.text('asr'),
+    'maghrib' => l10n.text('maghrib'),
+    'isha' => l10n.text('isha'),
+    _ => id,
+  };
+}
 
 String _clock(DateTime time) =>
     '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
-
-String _monthYear(DateTime date) => '${_months[date.month - 1]} ${date.year}';
 
 String _countdown(Duration raw) {
   final duration = raw.isNegative ? Duration.zero : raw;
