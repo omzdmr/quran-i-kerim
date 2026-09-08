@@ -82,6 +82,23 @@ Alt sekme eklenmez.
 - Hesaplama yöntemleri: Diyanet, MWL, Umm al-Qura, Egyptian, Karachi, ISNA vb.; bölgeye göre öneri yapılabilir ama kullanıcı değiştirebilir.
 - **Aylık Vakitler:** ay bazında tablo/liste; tüm vakitler veya tek vakit filtresi.
 - **Kıble:** pusula, sensör/kalibrasyon rehberi ve doğruluk uyarısı; mümkünse konum tamamen cihazda kalır.
+- Otomatik konumda şehir listesini tahmin etmeye çalışmak yerine önce **GPS koordinatı doğrudan namaz hesabında** kullanılır; şehir adı yalnız kullanıcıya gösterim için ters coğrafi kodlama ile bulunur. Konum izni verilmezse manuel şehir çalışmaya devam eder.
+- Kıble ekranı statik derece göstermekle kalmaz: cihazın pusula/manyetometre yönünü canlı izler, telefon çevrildikçe Kâbe yönü ekranda hareket eder ve hizalanınca görsel + hafif haptic geri bildirim verir.
+- Kalibrasyon yalnız “8 çiz” yazısı olmayacak. Sistem sensör doğruluğunu/heading accuracy durumunu canlı takip eder; düşük doğrulukta kalibrasyon rehberi gösterir, doğruluk yeterli seviyeye gelince bunu kullanıcıya bildirir. İşletim sisteminin izin verdiği ölçüde gerçek sensör doğruluğu kullanılır; sahte “kalibrasyon tamamlandı” animasyonu yapılmaz.
+
+## Çoklu dil ve meal mimarisi
+
+Çoklu dil artık ayrı bir sonraki ürün aşaması olarak ele alınır. **Uygulama dili** ile **Kuran/meâl dili** birbirinden bağımsızdır.
+
+- İlk hedef yüzlerce arayüz dili değildir. Önce ürünün arayüzü için **Türkçe, İngilizce, Arapça, Azerbaycanca ve Rusça** gibi stratejik diller kaliteli biçimde tamamlanır; ardından kullanım verisine göre genişletilir.
+- Buna karşılık Kuran çevirisi/meâl kataloğu arayüz dilinden çok daha geniş olabilir. Kullanıcı Türkçe arayüzdeyken İngilizce, Arapça, Rusça, Urduca, Endonezce vb. içerik seçebilir.
+- Dil seçici YouVersion’daki iyi bilgi mimarisinden esinlenebilir: **Önerilen / Tümü**, arama, alfabetik hızlı indeks ve her dil altında mevcut çeviriler. Tasarım birebir kopyalanmaz.
+- Arapça Kuran metni her zaman temel içeriktir. Varsayılan Türkçe RWD paket içinde kalır; diğer çeviriler küçük indirilebilir paketler olarak sunulur.
+- Cihaz dili yalnız öneri verir; kullanıcı her zaman uygulama dilini ve varsayılan meali ayrı ayrı değiştirebilir.
+- İçerik paketleri manifest tabanlı olur: `id`, dil, yerel dil adı, çevirmen/yayıncı, kısa kod, sürüm, lisans, commercial/offline izin, boyut, checksum ve kaynak URL.
+- 2.000+ dil gibi bir sayı ürün hedefi yapılmaz. Kuran çevirilerinde gerçekçi sınır güvenilir ve yasal olarak dağıtılabilir kaynakların sayısıdır. Ama mimari baştan yüzlerce dil/paket taşıyabilecek şekilde yapılır.
+- Dil sayısı büyüdüğünde tüm paketler APK’ya gömülmez; katalog küçük tutulur, içerikler isteğe bağlı indirilir ve `Siz → İndirilenler` altında yönetilir.
+- RTL/LTR, Arapça/Farsça/Urduca yazı yönü, Kiril, Latin ve farklı font gereksinimleri locale katmanında baştan test edilir.
 
 ## Keşfedin araçları
 
@@ -97,14 +114,18 @@ Kademeli olarak:
 - Esmaül Hüsna
 - Kaynaklı hadisler
 - Konuya göre ayetler
+- **Okumalar / Makaleler**: İslam ahlakı, ibadet hayatı, Kuran, hadis-sünnet, dua, aile, günlük hayat vb. konularda kaynaklı içerik kütüphanesi. Bu alan dinî görüş çöplüğüne dönüştürülmez; yayıncı/kaynak/lisans metadata’sı zorunlu olur.
 
 ## Zikirmatik
 
 - Tamamen offline.
 - Hazır zikirler + özel metin.
+- **“Zikir ekle”** ile kullanıcı kendi zikir/metnini, adını ve isterse hedef sayısını ekleyebilir; düzenleme/silme yapılabilir.
 - 33 / 99 / özel hedef.
+- Sayaç düğmesinde basıldığı açıkça hissedilen kısa scale/spring efekti + hafif haptic; hedefte daha belirgin geri bildirim.
+- Günlük toplam yalnız tek sayı olmaz. Örneğin `Allahu Ekber 5`, `Sübhanallah 3`, `Salavat 12` gibi **zikir bazında alt alta döküm** ve bunun altında genel toplam gösterilir.
+- Günlük sayaçlar cihazda tutulur; istenirse gün sıfırlanınca yeni güne geçer, geçmiş özetleri daha sonra eklenebilir.
 - Haptic, isteğe bağlı ses, sıfırla.
-- Günlük toplam / ilerleme cihazda.
 - İleride iOS/Android ana ekran widget’ı.
 
 ## Sabah / Akşam Zikirleri
@@ -158,6 +179,7 @@ Seçim cihazda tutulur. AI gerekmez; önceden küratörlenmiş, kaynağı belli 
 - Kaydetme: küçük ikon bounce.
 - Zikirmatik: sayaç mikro-scale + haptic.
 - Alt navigasyon: glass yüzey ve parmakla sekmeler üzerinde kaydırma.
+- Alt navigasyonda **basılı tutup sürükleme** sırasında glass seçim balonu parmağı gerçek zamanlı takip eder; sekme yalnızca parmak bırakıldığında son konuma göre açılır. Sadece sürüklerken sekmeleri tek tek anında açma davranışı kullanılmaz.
 - Animasyon gösteri değil geri bildirimdir; eski Android cihazlarda akıcılık önceliklidir.
 
 ## Ana Sayfa prensibi
@@ -173,6 +195,16 @@ Aynı anda her şeyi göstermemek. Genellikle 3–5 anlamlı kart:
 ## Hesap / senkronizasyon
 
 İlk sürüm hesap gerektirmez. Vurgular, notlar, kaydedilen ayetler, okuma konumu ve tercihlerin tamamı local çalışır. Daha sonra Google/Apple vb. hesap geldiğinde yerel veriler isteğe bağlı bulut senkronuna bağlanabilir.
+
+## Yakın dönem öncelik sırası
+
+1. **Çoklu dil temeli:** UI locale katmanını temizlemek, dil seçici, çeviri manifesti ve indirilebilir meal paket altyapısı.
+2. **Canlı Kıble + otomatik konum:** sensör doğruluğu, gerçek heading takibi, GPS ile doğrudan koordinat hesabı ve manuel şehir fallback’i.
+3. **Zikirmatik v2:** özel zikir ekleme, zikir bazında günlük döküm, daha iyi haptic/press animasyonu.
+4. **Alt navigasyon gesture cilası:** glass balon parmakla gerçek zamanlı kayar, bırakınca sekme commit edilir.
+5. **Sabah/Akşam Zikirleri ve bildirimler.**
+6. **Sesli Kuran + ortak Download Manager.**
+7. **Okumalar/Makaleler** ancak güvenilir içerik kaynağı ve yeniden yayın lisansı netleştikten sonra.
 
 ## Bilerek ertelenenler / yapılmayacaklar
 
