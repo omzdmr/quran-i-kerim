@@ -80,7 +80,7 @@ class PrayerLocationService {
       location: PrayerLocation(
         latitude: position.latitude,
         longitude: position.longitude,
-        timeZoneId: timezone.name,
+        timeZoneId: timezone.identifier,
         label: 'GPS',
       ),
       defaultMethod: region.method,
