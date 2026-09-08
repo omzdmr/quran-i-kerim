@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../settings/app_settings.dart';
+import 'quran_translation_catalog_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -146,6 +147,22 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.tonalIcon(
+              onPressed: () {
+                HapticFeedback.selectionClick();
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const QuranTranslationCatalogScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.travel_explore_rounded),
+              label: Text(l10n.languageAndTranslation),
             ),
           ),
           const SizedBox(height: 30),
