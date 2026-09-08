@@ -1,3 +1,6 @@
+const arabicOriginalSourceId = 'arabic_original';
+const bundledTurkishTranslationId = 'turkish_rwwad';
+
 class TranslationInfo {
   const TranslationInfo({
     required this.id,
@@ -39,7 +42,7 @@ class TranslationInfo {
 
 const translationCatalog = <TranslationInfo>[
   TranslationInfo(
-    id: 'turkish_rwwad',
+    id: bundledTurkishTranslationId,
     code: 'RWD',
     languageCode: 'tr',
     name: 'Türkçe Tercüme',
@@ -91,3 +94,10 @@ const translationCatalog = <TranslationInfo>[
     downloadable: false,
   ),
 ];
+
+TranslationInfo? translationById(String id) {
+  for (final translation in translationCatalog) {
+    if (translation.id == id) return translation;
+  }
+  return null;
+}
