@@ -256,12 +256,21 @@ class _VerseCardState extends State<_VerseCard> {
     );
   }
 
-  Future<String?> _selectedTranslationVerse(AppSettings settings) async {
-    if (settings.readerUsesArabic) return null;
-    final verses = await TranslationRepository.instance
-        .loadSourceVerses(settings.selectedQuranSourceId);
+  Future<String?> _preferredTranslationVerse(String languageCode) async {
+    final sourceId = defaultQuranSourceForLanguage(languageCode);
+    if (sourceId == arabicOriginalSourceId) return null;
+    final verses =
+        await TranslationRepository.instance.loadSourceVerses(sourceId);
     return verses['${widget.reference.$1}:${widget.reference.$2}'];
   }
+
+  String _surahNameForLanguage(int surahNumber, String languageCode) =>
+      switch (languageCode) {
+        'ar' => quran.getSurahNameArabic(surahNumber),
+        'tr' => quran.getSurahNameTurkish(surahNumber),
+        'ru' => quran.getSurahNameRussian(surahNumber),
+        _ => quran.getSurahNameEnglish(surahNumber),
+      };
 
   String _homeText(String languageCode, String key) {
     const values = <String, Map<String, String>>{
@@ -299,10 +308,12 @@ class _VerseCardState extends State<_VerseCard> {
     final reference = widget.reference;
     final surah = surahByNumber(reference.$1);
     final settings = AppSettingsScope.of(context);
-    final translation = translationById(settings.selectedQuranSourceId);
-    final sourceCode = settings.readerUsesArabic ? 'AR' : translation?.code ?? 'RWD';
     final l10n = context.l10n;
     final languageCode = l10n.locale.languageCode;
+    final homeSourceId = defaultQuranSourceForLanguage(languageCode);
+    final translation = translationById(homeSourceId);
+    final sourceCode =
+        homeSourceId == arabicOriginalSourceId ? 'AR' : translation?.code ?? 'RWD';
 
     return Material(
       color: Colors.transparent,
@@ -343,7 +354,7 @@ class _VerseCardState extends State<_VerseCard> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          '${surah.nameTr} ${reference.$1}:${reference.$2} · $sourceCode',
+                          '${_surahNameForLanguage(surah.number, languageCode)} ${reference.$1}:${reference.$2} · $sourceCode',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 20,
@@ -381,10 +392,10 @@ class _VerseCardState extends State<_VerseCard> {
                   ),
                 ),
               ),
-              if (!settings.readerUsesArabic) ...[
+              if (homeSourceId != arabicOriginalSourceId) ...[
                 const SizedBox(height: 18),
                 FutureBuilder<String?>(
-                  future: _selectedTranslationVerse(settings),
+                  future: _preferredTranslationVerse(languageCode),
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
                       return Text(

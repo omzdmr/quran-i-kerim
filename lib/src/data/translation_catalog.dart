@@ -129,6 +129,6 @@ String defaultQuranSourceForLanguage(String languageCode) {
     'ar' => arabicOriginalSourceId,
     'en' => englishTranslationId,
     'tr' => bundledTurkishTranslationId,
-    _ => bundledTurkishTranslationId,
+    _ => englishTranslationId,
   };
 }

@@ -25,6 +25,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   int _surahNumber = 1;
   int _anchorAyah = 1;
   bool _didRestorePosition = false;
+  bool _readerChromeVisible = true;
   final Set<int> _selectedAyahs = <int>{};
   final ScrollController _scrollController = ScrollController();
   final GlobalKey<_ContinuousVerseTextState> _textKey =
@@ -157,10 +158,19 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     return values;
   }
 
-  String _surahName(SurahInfo surah) =>
-      Localizations.localeOf(context).languageCode == 'ar'
-          ? surah.nameAr
-          : surah.nameTr;
+  String _readerLanguageCode() {
+    final settings = AppSettingsScope.of(context);
+    if (settings.readerUsesArabic) return 'ar';
+    return translationById(settings.selectedQuranSourceId)?.languageCode ??
+        Localizations.localeOf(context).languageCode;
+  }
+
+  String _surahName(SurahInfo surah) => switch (_readerLanguageCode()) {
+        'ar' => quran.getSurahNameArabic(surah.number),
+        'tr' => quran.getSurahNameTurkish(surah.number),
+        'ru' => quran.getSurahNameRussian(surah.number),
+        _ => quran.getSurahNameEnglish(surah.number),
+      };
 
   String _selectionReference() {
     final surah = surahByNumber(_surahNumber);
@@ -231,7 +241,13 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
         children: [
           Column(
             children: [
-              Padding(
+              AnimatedSize(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOutCubic,
+                child: (_readerChromeVisible || _selectedAyahs.isNotEmpty)
+                    ? Column(
+                        children: [
+                          Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 10, 8),
                 child: _selectedAyahs.isNotEmpty
                     ? Container(
@@ -328,7 +344,11 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                         ],
                       ),
               ),
-              const Divider(height: 1),
+                          const Divider(height: 1),
+                        ],
+                      )
+                    : const SizedBox.shrink(),
+              ),
               Expanded(
                 child: FutureBuilder<Map<String, String>>(
                   future: _translationFuture(settings),
@@ -385,12 +405,30 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   }) {
     return NotificationListener<ScrollNotification>(
       onNotification: (notification) {
+        if (notification is UserScrollNotification &&
+            _selectedAyahs.isEmpty) {
+          var shouldShow = notification.direction != ScrollDirection.reverse;
+          if (_scrollController.hasClients && _scrollController.offset < 18) {
+            shouldShow = true;
+          }
+          if (shouldShow != _readerChromeVisible) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted || _selectedAyahs.isNotEmpty) return;
+              if (_readerChromeVisible != shouldShow) {
+                setState(() => _readerChromeVisible = shouldShow);
+              }
+            });
+          }
+        }
         if (notification is ScrollEndNotification) {
           _saveVisibleReadingPosition();
         }
         return false;
       },
-      child: SingleChildScrollView(
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onHorizontalDragEnd: _handleHorizontalReaderSwipe,
+        child: SingleChildScrollView(
         controller: _scrollController,
         padding: EdgeInsets.fromLTRB(
           22,
@@ -425,7 +463,19 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
           ],
         ),
       ),
+      ),
     );
+  }
+
+  void _handleHorizontalReaderSwipe(DragEndDetails details) {
+    if (_selectedAyahs.isNotEmpty) return;
+    final velocity = details.primaryVelocity ?? 0;
+    if (velocity.abs() < 450) return;
+    if (velocity < 0 && _surahNumber < 114) {
+      _openSurahAtStart(_surahNumber + 1);
+    } else if (velocity > 0 && _surahNumber > 1) {
+      _openSurahAtStart(_surahNumber - 1);
+    }
   }
 
   void _saveVisibleReadingPosition() {
@@ -886,7 +936,17 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
               final filtered = normalized.isEmpty
                   ? surahCatalog
                   : surahCatalog.where((surah) {
-                      return surah.nameTr.toLowerCase().contains(normalized) ||
+                      final currentName = _surahName(surah).toLowerCase();
+                      return currentName.contains(normalized) ||
+                          quran.getSurahNameEnglish(surah.number)
+                              .toLowerCase()
+                              .contains(normalized) ||
+                          quran.getSurahNameTurkish(surah.number)
+                              .toLowerCase()
+                              .contains(normalized) ||
+                          quran.getSurahNameRussian(surah.number)
+                              .toLowerCase()
+                              .contains(normalized) ||
                           surah.nameAr.contains(normalized) ||
                           surah.number.toString() == normalized;
                     }).toList(growable: false);
@@ -1655,14 +1715,15 @@ class _ContinuousVerseTextState extends State<_ContinuousVerseText> {
       if (noteKey != null) {
         spans.add(
           WidgetSpan(
-            alignment: PlaceholderAlignment.middle,
+            alignment: PlaceholderAlignment.baseline,
+            baseline: TextBaseline.alphabetic,
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () => widget.onNoteTap(ayah),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
+                padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: Icon(
-                  Icons.comment_outlined,
+                  Icons.note_alt_outlined,
                   size: 16,
                   color: scheme.onSurfaceVariant,
                 ),
@@ -1955,7 +2016,17 @@ class _SurahRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final arabicUi = Localizations.localeOf(context).languageCode == 'ar';
+    final settings = AppSettingsScope.of(context);
+    final languageCode = settings.readerUsesArabic
+        ? 'ar'
+        : translationById(settings.selectedQuranSourceId)?.languageCode ??
+            Localizations.localeOf(context).languageCode;
+    final displayName = switch (languageCode) {
+      'ar' => quran.getSurahNameArabic(surah.number),
+      'tr' => quran.getSurahNameTurkish(surah.number),
+      'ru' => quran.getSurahNameRussian(surah.number),
+      _ => quran.getSurahNameEnglish(surah.number),
+    };
     return Material(
       color: selected ? scheme.primaryContainer : Colors.transparent,
       child: ListTile(
@@ -1973,13 +2044,13 @@ class _SurahRow extends StatelessWidget {
           ),
         ),
         title: Text(
-          arabicUi ? surah.nameAr : surah.nameTr,
+          displayName,
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
         ),
         subtitle: Text(
           '${surah.verseCount} ${context.l10n.text('verseUnit')}',
         ),
-        trailing: arabicUi
+        trailing: languageCode == 'ar'
             ? null
             : Text(
                 surah.nameAr,
