@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
-import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
@@ -11,31 +10,24 @@ import 'translation_pack.dart';
 
 /// Local-first translation loader and installer.
 ///
-/// Turkish stays bundled so the app always has an offline translation. Extra
-/// translations are fetched from QuranEnc only when the user explicitly asks
-/// for them, validated, gzip-compressed, and stored in app-private storage.
+/// A small default translation can be bundled for selected app languages.
+/// Extra translations are fetched from QuranEnc only when the user explicitly
+/// asks for them, validated, gzip-compressed, and stored in app-private storage.
 class TranslationRepository {
   TranslationRepository._();
 
   static final TranslationRepository instance = TranslationRepository._();
 
-  static const String bundledTurkishAsset =
-      'assets/data/translations/tr_rwwad.json.gz';
   static const String _quranEncHost = 'quranenc.com';
   static const String _userAgent = 'quran-i-kerim/0.4 translation-downloader';
 
-  Future<TranslationPack>? _turkishPackFuture;
+  final Map<String, Future<TranslationPack>> _bundledPackFutures =
+      <String, Future<TranslationPack>>{};
   final Map<String, Future<TranslationPack>> _downloadedPackFutures =
       <String, Future<TranslationPack>>{};
 
-  Future<TranslationPack> loadBundledTurkishPack() => _turkishPackFuture ??=
-      _loadAssetPack(
-        bundledTurkishAsset,
-        fallbackTranslationId: bundledTurkishTranslationId,
-        fallbackLanguageCode: 'tr',
-        fallbackVersion: '1.0.4',
-        fallbackSource: 'QuranEnc.com',
-      );
+  Future<TranslationPack> loadBundledTurkishPack() =>
+      loadBundledPack(translationById(bundledTurkishTranslationId)!);
 
   Future<Map<String, String>> loadBundledTurkish() async =>
       (await loadBundledTurkishPack()).verses;
@@ -43,11 +35,26 @@ class TranslationRepository {
   Future<String?> turkishVerse(int surah, int ayah) async =>
       (await loadBundledTurkishPack()).verse(surah, ayah);
 
+  Future<TranslationPack> loadBundledPack(TranslationInfo info) {
+    if (!info.bundled || info.assetPath == null) {
+      throw StateError('Translation is not bundled: ${info.id}');
+    }
+    return _bundledPackFutures.putIfAbsent(
+      info.id,
+      () => _loadAssetPack(
+        info.assetPath!,
+        fallbackTranslationId: info.id,
+        fallbackLanguageCode: info.languageCode,
+        fallbackVersion: info.version,
+        fallbackSource: info.source,
+      ),
+    );
+  }
+
   /// Returns verses for a selected translation source. Arabic original has no
   /// translation map and is handled by the Quran text package in the reader.
   Future<Map<String, String>> loadSourceVerses(String sourceId) async {
     if (sourceId == arabicOriginalSourceId) return const <String, String>{};
-    if (sourceId == bundledTurkishTranslationId) return loadBundledTurkish();
     final info = translationById(sourceId);
     if (info == null) {
       throw StateError('Unknown translation source: $sourceId');
@@ -56,7 +63,7 @@ class TranslationRepository {
   }
 
   Future<TranslationPack> loadInstalledPack(TranslationInfo info) async {
-    if (info.bundled) return loadBundledTurkishPack();
+    if (info.bundled) return loadBundledPack(info);
     return _downloadedPackFutures.putIfAbsent(info.id, () async {
       final file = await _downloadFile(info.id);
       if (!await file.exists()) {
@@ -74,21 +81,18 @@ class TranslationRepository {
   }
 
   Future<bool> isInstalled(String sourceId) async {
-    if (sourceId == arabicOriginalSourceId ||
-        sourceId == bundledTurkishTranslationId) {
-      return true;
-    }
+    if (sourceId == arabicOriginalSourceId) return true;
     final info = translationById(sourceId);
     if (info == null) return false;
+    if (info.bundled) return true;
     final file = await _downloadFile(info.id);
     return file.exists();
   }
 
   Future<void> deleteInstalledTranslation(String sourceId) async {
-    if (sourceId == arabicOriginalSourceId ||
-        sourceId == bundledTurkishTranslationId) {
-      return;
-    }
+    if (sourceId == arabicOriginalSourceId) return;
+    final info = translationById(sourceId);
+    if (info == null || info.bundled) return;
     final file = await _downloadFile(sourceId);
     if (await file.exists()) await file.delete();
     _downloadedPackFutures.remove(sourceId);
@@ -113,7 +117,7 @@ class TranslationRepository {
       onProgress?.call(.01);
       final catalogUri = Uri.https(
         _quranEncHost,
-        '/api/v1/translations/list/${info.languageCode}',
+        '/api/v1/translations/list/${info.languageCode}/',
         const <String, String>{'localization': 'en'},
       );
       final catalogPayload = await _getJson(client, catalogUri);
@@ -260,7 +264,25 @@ class TranslationRepository {
     required String context,
   }) {
     dynamic raw = payload;
-    if (raw is Map && raw['result'] is List) raw = raw['result'];
+    if (raw is Map) {
+      for (final key in const ['result', 'data', 'translations', 'items']) {
+        final candidate = raw[key];
+        if (candidate is List) {
+          raw = candidate;
+          break;
+        }
+        if (candidate is Map) {
+          for (final nestedKey in const ['result', 'data', 'items']) {
+            final nested = candidate[nestedKey];
+            if (nested is List) {
+              raw = nested;
+              break;
+            }
+          }
+          if (raw is List) break;
+        }
+      }
+    }
     if (raw is! List) {
       throw FormatException('Unexpected QuranEnc response for $context.');
     }
