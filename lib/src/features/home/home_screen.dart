@@ -7,6 +7,7 @@ import '../../data/translation_catalog.dart';
 import '../../data/translation_repository.dart';
 import '../../navigation/app_navigation.dart';
 import '../../settings/app_settings.dart';
+import 'home_prayer_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -96,6 +97,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       _VerseCard(reference: _todayVerse),
                       const SizedBox(height: 18),
                       _ContinueCard(surah: lastSurah, ayah: settings.lastAyah),
+                      const SizedBox(height: 18),
+                      const HomePrayerCard(),
                       const SizedBox(height: 18),
                       const _InfoCard(
                         eyebrow: 'Bugünün 5 Dakikası',
