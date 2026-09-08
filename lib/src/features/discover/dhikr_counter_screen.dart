@@ -29,11 +29,42 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
   static const _legacyDailyDateKey = 'dhikr_daily_date';
 
   static const _builtIns = <_DhikrEntry>[
-    _DhikrEntry(id: 'subhanallah', label: 'Sübhanallah'),
-    _DhikrEntry(id: 'alhamdulillah', label: 'Elhamdülillah'),
-    _DhikrEntry(id: 'allahu_akbar', label: 'Allahu Ekber'),
-    _DhikrEntry(id: 'salawat', label: 'Salavat'),
+    _DhikrEntry(id: 'subhanallah', label: 'SubhanAllah'),
+    _DhikrEntry(id: 'alhamdulillah', label: 'Alhamdulillah'),
+    _DhikrEntry(id: 'allahu_akbar', label: 'Allahu Akbar'),
+    _DhikrEntry(id: 'salawat', label: 'Salawat'),
   ];
+
+  static const _builtInLabels = <String, Map<String, String>>{
+    'subhanallah': {
+      'tr': 'Sübhanallah',
+      'en': 'SubhanAllah',
+      'ar': 'سبحان الله',
+      'az': 'Sübhanallah',
+      'ru': 'Субханаллах',
+    },
+    'alhamdulillah': {
+      'tr': 'Elhamdülillah',
+      'en': 'Alhamdulillah',
+      'ar': 'الحمد لله',
+      'az': 'Əlhəmdülillah',
+      'ru': 'Альхамдулиллях',
+    },
+    'allahu_akbar': {
+      'tr': 'Allahu Ekber',
+      'en': 'Allahu Akbar',
+      'ar': 'الله أكبر',
+      'az': 'Allahu Əkbər',
+      'ru': 'Аллаху Акбар',
+    },
+    'salawat': {
+      'tr': 'Salavat',
+      'en': 'Salawat',
+      'ar': 'الصلاة على النبي',
+      'az': 'Salavat',
+      'ru': 'Салават',
+    },
+  };
 
   String _selectedId = _builtIns.first.id;
   Map<String, int> _counts = <String, int>{};
@@ -70,6 +101,21 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
     return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   }
 
+  String _displayLabel(_DhikrEntry entry, [String? languageCode]) {
+    if (entry.custom) return entry.label;
+    final language = languageCode ?? Localizations.localeOf(context).languageCode;
+    return _builtInLabels[entry.id]?[language] ??
+        _builtInLabels[entry.id]?['en'] ??
+        entry.label;
+  }
+
+  _DhikrEntry? _entryById(String id) {
+    for (final entry in _entries) {
+      if (entry.id == id) return entry;
+    }
+    return null;
+  }
+
   Map<String, int> _decodeIntMap(String? raw) {
     if (raw == null || raw.isEmpty) return <String, int>{};
     try {
@@ -104,26 +150,49 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
     }
   }
 
-  String? _idForLegacyLabel(String? label) {
-    if (label == null) return null;
+  String? _idForLegacyLabel(String? label, [List<_DhikrEntry>? custom]) {
+    if (label == null || label.trim().isEmpty) return null;
+    final normalized = label.trim().toLowerCase();
     for (final entry in _builtIns) {
-      if (entry.label == label) return entry.id;
+      if (entry.label.toLowerCase() == normalized) return entry.id;
+      for (final translated in _builtInLabels[entry.id]?.values ?? const <String>[]) {
+        if (translated.toLowerCase() == normalized) return entry.id;
+      }
+    }
+    for (final entry in custom ?? _customEntries) {
+      if (entry.label.toLowerCase() == normalized) return entry.id;
     }
     return null;
+  }
+
+  Map<String, int> _migrateDailyKeys(
+    Map<String, int> raw,
+    List<_DhikrEntry> custom,
+  ) {
+    final migrated = <String, int>{};
+    for (final entry in raw.entries) {
+      final stableId = _builtIns.any((item) => item.id == entry.key) ||
+              custom.any((item) => item.id == entry.key)
+          ? entry.key
+          : _idForLegacyLabel(entry.key, custom);
+      if (stableId == null) continue;
+      migrated[stableId] = (migrated[stableId] ?? 0) + entry.value;
+    }
+    return migrated;
   }
 
   Future<void> _restore() async {
     final prefs = await SharedPreferences.getInstance();
     final today = _todayKey();
 
-    var custom = _decodeCustom(prefs.getString(_customKey));
-    var counts = _decodeIntMap(prefs.getString(_countsKey));
-    var targets = _decodeIntMap(prefs.getString(_targetsKey));
+    final custom = _decodeCustom(prefs.getString(_customKey));
+    final counts = _decodeIntMap(prefs.getString(_countsKey));
+    final targets = _decodeIntMap(prefs.getString(_targetsKey));
     var selected = prefs.getString(_selectedKey);
 
     if (selected == null) {
       final legacyLabel = prefs.getString(_legacyLabelKey);
-      final migratedId = _idForLegacyLabel(legacyLabel);
+      final migratedId = _idForLegacyLabel(legacyLabel, custom);
       if (migratedId != null) {
         selected = migratedId;
         final oldCount = prefs.getInt(_legacyCountKey) ?? 0;
@@ -143,23 +212,21 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
     final storedDailyDate = prefs.getString(_dailyDateKey);
     Map<String, int> daily;
     if (storedDailyDate == today) {
-      daily = _decodeIntMap(prefs.getString(_dailyCountsKey));
+      daily = _migrateDailyKeys(
+        _decodeIntMap(prefs.getString(_dailyCountsKey)),
+        custom,
+      );
     } else {
       daily = <String, int>{};
       final legacyDay = prefs.getString(_legacyDailyDateKey);
       final legacyTotal = prefs.getInt(_legacyDailyTotalKey) ?? 0;
       if (legacyDay == today && legacyTotal > 0) {
         final legacyId = selected ?? _builtIns.first.id;
-        final allEntries = <_DhikrEntry>[..._builtIns, ...custom];
-        final legacyEntry = allEntries.firstWhere(
-          (entry) => entry.id == legacyId,
-          orElse: () => _builtIns.first,
-        );
-        daily[legacyEntry.label] = legacyTotal;
+        daily[legacyId] = legacyTotal;
       }
       await prefs.setString(_dailyDateKey, today);
-      await prefs.setString(_dailyCountsKey, jsonEncode(daily));
     }
+    await prefs.setString(_dailyCountsKey, jsonEncode(daily));
 
     final validIds = <String>{
       for (final entry in _builtIns) entry.id,
@@ -214,7 +281,7 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
     final hitTarget = target > 0 && next % target == 0;
     setState(() {
       _counts[entry.id] = next;
-      _dailyCounts[entry.label] = (_dailyCounts[entry.label] ?? 0) + 1;
+      _dailyCounts[entry.id] = (_dailyCounts[entry.id] ?? 0) + 1;
       _lastIncrementedId = entry.id;
     });
     if (hitTarget) {
@@ -230,11 +297,11 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
     final entry = _selectedEntry;
     setState(() {
       _counts[entry.id] = _count - 1;
-      final daily = _dailyCounts[entry.label] ?? 0;
+      final daily = _dailyCounts[entry.id] ?? 0;
       if (daily <= 1) {
-        _dailyCounts.remove(entry.label);
+        _dailyCounts.remove(entry.id);
       } else {
-        _dailyCounts[entry.label] = daily - 1;
+        _dailyCounts[entry.id] = daily - 1;
       }
       _lastIncrementedId = null;
     });
@@ -349,7 +416,7 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
               final name = nameController.text.trim();
               if (name.isEmpty) return;
               final duplicate = _entries.any(
-                (entry) => entry.label.toLowerCase() == name.toLowerCase(),
+                (entry) => _displayLabel(entry).toLowerCase() == name.toLowerCase(),
               );
               if (duplicate) return;
               final rawTarget = targetController.text.trim();
@@ -391,6 +458,7 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
           .toList(growable: false);
       _counts.remove(entry.id);
       _targets.remove(entry.id);
+      _dailyCounts.remove(entry.id);
       _selectedId = _builtIns.first.id;
       _lastIncrementedId = null;
     });
@@ -406,7 +474,7 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
     final progress = target <= 0 ? null : (_count % target) / target;
     final cycleValue = target <= 0 ? _count : _count % target;
     final dailyItems = _dailyCounts.entries
-        .where((entry) => entry.value > 0)
+        .where((entry) => entry.value > 0 && _entryById(entry.key) != null)
         .toList(growable: false)
       ..sort((a, b) => b.value.compareTo(a.value));
 
@@ -443,7 +511,7 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
             children: [
               for (final entry in _entries)
                 ChoiceChip(
-                  label: Text(entry.label),
+                  label: Text(_displayLabel(entry)),
                   selected: _selectedId == entry.id,
                   onSelected: (_) => _select(entry.id),
                 ),
@@ -469,7 +537,7 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
                     Expanded(
                       flex: 5,
                       child: Text(
-                        _selectedEntry.label,
+                        _displayLabel(_selectedEntry),
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           fontSize: 22,
@@ -601,7 +669,7 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
                         size: 18,
                       ),
                       title: Text(
-                        dailyItems[index].key,
+                        _displayLabel(_entryById(dailyItems[index].key)!),
                         style: const TextStyle(fontWeight: FontWeight.w800),
                       ),
                       trailing: Text(
