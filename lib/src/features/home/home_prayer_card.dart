@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:timezone/timezone.dart' as tz;
 
+import '../../l10n/app_localizations.dart';
 import '../prayer/application/prayer_calculator.dart';
 import '../prayer/application/prayer_preferences_store.dart';
 import '../prayer/domain/prayer_city_catalog.dart';
@@ -55,22 +56,22 @@ class _HomePrayerCardState extends State<HomePrayerCard> {
     );
   }
 
-  ({String label, DateTime time}) _nextPrayer(PrayerCity city) {
+  ({String key, DateTime time}) _nextPrayer(PrayerCity city) {
     final zone = tz.getLocation(city.location.timeZoneId);
     final now = tz.TZDateTime.now(zone);
     final today = _scheduleFor(city, now);
     final candidates = [
-      (label: 'İmsak', time: today.fajr),
-      (label: 'Öğle', time: today.dhuhr),
-      (label: 'İkindi', time: today.asr),
-      (label: 'Akşam', time: today.maghrib),
-      (label: 'Yatsı', time: today.isha),
+      (key: 'fajr', time: today.fajr),
+      (key: 'dhuhr', time: today.dhuhr),
+      (key: 'asr', time: today.asr),
+      (key: 'maghrib', time: today.maghrib),
+      (key: 'isha', time: today.isha),
     ];
     for (final candidate in candidates) {
       if (candidate.time.isAfter(now)) return candidate;
     }
     final tomorrow = _scheduleFor(city, now.add(const Duration(days: 1)));
-    return (label: 'İmsak', time: tomorrow.fajr);
+    return (key: 'fajr', time: tomorrow.fajr);
   }
 
   @override
@@ -83,6 +84,7 @@ class _HomePrayerCardState extends State<HomePrayerCard> {
       );
     }
 
+    final l10n = context.l10n;
     final scheme = Theme.of(context).colorScheme;
     final zone = tz.getLocation(city.location.timeZoneId);
     final now = tz.TZDateTime.now(zone);
@@ -119,7 +121,7 @@ class _HomePrayerCardState extends State<HomePrayerCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Sıradaki · ${next.label}',
+                      '${l10n.text('nextPrayer')} · ${l10n.text(next.key)}',
                       style: TextStyle(
                         color: scheme.primary,
                         fontWeight: FontWeight.w900,
@@ -127,7 +129,7 @@ class _HomePrayerCardState extends State<HomePrayerCard> {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      '${_clock(next.time)} · ${_remaining(remaining)} kaldı',
+                      '${_clock(next.time)} · ${_remaining(remaining, l10n.locale.languageCode)} ${l10n.text('remaining')}',
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w900,
@@ -135,7 +137,7 @@ class _HomePrayerCardState extends State<HomePrayerCard> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${city.label} · Namaz vakitlerini aç',
+                      '${city.label} · ${l10n.prayerTimes}',
                       style: TextStyle(color: scheme.onSurfaceVariant),
                     ),
                   ],
@@ -153,10 +155,17 @@ class _HomePrayerCardState extends State<HomePrayerCard> {
 String _clock(DateTime time) =>
     '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
 
-String _remaining(Duration raw) {
+String _remaining(Duration raw, String languageCode) {
   final duration = raw.isNegative ? Duration.zero : raw;
   final hours = duration.inHours;
   final minutes = duration.inMinutes.remainder(60);
-  if (hours <= 0) return '$minutes dk';
-  return '$hours sa ${minutes.toString().padLeft(2, '0')} dk';
+  final (hourUnit, minuteUnit) = switch (languageCode) {
+    'tr' => ('sa', 'dk'),
+    'az' => ('s', 'dəq'),
+    'ru' => ('ч', 'мин'),
+    'ar' => ('س', 'د'),
+    _ => ('h', 'm'),
+  };
+  if (hours <= 0) return '$minutes $minuteUnit';
+  return '$hours $hourUnit ${minutes.toString().padLeft(2, '0')} $minuteUnit';
 }
