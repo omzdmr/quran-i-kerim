@@ -43,6 +43,11 @@ jobs:
           test/app_settings_source_test.dart
           test/surah_localization_test.dart
 
+      - name: Restore workflow files for source-only commit
+        run: |
+          git checkout HEAD -- .github/workflows/android.yml .github/workflows/oneoff-reader-ux-v06.yml
+          git checkout HEAD -- tool/apply_reader_ux_v06.py
+
       - name: Validate and commit
         run: |
           git diff --check
