@@ -15,6 +15,7 @@ class TranslationInfo {
     required this.bundled,
     required this.available,
     required this.downloadable,
+    this.assetPath,
   });
 
   final String id;
@@ -33,10 +34,14 @@ class TranslationInfo {
   /// Included in the application package and usable with no download.
   final bool bundled;
 
+  /// Asset path for bundled translations. Arabic original is handled by the
+  /// Quran text package and therefore has no TranslationInfo entry.
+  final String? assetPath;
+
   /// The catalog entry has been verified and may be shown to users.
   final bool available;
 
-  /// A verified direct-download path exists and the app may install the pack.
+  /// A verified network-download path exists and the app may install the pack.
   final bool downloadable;
 }
 
@@ -51,6 +56,7 @@ const translationCatalog = <TranslationInfo>[
     sourceKey: 'turkish_rwwad',
     version: '1.0.4',
     bundled: true,
+    assetPath: 'assets/data/translations/tr_rwwad.json.gz',
     available: true,
     downloadable: false,
   ),
@@ -63,9 +69,10 @@ const translationCatalog = <TranslationInfo>[
     source: 'QuranEnc.com',
     sourceKey: 'english_rwwad',
     version: '1.0.19',
-    bundled: false,
+    bundled: true,
+    assetPath: 'assets/data/translations/en_rwwad.json.gz',
     available: true,
-    downloadable: true,
+    downloadable: false,
   ),
   TranslationInfo(
     id: 'azeri_musayev',
@@ -100,4 +107,18 @@ TranslationInfo? translationById(String id) {
     if (translation.id == id) return translation;
   }
   return null;
+}
+
+/// Default reading source for a fresh/device-language based setup.
+///
+/// Only sources guaranteed to exist offline are returned here. As more bundled
+/// defaults are added, this mapping can grow without coupling UI language to
+/// a specific translation forever.
+String defaultQuranSourceForLanguage(String languageCode) {
+  return switch (languageCode.toLowerCase()) {
+    'ar' => arabicOriginalSourceId,
+    'en' => englishTranslationId,
+    'tr' => bundledTurkishTranslationId,
+    _ => bundledTurkishTranslationId,
+  };
 }
