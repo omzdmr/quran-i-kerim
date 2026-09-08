@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
+import 'strings/feature_strings.dart';
 import 'strings/strings_ar.dart';
 import 'strings/strings_az.dart';
 import 'strings/strings_en.dart';
@@ -36,8 +37,13 @@ class AppLocalizations {
         _ => trStrings,
       };
 
+  String? _featureValue(String key) =>
+      featureStrings[locale.languageCode]?[key] ??
+      featureStrings['en']?[key] ??
+      featureStrings['tr']?[key];
+
   String _value(String key) =>
-      _map[key] ?? enStrings[key] ?? trStrings[key] ?? key;
+      _map[key] ?? _featureValue(key) ?? enStrings[key] ?? trStrings[key] ?? key;
 
   String text(String key) => _value(key);
 
