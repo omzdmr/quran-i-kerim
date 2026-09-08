@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../application/prayer_preferences_store.dart';
 import '../domain/prayer_city_catalog.dart';
 import '../domain/prayer_models.dart';
@@ -51,11 +52,12 @@ class _PrayerSettingsScreenState extends State<PrayerSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Namaz Ayarları'),
+        title: Text(l10n.text('prayerSettings')),
         actions: [
-          TextButton(onPressed: _save, child: const Text('Kaydet')),
+          TextButton(onPressed: _save, child: Text(l10n.save)),
           const SizedBox(width: 6),
         ],
       ),
@@ -63,26 +65,25 @@ class _PrayerSettingsScreenState extends State<PrayerSettingsScreen> {
         padding: const EdgeInsets.fromLTRB(18, 8, 18, 34),
         children: [
           _SectionCard(
-            title: 'Hesaplama yöntemi',
-            subtitle:
-                'Otomatik seçerseniz ${widget.city.label} için önerilen yöntem kullanılır.',
+            title: l10n.text('calculationMethod'),
+            subtitle: l10n.text('calculationMethodInfo'),
             child: DropdownButtonFormField<PrayerCalculationMethod?>(
               initialValue: _methodOverride,
-              decoration: const InputDecoration(
-                labelText: 'Yöntem',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.text('method'),
+                border: const OutlineInputBorder(),
               ),
               items: [
                 DropdownMenuItem<PrayerCalculationMethod?>(
                   value: null,
                   child: Text(
-                    'Otomatik · ${_methodLabel(widget.city.defaultMethod)}',
+                    '${l10n.text('automatic')} · ${_methodLabel(context, widget.city.defaultMethod)}',
                   ),
                 ),
                 for (final method in PrayerCalculationMethod.values)
                   DropdownMenuItem<PrayerCalculationMethod?>(
                     value: method,
-                    child: Text(_methodLabel(method)),
+                    child: Text(_methodLabel(context, method)),
                   ),
               ],
               onChanged: (value) {
@@ -93,17 +94,17 @@ class _PrayerSettingsScreenState extends State<PrayerSettingsScreen> {
           ),
           const SizedBox(height: 12),
           _SectionCard(
-            title: 'İkindi hesabı',
-            subtitle: 'Bu ayar yalnızca İkindi vaktini etkiler.',
+            title: l10n.text('asrCalculation'),
+            subtitle: l10n.text('asrCalculationInfo'),
             child: SegmentedButton<PrayerAsrMethod>(
-              segments: const [
+              segments: [
                 ButtonSegment(
                   value: PrayerAsrMethod.standard,
-                  label: Text('Standart'),
+                  label: Text(l10n.text('standard')),
                 ),
                 ButtonSegment(
                   value: PrayerAsrMethod.hanafi,
-                  label: Text('Hanefi'),
+                  label: Text(l10n.text('hanafi')),
                 ),
               ],
               selected: {_asrMethod},
@@ -115,20 +116,19 @@ class _PrayerSettingsScreenState extends State<PrayerSettingsScreen> {
           ),
           const SizedBox(height: 12),
           _SectionCard(
-            title: 'Yüksek enlem',
-            subtitle:
-                'Uzun yaz/kış günlerinde sabah ve yatsı hesabı için kullanılır.',
+            title: l10n.text('highLatitude'),
+            subtitle: l10n.text('highLatitudeInfo'),
             child: DropdownButtonFormField<PrayerHighLatitudeMethod>(
               initialValue: _highLatitudeMethod,
-              decoration: const InputDecoration(
-                labelText: 'Kural',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.text('rule'),
+                border: const OutlineInputBorder(),
               ),
               items: [
                 for (final value in PrayerHighLatitudeMethod.values)
                   DropdownMenuItem(
                     value: value,
-                    child: Text(_highLatitudeLabel(value)),
+                    child: Text(_highLatitudeLabel(context, value)),
                   ),
               ],
               onChanged: (value) {
@@ -140,38 +140,37 @@ class _PrayerSettingsScreenState extends State<PrayerSettingsScreen> {
           ),
           const SizedBox(height: 12),
           _SectionCard(
-            title: 'Dakika düzeltmeleri',
-            subtitle:
-                'Yerel takvimle küçük fark varsa vakitleri ayrı ayrı -30 ile +30 dakika arasında düzeltin.',
+            title: l10n.text('minuteAdjustments'),
+            subtitle: l10n.text('minuteAdjustmentsInfo'),
             child: Column(
               children: [
                 _AdjustmentRow(
-                  label: 'İmsak',
+                  label: l10n.text('fajr'),
                   value: _adjustments.fajr,
                   onChanged: (value) => _setAdjustment(fajr: value),
                 ),
                 _AdjustmentRow(
-                  label: 'Güneş',
+                  label: l10n.text('sunrise'),
                   value: _adjustments.sunrise,
                   onChanged: (value) => _setAdjustment(sunrise: value),
                 ),
                 _AdjustmentRow(
-                  label: 'Öğle',
+                  label: l10n.text('dhuhr'),
                   value: _adjustments.dhuhr,
                   onChanged: (value) => _setAdjustment(dhuhr: value),
                 ),
                 _AdjustmentRow(
-                  label: 'İkindi',
+                  label: l10n.text('asr'),
                   value: _adjustments.asr,
                   onChanged: (value) => _setAdjustment(asr: value),
                 ),
                 _AdjustmentRow(
-                  label: 'Akşam',
+                  label: l10n.text('maghrib'),
                   value: _adjustments.maghrib,
                   onChanged: (value) => _setAdjustment(maghrib: value),
                 ),
                 _AdjustmentRow(
-                  label: 'Yatsı',
+                  label: l10n.text('isha'),
                   value: _adjustments.isha,
                   onChanged: (value) => _setAdjustment(isha: value),
                 ),
@@ -186,8 +185,11 @@ class _PrayerSettingsScreenState extends State<PrayerSettingsScreen> {
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              'Hesaplama yöntemi bir başlangıç ayarıdır. Yerel resmi takvimle fark görürseniz yöntem veya dakika düzeltmesini değiştirebilirsiniz. Ayarlar cihazda saklanır.',
-              style: TextStyle(color: scheme.onSurfaceVariant, height: 1.45),
+              l10n.text('prayerSettingsInfo'),
+              style: TextStyle(
+                color: scheme.onSurfaceVariant,
+                height: 1.45,
+              ),
             ),
           ),
         ],
@@ -270,20 +272,26 @@ class _AdjustmentRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Row(
       children: [
         Expanded(
-          child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+          child: Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
         ),
         IconButton.filledTonal(
           onPressed: value <= -30 ? null : () => onChanged(value - 1),
           icon: const Icon(Icons.remove_rounded),
-          tooltip: '1 dakika azalt',
+          tooltip: l10n.text('decreaseMinute'),
         ),
         SizedBox(
-          width: 54,
+          width: 62,
           child: Text(
-            value == 0 ? '0 dk' : '${value > 0 ? '+' : ''}$value dk',
+            value == 0
+                ? '0 ${l10n.text('minuteUnit')}'
+                : '${value > 0 ? '+' : ''}$value ${l10n.text('minuteUnit')}',
             textAlign: TextAlign.center,
             style: const TextStyle(fontWeight: FontWeight.w900),
           ),
@@ -291,26 +299,37 @@ class _AdjustmentRow extends StatelessWidget {
         IconButton.filledTonal(
           onPressed: value >= 30 ? null : () => onChanged(value + 1),
           icon: const Icon(Icons.add_rounded),
-          tooltip: '1 dakika artır',
+          tooltip: l10n.text('increaseMinute'),
         ),
       ],
     );
   }
 }
 
-String _methodLabel(PrayerCalculationMethod method) => switch (method) {
-      PrayerCalculationMethod.turkiye => 'Türkiye / Diyanet yaklaşımı',
-      PrayerCalculationMethod.muslimWorldLeague => 'Muslim World League',
-      PrayerCalculationMethod.ummAlQura => 'Umm al-Qura',
-      PrayerCalculationMethod.egyptian => 'Egyptian General Authority',
-      PrayerCalculationMethod.karachi => 'University of Islamic Sciences, Karachi',
-      PrayerCalculationMethod.northAmerica => 'ISNA / North America',
-      PrayerCalculationMethod.moonsightingCommittee => 'Moonsighting Committee',
-    };
+String _methodLabel(BuildContext context, PrayerCalculationMethod method) {
+  final l10n = context.l10n;
+  return switch (method) {
+    PrayerCalculationMethod.turkiye => l10n.text('turkiyeMethod'),
+    PrayerCalculationMethod.muslimWorldLeague => l10n.text('mwlMethod'),
+    PrayerCalculationMethod.ummAlQura => l10n.text('ummAlQuraMethod'),
+    PrayerCalculationMethod.egyptian => l10n.text('egyptianMethod'),
+    PrayerCalculationMethod.karachi => l10n.text('karachiMethod'),
+    PrayerCalculationMethod.northAmerica => l10n.text('northAmericaMethod'),
+    PrayerCalculationMethod.moonsightingCommittee =>
+      l10n.text('moonsightingMethod'),
+  };
+}
 
-String _highLatitudeLabel(PrayerHighLatitudeMethod value) => switch (value) {
-      PrayerHighLatitudeMethod.recommended => 'Önerilen',
-      PrayerHighLatitudeMethod.middleOfTheNight => 'Gecenin yarısı',
-      PrayerHighLatitudeMethod.seventhOfTheNight => 'Gecenin yedide biri',
-      PrayerHighLatitudeMethod.twilightAngle => 'Alacakaranlık açısı',
-    };
+String _highLatitudeLabel(
+  BuildContext context,
+  PrayerHighLatitudeMethod value,
+) {
+  final l10n = context.l10n;
+  return switch (value) {
+    PrayerHighLatitudeMethod.recommended => l10n.text('recommended'),
+    PrayerHighLatitudeMethod.middleOfTheNight => l10n.text('middleOfNight'),
+    PrayerHighLatitudeMethod.seventhOfTheNight =>
+      l10n.text('seventhOfNight'),
+    PrayerHighLatitudeMethod.twilightAngle => l10n.text('twilightAngle'),
+  };
+}
