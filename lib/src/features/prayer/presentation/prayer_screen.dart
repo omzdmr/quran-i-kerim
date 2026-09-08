@@ -658,10 +658,8 @@ class QiblaInfoScreen extends StatelessWidget {
                           style: TextStyle(fontWeight: FontWeight.w900),
                         ),
                       ),
-                      AnimatedRotation(
-                        turns: rawDelta / 360,
-                        duration: const Duration(milliseconds: 120),
-                        curve: Curves.easeOut,
+                      Transform.rotate(
+                        angle: angle,
                         child: Icon(
                           Icons.navigation_rounded,
                           size: 118,

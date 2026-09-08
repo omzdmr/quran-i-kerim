@@ -147,6 +147,15 @@ class ReaderAudioController extends ChangeNotifier {
       await _player.pause();
       return;
     }
+    final completedSurah =
+        _ayah >= _verseCount &&
+        _duration > Duration.zero &&
+        _position >= _duration;
+    if (completedSurah) {
+      await _moveToAyah(1);
+      await _playCurrent();
+      return;
+    }
     if (_loadedCacheKey != _cacheKeyForCurrent() ||
         _position == Duration.zero) {
       await _playCurrent();
