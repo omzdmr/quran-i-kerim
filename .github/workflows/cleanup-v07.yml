@@ -1,0 +1,32 @@
+name: Cleanup temporary v07 helpers
+
+on:
+  push:
+    branches: [ feature/reader-ux-v04 ]
+    paths:
+      - .github/workflows/cleanup-v07.yml
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Remove temporary patch helpers
+        run: |
+          git rm -f \
+            tool/patch_prayer_v07.py \
+            tool/patch_home_prayer_v07.py \
+            .github/workflows/prayer-v07-patch.yml \
+            .github/workflows/home-prayer-v07-patch.yml \
+            .github/workflows/cleanup-v07.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Remove temporary v07 patch helpers"
+          git push
