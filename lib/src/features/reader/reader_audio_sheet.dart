@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:quran/quran.dart' as quran;
 
 import '../../data/translation_catalog.dart';
+import 'reader_audio_cache.dart';
 
 class ReaderAudioSourceConfig {
   const ReaderAudioSourceConfig({
@@ -50,12 +51,24 @@ ReaderAudioSourceConfig? readerAudioConfigFor(String sourceId) {
 
 class ReaderAudioController extends ChangeNotifier {
   ReaderAudioController() {
-    _bindPlayer(_activePlayer);
-    _bindPlayer(_standbyPlayer);
+    _subscriptions.addAll([
+      _player.onPositionChanged.listen((value) {
+        _position = value;
+        notifyListeners();
+      }),
+      _player.onDurationChanged.listen((value) {
+        _duration = value;
+        notifyListeners();
+      }),
+      _player.onPlayerStateChanged.listen((value) {
+        _playing = value == PlayerState.playing;
+        notifyListeners();
+      }),
+      _player.onPlayerComplete.listen((_) => _onComplete()),
+    ]);
   }
 
-  AudioPlayer _activePlayer = AudioPlayer();
-  AudioPlayer _standbyPlayer = AudioPlayer();
+  final AudioPlayer _player = AudioPlayer();
   final List<StreamSubscription<dynamic>> _subscriptions =
       <StreamSubscription<dynamic>>[];
 
@@ -67,10 +80,9 @@ class ReaderAudioController extends ChangeNotifier {
   Duration _duration = Duration.zero;
   double _rate = 1.0;
   bool _playing = false;
-  bool _preparingCurrent = false;
+  bool _loading = false;
   int _generation = 0;
-  String? _loadedUrl;
-  int? _preparedStandbyAyah;
+  String? _loadedCacheKey;
   String? _error;
 
   ReaderAudioSourceConfig? get config => _config;
@@ -81,33 +93,9 @@ class ReaderAudioController extends ChangeNotifier {
   Duration get duration => _duration;
   double get rate => _rate;
   bool get isPlaying => _playing;
+  bool get isLoading => _loading;
   bool get isConfigured => _config != null;
   String? get error => _error;
-
-  void _bindPlayer(AudioPlayer player) {
-    _subscriptions.addAll([
-      player.onPositionChanged.listen((value) {
-        if (!identical(player, _activePlayer)) return;
-        _position = value;
-        notifyListeners();
-      }),
-      player.onDurationChanged.listen((value) {
-        if (!identical(player, _activePlayer)) return;
-        _duration = value;
-        notifyListeners();
-      }),
-      player.onPlayerStateChanged.listen((value) {
-        if (!identical(player, _activePlayer)) return;
-        _playing = value == PlayerState.playing;
-        notifyListeners();
-      }),
-      player.onPlayerComplete.listen((_) {
-        if (identical(player, _activePlayer)) {
-          _onComplete(player);
-        }
-      }),
-    ]);
-  }
 
   Future<void> configure({
     required ReaderAudioSourceConfig config,
@@ -127,39 +115,47 @@ class ReaderAudioController extends ChangeNotifier {
 
     if (targetChanged) {
       _generation++;
-      await _activePlayer.stop();
-      await _standbyPlayer.stop();
+      await _player.stop();
       _ayah = safeAyah;
       _playing = false;
       _position = Duration.zero;
       _duration = Duration.zero;
-      _loadedUrl = null;
-      _preparedStandbyAyah = null;
+      _loadedCacheKey = null;
       notifyListeners();
     }
 
-    if (_loadedUrl == null && !_preparingCurrent) {
-      await _prepareCurrent();
-    } else {
-      _prepareNext();
-    }
+    unawaited(prefetchFrom(_ayah));
+  }
+
+  Future<void> prefetchFrom(int startAyah) async {
+    final config = _config;
+    if (config == null) return;
+    await ReaderAudioCache.instance.prefetchWindow(
+      sourceId: config.id,
+      surah: _surah,
+      startAyah: startAyah.clamp(1, _verseCount).toInt(),
+      verseCount: _verseCount,
+      urlForAyah: (ayah) => config.urlForVerse(_surah, ayah),
+      windowSize: 4,
+    );
   }
 
   Future<void> toggle() async {
     if (_config == null) return;
     if (_playing) {
-      await _activePlayer.pause();
+      await _player.pause();
       return;
     }
-    if (_loadedUrl == null) {
-      await _prepareCurrent();
+    if (_loadedCacheKey != _cacheKeyForCurrent() ||
+        _position == Duration.zero) {
+      await _playCurrent();
+      return;
     }
-    if (_loadedUrl == null) return;
     try {
       _error = null;
-      await _activePlayer.resume();
-      await _activePlayer.setPlaybackRate(_rate);
-      _prepareNext();
+      await _player.resume();
+      await _player.setPlaybackRate(_rate);
+      unawaited(prefetchFrom(_ayah + 1));
     } catch (_) {
       _playing = false;
       _error = 'audio';
@@ -174,156 +170,101 @@ class ReaderAudioController extends ChangeNotifier {
 
   Future<void> next() async {
     if (_config == null || _ayah >= _verseCount) return;
-    if (_preparedStandbyAyah == _ayah + 1) {
-      await _usePreparedNext();
-      return;
-    }
     await _moveToAyah(_ayah + 1);
   }
 
   Future<void> _moveToAyah(int targetAyah) async {
     final wasPlaying = _playing;
     _generation++;
-    await _activePlayer.stop();
-    await _standbyPlayer.stop();
+    await _player.stop();
     _ayah = targetAyah.clamp(1, _verseCount).toInt();
     _playing = false;
     _position = Duration.zero;
     _duration = Duration.zero;
-    _loadedUrl = null;
-    _preparedStandbyAyah = null;
+    _loadedCacheKey = null;
     notifyListeners();
-    await _prepareCurrent();
-    if (wasPlaying && _loadedUrl != null) {
-      await _activePlayer.resume();
-      await _activePlayer.setPlaybackRate(_rate);
-      _prepareNext();
-    }
+    unawaited(prefetchFrom(_ayah));
+    if (wasPlaying) await _playCurrent();
   }
 
-  Future<void> seek(Duration value) => _activePlayer.seek(value);
+  Future<void> seek(Duration value) => _player.seek(value);
 
   Future<void> setRate(double value) async {
     _rate = value.clamp(.5, 2.0).toDouble();
-    if (_playing) await _activePlayer.setPlaybackRate(_rate);
+    if (_playing) await _player.setPlaybackRate(_rate);
     notifyListeners();
   }
 
   Future<void> stop() async {
     _generation++;
-    await _activePlayer.stop();
-    await _standbyPlayer.stop();
+    await _player.stop();
     _playing = false;
     _position = Duration.zero;
     _duration = Duration.zero;
-    _loadedUrl = null;
-    _preparedStandbyAyah = null;
+    _loadedCacheKey = null;
+    _loading = false;
     notifyListeners();
   }
 
-  Future<void> _prepareCurrent() async {
-    final config = _config;
-    if (config == null || _preparingCurrent) return;
-    final generation = _generation;
-    final url = config.urlForVerse(_surah, _ayah);
-    _preparingCurrent = true;
-    try {
-      _error = null;
-      await _activePlayer.setSource(UrlSource(url));
-      if (generation != _generation) return;
-      _loadedUrl = url;
-      notifyListeners();
-      _prepareNext();
-    } catch (_) {
-      if (generation != _generation) return;
-      _loadedUrl = null;
-      _error = 'audio';
-      notifyListeners();
-    } finally {
-      _preparingCurrent = false;
-    }
+  String _cacheKeyForCurrent() {
+    final config = _config!;
+    return ReaderAudioCache.instance.cacheKeyFor(config.id, _surah, _ayah);
   }
 
-  Future<void> _prepareNext() async {
+  Future<void> _playCurrent() async {
     final config = _config;
-    if (config == null || _ayah >= _verseCount) {
-      _preparedStandbyAyah = null;
-      return;
-    }
-    final nextAyah = _ayah + 1;
-    if (_preparedStandbyAyah == nextAyah) return;
+    if (config == null || _loading) return;
     final generation = _generation;
+    final ayah = _ayah;
+    final cacheKey = ReaderAudioCache.instance.cacheKeyFor(
+      config.id,
+      _surah,
+      ayah,
+    );
+    _loading = true;
+    _error = null;
+    notifyListeners();
     try {
-      await _standbyPlayer.stop();
-      await _standbyPlayer.setSource(
-        UrlSource(config.urlForVerse(_surah, nextAyah)),
+      final file = await ReaderAudioCache.instance.ensureCached(
+        cacheKey: cacheKey,
+        url: config.urlForVerse(_surah, ayah),
       );
-      if (generation != _generation || nextAyah != _ayah + 1) return;
-      _preparedStandbyAyah = nextAyah;
+      if (generation != _generation || ayah != _ayah) return;
+      _position = Duration.zero;
+      _duration = Duration.zero;
+      _loadedCacheKey = cacheKey;
+      await _player.play(DeviceFileSource(file.path));
+      await _player.setPlaybackRate(_rate);
+      unawaited(prefetchFrom(_ayah + 1));
     } catch (_) {
       if (generation == _generation) {
-        _preparedStandbyAyah = null;
+        _playing = false;
+        _loadedCacheKey = null;
+        _error = 'audio';
+        notifyListeners();
+      }
+    } finally {
+      if (generation == _generation) {
+        _loading = false;
+        notifyListeners();
       }
     }
   }
 
-  Future<void> _usePreparedNext() async {
-    if (_preparedStandbyAyah != _ayah + 1) {
-      await _moveToAyah(_ayah + 1);
-      return;
-    }
-    final wasPlaying = _playing;
-    final oldActive = _activePlayer;
-    _activePlayer = _standbyPlayer;
-    _standbyPlayer = oldActive;
-    _ayah++;
-    _loadedUrl = _config?.urlForVerse(_surah, _ayah);
-    _preparedStandbyAyah = null;
-    _position = Duration.zero;
-    _duration = Duration.zero;
-    _playing = false;
-    notifyListeners();
-    if (wasPlaying) {
-      await _activePlayer.resume();
-      await _activePlayer.setPlaybackRate(_rate);
-    }
-    _prepareNext();
-  }
-
-  Future<void> _onComplete(AudioPlayer completedPlayer) async {
-    if (!identical(completedPlayer, _activePlayer)) return;
+  Future<void> _onComplete() async {
     if (_ayah >= _verseCount) {
       _playing = false;
       _position = _duration;
       notifyListeners();
       return;
     }
-    if (_preparedStandbyAyah == _ayah + 1) {
-      final oldActive = _activePlayer;
-      _activePlayer = _standbyPlayer;
-      _standbyPlayer = oldActive;
-      _ayah++;
-      _loadedUrl = _config?.urlForVerse(_surah, _ayah);
-      _preparedStandbyAyah = null;
-      _position = Duration.zero;
-      _duration = Duration.zero;
-      _playing = false;
-      notifyListeners();
-      try {
-        await _activePlayer.resume();
-        await _activePlayer.setPlaybackRate(_rate);
-        _prepareNext();
-        return;
-      } catch (_) {
-        _loadedUrl = null;
-      }
-    }
-    await _moveToAyah(_ayah + 1);
-    if (_loadedUrl != null) {
-      await _activePlayer.resume();
-      await _activePlayer.setPlaybackRate(_rate);
-      _prepareNext();
-    }
+    _ayah++;
+    _loadedCacheKey = null;
+    _position = Duration.zero;
+    _duration = Duration.zero;
+    _playing = false;
+    notifyListeners();
+    await _playCurrent();
   }
 
   @override
@@ -331,8 +272,7 @@ class ReaderAudioController extends ChangeNotifier {
     for (final subscription in _subscriptions) {
       subscription.cancel();
     }
-    _activePlayer.dispose();
-    _standbyPlayer.dispose();
+    _player.dispose();
     super.dispose();
   }
 }

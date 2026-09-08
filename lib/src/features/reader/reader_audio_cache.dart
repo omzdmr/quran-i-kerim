@@ -22,10 +22,7 @@ class ReaderAudioCache {
     return file;
   }
 
-  Future<File> ensureCached({
-    required String cacheKey,
-    required String url,
-  }) {
+  Future<File> ensureCached({required String cacheKey, required String url}) {
     return _inFlight.putIfAbsent(cacheKey, () async {
       final existing = await cachedFile(cacheKey);
       if (existing != null) return existing;

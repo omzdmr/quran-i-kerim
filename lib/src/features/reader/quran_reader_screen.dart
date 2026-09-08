@@ -36,6 +36,8 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   bool? _pendingReaderChromeVisible;
   int _visibleAyah = 1;
   int? _lastAudioAyah;
+  bool _audioFollowEnabled = true;
+  bool _manualReaderScroll = false;
   late final ReaderAudioController _audioController;
   final Set<int> _selectedAyahs = <int>{};
   final ScrollController _scrollController = ScrollController();
@@ -60,7 +62,12 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       _lastAudioAyah = _audioController.currentAyah;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        _scheduleScrollToAyah(_audioController.currentAyah);
+        if (_audioFollowEnabled && !_manualReaderScroll) {
+          _scheduleScrollToAyah(
+            _audioController.currentAyah,
+            audioFollow: true,
+          );
+        }
         AppSettingsScope.of(context).saveReadingPosition(
           surah: _surahNumber,
           ayah: _audioController.currentAyah,
@@ -95,7 +102,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       _scheduleScrollToAyah(_anchorAyah);
       final config = _audioConfig(settings);
       if (config != null) {
-        _warmAudioAtAyah(config, _visibleAyah);
+        _primeAudio(config, _visibleAyah);
       }
     });
   }
@@ -163,13 +170,19 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     });
   }
 
-  void _scheduleScrollToAyah(int ayah, {int attempt = 0}) {
+  void _scheduleScrollToAyah(
+    int ayah, {
+    int attempt = 0,
+    bool audioFollow = false,
+  }) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final state = _textKey.currentState;
       final globalY = state?.globalYForAyah(ayah);
       if (globalY != null && _scrollController.hasClients) {
-        final desiredY = MediaQuery.paddingOf(context).top + 88;
+        final desiredY = audioFollow
+            ? MediaQuery.sizeOf(context).height * .28
+            : MediaQuery.paddingOf(context).top + 88;
         final delta = globalY - desiredY;
         final target = (_scrollController.offset + delta)
             .clamp(0.0, _scrollController.position.maxScrollExtent)
@@ -185,7 +198,13 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       }
       if (attempt < 5) {
         Future<void>.delayed(const Duration(milliseconds: 70), () {
-          if (mounted) _scheduleScrollToAyah(ayah, attempt: attempt + 1);
+          if (mounted) {
+            _scheduleScrollToAyah(
+              ayah,
+              attempt: attempt + 1,
+              audioFollow: audioFollow,
+            );
+          }
         });
       }
     });
@@ -265,13 +284,21 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       readerAudioConfigFor(settings.selectedQuranSourceId);
 
   Future<void> _prepareAudio(ReaderAudioSourceConfig config) async {
-    await _warmAudioAtAyah(config, _visibleAyah);
+    final surah = surahByNumber(_surahNumber);
+    final targetAyah =
+        _audioController.isPlaying &&
+            _audioController.surahNumber == _surahNumber
+        ? _audioController.currentAyah
+        : _visibleAyah;
+    await _audioController.configure(
+      config: config,
+      surah: _surahNumber,
+      initialAyah: targetAyah.clamp(1, surah.verseCount).toInt(),
+      verseCount: surah.verseCount,
+    );
   }
 
-  Future<void> _warmAudioAtAyah(
-    ReaderAudioSourceConfig config,
-    int ayah,
-  ) async {
+  Future<void> _primeAudio(ReaderAudioSourceConfig config, int ayah) async {
     final surah = surahByNumber(_surahNumber);
     await _audioController.configure(
       config: config,
@@ -283,7 +310,15 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
 
   Future<void> _toggleAudio(ReaderAudioSourceConfig config) async {
     await _prepareAudio(config);
+    final wasPlaying = _audioController.isPlaying;
     await _audioController.toggle();
+    if (!wasPlaying && _audioController.isPlaying && mounted) {
+      setState(() {
+        _audioFollowEnabled = true;
+        _manualReaderScroll = false;
+      });
+      _scheduleScrollToAyah(_audioController.currentAyah, audioFollow: true);
+    }
   }
 
   Future<void> _skipAudio(ReaderAudioSourceConfig config, int delta) async {
@@ -537,6 +572,29 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                 ),
               ),
             ),
+          if (_audioController.isPlaying && !_audioFollowEnabled)
+            Positioned(
+              right: 16,
+              bottom: 150,
+              child: FilledButton.tonalIcon(
+                onPressed: () {
+                  setState(() {
+                    _audioFollowEnabled = true;
+                    _manualReaderScroll = false;
+                  });
+                  _scheduleScrollToAyah(
+                    _audioController.currentAyah,
+                    audioFollow: true,
+                  );
+                },
+                icon: const Icon(Icons.my_location_rounded, size: 18),
+                label: Text(
+                  Localizations.localeOf(context).languageCode == 'tr'
+                      ? 'Okunan ayete dön'
+                      : 'Return to current verse',
+                ),
+              ),
+            ),
           Positioned(
             left: 10,
             right: 10,
@@ -577,6 +635,13 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     return NotificationListener<ScrollNotification>(
       onNotification: (notification) {
         if (notification is UserScrollNotification && _selectedAyahs.isEmpty) {
+          if (notification.direction != ScrollDirection.idle &&
+              _audioController.isPlaying) {
+            _manualReaderScroll = true;
+            if (_audioFollowEnabled) {
+              setState(() => _audioFollowEnabled = false);
+            }
+          }
           var shouldShow = notification.direction != ScrollDirection.reverse;
           if (_scrollController.hasClients && _scrollController.offset < 18) {
             shouldShow = true;
@@ -639,6 +704,11 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                     ? settings.arabicLineHeight
                     : settings.translationLineHeight,
                 selectedAyahs: _selectedAyahs,
+                activeAudioAyah:
+                    _audioController.isPlaying &&
+                        _audioController.surahNumber == _surahNumber
+                    ? _audioController.currentAyah
+                    : null,
                 settings: settings,
                 onAyahTap: _toggleAyahSelection,
                 onNoteTap: _openNoteForAyah,
@@ -733,10 +803,6 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     }
     final settings = AppSettingsScope.of(context);
     settings.saveReadingPosition(surah: _surahNumber, ayah: ayah);
-    final config = _audioConfig(settings);
-    if (config != null && !_audioController.isPlaying) {
-      _warmAudioAtAyah(config, ayah);
-    }
   }
 
   Widget _segment(String label, VoidCallback onTap) => InkWell(
@@ -1804,6 +1870,7 @@ class _ContinuousVerseText extends StatefulWidget {
     required this.textSize,
     required this.lineHeight,
     required this.selectedAyahs,
+    required this.activeAudioAyah,
     required this.settings,
     required this.onAyahTap,
     required this.onNoteTap,
@@ -1817,6 +1884,7 @@ class _ContinuousVerseText extends StatefulWidget {
   final double textSize;
   final double lineHeight;
   final Set<int> selectedAyahs;
+  final int? activeAudioAyah;
   final AppSettings settings;
   final ValueChanged<int> onAyahTap;
   final ValueChanged<int> onNoteTap;
@@ -1910,6 +1978,7 @@ class _ContinuousVerseTextState extends State<_ContinuousVerseText> {
     for (var ayah = 1; ayah <= widget.verseCount; ayah++) {
       _textOffsets[ayah] = plainOffset;
       final selected = widget.selectedAyahs.contains(ayah);
+      final activeAudio = widget.activeAudioAyah == ayah;
       final highlight = widget.settings.highlightFor(widget.surahNumber, ayah);
       final highlightedColor = highlight == null
           ? null
@@ -1941,10 +2010,16 @@ class _ContinuousVerseTextState extends State<_ContinuousVerseText> {
         fontSize: widget.textSize,
         height: widget.lineHeight,
         backgroundColor: highlightedColor,
-        decoration: selected ? TextDecoration.underline : TextDecoration.none,
-        decorationColor: scheme.onSurface.withValues(alpha: .88),
-        decorationStyle: TextDecorationStyle.dotted,
-        decorationThickness: 1.6,
+        decoration: activeAudio || selected
+            ? TextDecoration.underline
+            : TextDecoration.none,
+        decorationColor: activeAudio
+            ? scheme.primary
+            : scheme.onSurface.withValues(alpha: .88),
+        decorationStyle: activeAudio
+            ? TextDecorationStyle.solid
+            : TextDecorationStyle.dotted,
+        decorationThickness: activeAudio ? 2.5 : 1.6,
       );
 
       if (arabicMode) {
