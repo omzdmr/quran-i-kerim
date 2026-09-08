@@ -90,7 +90,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        'Kayıtlarınız bu cihazda saklanıyor.',
+                        l10n.text('localOnly'),
                         style: TextStyle(color: scheme.onSurfaceVariant),
                       ),
                     ],
@@ -104,18 +104,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               Expanded(
                 child: _ActivityCard(
-                  title: 'Kuran serisi',
+                  title: l10n.text('quranStreak'),
                   value: '${settings.readingStreak}',
-                  suffix: 'gün',
+                  suffix: l10n.text('dayUnit'),
                   icon: Icons.bolt_rounded,
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: _ActivityCard(
-                  title: 'Bu yıl okunan gün',
+                  title: l10n.text('daysReadThisYear'),
                   value: '${settings.readingDaysThisYear}',
-                  suffix: 'gün',
+                  suffix: l10n.text('dayUnit'),
                   icon: Icons.calendar_month_rounded,
                 ),
               ),
@@ -127,7 +127,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Expanded(
                 child: _MetricCard(
                   value: settings.highlightEntries.length,
-                  label: 'Vurgu',
+                  label: l10n.text('highlight'),
                   icon: Icons.format_color_fill_rounded,
                 ),
               ),
@@ -135,7 +135,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Expanded(
                 child: _MetricCard(
                   value: settings.bookmarkKeys.length,
-                  label: 'Kaydedilen',
+                  label: l10n.text('savedLabel'),
                   icon: Icons.bookmark_rounded,
                 ),
               ),
@@ -143,7 +143,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Expanded(
                 child: _MetricCard(
                   value: settings.noteEntries.length,
-                  label: 'Not',
+                  label: l10n.text('note'),
                   icon: Icons.note_alt_rounded,
                 ),
               ),
@@ -151,7 +151,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 28),
           Text(
-            'Kuran arşiviniz',
+            l10n.text('quranArchive'),
             style: Theme.of(context).textTheme.headlineMedium,
           ),
           const SizedBox(height: 14),
@@ -159,10 +159,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _filterChip('Tümü', _ArchiveFilter.all),
-                _filterChip('Vurgular', _ArchiveFilter.highlights),
-                _filterChip('Kaydedilenler', _ArchiveFilter.bookmarks),
-                _filterChip('Notlar', _ArchiveFilter.notes),
+                _filterChip(l10n.text('all'), _ArchiveFilter.all),
+                _filterChip(l10n.text('highlights'), _ArchiveFilter.highlights),
+                _filterChip(l10n.text('savedPlural'), _ArchiveFilter.bookmarks),
+                _filterChip(l10n.notes, _ArchiveFilter.notes),
               ],
             ),
           ),
@@ -465,13 +465,14 @@ class _ArchiveCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
     final accent = item.highlight == null
         ? scheme.primary
         : _highlightMaterialColor(item.highlight!);
     final label = switch (item.kind) {
-      _ArchiveKind.highlight => 'Vurgu',
-      _ArchiveKind.bookmark => 'Kaydedildi',
-      _ArchiveKind.note => 'Not',
+      _ArchiveKind.highlight => l10n.text('highlight'),
+      _ArchiveKind.bookmark => l10n.text('savedLabel'),
+      _ArchiveKind.note => l10n.text('note'),
     };
     final icon = switch (item.kind) {
       _ArchiveKind.highlight => Icons.format_color_fill_rounded,
@@ -608,7 +609,7 @@ class _ArchiveCard extends StatelessWidget {
                       if (item.note != null && item.note!.isNotEmpty) ...[
                         const SizedBox(height: 10),
                         Text(
-                          'Not: ${item.note!}',
+                          '${l10n.text('note')}: ${item.note!}',
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -637,11 +638,12 @@ class _EmptyArchive extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
     final text = switch (filter) {
-      _ArchiveFilter.all => 'Henüz Kuran arşiviniz boş.',
-      _ArchiveFilter.highlights => 'Henüz vurguladığınız bir ayet yok.',
-      _ArchiveFilter.bookmarks => 'Henüz kaydettiğiniz bir ayet yok.',
-      _ArchiveFilter.notes => 'Henüz bir ayete not eklemediniz.',
+      _ArchiveFilter.all => l10n.text('archiveEmptyAll'),
+      _ArchiveFilter.highlights => l10n.text('archiveEmptyHighlights'),
+      _ArchiveFilter.bookmarks => l10n.text('archiveEmptySaved'),
+      _ArchiveFilter.notes => l10n.text('archiveEmptyNotes'),
     };
 
     return Container(
