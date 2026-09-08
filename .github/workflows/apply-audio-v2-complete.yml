@@ -24,10 +24,12 @@ jobs:
           cache: true
 
       - name: Apply Audio v2 completion
-        run: python3 tool/apply_audio_v2_complete.py
+        run: |
+          python3 tool/apply_audio_v2_complete.py
+          python3 tool/fix_audio_v2_complete.py
 
-      - name: Remove helper
-        run: rm tool/apply_audio_v2_complete.py
+      - name: Remove helpers
+        run: rm tool/apply_audio_v2_complete.py tool/fix_audio_v2_complete.py
 
       - name: Fetch bundled content
         run: python3 tool/fetch_content.py
@@ -48,7 +50,6 @@ jobs:
         run: |
           git config user.name 'omzdmr'
           git config user.email '154471764+omzdmr@users.noreply.github.com'
-          git add pubspec.yaml pubspec.lock lib test tool/apply_audio_v2_complete.py
-          git add -u
+          git add -A
           git commit -m 'Complete Audio v2 downloads and playback controls'
           git push
