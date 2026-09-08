@@ -28,4 +28,27 @@ void main() {
     final l10n = AppLocalizations(const Locale('ar'));
     expect(l10n.appTitle, contains('القرآن'));
   });
+
+  test('primary Home, Discover and Plans copy exists in every locale', () {
+    const keys = <String>[
+      'today',
+      'dailyVerse',
+      'continueReading',
+      'discoverTitle',
+      'prayerTimes',
+      'dhikrCounter',
+      'readingPlans',
+      'findPlans',
+      'start',
+    ];
+
+    for (final locale in AppLocalizations.supportedLocales) {
+      final l10n = AppLocalizations(locale);
+      for (final key in keys) {
+        final value = l10n.text(key);
+        expect(value, isNotEmpty, reason: '${locale.languageCode}: $key');
+        expect(value, isNot(key), reason: '${locale.languageCode}: $key');
+      }
+    }
+  });
 }
