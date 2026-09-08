@@ -9,11 +9,23 @@ import pathlib
 import urllib.request
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-TARGET = ROOT / "assets/data/translations/tr_rwwad.json.gz"
-SOURCE = (
+PINNED_CONTENT_COMMIT = "6c0a1571bcac95eaaf0d167d15e558ec3c2bb8e2"
+BASE = (
     "https://raw.githubusercontent.com/Yi-Developer/Qurb-content/"
-    "6c0a1571bcac95eaaf0d167d15e558ec3c2bb8e2/"
-    "quran/translations/t_turkish_rwwad.json.gz"
+    f"{PINNED_CONTENT_COMMIT}/quran/translations"
+)
+
+BUNDLED = (
+    (
+        "Türkçe",
+        ROOT / "assets/data/translations/tr_rwwad.json.gz",
+        f"{BASE}/t_turkish_rwwad.json.gz",
+    ),
+    (
+        "English",
+        ROOT / "assets/data/translations/en_rwwad.json.gz",
+        f"{BASE}/t_english_rwwad.json.gz",
+    ),
 )
 
 
@@ -22,7 +34,7 @@ def validate(path: pathlib.Path) -> None:
         data = json.load(handle)
 
     if not isinstance(data, dict):
-        raise SystemExit("Meal paketi JSON nesnesi değil.")
+        raise SystemExit(f"{path.name}: translation package is not a JSON object.")
 
     # Ayet sayım gelenekleri farklılaşabildiği için 6236 gibi tek bir toplamı
     # evrensel gerçek kabul etmiyoruz. Bunun yerine paket yapısını ve 114 surenin
@@ -32,44 +44,44 @@ def validate(path: pathlib.Path) -> None:
 
     for key, value in data.items():
         if not isinstance(key, str) or ":" not in key:
-            raise SystemExit(f"Geçersiz ayet anahtarı: {key!r}")
+            raise SystemExit(f"{path.name}: invalid verse key: {key!r}")
 
         surah_text, ayah_text = key.split(":", 1)
         try:
             surah = int(surah_text)
             ayah = int(ayah_text)
         except ValueError as exc:
-            raise SystemExit(f"Sayısal olmayan ayet anahtarı: {key}") from exc
+            raise SystemExit(f"{path.name}: non-numeric verse key: {key}") from exc
 
         if not 1 <= surah <= 114 or ayah < 1:
-            raise SystemExit(f"Aralık dışı ayet anahtarı: {key}")
+            raise SystemExit(f"{path.name}: verse key out of range: {key}")
         if not isinstance(value, str) or not value.strip():
-            raise SystemExit(f"Boş/geçersiz meal metni: {key}")
+            raise SystemExit(f"{path.name}: empty translation text: {key}")
 
         seen_surahs.add(surah)
         valid_entries += 1
 
     if seen_surahs != set(range(1, 115)):
         missing = sorted(set(range(1, 115)) - seen_surahs)
-        raise SystemExit(f"Meal paketinde sureler eksik: {missing}")
+        raise SystemExit(f"{path.name}: missing surahs: {missing}")
 
-    # Bozuk veya yanlış dosyayı erken yakalamak için kaba bir alt sınır.
     if valid_entries < 6000:
         raise SystemExit(
-            f"Meal paketi beklenenden çok küçük görünüyor: {valid_entries} kayıt"
+            f"{path.name}: package looks unexpectedly small: {valid_entries} records"
         )
 
     for key in ("1:1", "2:255", "114:6"):
         if key not in data:
-            raise SystemExit(f"Temel doğrulama ayeti eksik: {key}")
+            raise SystemExit(f"{path.name}: sanity-check verse is missing: {key}")
 
 
 def main() -> None:
-    TARGET.parent.mkdir(parents=True, exist_ok=True)
-    print("Türkçe meal paketi indiriliyor…")
-    urllib.request.urlretrieve(SOURCE, TARGET)
-    validate(TARGET)
-    print(f"Hazır: {TARGET.relative_to(ROOT)} ({TARGET.stat().st_size} bayt)")
+    for label, target, source in BUNDLED:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        print(f"{label} translation package downloading…")
+        urllib.request.urlretrieve(source, target)
+        validate(target)
+        print(f"Ready: {target.relative_to(ROOT)} ({target.stat().st_size} bytes)")
 
 
 if __name__ == "__main__":
