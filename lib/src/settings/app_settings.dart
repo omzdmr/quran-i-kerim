@@ -16,12 +16,18 @@ class AppSettings extends ChangeNotifier {
   static const _lastSurahKey = 'last_surah';
   static const _lastAyahKey = 'last_ayah';
   static const _readerModeKey = 'reader_mode';
+  static const _readerTextSizeKey = 'reader_text_size';
+
+  // Eski test build'leriyle geriye uyumluluk için tutuluyor.
   static const _arabicFontSizeKey = 'arabic_font_size';
   static const _translationFontSizeKey = 'translation_font_size';
+
   static const _readerLineSpacingKey = 'reader_line_spacing';
   static const _bookmarksKey = 'bookmarks';
   static const _notesKey = 'verse_notes';
+  static const _noteSourcesKey = 'verse_note_sources';
   static const _highlightsKey = 'verse_highlights';
+  static const _archiveTimesKey = 'archive_times';
   static const _readingDaysKey = 'reading_days';
 
   ThemeMode _themeMode = ThemeMode.system;
@@ -30,11 +36,12 @@ class AppSettings extends ChangeNotifier {
   int _lastAyah = 1;
   ReaderDisplayMode _readerMode = ReaderDisplayMode.translation;
   ReaderLineSpacing _readerLineSpacing = ReaderLineSpacing.normal;
-  double _arabicFontSize = 29;
-  double _translationFontSize = 17.5;
+  double _readerTextSize = 25;
   Set<String> _bookmarks = <String>{};
   Map<String, String> _notes = <String, String>{};
+  Map<String, String> _noteSources = <String, String>{};
   Map<String, String> _highlights = <String, String>{};
+  Map<String, String> _archiveTimes = <String, String>{};
   Set<String> _readingDays = <String>{};
 
   ThemeMode get themeMode => _themeMode;
@@ -43,24 +50,32 @@ class AppSettings extends ChangeNotifier {
   int get lastAyah => _lastAyah;
   ReaderDisplayMode get readerMode => _readerMode;
   ReaderLineSpacing get readerLineSpacing => _readerLineSpacing;
-  double get arabicFontSize => _arabicFontSize;
-  double get translationFontSize => _translationFontSize;
+
+  /// Arapça ve meal için ortak okuma boyutu.
+  double get readerTextSize => _readerTextSize;
+
+  /// Eski çağrıları kırmamak için ikisi de artık ortak boyutu döndürür.
+  double get arabicFontSize => _readerTextSize;
+  double get translationFontSize => _readerTextSize;
 
   double get arabicLineHeight => switch (_readerLineSpacing) {
-        ReaderLineSpacing.compact => 1.78,
-        ReaderLineSpacing.normal => 2.02,
-        ReaderLineSpacing.relaxed => 2.22,
+        ReaderLineSpacing.compact => 1.62,
+        ReaderLineSpacing.normal => 1.82,
+        ReaderLineSpacing.relaxed => 2.02,
       };
 
   double get translationLineHeight => switch (_readerLineSpacing) {
-        ReaderLineSpacing.compact => 1.38,
-        ReaderLineSpacing.normal => 1.58,
-        ReaderLineSpacing.relaxed => 1.78,
+        ReaderLineSpacing.compact => 1.32,
+        ReaderLineSpacing.normal => 1.48,
+        ReaderLineSpacing.relaxed => 1.66,
       };
 
   UnmodifiableSetView<String> get bookmarkKeys => UnmodifiableSetView(_bookmarks);
   UnmodifiableMapView<String, String> get noteEntries => UnmodifiableMapView(_notes);
-  UnmodifiableMapView<String, String> get highlightEntries => UnmodifiableMapView(_highlights);
+  UnmodifiableMapView<String, String> get noteSourceEntries =>
+      UnmodifiableMapView(_noteSources);
+  UnmodifiableMapView<String, String> get highlightEntries =>
+      UnmodifiableMapView(_highlights);
   UnmodifiableSetView<String> get readingDays => UnmodifiableSetView(_readingDays);
 
   int get readingStreak {
@@ -97,10 +112,12 @@ class AppSettings extends ChangeNotifier {
     _lastSurah = savedSurah.clamp(1, 114).toInt();
     _lastAyah = savedAyah < 1 ? 1 : savedAyah;
 
+    // Eski “Arapça + meal” görünümünü yeni tek-metin okuyucuya taşırken
+    // varsayılan olarak Türkçe meale düşürüyoruz.
     _readerMode = switch (prefs.getString(_readerModeKey)) {
       'arabic' => ReaderDisplayMode.arabic,
-      'arabic_translation' => ReaderDisplayMode.arabicAndTranslation,
       'translation' => ReaderDisplayMode.translation,
+      'arabic_translation' => ReaderDisplayMode.translation,
       _ => ReaderDisplayMode.translation,
     };
 
@@ -110,13 +127,22 @@ class AppSettings extends ChangeNotifier {
       _ => ReaderLineSpacing.normal,
     };
 
-    _arabicFontSize = (prefs.getDouble(_arabicFontSizeKey) ?? 29).clamp(22, 42);
-    _translationFontSize =
-        (prefs.getDouble(_translationFontSizeKey) ?? 17.5).clamp(14, 28);
+    if (prefs.containsKey(_readerTextSizeKey)) {
+      _readerTextSize =
+          (prefs.getDouble(_readerTextSizeKey) ?? 25).clamp(18, 40).toDouble();
+    } else {
+      // Eski build'lerde iki ayrı boyut vardı. Yeni okuyucu ilk geçişte
+      // okunabilir, dengeli tek boyutla başlasın.
+      _readerTextSize = 25;
+    }
+
     _bookmarks = (prefs.getStringList(_bookmarksKey) ?? const <String>[]).toSet();
     _notes = _decodeStringMap(prefs.getString(_notesKey));
+    _noteSources = _decodeStringMap(prefs.getString(_noteSourcesKey));
     _highlights = _decodeStringMap(prefs.getString(_highlightsKey));
-    _readingDays = (prefs.getStringList(_readingDaysKey) ?? const <String>[]).toSet();
+    _archiveTimes = _decodeStringMap(prefs.getString(_archiveTimesKey));
+    _readingDays =
+        (prefs.getStringList(_readingDaysKey) ?? const <String>[]).toSet();
   }
 
   Map<String, String> _decodeStringMap(String? encoded) {
@@ -133,6 +159,26 @@ class AppSettings extends ChangeNotifier {
     final month = date.month.toString().padLeft(2, '0');
     final day = date.day.toString().padLeft(2, '0');
     return '${date.year}-$month-$day';
+  }
+
+  String _archiveKey(String kind, String selectionKey) => '$kind|$selectionKey';
+
+  int archiveTimestamp(String kind, String selectionKey) {
+    return int.tryParse(_archiveTimes[_archiveKey(kind, selectionKey)] ?? '') ?? 0;
+  }
+
+  void _touchArchive(String kind, String selectionKey) {
+    _archiveTimes[_archiveKey(kind, selectionKey)] =
+        DateTime.now().millisecondsSinceEpoch.toString();
+  }
+
+  void _removeArchiveTime(String kind, String selectionKey) {
+    _archiveTimes.remove(_archiveKey(kind, selectionKey));
+  }
+
+  Future<void> _persistArchiveTimes() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_archiveTimesKey, jsonEncode(_archiveTimes));
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
@@ -161,17 +207,20 @@ class AppSettings extends ChangeNotifier {
   }
 
   Future<void> setReaderMode(ReaderDisplayMode mode) async {
-    if (_readerMode == mode) return;
-    _readerMode = mode;
+    final safeMode = mode == ReaderDisplayMode.arabicAndTranslation
+        ? ReaderDisplayMode.translation
+        : mode;
+    if (_readerMode == safeMode) return;
+    _readerMode = safeMode;
     notifyListeners();
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
       _readerModeKey,
-      switch (mode) {
+      switch (safeMode) {
         ReaderDisplayMode.arabic => 'arabic',
-        ReaderDisplayMode.arabicAndTranslation => 'arabic_translation',
         ReaderDisplayMode.translation => 'translation',
+        ReaderDisplayMode.arabicAndTranslation => 'translation',
       },
     );
   }
@@ -192,25 +241,25 @@ class AppSettings extends ChangeNotifier {
     );
   }
 
-  Future<void> setArabicFontSize(double value) async {
-    final safe = value.clamp(22, 42).toDouble();
-    if ((_arabicFontSize - safe).abs() < .1) return;
-    _arabicFontSize = safe;
+  Future<void> setReaderTextSize(double value) async {
+    final safe = value.clamp(18, 40).toDouble();
+    if ((_readerTextSize - safe).abs() < .1) return;
+    _readerTextSize = safe;
     notifyListeners();
 
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble(_arabicFontSizeKey, safe);
+    await Future.wait([
+      prefs.setDouble(_readerTextSizeKey, safe),
+      // Eski build'e dönülürse tamamen saçmalamasın diye iki eski anahtarı da
+      // aynı değerde tutuyoruz.
+      prefs.setDouble(_arabicFontSizeKey, safe),
+      prefs.setDouble(_translationFontSizeKey, safe),
+    ]);
   }
 
-  Future<void> setTranslationFontSize(double value) async {
-    final safe = value.clamp(14, 28).toDouble();
-    if ((_translationFontSize - safe).abs() < .1) return;
-    _translationFontSize = safe;
-    notifyListeners();
+  Future<void> setArabicFontSize(double value) => setReaderTextSize(value);
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble(_translationFontSizeKey, safe);
-  }
+  Future<void> setTranslationFontSize(double value) => setReaderTextSize(value);
 
   Future<void> saveReadingPosition({
     required int surah,
@@ -260,7 +309,7 @@ class AppSettings extends ChangeNotifier {
         : '$surah:${sorted.join(',')}';
   }
 
-  List<int>? _selectionAyahs(String key, int expectedSurah) {
+  List<int>? selectionAyahs(String key, int expectedSurah) {
     final separator = key.indexOf(':');
     if (separator < 1 || separator == key.length - 1) return null;
     final surah = int.tryParse(key.substring(0, separator));
@@ -288,28 +337,42 @@ class AppSettings extends ChangeNotifier {
     return single == null || single < 1 ? null : <int>[single];
   }
 
-  bool _selectionContains(String key, int surah, int ayah) =>
-      _selectionAyahs(key, surah)?.contains(ayah) ?? false;
+  bool selectionContains(String key, int surah, int ayah) =>
+      selectionAyahs(key, surah)?.contains(ayah) ?? false;
 
   bool isBookmarked(int surah, int ayah) =>
-      _bookmarks.any((key) => _selectionContains(key, surah, ayah));
+      _bookmarks.any((key) => selectionContains(key, surah, ayah));
 
   Future<void> toggleBookmark(int surah, int ayah) async {
     final key = verseKey(surah, ayah);
-    if (!_bookmarks.add(key)) _bookmarks.remove(key);
+    if (!_bookmarks.add(key)) {
+      _bookmarks.remove(key);
+      _removeArchiveTime('bookmark', key);
+    } else {
+      _touchArchive('bookmark', key);
+    }
     notifyListeners();
-    await _persistBookmarks();
+    await Future.wait([_persistBookmarks(), _persistArchiveTimes()]);
   }
 
   Future<void> bookmarkSelection(int surah, Iterable<int> ayahs) async {
     final selected = ayahs.toSet().toList()..sort();
     if (selected.isEmpty) return;
-    _bookmarks.removeWhere(
-      (key) => selected.any((ayah) => _selectionContains(key, surah, ayah)),
-    );
-    _bookmarks.add(selectionKey(surah, selected));
+
+    final removed = _bookmarks
+        .where((key) =>
+            selected.any((ayah) => selectionContains(key, surah, ayah)))
+        .toList(growable: false);
+    for (final key in removed) {
+      _bookmarks.remove(key);
+      _removeArchiveTime('bookmark', key);
+    }
+
+    final key = selectionKey(surah, selected);
+    _bookmarks.add(key);
+    _touchArchive('bookmark', key);
     notifyListeners();
-    await _persistBookmarks();
+    await Future.wait([_persistBookmarks(), _persistArchiveTimes()]);
   }
 
   Future<void> _persistBookmarks() async {
@@ -318,41 +381,70 @@ class AppSettings extends ChangeNotifier {
     await prefs.setStringList(_bookmarksKey, sorted);
   }
 
-  String? noteFor(int surah, int ayah) {
-    for (final entry in _notes.entries) {
-      if (_selectionContains(entry.key, surah, ayah)) return entry.value;
+  String? noteKeyForAyah(int surah, int ayah) {
+    for (final key in _notes.keys) {
+      if (selectionContains(key, surah, ayah)) return key;
     }
     return null;
+  }
+
+  String? noteFor(int surah, int ayah) {
+    final key = noteKeyForAyah(surah, ayah);
+    return key == null ? null : _notes[key];
   }
 
   String? noteForSelection(int surah, Iterable<int> ayahs) =>
       _notes[selectionKey(surah, ayahs)];
 
-  Future<void> setNote(int surah, int ayah, String text) =>
-      setNoteForSelection(surah, <int>[ayah], text);
+  String noteSourceForKey(String key) => _noteSources[key] ?? 'RWD';
+
+  String noteSourceForSelection(int surah, Iterable<int> ayahs) =>
+      noteSourceForKey(selectionKey(surah, ayahs));
+
+  Future<void> setNote(
+    int surah,
+    int ayah,
+    String text, {
+    String sourceCode = 'RWD',
+  }) =>
+      setNoteForSelection(
+        surah,
+        <int>[ayah],
+        text,
+        sourceCode: sourceCode,
+      );
 
   Future<void> setNoteForSelection(
     int surah,
     Iterable<int> ayahs,
-    String text,
-  ) async {
+    String text, {
+    String sourceCode = 'RWD',
+  }) async {
     final key = selectionKey(surah, ayahs);
     final trimmed = text.trim();
     if (trimmed.isEmpty) {
       _notes.remove(key);
+      _noteSources.remove(key);
+      _removeArchiveTime('note', key);
     } else {
       _notes[key] = trimmed;
+      _noteSources[key] = sourceCode;
+      _touchArchive('note', key);
     }
     notifyListeners();
 
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_notesKey, jsonEncode(_notes));
+    await Future.wait([
+      prefs.setString(_notesKey, jsonEncode(_notes)),
+      prefs.setString(_noteSourcesKey, jsonEncode(_noteSources)),
+      prefs.setString(_archiveTimesKey, jsonEncode(_archiveTimes)),
+    ]);
   }
 
   VerseHighlightColor? highlightFor(int surah, int ayah) {
     String? stored;
     for (final entry in _highlights.entries) {
-      if (_selectionContains(entry.key, surah, ayah)) {
+      if (selectionContains(entry.key, surah, ayah)) {
         stored = entry.value;
         break;
       }
@@ -368,7 +460,8 @@ class AppSettings extends ChangeNotifier {
     int surah,
     int ayah,
     VerseHighlightColor? color,
-  ) => setHighlightForSelection(surah, <int>[ayah], color);
+  ) =>
+      setHighlightForSelection(surah, <int>[ayah], color);
 
   Future<void> setHighlightForSelection(
     int surah,
@@ -377,16 +470,28 @@ class AppSettings extends ChangeNotifier {
   ) async {
     final selected = ayahs.toSet().toList()..sort();
     if (selected.isEmpty) return;
-    _highlights.removeWhere(
-      (key, _) => selected.any((ayah) => _selectionContains(key, surah, ayah)),
-    );
+
+    final removed = _highlights.keys
+        .where((key) =>
+            selected.any((ayah) => selectionContains(key, surah, ayah)))
+        .toList(growable: false);
+    for (final key in removed) {
+      _highlights.remove(key);
+      _removeArchiveTime('highlight', key);
+    }
+
     if (color != null) {
-      _highlights[selectionKey(surah, selected)] = color.name;
+      final key = selectionKey(surah, selected);
+      _highlights[key] = color.name;
+      _touchArchive('highlight', key);
     }
     notifyListeners();
 
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_highlightsKey, jsonEncode(_highlights));
+    await Future.wait([
+      prefs.setString(_highlightsKey, jsonEncode(_highlights)),
+      prefs.setString(_archiveTimesKey, jsonEncode(_archiveTimes)),
+    ]);
   }
 }
 
