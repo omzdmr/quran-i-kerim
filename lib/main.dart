@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -5,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'src/app.dart';
 import 'src/data/translation_catalog.dart';
+import 'src/features/prayer/application/prayer_notification_service.dart';
 import 'src/settings/app_settings.dart';
 
 Future<void> main() async {
@@ -26,4 +28,9 @@ Future<void> main() async {
   }
 
   runApp(QuranModernApp(settings: settings));
+  unawaited(
+    PrayerNotificationService.initialize().then(
+      (_) => PrayerNotificationService.refreshFromSaved(),
+    ),
+  );
 }
