@@ -1,5 +1,5 @@
 const arabicOriginalSourceId = 'arabic_original';
-const bundledTurkishTranslationId = 'turkish_rwwad';
+const bundledTurkishTranslationId = 'turish_rwwad';
 const englishTranslationId = 'english_rwwad';
 
 class TranslationInfo {
@@ -16,6 +16,7 @@ class TranslationInfo {
     required this.available,
     required this.downloadable,
     this.assetPath,
+    this.hasAudio = false,
   });
 
   final String id;
@@ -43,6 +44,11 @@ class TranslationInfo {
 
   /// A verified network-download path exists and the app may install the pack.
   final bool downloadable;
+
+  /// True only when this exact translation has a verified spoken-translation
+  /// audio source. Arabic recitation is deliberately not treated as translation
+  /// audio, so the reader never shows a misleading speaker icon.
+  final bool hasAudio;
 }
 
 const translationCatalog = <TranslationInfo>[
@@ -85,7 +91,7 @@ const translationCatalog = <TranslationInfo>[
     version: '1.0.4',
     bundled: false,
     available: true,
-    downloadable: false,
+    downloadable: true,
   ),
   TranslationInfo(
     id: 'russian_rwwad',
@@ -98,7 +104,7 @@ const translationCatalog = <TranslationInfo>[
     version: '1.0.1',
     bundled: false,
     available: true,
-    downloadable: false,
+    downloadable: true,
   ),
 ];
 
