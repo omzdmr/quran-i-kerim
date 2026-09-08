@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:quran/quran.dart' as quran;
 
@@ -19,14 +20,13 @@ class QuranReaderScreen extends StatefulWidget {
 }
 
 class _QuranReaderScreenState extends State<QuranReaderScreen> {
-  static const int _chunkSize = 3;
-
   int _surahNumber = 1;
   int _anchorAyah = 1;
   bool _didRestorePosition = false;
   final Set<int> _selectedAyahs = <int>{};
   final ScrollController _scrollController = ScrollController();
-  final Map<int, GlobalKey> _chunkKeys = <int, GlobalKey>{};
+  final GlobalKey<_ContinuousVerseTextState> _textKey =
+      GlobalKey<_ContinuousVerseTextState>();
   late final Future<Map<String, String>> _turkishTranslation;
 
   @override
@@ -73,7 +73,6 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       _surahNumber = surah.number;
       _anchorAyah = safeAyah;
       _selectedAyahs.clear();
-      _chunkKeys.clear();
     });
     if (save) {
       AppSettingsScope.of(context).saveReadingPosition(
@@ -91,7 +90,6 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       _surahNumber = surah.number;
       _anchorAyah = 1;
       _selectedAyahs.clear();
-      _chunkKeys.clear();
     });
     AppSettingsScope.of(context).saveReadingPosition(surah: surah.number, ayah: 1);
     HapticFeedback.selectionClick();
@@ -102,28 +100,27 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     });
   }
 
-  int _chunkStartForAyah(int ayah) => ((ayah - 1) ~/ _chunkSize) * _chunkSize + 1;
-
-  GlobalKey _keyForChunk(int startAyah) =>
-      _chunkKeys.putIfAbsent(startAyah, GlobalKey.new);
-
   void _scheduleScrollToAyah(int ayah, {int attempt = 0}) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final start = _chunkStartForAyah(ayah);
-      final targetContext = _keyForChunk(start).currentContext;
-      if (targetContext != null) {
-        Scrollable.ensureVisible(
-          targetContext,
-          alignment: .05,
+      final state = _textKey.currentState;
+      final globalY = state?.globalYForAyah(ayah);
+      if (globalY != null && _scrollController.hasClients) {
+        final desiredY = MediaQuery.paddingOf(context).top + 88;
+        final delta = globalY - desiredY;
+        final target = (_scrollController.offset + delta)
+            .clamp(0.0, _scrollController.position.maxScrollExtent)
+            .toDouble();
+        _scrollController.animateTo(
+          target,
           duration: attempt == 0
-              ? const Duration(milliseconds: 260)
+              ? const Duration(milliseconds: 280)
               : Duration.zero,
           curve: Curves.easeOutCubic,
         );
         return;
       }
-      if (attempt < 4) {
+      if (attempt < 5) {
         Future<void>.delayed(const Duration(milliseconds: 70), () {
           if (mounted) _scheduleScrollToAyah(ayah, attempt: attempt + 1);
         });
@@ -298,12 +295,10 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     required Map<String, String> translations,
     required bool translationError,
   }) {
-    final chunkCount = (surah.verseCount / _chunkSize).ceil();
-
     return NotificationListener<ScrollNotification>(
       onNotification: (notification) {
         if (notification is ScrollEndNotification) {
-          _saveApproximateVisiblePosition();
+          _saveVisibleReadingPosition();
         }
         return false;
       },
@@ -316,55 +311,36 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
             _surahHeader(surah, settings),
             if (translationError && settings.readerMode != ReaderDisplayMode.arabic)
               _TranslationError(onRetry: () => setState(() {})),
-            for (var chunkIndex = 0; chunkIndex < chunkCount; chunkIndex++)
-              _VerseChunk(
-                key: _keyForChunk(chunkIndex * _chunkSize + 1),
-                surahNumber: _surahNumber,
-                startAyah: chunkIndex * _chunkSize + 1,
-                endAyah: math.min(
-                  surah.verseCount,
-                  chunkIndex * _chunkSize + _chunkSize,
-                ),
-                translations: translations,
-                mode: settings.readerMode,
-                textSize: settings.readerTextSize,
-                lineHeight: settings.readerMode == ReaderDisplayMode.arabic
-                    ? settings.arabicLineHeight
-                    : settings.translationLineHeight,
-                selectedAyahs: _selectedAyahs,
-                settings: settings,
-                onAyahTap: _toggleAyahSelection,
-                onNoteTap: _openNoteForAyah,
-              ),
+            _ContinuousVerseText(
+              key: _textKey,
+              surahNumber: _surahNumber,
+              verseCount: surah.verseCount,
+              translations: translations,
+              mode: settings.readerMode,
+              textSize: settings.readerTextSize,
+              lineHeight: settings.readerMode == ReaderDisplayMode.arabic
+                  ? settings.arabicLineHeight
+                  : settings.translationLineHeight,
+              selectedAyahs: _selectedAyahs,
+              settings: settings,
+              onAyahTap: _toggleAyahSelection,
+              onNoteTap: _openNoteForAyah,
+            ),
           ],
         ),
       ),
     );
   }
 
-  void _saveApproximateVisiblePosition() {
-    if (!mounted || _chunkKeys.isEmpty) return;
-    final targetY = MediaQuery.paddingOf(context).top + 90;
-    int? bestStart;
-    var bestDistance = double.infinity;
-
-    for (final entry in _chunkKeys.entries) {
-      final renderObject = entry.value.currentContext?.findRenderObject();
-      if (renderObject is! RenderBox || !renderObject.attached) continue;
-      final y = renderObject.localToGlobal(Offset.zero).dy;
-      final distance = (y - targetY).abs();
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        bestStart = entry.key;
-      }
-    }
-
-    if (bestStart != null) {
-      AppSettingsScope.of(context).saveReadingPosition(
-        surah: _surahNumber,
-        ayah: bestStart,
-      );
-    }
+  void _saveVisibleReadingPosition() {
+    if (!mounted) return;
+    final targetY = MediaQuery.paddingOf(context).top + 100;
+    final ayah = _textKey.currentState?.ayahClosestToGlobalY(targetY);
+    if (ayah == null) return;
+    AppSettingsScope.of(context).saveReadingPosition(
+      surah: _surahNumber,
+      ayah: ayah,
+    );
   }
 
   Widget _segment(String label, VoidCallback onTap) => InkWell(
@@ -901,8 +877,11 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     );
 
     if (picked == null || !mounted) return;
+    final visibleAyah = settings.lastAyah;
     await settings.setReaderMode(picked);
+    if (!mounted) return;
     HapticFeedback.selectionClick();
+    _scheduleScrollToAyah(visibleAyah);
   }
 
   Future<void> _chooseHighlight() async {
@@ -1345,7 +1324,8 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                             arabicSource ? TextAlign.right : TextAlign.left,
                         style: TextStyle(
                           fontFamily: 'serif',
-                          fontSize: math.min(settings.readerTextSize, 27),
+                          fontSize:
+                              math.min(settings.readerTextSize, 27.0).toDouble(),
                           height: arabicSource
                               ? settings.arabicLineHeight
                               : settings.translationLineHeight,
@@ -1393,11 +1373,10 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   }
 }
 
-class _VerseChunk extends StatefulWidget {
-  const _VerseChunk({
+class _ContinuousVerseText extends StatefulWidget {
+  const _ContinuousVerseText({
     required this.surahNumber,
-    required this.startAyah,
-    required this.endAyah,
+    required this.verseCount,
     required this.translations,
     required this.mode,
     required this.textSize,
@@ -1410,8 +1389,7 @@ class _VerseChunk extends StatefulWidget {
   });
 
   final int surahNumber;
-  final int startAyah;
-  final int endAyah;
+  final int verseCount;
   final Map<String, String> translations;
   final ReaderDisplayMode mode;
   final double textSize;
@@ -1422,12 +1400,14 @@ class _VerseChunk extends StatefulWidget {
   final ValueChanged<int> onNoteTap;
 
   @override
-  State<_VerseChunk> createState() => _VerseChunkState();
+  State<_ContinuousVerseText> createState() => _ContinuousVerseTextState();
 }
 
-class _VerseChunkState extends State<_VerseChunk> {
+class _ContinuousVerseTextState extends State<_ContinuousVerseText> {
+  final GlobalKey _richTextKey = GlobalKey();
   final Map<int, TapGestureRecognizer> _recognizers =
       <int, TapGestureRecognizer>{};
+  final Map<int, int> _textOffsets = <int, int>{};
 
   @override
   void initState() {
@@ -1436,14 +1416,14 @@ class _VerseChunkState extends State<_VerseChunk> {
   }
 
   @override
-  void didUpdateWidget(covariant _VerseChunk oldWidget) {
+  void didUpdateWidget(covariant _ContinuousVerseText oldWidget) {
     super.didUpdateWidget(oldWidget);
     _syncRecognizers();
   }
 
   void _syncRecognizers() {
     final needed = <int>{
-      for (var ayah = widget.startAyah; ayah <= widget.endAyah; ayah++) ayah,
+      for (var ayah = 1; ayah <= widget.verseCount; ayah++) ayah,
     };
     for (final ayah in _recognizers.keys.toList()) {
       if (!needed.contains(ayah)) {
@@ -1467,13 +1447,48 @@ class _VerseChunkState extends State<_VerseChunk> {
     super.dispose();
   }
 
+  RenderParagraph? get _paragraph {
+    final renderObject = _richTextKey.currentContext?.findRenderObject();
+    return renderObject is RenderParagraph ? renderObject : null;
+  }
+
+  double? globalYForAyah(int ayah) {
+    final paragraph = _paragraph;
+    final offset = _textOffsets[ayah];
+    if (paragraph == null || offset == null || !paragraph.attached) return null;
+    final caret = paragraph.getOffsetForCaret(
+      TextPosition(offset: offset),
+      Rect.zero,
+    );
+    return paragraph.localToGlobal(caret).dy;
+  }
+
+  int? ayahClosestToGlobalY(double targetY) {
+    if (_textOffsets.isEmpty) return null;
+    int? bestAyah;
+    var bestDistance = double.infinity;
+    for (final ayah in _textOffsets.keys) {
+      final y = globalYForAyah(ayah);
+      if (y == null) continue;
+      final distance = (y - targetY).abs();
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestAyah = ayah;
+      }
+    }
+    return bestAyah;
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final arabicMode = widget.mode == ReaderDisplayMode.arabic;
     final spans = <InlineSpan>[];
+    var plainOffset = 0;
+    _textOffsets.clear();
 
-    for (var ayah = widget.startAyah; ayah <= widget.endAyah; ayah++) {
+    for (var ayah = 1; ayah <= widget.verseCount; ayah++) {
+      _textOffsets[ayah] = plainOffset;
       final selected = widget.selectedAyahs.contains(ayah);
       final highlight = widget.settings.highlightFor(widget.surahNumber, ayah);
       final highlightedColor = highlight == null
@@ -1496,7 +1511,7 @@ class _VerseChunkState extends State<_VerseChunk> {
         color: highlightedColor == null
             ? scheme.onSurfaceVariant
             : foreground.withValues(alpha: .78),
-        fontSize: math.max(11, widget.textSize * .52),
+        fontSize: math.max(11.0, widget.textSize * .52).toDouble(),
         fontWeight: FontWeight.w700,
         backgroundColor: highlightedColor,
       );
@@ -1520,9 +1535,14 @@ class _VerseChunkState extends State<_VerseChunk> {
             recognizer: _recognizers[ayah],
           ),
         );
-        spans.add(TextSpan(text: '  $ayah', style: numberStyle));
+        plainOffset += text.length;
+        final number = '  $ayah';
+        spans.add(TextSpan(text: number, style: numberStyle));
+        plainOffset += number.length;
       } else {
-        spans.add(TextSpan(text: '$ayah  ', style: numberStyle));
+        final number = '$ayah  ';
+        spans.add(TextSpan(text: number, style: numberStyle));
+        plainOffset += number.length;
         spans.add(
           TextSpan(
             text: text,
@@ -1530,6 +1550,7 @@ class _VerseChunkState extends State<_VerseChunk> {
             recognizer: _recognizers[ayah],
           ),
         );
+        plainOffset += text.length;
       }
 
       if (noteKey != null) {
@@ -1550,6 +1571,7 @@ class _VerseChunkState extends State<_VerseChunk> {
             ),
           ),
         );
+        plainOffset += 1;
       }
       if (bookmarked) {
         spans.add(
@@ -1565,17 +1587,17 @@ class _VerseChunkState extends State<_VerseChunk> {
             ),
           ),
         );
+        plainOffset += 1;
       }
       spans.add(const TextSpan(text: '  '));
+      plainOffset += 2;
     }
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 1),
-      child: Text.rich(
-        TextSpan(children: spans),
-        textDirection: arabicMode ? TextDirection.rtl : TextDirection.ltr,
-        textAlign: arabicMode ? TextAlign.right : TextAlign.left,
-      ),
+    return Text.rich(
+      TextSpan(children: spans),
+      key: _richTextKey,
+      textDirection: arabicMode ? TextDirection.rtl : TextDirection.ltr,
+      textAlign: arabicMode ? TextAlign.right : TextAlign.left,
     );
   }
 }
