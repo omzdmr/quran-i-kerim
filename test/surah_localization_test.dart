@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:quran_i_kerim/src/data/quran_verse_metadata.dart';
 import 'package:quran_i_kerim/src/data/surah_localization.dart';
 
 void main() {
@@ -8,6 +9,18 @@ void main() {
     expect(localizedSurahName(33, 'en').toLowerCase(), contains('ahzab'));
     expect(localizedSurahName(1, 'ar'), 'الفاتحة');
     expect(localizedSurahName(74, 'ru'), isNotEmpty);
+  });
+
+  test('quran metadata exposes local juz page and sajdah data', () {
+    final first = quranVerseMetadata(1, 1);
+    expect(first.juz, 1);
+    expect(first.page, 1);
+    expect(first.isSajdah, isFalse);
+
+    final sajdah = quranVerseMetadata(96, 19);
+    expect(sajdah.juz, inInclusiveRange(1, 30));
+    expect(sajdah.page, inInclusiveRange(1, 604));
+    expect(sajdah.isSajdah, isTrue);
   });
 
   test('search aliases include active and cross-language names', () {

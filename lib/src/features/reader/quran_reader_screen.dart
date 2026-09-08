@@ -6,6 +6,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:quran/quran.dart' as quran;
 
+import '../../data/quran_verse_metadata.dart';
 import '../../data/surah_catalog.dart';
 import '../../data/surah_localization.dart';
 import '../../data/translation_catalog.dart';
@@ -31,6 +32,9 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   bool _readerChromeVisible = true;
   bool _audioQuickControlsVisible = true;
   double _horizontalDragDistance = 0;
+  double _verticalPointerDistance = 0;
+  bool? _pendingReaderChromeVisible;
+  int _visibleAyah = 1;
   int? _lastAudioAyah;
   late final ReaderAudioController _audioController;
   final Set<int> _selectedAyahs = <int>{};
@@ -84,10 +88,15 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     _surahNumber = settings.lastSurah;
     final surah = surahByNumber(_surahNumber);
     _anchorAyah = settings.lastAyah.clamp(1, surah.verseCount).toInt();
+    _visibleAyah = _anchorAyah;
     _didRestorePosition = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _handleReaderRequest();
       _scheduleScrollToAyah(_anchorAyah);
+      final config = _audioConfig(settings);
+      if (config != null) {
+        _warmAudioAtAyah(config, _visibleAyah);
+      }
     });
   }
 
@@ -123,6 +132,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     setState(() {
       _surahNumber = surah.number;
       _anchorAyah = safeAyah;
+      _visibleAyah = safeAyah;
       _selectedAyahs.clear();
     });
     AppNavigation.instance.setReaderSelectionActive(false);
@@ -141,6 +151,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     setState(() {
       _surahNumber = surah.number;
       _anchorAyah = 1;
+      _visibleAyah = 1;
       _selectedAyahs.clear();
     });
     AppNavigation.instance.setReaderSelectionActive(false);
@@ -254,12 +265,18 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       readerAudioConfigFor(settings.selectedQuranSourceId);
 
   Future<void> _prepareAudio(ReaderAudioSourceConfig config) async {
+    await _warmAudioAtAyah(config, _visibleAyah);
+  }
+
+  Future<void> _warmAudioAtAyah(
+    ReaderAudioSourceConfig config,
+    int ayah,
+  ) async {
     final surah = surahByNumber(_surahNumber);
-    final settings = AppSettingsScope.of(context);
     await _audioController.configure(
       config: config,
       surah: _surahNumber,
-      initialAyah: settings.lastAyah.clamp(1, surah.verseCount).toInt(),
+      initialAyah: ayah.clamp(1, surah.verseCount).toInt(),
       verseCount: surah.verseCount,
     );
   }
@@ -564,27 +581,33 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
           if (_scrollController.hasClients && _scrollController.offset < 18) {
             shouldShow = true;
           }
-          if (shouldShow != _readerChromeVisible) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!mounted || _selectedAyahs.isNotEmpty) return;
-              if (_readerChromeVisible != shouldShow) {
-                _setReaderChromeVisible(shouldShow);
-              }
-            });
-          }
+          _pendingReaderChromeVisible = shouldShow;
         }
         if (notification is ScrollEndNotification) {
+          final pending = _pendingReaderChromeVisible;
+          _pendingReaderChromeVisible = null;
+          if (pending != null && pending != _readerChromeVisible) {
+            _setReaderChromeVisible(pending);
+          }
           _saveVisibleReadingPosition();
         }
         return false;
       },
-      child: GestureDetector(
+      child: Listener(
         behavior: HitTestBehavior.translucent,
-        onHorizontalDragStart: (_) => _horizontalDragDistance = 0,
-        onHorizontalDragUpdate: (details) {
-          _horizontalDragDistance += details.primaryDelta ?? 0;
+        onPointerDown: (_) {
+          _horizontalDragDistance = 0;
+          _verticalPointerDistance = 0;
         },
-        onHorizontalDragEnd: _handleHorizontalReaderSwipe,
+        onPointerMove: (event) {
+          _horizontalDragDistance += event.delta.dx;
+          _verticalPointerDistance += event.delta.dy.abs();
+        },
+        onPointerUp: (_) => _handleHorizontalReaderSwipe(),
+        onPointerCancel: (_) {
+          _horizontalDragDistance = 0;
+          _verticalPointerDistance = 0;
+        },
         child: SingleChildScrollView(
           controller: _scrollController,
           padding: EdgeInsets.fromLTRB(
@@ -597,6 +620,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _surahHeader(surah, settings),
+              _verseMetadataStrip(),
               if (translationError && !settings.readerUsesArabic)
                 _TranslationError(
                   onRetry: () {
@@ -626,16 +650,75 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     );
   }
 
-  void _handleHorizontalReaderSwipe(DragEndDetails details) {
+  Widget _verseMetadataStrip() {
+    final metadata = quranVerseMetadata(_surahNumber, _visibleAyah);
+    final scheme = Theme.of(context).colorScheme;
+    final language = Localizations.localeOf(context).languageCode;
+    String label(String tr, String en, String ar, String az, String ru) =>
+        switch (language) {
+          'tr' => tr,
+          'ar' => ar,
+          'az' => az,
+          'ru' => ru,
+          _ => en,
+        };
+
+    final values = <String>[
+      '${label('Cüz', 'Juz', 'الجزء', 'Cüz', 'Джуз')} ${metadata.juz}',
+      '${label('Sayfa', 'Page', 'الصفحة', 'Səhifə', 'Страница')} ${metadata.page}',
+      if (metadata.isSajdah)
+        label(
+          'Secde ayeti',
+          'Sajdah verse',
+          'آية سجدة',
+          'Səcdə ayəsi',
+          'Аят саджда',
+        ),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 10, bottom: 4),
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 8,
+        runSpacing: 6,
+        children: values
+            .map(
+              (value) => Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainer,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    color: scheme.onSurfaceVariant,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            )
+            .toList(growable: false),
+      ),
+    );
+  }
+
+  void _handleHorizontalReaderSwipe() {
     if (_selectedAyahs.isNotEmpty) return;
-    final distance = _horizontalDragDistance;
+    final horizontal = _horizontalDragDistance;
+    final vertical = _verticalPointerDistance;
     _horizontalDragDistance = 0;
-    final velocity = details.primaryVelocity ?? 0;
-    if (distance.abs() < 72) return;
-    if (velocity.abs() < 250 && distance.abs() < 110) return;
-    if (distance < 0 && _surahNumber < 114) {
+    _verticalPointerDistance = 0;
+    if (horizontal.abs() < 92) return;
+    if (vertical > horizontal.abs() * .55) return;
+    if (horizontal < 0 && _surahNumber < 114) {
       _openSurahAtStart(_surahNumber + 1);
-    } else if (distance > 0 && _surahNumber > 1) {
+    } else if (horizontal > 0 && _surahNumber > 1) {
       _openSurahAtStart(_surahNumber - 1);
     }
   }
@@ -645,8 +728,15 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     final targetY = MediaQuery.paddingOf(context).top + 100;
     final ayah = _textKey.currentState?.ayahClosestToGlobalY(targetY);
     if (ayah == null) return;
-    AppSettingsScope.of(context)
-        .saveReadingPosition(surah: _surahNumber, ayah: ayah);
+    if (_visibleAyah != ayah) {
+      setState(() => _visibleAyah = ayah);
+    }
+    final settings = AppSettingsScope.of(context);
+    settings.saveReadingPosition(surah: _surahNumber, ayah: ayah);
+    final config = _audioConfig(settings);
+    if (config != null && !_audioController.isPlaying) {
+      _warmAudioAtAyah(config, ayah);
+    }
   }
 
   Widget _segment(String label, VoidCallback onTap) => InkWell(
