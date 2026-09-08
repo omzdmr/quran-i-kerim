@@ -2,7 +2,7 @@ name: Android APK
 
 on:
   push:
-    branches: [ main, feature/localization-v01 ]
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
@@ -42,33 +42,16 @@ jobs:
         with:
           path: .ci/test-signing.jks
           key: quran-i-kerim-arm64-test-signing-v2
+          fail-on-cache-miss: true
 
-      - name: Create stable test signing key if needed
+      - name: Verify stable test signing certificate
         run: |
-          mkdir -p .ci
-          if [ ! -f .ci/test-signing.jks ]; then
-            keytool -genkeypair \
-              -keystore .ci/test-signing.jks \
-              -storepass android \
-              -alias quran_test \
-              -keypass android \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 10000 \
-              -dname "CN=Quran Test,O=omzdmr,C=TR"
-          fi
-          keytool -list -v \
+          fingerprint="$(keytool -list -v \
             -keystore .ci/test-signing.jks \
             -storepass android \
-            -alias quran_test | grep -E "SHA256:|Owner:|Valid from:"
-
-      - name: Export stable test signing key
-        uses: actions/upload-artifact@v4
-        with:
-          name: quran-test-signing-key
-          path: .ci/test-signing.jks
-          if-no-files-found: error
-          retention-days: 1
+            -alias quran_test | sed -n 's/.*SHA256: //p')"
+          echo "Test certificate SHA256: $fingerprint"
+          test "$fingerprint" = "B4:3E:F1:1A:40:8E:65:C3:CE:42:73:8D:6D:44:94:2A:F2:CB:78:78:04:23:CE:E6:4B:78:2A:8C:79:36:AE:5C"
 
       - name: Configure stable test signing
         run: |
