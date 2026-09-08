@@ -37,6 +37,12 @@ jobs:
           java-version: '17'
           cache: gradle
 
+      - name: Restore test signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: quran-i-kerim-test-signing-v1
+
       - name: Set Android app label
         run: |
           python3 - <<'PY'
@@ -59,13 +65,13 @@ jobs:
       - name: Run prayer tests
         run: flutter test test/prayer_calculator_test.dart
 
-      - name: Build lightweight APKs
-        run: flutter build apk --release --split-per-abi
+      - name: Build ARM64 test APK
+        run: flutter build apk --release --target-platform android-arm64 --build-number=${{ github.run_number }}
 
-      - name: Upload APKs
+      - name: Upload ARM64 APK
         uses: actions/upload-artifact@v4
         with:
-          name: quran-i-kerim-apk
-          path: build/app/outputs/flutter-apk/*.apk
+          name: quran-i-kerim-arm64-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
           retention-days: 14
