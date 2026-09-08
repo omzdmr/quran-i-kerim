@@ -2,18 +2,32 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../domain/prayer_models.dart';
 
+const defaultPrayerNotificationIds = <String>{
+  'fajr',
+  'dhuhr',
+  'asr',
+  'maghrib',
+  'isha',
+};
+
 class PrayerSettingsSnapshot {
   const PrayerSettingsSnapshot({
     this.methodOverride,
     this.asrMethod = PrayerAsrMethod.standard,
     this.highLatitudeMethod = PrayerHighLatitudeMethod.recommended,
     this.adjustments = const PrayerMinuteAdjustments(),
+    this.notificationsEnabled = false,
+    this.notificationPrayerIds = defaultPrayerNotificationIds,
+    this.hijriOffsetDays = 0,
   });
 
   final PrayerCalculationMethod? methodOverride;
   final PrayerAsrMethod asrMethod;
   final PrayerHighLatitudeMethod highLatitudeMethod;
   final PrayerMinuteAdjustments adjustments;
+  final bool notificationsEnabled;
+  final Set<String> notificationPrayerIds;
+  final int hijriOffsetDays;
 
   PrayerPreferences preferencesFor(PrayerCalculationMethod cityDefault) {
     return PrayerPreferences(
@@ -25,9 +39,22 @@ class PrayerSettingsSnapshot {
   }
 }
 
+class PrayerDeviceLocationSnapshot {
+  const PrayerDeviceLocationSnapshot({
+    required this.location,
+    required this.defaultMethod,
+    required this.regionCode,
+  });
+
+  final PrayerLocation location;
+  final PrayerCalculationMethod defaultMethod;
+  final String regionCode;
+}
+
 class PrayerPreferencesStore {
   PrayerPreferencesStore._();
 
+  static const deviceLocationId = '__device_location__';
   static const cityKey = 'prayer_city_id';
   static const _methodKey = 'prayer_method_override';
   static const _asrKey = 'prayer_asr_method';
@@ -38,9 +65,18 @@ class PrayerPreferencesStore {
   static const _asrAdjustmentKey = 'prayer_adjustment_asr';
   static const _maghribAdjustmentKey = 'prayer_adjustment_maghrib';
   static const _ishaAdjustmentKey = 'prayer_adjustment_isha';
+  static const _notificationsEnabledKey = 'prayer_notifications_enabled';
+  static const _notificationPrayerIdsKey = 'prayer_notification_ids';
+  static const _hijriOffsetKey = 'prayer_hijri_offset';
+  static const _deviceLatitudeKey = 'prayer_device_latitude';
+  static const _deviceLongitudeKey = 'prayer_device_longitude';
+  static const _deviceTimezoneKey = 'prayer_device_timezone';
+  static const _deviceMethodKey = 'prayer_device_method';
+  static const _deviceRegionKey = 'prayer_device_region';
 
   static Future<PrayerSettingsSnapshot> load() async {
     final prefs = await SharedPreferences.getInstance();
+    final storedNotificationIds = prefs.getStringList(_notificationPrayerIdsKey);
     return PrayerSettingsSnapshot(
       methodOverride: _enumByName(
         PrayerCalculationMethod.values,
@@ -64,6 +100,11 @@ class PrayerPreferencesStore {
         maghrib: prefs.getInt(_maghribAdjustmentKey) ?? 0,
         isha: prefs.getInt(_ishaAdjustmentKey) ?? 0,
       ),
+      notificationsEnabled: prefs.getBool(_notificationsEnabledKey) ?? false,
+      notificationPrayerIds: storedNotificationIds == null
+          ? defaultPrayerNotificationIds
+          : storedNotificationIds.toSet(),
+      hijriOffsetDays: (prefs.getInt(_hijriOffsetKey) ?? 0).clamp(-2, 2),
     );
   }
 
@@ -75,6 +116,45 @@ class PrayerPreferencesStore {
   static Future<void> saveCityId(String id) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(cityKey, id);
+  }
+
+  static Future<void> saveDeviceLocation(
+    PrayerDeviceLocationSnapshot value,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_deviceLatitudeKey, value.location.latitude);
+    await prefs.setDouble(_deviceLongitudeKey, value.location.longitude);
+    await prefs.setString(_deviceTimezoneKey, value.location.timeZoneId);
+    await prefs.setString(_deviceMethodKey, value.defaultMethod.name);
+    await prefs.setString(_deviceRegionKey, value.regionCode);
+    await prefs.setString(cityKey, deviceLocationId);
+  }
+
+  static Future<PrayerDeviceLocationSnapshot?> loadDeviceLocation() async {
+    final prefs = await SharedPreferences.getInstance();
+    final latitude = prefs.getDouble(_deviceLatitudeKey);
+    final longitude = prefs.getDouble(_deviceLongitudeKey);
+    final timezone = prefs.getString(_deviceTimezoneKey);
+    final method = _enumByName(
+      PrayerCalculationMethod.values,
+      prefs.getString(_deviceMethodKey),
+    );
+    if (latitude == null ||
+        longitude == null ||
+        timezone == null ||
+        method == null) {
+      return null;
+    }
+    return PrayerDeviceLocationSnapshot(
+      location: PrayerLocation(
+        latitude: latitude,
+        longitude: longitude,
+        timeZoneId: timezone,
+        label: 'GPS',
+      ),
+      defaultMethod: method,
+      regionCode: prefs.getString(_deviceRegionKey) ?? 'world',
+    );
   }
 
   static Future<void> save(PrayerSettingsSnapshot value) async {
@@ -93,6 +173,12 @@ class PrayerPreferencesStore {
     await prefs.setInt(_asrAdjustmentKey, value.adjustments.asr);
     await prefs.setInt(_maghribAdjustmentKey, value.adjustments.maghrib);
     await prefs.setInt(_ishaAdjustmentKey, value.adjustments.isha);
+    await prefs.setBool(_notificationsEnabledKey, value.notificationsEnabled);
+    await prefs.setStringList(
+      _notificationPrayerIdsKey,
+      value.notificationPrayerIds.toList()..sort(),
+    );
+    await prefs.setInt(_hijriOffsetKey, value.hijriOffsetDays.clamp(-2, 2));
   }
 
   static T? _enumByName<T extends Enum>(List<T> values, String? name) {
