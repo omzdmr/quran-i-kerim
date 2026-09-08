@@ -5,8 +5,8 @@ import 'package:quran/quran.dart' as quran;
 import '../../data/surah_catalog.dart';
 import '../../data/translation_repository.dart';
 import '../../l10n/app_localizations.dart';
-import '../../navigation/app_navigation.dart';
 import '../../settings/app_settings.dart';
+import '../reader/passage_preview_screen.dart';
 import '../settings/settings_screen.dart';
 
 enum _ArchiveFilter { all, highlights, bookmarks, notes }
@@ -489,9 +489,14 @@ class _ArchiveCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         onTap: () {
           HapticFeedback.selectionClick();
-          AppNavigation.instance.openReader(
-            surah: item.surah,
-            ayah: item.ayahs.first,
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => PassagePreviewScreen(
+                selectionKey: item.key,
+                sourceCode:
+                    item.kind == _ArchiveKind.note ? item.sourceCode : null,
+              ),
+            ),
           );
         },
         child: Padding(
