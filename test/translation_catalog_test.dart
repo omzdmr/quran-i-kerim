@@ -46,6 +46,10 @@ void main() {
       expect(english!.providerKey, 'english_rwwad');
       expect(vakfi, isNotNull);
       expect(vakfi!.providerKey, 'tr.vakfi-audio');
+      expect(
+        primaryQuranAudioForSource('azeri_musayev')?.providerKey,
+        'azeri_musayev',
+      );
       expect(hasQuranAudioForSource(bundledTurkishTranslationId), isFalse);
       expect(
         quranAudioCatalog

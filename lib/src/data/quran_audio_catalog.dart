@@ -234,6 +234,17 @@ const quranAudioCatalog = <QuranAudioInfo>[
     providerKey: 'dutch_center',
   ),
   QuranAudioInfo(
+    id: 'azeri_musayev_audio',
+    sourceId: 'azeri_musayev',
+    languageCode: 'az',
+    code: 'MUS-AZ',
+    title: 'Azərbaycan dilinə tərcümə',
+    attribution: 'Əlixan Musayev · QuranEnc.com',
+    kind: QuranAudioKind.translation,
+    provider: QuranAudioProvider.quranEnc,
+    providerKey: 'azeri_musayev',
+  ),
+  QuranAudioInfo(
     id: 'tagalog_rwwad_audio',
     sourceId: 'tagalog_rwwad',
     languageCode: 'tl',

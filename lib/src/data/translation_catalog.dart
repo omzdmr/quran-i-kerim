@@ -264,6 +264,7 @@ const translationCatalog = <TranslationInfo>[
     bundled: false,
     available: true,
     downloadable: true,
+    hasAudio: true,
   ),
   TranslationInfo(
     id: 'russian_rwwad',
