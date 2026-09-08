@@ -1,0 +1,43 @@
+name: Apply audio catalog v09
+
+on:
+  push:
+    branches: [ feature/localization-v01 ]
+    paths:
+      - '.github/workflows/apply-audio-catalog-v09.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: feature/localization-v01
+          fetch-depth: 0
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.2'
+          channel: stable
+          cache: true
+
+      - name: Apply patch
+        run: python3 tool/apply_audio_catalog_v09.py
+
+      - name: Format changed Dart
+        run: dart format lib/src/data/quran_audio_catalog.dart lib/src/features/settings/quran_translation_catalog_screen.dart lib/src/features/reader/reader_audio_sheet.dart
+
+      - name: Commit source changes
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add lib/src/data/quran_audio_catalog.dart lib/src/features/settings/quran_translation_catalog_screen.dart lib/src/features/reader/reader_audio_sheet.dart
+          git commit -m 'Unify Quran audio catalog and discovery'
+          git push origin HEAD:feature/localization-v01
