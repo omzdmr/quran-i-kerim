@@ -122,8 +122,7 @@ def build_pack(
 
             # Keep the upstream fields intact. We only normalize JSON container
             # structure and never alter translation or footnote text.
-            item = dict(raw)
-            items.append(item)
+            items.append(dict(raw))
 
     if seen_suras != set(range(1, 115)):
         missing = sorted(set(range(1, 115)) - seen_suras)
@@ -157,8 +156,15 @@ def build_pack(
         separators=(",", ":"),
     ).encode("utf-8")
     output.parent.mkdir(parents=True, exist_ok=True)
-    with gzip.open(output, "wb", compresslevel=9, mtime=0) as handle:
-        handle.write(encoded)
+    with output.open("wb") as raw_output:
+        with gzip.GzipFile(
+            filename="",
+            mode="wb",
+            fileobj=raw_output,
+            compresslevel=9,
+            mtime=0,
+        ) as handle:
+            handle.write(encoded)
 
     digest = hashlib.sha256(output.read_bytes()).hexdigest()
     print(f"Ready: {output} ({output.stat().st_size} bytes)")
