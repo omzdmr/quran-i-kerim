@@ -59,7 +59,10 @@ class PlansScreen extends StatelessWidget {
               for (final topic in topics)
                 Container(
                   width: 145,
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 17),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 17,
+                  ),
                   decoration: BoxDecoration(
                     color: scheme.primaryContainer,
                     borderRadius: BorderRadius.circular(15),
@@ -141,7 +144,10 @@ class _PlanSection extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: Text(title, style: Theme.of(context).textTheme.headlineMedium),
+              child: Text(
+                title,
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
             ),
             Text(
               l10n.text('viewAll'),

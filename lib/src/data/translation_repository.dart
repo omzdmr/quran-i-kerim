@@ -13,6 +13,9 @@ import 'translation_pack.dart';
 /// A small default translation can be bundled for selected app languages.
 /// Extra translations are fetched from QuranEnc only when the user explicitly
 /// asks for them, validated, gzip-compressed, and stored in app-private storage.
+Uri islamicNetworkTranslationPackageUri(TranslationInfo info) =>
+    Uri.https('api.alquran.cloud', '/v1/quran/${info.sourceKey}');
+
 class TranslationRepository {
   TranslationRepository._();
 
@@ -87,6 +90,13 @@ class TranslationRepository {
     if (info.bundled) return true;
     final file = await _downloadFile(info.id);
     return file.exists();
+  }
+
+  Future<int> installedTranslationBytes(String sourceId) async {
+    final info = translationById(sourceId);
+    if (info == null || info.bundled) return 0;
+    final file = await _downloadFile(sourceId);
+    return await file.exists() ? file.length() : 0;
   }
 
   Future<void> deleteInstalledTranslation(String sourceId) async {
@@ -240,43 +250,61 @@ class TranslationRepository {
     ValueChanged<double>? onProgress,
   }) async {
     final client = HttpClient()
-      ..connectionTimeout = const Duration(seconds: 25);
+      ..connectionTimeout = const Duration(seconds: 25)
+      ..idleTimeout = const Duration(seconds: 30);
     try {
+      onProgress?.call(.03);
+      final payload = await _getJson(
+        client,
+        islamicNetworkTranslationPackageUri(info),
+      );
+      onProgress?.call(.82);
+      if (payload is! Map || payload['data'] is! Map) {
+        throw const FormatException(
+          'Unexpected Islamic Network Quran response.',
+        );
+      }
+      final data = Map<String, dynamic>.from(payload['data'] as Map);
+      final surahs = data['surahs'];
+      if (surahs is! List) {
+        throw const FormatException('Islamic Network surah list is missing.');
+      }
+
       final items = <Map<String, dynamic>>[];
       final seen = <String>{};
-      const concurrency = 6;
-      for (var start = 1; start <= 114; start += concurrency) {
-        final end = math.min(start + concurrency - 1, 114);
-        final chunks = await Future.wait([
-          for (var surah = start; surah <= end; surah++)
-            _fetchIslamicNetworkSurah(client, info, surah),
-        ]);
-        for (final chunk in chunks) {
-          for (final raw in chunk) {
-            final surah = int.tryParse('${raw['sura']}');
-            final ayah = int.tryParse('${raw['aya']}');
-            final translation = raw['translation'];
-            if (surah == null ||
-                surah < 1 ||
-                surah > 114 ||
-                ayah == null ||
-                ayah < 1 ||
-                translation is! String ||
-                translation.trim().isEmpty) {
-              throw const FormatException(
-                'Islamic Network returned an invalid verse.',
-              );
-            }
-            final key = '$surah:$ayah';
-            if (!seen.add(key)) {
-              throw FormatException(
-                'Islamic Network returned duplicate verse $key.',
-              );
-            }
-            items.add(raw);
-          }
+      for (final rawSurah in surahs) {
+        if (rawSurah is! Map) continue;
+        final surah = int.tryParse('${rawSurah['number']}');
+        final ayahs = rawSurah['ayahs'];
+        if (surah == null || surah < 1 || surah > 114 || ayahs is! List) {
+          throw const FormatException(
+            'Islamic Network returned an invalid surah.',
+          );
         }
-        onProgress?.call(.02 + .96 * (end / 114));
+        for (final rawAyah in ayahs) {
+          if (rawAyah is! Map) continue;
+          final ayah = int.tryParse('${rawAyah['numberInSurah']}');
+          final translation = rawAyah['text'];
+          if (ayah == null ||
+              ayah < 1 ||
+              translation is! String ||
+              translation.trim().isEmpty) {
+            throw const FormatException(
+              'Islamic Network returned an invalid verse.',
+            );
+          }
+          final key = '$surah:$ayah';
+          if (!seen.add(key)) {
+            throw FormatException(
+              'Islamic Network returned duplicate verse $key.',
+            );
+          }
+          items.add(<String, dynamic>{
+            'sura': surah,
+            'aya': ayah,
+            'translation': translation,
+          });
+        }
       }
 
       if (items.length < 6000) {
@@ -284,13 +312,15 @@ class TranslationRepository {
           'Downloaded translation looks incomplete: ${items.length} verses.',
         );
       }
+      onProgress?.call(.92);
+      final edition = data['edition'];
       final package = <String, dynamic>{
         'schema_version': 1,
         'source': info.source,
         'source_key': info.sourceKey,
         'language_iso_code': info.languageCode,
         'version': info.version,
-        'title': info.name,
+        'title': edition is Map ? edition['name'] ?? info.name : info.name,
         'description': info.publisher,
         'terms': const <String, dynamic>{
           'provider': 'Islamic Network / Al Quran Cloud',
@@ -320,37 +350,6 @@ class TranslationRepository {
     }
   }
 
-  Future<List<Map<String, dynamic>>> _fetchIslamicNetworkSurah(
-    HttpClient client,
-    TranslationInfo info,
-    int surah,
-  ) async {
-    final uri = Uri.https(
-      'api.alquran.cloud',
-      '/v1/surah/$surah/${info.sourceKey}',
-    );
-    final payload = await _getJson(client, uri);
-    if (payload is! Map || payload['data'] is! Map) {
-      throw FormatException(
-        'Unexpected Islamic Network response for surah $surah.',
-      );
-    }
-    final data = Map<String, dynamic>.from(payload['data'] as Map);
-    final ayahs = data['ayahs'];
-    if (ayahs is! List) {
-      throw FormatException('Islamic Network ayahs missing for surah $surah.');
-    }
-    return [
-      for (final raw in ayahs)
-        if (raw is Map)
-          <String, dynamic>{
-            'sura': surah,
-            'aya': raw['numberInSurah'],
-            'translation': raw['text'],
-          },
-    ];
-  }
-
   Future<List<Map<String, dynamic>>> _fetchSurah(
     HttpClient client,
     TranslationInfo info,
@@ -365,23 +364,40 @@ class TranslationRepository {
   }
 
   Future<dynamic> _getJson(HttpClient client, Uri uri) async {
-    final request = await client.getUrl(uri);
-    request.headers
-      ..set(HttpHeaders.userAgentHeader, _userAgent)
-      ..set(HttpHeaders.acceptHeader, 'application/json');
-    final response = await request.close();
-    if (response.statusCode != HttpStatus.ok) {
-      await response.drain<void>();
-      throw HttpException(
-        '${uri.host} returned HTTP ${response.statusCode}.',
-        uri: uri,
+    for (var attempt = 0; attempt < 3; attempt++) {
+      final request = await client.getUrl(uri);
+      request.headers
+        ..set(HttpHeaders.userAgentHeader, _userAgent)
+        ..set(HttpHeaders.acceptHeader, 'application/json')
+        ..set(HttpHeaders.acceptEncodingHeader, 'gzip');
+      final response = await request.close();
+      if (response.statusCode == HttpStatus.tooManyRequests && attempt < 2) {
+        final retryAfter = int.tryParse(
+          response.headers.value(HttpHeaders.retryAfterHeader) ?? '',
+        );
+        await response.drain<void>();
+        await Future<void>.delayed(
+          Duration(seconds: (retryAfter ?? (attempt + 1) * 2).clamp(1, 8)),
+        );
+        continue;
+      }
+      if (response.statusCode != HttpStatus.ok) {
+        await response.drain<void>();
+        throw HttpException(
+          '${uri.host} returned HTTP ${response.statusCode}.',
+          uri: uri,
+        );
+      }
+      final bytes = await response.fold<List<int>>(
+        <int>[],
+        (buffer, data) => buffer..addAll(data),
       );
+      return jsonDecode(utf8.decode(bytes));
     }
-    final bytes = await response.fold<List<int>>(
-      <int>[],
-      (buffer, data) => buffer..addAll(data),
+    throw HttpException(
+      '${uri.host} temporarily rate limited the request.',
+      uri: uri,
     );
-    return jsonDecode(utf8.decode(bytes));
   }
 
   List<Map<String, dynamic>> _resultList(

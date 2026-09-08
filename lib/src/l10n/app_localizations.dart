@@ -30,12 +30,12 @@ class AppLocalizations {
   }
 
   Map<String, String> get _map => switch (locale.languageCode) {
-        'en' => enStrings,
-        'ar' => arStrings,
-        'az' => azStrings,
-        'ru' => ruStrings,
-        _ => trStrings,
-      };
+    'en' => enStrings,
+    'ar' => arStrings,
+    'az' => azStrings,
+    'ru' => ruStrings,
+    _ => trStrings,
+  };
 
   String? _featureValue(String key) =>
       featureStrings[locale.languageCode]?[key] ??
@@ -43,7 +43,11 @@ class AppLocalizations {
       featureStrings['tr']?[key];
 
   String _value(String key) =>
-      _map[key] ?? _featureValue(key) ?? enStrings[key] ?? trStrings[key] ?? key;
+      _map[key] ??
+      _featureValue(key) ??
+      enStrings[key] ??
+      trStrings[key] ??
+      key;
 
   String text(String key) => _value(key);
 
@@ -65,7 +69,8 @@ class AppLocalizations {
   String get language => _value('language');
   String get languageDescription => _value('languageDescription');
   String get useDeviceLanguage => _value('useDeviceLanguage');
-  String get useDeviceLanguageDescription => _value('useDeviceLanguageDescription');
+  String get useDeviceLanguageDescription =>
+      _value('useDeviceLanguageDescription');
   String get turkish => _value('turkish');
   String get english => _value('english');
   String get arabic => _value('arabic');
@@ -86,7 +91,8 @@ class AppLocalizations {
   String get moreTranslationsSoon => _value('moreTranslationsSoon');
   String get reading => _value('reading');
   String get rememberPosition => _value('rememberPosition');
-  String get rememberPositionDescription => _value('rememberPositionDescription');
+  String get rememberPositionDescription =>
+      _value('rememberPositionDescription');
   String get profile => _value('profile');
   String get guest => _value('guest');
   String get guestDescription => _value('guestDescription');
@@ -107,13 +113,14 @@ class AppLocalizations {
   String get translationLoading => _value('translationLoading');
 }
 
-class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
+class _AppLocalizationsDelegate
+    extends LocalizationsDelegate<AppLocalizations> {
   const _AppLocalizationsDelegate();
 
   @override
   bool isSupported(Locale locale) => AppLocalizations.supportedLocales.any(
-        (supported) => supported.languageCode == locale.languageCode,
-      );
+    (supported) => supported.languageCode == locale.languageCode,
+  );
 
   @override
   Future<AppLocalizations> load(Locale locale) =>

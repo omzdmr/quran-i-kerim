@@ -34,8 +34,9 @@ class DiscoverScreen extends StatelessWidget {
 
     void openPrayer() {
       HapticFeedback.selectionClick();
-      Navigator.of(context)
-          .push(MaterialPageRoute<void>(builder: (_) => const PrayerScreen()));
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute<void>(builder: (_) => const PrayerScreen()));
     }
 
     void openQibla() {

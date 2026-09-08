@@ -16,12 +16,14 @@ const featureStrings = <String, Map<String, String>>{
     'compact': 'Sık',
     'normal': 'Normal',
     'relaxed': 'Ferah',
-    'readerSizeHint': 'Boyut ayarı seçili metinden bağımsızdır; kaynak değişse de aynı okuma boyutu korunur.',
+    'readerSizeHint':
+        'Boyut ayarı seçili metinden bağımsızdır; kaynak değişse de aynı okuma boyutu korunur.',
     'quranSearchTitle': 'Kuran’da ara',
     'quranSearchHint': 'Bakara, 2:255 veya sabır ara',
     'noResults': 'Sonuç bulunamadı.',
     'searchHintTitle': 'Sure, ayet veya meal içinde ara',
-    'searchHintBody': 'Örnek: “Bakara”, “2:255” veya “sabır”. Arama seçili çevrimdışı meal üzerinde yapılır.',
+    'searchHintBody':
+        'Örnek: “Bakara”, “2:255” veya “sabır”. Arama seçili çevrimdışı meal üzerinde yapılır.',
     'surahs': 'Sureler', 'surahSearchHint': 'Sure adı veya numara ara',
     'singleTextReaderHint': 'Okuyucuda aynı anda tek metin gösterilir.',
     'newTranslationsHint': 'İndirilen mealler burada seçilebilir.',
@@ -59,17 +61,21 @@ const featureStrings = <String, Map<String, String>>{
     'citySearchHint': 'Şehir veya ülke ara',
     'cityPickerInfo': 'Öncelikli şehir listesi çevrimdışı çalışır.',
     'cityNotFound': 'Şehir bulunamadı.',
-    'worldCitySearchInfo': 'Dünya şehirleri çevrimdışı aranır. Bulamazsanız GPS veya isteğe bağlı çevrimiçi aramayı kullanabilirsiniz.',
-    'cityNotFoundBody': 'Şehriniz listede yoksa konum izniyle otomatik bulabilir veya yalnızca bu arama için çevrimiçi arayabilirsiniz.',
+    'worldCitySearchInfo':
+        'Dünya şehirleri çevrimdışı aranır. Bulamazsanız GPS veya isteğe bağlı çevrimiçi aramayı kullanabilirsiniz.',
+    'cityNotFoundBody':
+        'Şehriniz listede yoksa konum izniyle otomatik bulabilir veya yalnızca bu arama için çevrimiçi arayabilirsiniz.',
     'useLocationToFind': 'Konumumu kullan ve bul',
     'searchOnline': 'Çevrimiçi ara',
     'onlineSearchFailed': 'Çevrimiçi şehir araması başarısız oldu.',
     'onlineResults': 'Çevrimiçi sonuçlar',
     'offlineResults': 'Çevrimdışı sonuçlar',
     'priorityCities': 'Öne çıkan şehirler',
-    'locationDataAttribution': 'Çevrimdışı şehir verisi: GeoNames (CC BY 4.0) · Çevrimiçi arama: OpenStreetMap katkıcıları',
+    'locationDataAttribution':
+        'Çevrimdışı şehir verisi: GeoNames (CC BY 4.0) · Çevrimiçi arama: OpenStreetMap katkıcıları',
     'qiblaLocationPrompt': 'Kıble için konum gerekli',
-    'qiblaLocationPromptBody': 'Konum izni verirseniz Kâbe yönünü bulunduğunuz noktadan hesaplarız. Şehir seçmeniz gerekmez.',
+    'qiblaLocationPromptBody':
+        'Konum izni verirseniz Kâbe yönünü bulunduğunuz noktadan hesaplarız. Şehir seçmeniz gerekmez.',
     'chooseManually': 'Manuel konum seç',
     'pointTopToKaaba': 'Telefonun üst kısmını Kâbe işaretine çevirin',
     'nextPrayer': 'Sıradaki',
@@ -83,9 +89,11 @@ const featureStrings = <String, Map<String, String>>{
     'asr': 'İkindi',
     'maghrib': 'Akşam',
     'isha': 'Yatsı',
-    'prayerOfflineInfo': 'Vakitler cihazda hesaplanır; günlük internet gerekmez. Hesaplama yöntemi ve dakika düzeltmeleri ayarlardan değiştirilebilir.',
+    'prayerOfflineInfo':
+        'Vakitler cihazda hesaplanır; günlük internet gerekmez. Hesaplama yöntemi ve dakika düzeltmeleri ayarlardan değiştirilebilir.',
     'qiblaNorthDescription': 'Kuzeye göre Kıble yönü',
-    'qiblaCalibrationInfo': 'Telefonu düz tutun. Pusula doğruluğu düşükse cihazı 8 şekli çizerek kalibre edin. Mıknatıslı kılıflar, metal yüzeyler ve elektronik cihazlar pusulayı etkileyebilir.',
+    'qiblaCalibrationInfo':
+        'Telefonu düz tutun. Pusula doğruluğu düşükse cihazı 8 şekli çizerek kalibre edin. Mıknatıslı kılıflar, metal yüzeyler ve elektronik cihazlar pusulayı etkileyebilir.',
     'calculationMethod': 'Hesaplama yöntemi',
     'calculationMethodInfo':
         'Otomatik seçim bulunduğunuz şehir için önerilen yöntemi kullanır.',
@@ -97,8 +105,11 @@ const featureStrings = <String, Map<String, String>>{
     'highLatitudeInfo':
         'Uzun yaz/kış günlerinde sabah ve yatsı hesabı için kullanılır.',
     'rule': 'Kural',
-    'minuteAdjustments': 'Dakika düzeltmeleri', 'minuteAdjustmentsInfo': 'Yerel takvimle küçük fark varsa vakitleri ayrı ayrı -30 ile +30 dakika arasında düzeltin.',
-    'prayerSettingsInfo': 'Ayarlar cihazda saklanır. Yerel resmi takvimle fark görürseniz yöntem veya dakika düzeltmesini değiştirebilirsiniz.',
+    'minuteAdjustments': 'Dakika düzeltmeleri',
+    'minuteAdjustmentsInfo':
+        'Yerel takvimle küçük fark varsa vakitleri ayrı ayrı -30 ile +30 dakika arasında düzeltin.',
+    'prayerSettingsInfo':
+        'Ayarlar cihazda saklanır. Yerel resmi takvimle fark görürseniz yöntem veya dakika düzeltmesini değiştirebilirsiniz.',
     'decreaseMinute': '1 dakika azalt',
     'increaseMinute': '1 dakika artır',
     'minuteUnit': 'dk',
@@ -138,7 +149,8 @@ const featureStrings = <String, Map<String, String>>{
     'notificationPermissionDenied': 'Bildirim izni verilmedi.',
     'hijriDate': 'Hicri tarih',
     'hijriDateOffset': 'Hicri tarih düzeltmesi',
-    'hijriDateOffsetInfo': 'Yerel hilal takviminiz farklıysa Hicri tarihi -2 ile +2 gün arasında düzeltin.',
+    'hijriDateOffsetInfo':
+        'Yerel hilal takviminiz farklıysa Hicri tarihi -2 ile +2 gün arasında düzeltin.',
     'daysUnit': 'gün',
   },
   'en': <String, String>{
@@ -160,12 +172,14 @@ const featureStrings = <String, Map<String, String>>{
     'compact': 'Compact',
     'normal': 'Normal',
     'relaxed': 'Relaxed',
-    'readerSizeHint': 'Text size is independent of the selected source and stays the same when you switch translations.',
+    'readerSizeHint':
+        'Text size is independent of the selected source and stays the same when you switch translations.',
     'quranSearchTitle': 'Search Quran',
     'quranSearchHint': 'Search Al-Baqarah, 2:255 or patience',
     'noResults': 'No results found.',
     'searchHintTitle': 'Search a surah, verse or translation',
-    'searchHintBody': 'Examples: “Baqarah”, “2:255” or “patience”. Search uses the selected offline translation.',
+    'searchHintBody':
+        'Examples: “Baqarah”, “2:255” or “patience”. Search uses the selected offline translation.',
     'surahs': 'Surahs',
     'surahSearchHint': 'Search by surah name or number',
     'singleTextReaderHint': 'The reader shows one text at a time.',
@@ -182,7 +196,8 @@ const featureStrings = <String, Map<String, String>>{
     'noteLocalOnly': 'Your note is stored only on this device.',
     'shrink': 'Decrease',
     'enlarge': 'Increase',
-    'translationPackError': 'The selected translation pack could not be opened. Arabic text is still available.',
+    'translationPackError':
+        'The selected translation pack could not be opened. Arabic text is still available.',
     'translationSearchHint': 'Search language, translation or publisher',
     'download': 'Download',
     'downloading': 'Downloading',
@@ -193,24 +208,29 @@ const featureStrings = <String, Map<String, String>>{
         'A verified download package is not ready for this translation yet.',
     'deleteDownload': 'Delete download',
     'deleteDownloadConfirm': 'Delete the downloaded translation?',
-    'deleteDownloadBody': 'The translation will be removed from this device and can be downloaded again later.',
+    'deleteDownloadBody':
+        'The translation will be removed from this device and can be downloaded again later.',
     'delete': 'Delete',
     'prayerSettings': 'Prayer Settings',
     'chooseCity': 'Choose city',
     'citySearchHint': 'Search city or country',
     'cityPickerInfo': 'The priority city list works offline.',
     'cityNotFound': 'City not found.',
-    'worldCitySearchInfo': 'Worldwide cities are searched offline. If needed, use GPS or an explicit online lookup.',
-    'cityNotFoundBody': 'If your city is missing, let us find your location with GPS or run a one-time online search.',
+    'worldCitySearchInfo':
+        'Worldwide cities are searched offline. If needed, use GPS or an explicit online lookup.',
+    'cityNotFoundBody':
+        'If your city is missing, let us find your location with GPS or run a one-time online search.',
     'useLocationToFind': 'Use my location and find it',
     'searchOnline': 'Search online',
     'onlineSearchFailed': 'Online city search failed.',
     'onlineResults': 'Online results',
     'offlineResults': 'Offline results',
     'priorityCities': 'Featured cities',
-    'locationDataAttribution': 'Offline city data: GeoNames (CC BY 4.0) · Online search: OpenStreetMap contributors',
+    'locationDataAttribution':
+        'Offline city data: GeoNames (CC BY 4.0) · Online search: OpenStreetMap contributors',
     'qiblaLocationPrompt': 'Location is needed for Qibla',
-    'qiblaLocationPromptBody': 'Allow location access and we calculate the Kaaba direction from your exact position. No city selection is required.',
+    'qiblaLocationPromptBody':
+        'Allow location access and we calculate the Kaaba direction from your exact position. No city selection is required.',
     'chooseManually': 'Choose location manually',
     'pointTopToKaaba': 'Turn the top of your phone toward the Kaaba marker',
     'nextPrayer': 'Next',
@@ -225,9 +245,11 @@ const featureStrings = <String, Map<String, String>>{
     'asr': 'Asr',
     'maghrib': 'Maghrib',
     'isha': 'Isha',
-    'prayerOfflineInfo': 'Prayer times are calculated on-device and do not need daily internet. Method and minute adjustments can be changed in settings.',
+    'prayerOfflineInfo':
+        'Prayer times are calculated on-device and do not need daily internet. Method and minute adjustments can be changed in settings.',
     'qiblaNorthDescription': 'Qibla direction from north',
-    'qiblaCalibrationInfo': 'Keep the phone flat. If compass accuracy is low, calibrate by moving the device in a figure-eight. Magnetic cases, metal surfaces and electronics can affect the compass.',
+    'qiblaCalibrationInfo':
+        'Keep the phone flat. If compass accuracy is low, calibrate by moving the device in a figure-eight. Magnetic cases, metal surfaces and electronics can affect the compass.',
     'calculationMethod': 'Calculation method',
     'calculationMethodInfo':
         'Automatic uses the recommended method for the selected city.',
@@ -242,8 +264,10 @@ const featureStrings = <String, Map<String, String>>{
         'Used for Fajr and Isha during very long summer or winter days.',
     'rule': 'Rule',
     'minuteAdjustments': 'Minute adjustments',
-    'minuteAdjustmentsInfo': 'If a local timetable differs slightly, adjust each prayer between -30 and +30 minutes.',
-    'prayerSettingsInfo': 'Settings are stored on this device. If your local official timetable differs, change the method or minute adjustment.',
+    'minuteAdjustmentsInfo':
+        'If a local timetable differs slightly, adjust each prayer between -30 and +30 minutes.',
+    'prayerSettingsInfo':
+        'Settings are stored on this device. If your local official timetable differs, change the method or minute adjustment.',
     'decreaseMinute': 'Decrease 1 minute',
     'increaseMinute': 'Increase 1 minute',
     'minuteUnit': 'min',
@@ -268,7 +292,8 @@ const featureStrings = <String, Map<String, String>>{
     'currentLocation': 'Current location',
     'useCurrentLocation': 'Use current location',
     'refreshLocation': 'Refresh location',
-    'locationPermissionDenied': 'Location permission was not granted. You can continue by choosing a city.',
+    'locationPermissionDenied':
+        'Location permission was not granted. You can continue by choosing a city.',
     'locationServicesDisabled': 'Location services are turned off.',
     'locationFailed':
         'Could not get your location. You can continue by choosing a city.',
@@ -278,11 +303,13 @@ const featureStrings = <String, Map<String, String>>{
         'Live compass data is unavailable; showing the Qibla angle from north.',
     'qiblaAligned': 'You are facing the Qibla',
     'prayerNotifications': 'Prayer notifications',
-    'prayerNotificationsInfo': 'Local notifications are scheduled on this device for the prayers you select.',
+    'prayerNotificationsInfo':
+        'Local notifications are scheduled on this device for the prayers you select.',
     'notificationPermissionDenied': 'Notification permission was not granted.',
     'hijriDate': 'Hijri date',
     'hijriDateOffset': 'Hijri date adjustment',
-    'hijriDateOffsetInfo': 'If your local moon-sighting calendar differs, adjust the Hijri date by -2 to +2 days.',
+    'hijriDateOffsetInfo':
+        'If your local moon-sighting calendar differs, adjust the Hijri date by -2 to +2 days.',
     'daysUnit': 'days',
   },
   'ar': <String, String>{
@@ -347,17 +374,21 @@ const featureStrings = <String, Map<String, String>>{
     'citySearchHint': 'ابحث عن مدينة أو دولة',
     'cityPickerInfo': 'قائمة المدن الأساسية تعمل دون اتصال.',
     'cityNotFound': 'لم يتم العثور على مدينة.',
-    'worldCitySearchInfo': 'يتم البحث في مدن العالم دون اتصال. عند الحاجة استخدم GPS أو البحث عبر الإنترنت صراحةً.',
-    'cityNotFoundBody': 'إذا لم تجد مدينتك، يمكن تحديد موقعك عبر GPS أو إجراء بحث واحد عبر الإنترنت.',
+    'worldCitySearchInfo':
+        'يتم البحث في مدن العالم دون اتصال. عند الحاجة استخدم GPS أو البحث عبر الإنترنت صراحةً.',
+    'cityNotFoundBody':
+        'إذا لم تجد مدينتك، يمكن تحديد موقعك عبر GPS أو إجراء بحث واحد عبر الإنترنت.',
     'useLocationToFind': 'استخدم موقعي للعثور عليها',
     'searchOnline': 'بحث عبر الإنترنت',
     'onlineSearchFailed': 'فشل البحث عن المدينة عبر الإنترنت.',
     'onlineResults': 'نتائج الإنترنت',
     'offlineResults': 'نتائج دون اتصال',
     'priorityCities': 'مدن بارزة',
-    'locationDataAttribution': 'بيانات المدن دون اتصال: GeoNames (CC BY 4.0) · البحث عبر الإنترنت: مساهمو OpenStreetMap',
+    'locationDataAttribution':
+        'بيانات المدن دون اتصال: GeoNames (CC BY 4.0) · البحث عبر الإنترنت: مساهمو OpenStreetMap',
     'qiblaLocationPrompt': 'الموقع مطلوب لتحديد القبلة',
-    'qiblaLocationPromptBody': 'اسمح بالوصول إلى الموقع لنحسب اتجاه الكعبة من موقعك الدقيق دون الحاجة لاختيار مدينة.',
+    'qiblaLocationPromptBody':
+        'اسمح بالوصول إلى الموقع لنحسب اتجاه الكعبة من موقعك الدقيق دون الحاجة لاختيار مدينة.',
     'chooseManually': 'اختيار الموقع يدويًا',
     'pointTopToKaaba': 'وجّه أعلى الهاتف نحو علامة الكعبة',
     'nextPrayer': 'التالي',
@@ -372,9 +403,11 @@ const featureStrings = <String, Map<String, String>>{
     'asr': 'العصر',
     'maghrib': 'المغرب',
     'isha': 'العشاء',
-    'prayerOfflineInfo': 'تُحسب المواقيت على الجهاز ولا تحتاج إلى إنترنت يومي. يمكن تغيير طريقة الحساب وفروق الدقائق من الإعدادات.',
+    'prayerOfflineInfo':
+        'تُحسب المواقيت على الجهاز ولا تحتاج إلى إنترنت يومي. يمكن تغيير طريقة الحساب وفروق الدقائق من الإعدادات.',
     'qiblaNorthDescription': 'اتجاه القبلة نسبةً إلى الشمال',
-    'qiblaCalibrationInfo': 'أبقِ الهاتف مستوياً. إذا كانت دقة البوصلة منخفضة فحرّك الجهاز على شكل رقم 8 للمعايرة. قد تؤثر الأغطية المغناطيسية والمعادن والأجهزة الإلكترونية في البوصلة.',
+    'qiblaCalibrationInfo':
+        'أبقِ الهاتف مستوياً. إذا كانت دقة البوصلة منخفضة فحرّك الجهاز على شكل رقم 8 للمعايرة. قد تؤثر الأغطية المغناطيسية والمعادن والأجهزة الإلكترونية في البوصلة.',
     'calculationMethod': 'طريقة الحساب',
     'calculationMethodInfo':
         'يستخدم الاختيار التلقائي الطريقة المقترحة للمدينة المحددة.',
@@ -391,7 +424,8 @@ const featureStrings = <String, Map<String, String>>{
     'minuteAdjustments': 'تعديل الدقائق',
     'minuteAdjustmentsInfo':
         'إذا اختلف الجدول المحلي قليلاً، عدّل كل وقت بين -30 و+30 دقيقة.',
-    'prayerSettingsInfo': 'تُحفظ الإعدادات على الجهاز. إذا اختلف الجدول الرسمي المحلي فغيّر الطريقة أو تعديل الدقائق.',
+    'prayerSettingsInfo':
+        'تُحفظ الإعدادات على الجهاز. إذا اختلف الجدول الرسمي المحلي فغيّر الطريقة أو تعديل الدقائق.',
     'decreaseMinute': 'إنقاص دقيقة',
     'increaseMinute': 'زيادة دقيقة',
     'minuteUnit': 'د',
@@ -431,7 +465,8 @@ const featureStrings = <String, Map<String, String>>{
     'notificationPermissionDenied': 'لم يتم منح إذن الإشعارات.',
     'hijriDate': 'التاريخ الهجري',
     'hijriDateOffset': 'تعديل التاريخ الهجري',
-    'hijriDateOffsetInfo': 'إذا اختلف تقويم رؤية الهلال المحلي فعدّل التاريخ الهجري من -2 إلى +2 يوم.',
+    'hijriDateOffsetInfo':
+        'إذا اختلف تقويم رؤية الهلال المحلي فعدّل التاريخ الهجري من -2 إلى +2 يوم.',
     'daysUnit': 'يوم',
   },
   'az': <String, String>{
@@ -453,12 +488,14 @@ const featureStrings = <String, Map<String, String>>{
     'compact': 'Sıx',
     'normal': 'Normal',
     'relaxed': 'Rahat',
-    'readerSizeHint': 'Mətn ölçüsü seçilmiş mənbədən asılı deyil və tərcümə dəyişəndə qorunur.',
+    'readerSizeHint':
+        'Mətn ölçüsü seçilmiş mənbədən asılı deyil və tərcümə dəyişəndə qorunur.',
     'quranSearchTitle': 'Quranda axtar',
     'quranSearchHint': 'Bəqərə, 2:255 və ya səbir axtar',
     'noResults': 'Nəticə tapılmadı.',
     'searchHintTitle': 'Surə, ayə və ya tərcümədə axtar',
-    'searchHintBody': 'Məsələn: “Bəqərə”, “2:255” və ya “səbir”. Axtarış seçilmiş oflayn tərcümədə aparılır.',
+    'searchHintBody':
+        'Məsələn: “Bəqərə”, “2:255” və ya “səbir”. Axtarış seçilmiş oflayn tərcümədə aparılır.',
     'surahs': 'Surələr',
     'surahSearchHint': 'Surə adı və ya nömrəsi ilə axtar',
     'singleTextReaderHint': 'Oxuyucuda eyni anda bir mətn göstərilir.',
@@ -495,17 +532,21 @@ const featureStrings = <String, Map<String, String>>{
     'citySearchHint': 'Şəhər və ya ölkə axtar',
     'cityPickerInfo': 'Əsas şəhər siyahısı oflayn işləyir.',
     'cityNotFound': 'Şəhər tapılmadı.',
-    'worldCitySearchInfo': 'Dünya şəhərləri oflayn axtarılır. Lazım olsa GPS və ya açıq şəkildə onlayn axtarışdan istifadə edin.',
-    'cityNotFoundBody': 'Şəhərinizi tapmadınızsa GPS ilə məkanınızı müəyyən edə və ya bir dəfə onlayn axtara bilərsiniz.',
+    'worldCitySearchInfo':
+        'Dünya şəhərləri oflayn axtarılır. Lazım olsa GPS və ya açıq şəkildə onlayn axtarışdan istifadə edin.',
+    'cityNotFoundBody':
+        'Şəhərinizi tapmadınızsa GPS ilə məkanınızı müəyyən edə və ya bir dəfə onlayn axtara bilərsiniz.',
     'useLocationToFind': 'Məkanımı istifadə edib tap',
     'searchOnline': 'Onlayn axtar',
     'onlineSearchFailed': 'Onlayn şəhər axtarışı uğursuz oldu.',
     'onlineResults': 'Onlayn nəticələr',
     'offlineResults': 'Oflayn nəticələr',
     'priorityCities': 'Seçilmiş şəhərlər',
-    'locationDataAttribution': 'Oflayn şəhər məlumatı: GeoNames (CC BY 4.0) · Onlayn axtarış: OpenStreetMap iştirakçıları',
+    'locationDataAttribution':
+        'Oflayn şəhər məlumatı: GeoNames (CC BY 4.0) · Onlayn axtarış: OpenStreetMap iştirakçıları',
     'qiblaLocationPrompt': 'Qiblə üçün məkan lazımdır',
-    'qiblaLocationPromptBody': 'Məkan icazəsi versəniz Kəbə istiqamətini dəqiq mövqeyinizdən hesablayarıq. Şəhər seçmək lazım deyil.',
+    'qiblaLocationPromptBody':
+        'Məkan icazəsi versəniz Kəbə istiqamətini dəqiq mövqeyinizdən hesablayarıq. Şəhər seçmək lazım deyil.',
     'chooseManually': 'Məkanı əl ilə seç',
     'pointTopToKaaba': 'Telefonun üst hissəsini Kəbə işarəsinə çevirin',
     'nextPrayer': 'Növbəti',
@@ -520,11 +561,14 @@ const featureStrings = <String, Map<String, String>>{
     'asr': 'Əsr',
     'maghrib': 'Məğrib',
     'isha': 'İşa',
-    'prayerOfflineInfo': 'Namaz vaxtları cihazda hesablanır və gündəlik internet tələb etmir. Hesablama üsulu və dəqiqə düzəlişləri ayarlardan dəyişdirilə bilər.',
+    'prayerOfflineInfo':
+        'Namaz vaxtları cihazda hesablanır və gündəlik internet tələb etmir. Hesablama üsulu və dəqiqə düzəlişləri ayarlardan dəyişdirilə bilər.',
     'qiblaNorthDescription': 'Şimala görə Qiblə istiqaməti',
-    'qiblaCalibrationInfo': 'Telefonu düz saxlayın. Kompas dəqiqliyi aşağıdırsa cihazı 8 formasında hərəkət etdirərək kalibr edin. Maqnitli qablar, metal səthlər və elektronika kompası təsirləndirə bilər.',
+    'qiblaCalibrationInfo':
+        'Telefonu düz saxlayın. Kompas dəqiqliyi aşağıdırsa cihazı 8 formasında hərəkət etdirərək kalibr edin. Maqnitli qablar, metal səthlər və elektronika kompası təsirləndirə bilər.',
     'calculationMethod': 'Hesablama üsulu',
-    'calculationMethodInfo': 'Avtomatik seçim seçilmiş şəhər üçün tövsiyə olunan üsuldan istifadə edir.',
+    'calculationMethodInfo':
+        'Avtomatik seçim seçilmiş şəhər üçün tövsiyə olunan üsuldan istifadə edir.',
     'automatic': 'Avtomatik',
     'method': 'Üsul',
     'asrCalculation': 'Əsr hesabı',
@@ -536,8 +580,10 @@ const featureStrings = <String, Map<String, String>>{
         'Çox uzun yay və qış günlərində Sübh və İşa üçün istifadə olunur.',
     'rule': 'Qayda',
     'minuteAdjustments': 'Dəqiqə düzəlişləri',
-    'minuteAdjustmentsInfo': 'Yerli cədvəllə kiçik fərq varsa hər vaxtı -30 ilə +30 dəqiqə arasında düzəldin.',
-    'prayerSettingsInfo': 'Ayarlar cihazda saxlanılır. Yerli rəsmi cədvəllə fərq varsa üsulu və ya dəqiqə düzəlişini dəyişin.',
+    'minuteAdjustmentsInfo':
+        'Yerli cədvəllə kiçik fərq varsa hər vaxtı -30 ilə +30 dəqiqə arasında düzəldin.',
+    'prayerSettingsInfo':
+        'Ayarlar cihazda saxlanılır. Yerli rəsmi cədvəllə fərq varsa üsulu və ya dəqiqə düzəlişini dəyişin.',
     'decreaseMinute': '1 dəqiqə azalt',
     'increaseMinute': '1 dəqiqə artır',
     'minuteUnit': 'dəq',
@@ -577,7 +623,8 @@ const featureStrings = <String, Map<String, String>>{
     'notificationPermissionDenied': 'Bildiriş icazəsi verilmədi.',
     'hijriDate': 'Hicri tarix',
     'hijriDateOffset': 'Hicri tarix düzəlişi',
-    'hijriDateOffsetInfo': 'Yerli hilal təqvimi fərqlidirsə Hicri tarixi -2 ilə +2 gün arasında düzəldin.',
+    'hijriDateOffsetInfo':
+        'Yerli hilal təqvimi fərqlidirsə Hicri tarixi -2 ilə +2 gün arasında düzəldin.',
     'daysUnit': 'gün',
   },
   'ru': <String, String>{
@@ -605,7 +652,8 @@ const featureStrings = <String, Map<String, String>>{
     'quranSearchHint': 'Ищите Аль-Бакара, 2:255 или терпение',
     'noResults': 'Ничего не найдено.',
     'searchHintTitle': 'Поиск по суре, аяту или переводу',
-    'searchHintBody': 'Например: «Бакара», «2:255» или «терпение». Поиск выполняется по выбранному офлайн-переводу.',
+    'searchHintBody':
+        'Например: «Бакара», «2:255» или «терпение». Поиск выполняется по выбранному офлайн-переводу.',
     'surahs': 'Суры',
     'surahSearchHint': 'Искать по названию или номеру суры',
     'singleTextReaderHint': 'В читалке одновременно показывается один текст.',
@@ -622,7 +670,8 @@ const featureStrings = <String, Map<String, String>>{
     'noteLocalOnly': 'Заметка хранится только на этом устройстве.',
     'shrink': 'Уменьшить',
     'enlarge': 'Увеличить',
-    'translationPackError': 'Не удалось открыть выбранный перевод. Арабский текст остаётся доступен.',
+    'translationPackError':
+        'Не удалось открыть выбранный перевод. Арабский текст остаётся доступен.',
     'translationSearchHint': 'Искать язык, перевод или издателя',
     'download': 'Скачать',
     'downloading': 'Загрузка',
@@ -641,17 +690,21 @@ const featureStrings = <String, Map<String, String>>{
     'citySearchHint': 'Искать город или страну',
     'cityPickerInfo': 'Основной список городов работает офлайн.',
     'cityNotFound': 'Город не найден.',
-    'worldCitySearchInfo': 'Города мира ищутся офлайн. При необходимости используйте GPS или явный онлайн-поиск.',
-    'cityNotFoundBody': 'Если города нет в списке, определите местоположение по GPS или выполните разовый онлайн-поиск.',
+    'worldCitySearchInfo':
+        'Города мира ищутся офлайн. При необходимости используйте GPS или явный онлайн-поиск.',
+    'cityNotFoundBody':
+        'Если города нет в списке, определите местоположение по GPS или выполните разовый онлайн-поиск.',
     'useLocationToFind': 'Найти по моему местоположению',
     'searchOnline': 'Искать онлайн',
     'onlineSearchFailed': 'Не удалось выполнить онлайн-поиск города.',
     'onlineResults': 'Онлайн-результаты',
     'offlineResults': 'Офлайн-результаты',
     'priorityCities': 'Избранные города',
-    'locationDataAttribution': 'Офлайн-данные городов: GeoNames (CC BY 4.0) · Онлайн-поиск: участники OpenStreetMap',
+    'locationDataAttribution':
+        'Офлайн-данные городов: GeoNames (CC BY 4.0) · Онлайн-поиск: участники OpenStreetMap',
     'qiblaLocationPrompt': 'Для Киблы нужно местоположение',
-    'qiblaLocationPromptBody': 'Разрешите доступ к местоположению, и направление на Каабу будет рассчитано от вашей точной позиции без выбора города.',
+    'qiblaLocationPromptBody':
+        'Разрешите доступ к местоположению, и направление на Каабу будет рассчитано от вашей точной позиции без выбора города.',
     'chooseManually': 'Выбрать место вручную',
     'pointTopToKaaba': 'Поверните верх телефона к значку Каабы',
     'nextPrayer': 'Следующий',
@@ -666,11 +719,14 @@ const featureStrings = <String, Map<String, String>>{
     'asr': 'Аср',
     'maghrib': 'Магриб',
     'isha': 'Иша',
-    'prayerOfflineInfo': 'Время намаза рассчитывается на устройстве и не требует ежедневного интернета. Метод и поправки минут можно изменить в настройках.',
+    'prayerOfflineInfo':
+        'Время намаза рассчитывается на устройстве и не требует ежедневного интернета. Метод и поправки минут можно изменить в настройках.',
     'qiblaNorthDescription': 'Направление Киблы относительно севера',
-    'qiblaCalibrationInfo': 'Держите телефон ровно. При низкой точности компаса откалибруйте его движением в форме восьмёрки. Магнитные чехлы, металл и электроника могут влиять на компас.',
+    'qiblaCalibrationInfo':
+        'Держите телефон ровно. При низкой точности компаса откалибруйте его движением в форме восьмёрки. Магнитные чехлы, металл и электроника могут влиять на компас.',
     'calculationMethod': 'Метод расчёта',
-    'calculationMethodInfo': 'Автоматический режим использует рекомендуемый метод для выбранного города.',
+    'calculationMethodInfo':
+        'Автоматический режим использует рекомендуемый метод для выбранного города.',
     'automatic': 'Автоматически',
     'method': 'Метод',
     'asrCalculation': 'Расчёт Асра',
@@ -682,8 +738,10 @@ const featureStrings = <String, Map<String, String>>{
         'Используется для Фаджра и Иша в очень длинные летние или зимние дни.',
     'rule': 'Правило',
     'minuteAdjustments': 'Поправки минут',
-    'minuteAdjustmentsInfo': 'Если местное расписание немного отличается, скорректируйте каждый намаз от -30 до +30 минут.',
-    'prayerSettingsInfo': 'Настройки хранятся на устройстве. Если официальное местное расписание отличается, смените метод или поправку минут.',
+    'minuteAdjustmentsInfo':
+        'Если местное расписание немного отличается, скорректируйте каждый намаз от -30 до +30 минут.',
+    'prayerSettingsInfo':
+        'Настройки хранятся на устройстве. Если официальное местное расписание отличается, смените метод или поправку минут.',
     'decreaseMinute': 'Уменьшить на 1 минуту',
     'increaseMinute': 'Увеличить на 1 минуту',
     'minuteUnit': 'мин',
@@ -719,11 +777,13 @@ const featureStrings = <String, Map<String, String>>{
         'Данные компаса недоступны; показан угол Киблы относительно севера.',
     'qiblaAligned': 'Вы направлены к Кибле',
     'prayerNotifications': 'Уведомления о намазе',
-    'prayerNotificationsInfo': 'Для выбранных намазов на устройстве планируются локальные уведомления.',
+    'prayerNotificationsInfo':
+        'Для выбранных намазов на устройстве планируются локальные уведомления.',
     'notificationPermissionDenied': 'Разрешение на уведомления не выдано.',
     'hijriDate': 'Дата по Хиджре',
     'hijriDateOffset': 'Поправка даты по Хиджре',
-    'hijriDateOffsetInfo': 'Если местный лунный календарь отличается, скорректируйте дату от -2 до +2 дней.',
+    'hijriDateOffsetInfo':
+        'Если местный лунный календарь отличается, скорректируйте дату от -2 до +2 дней.',
     'daysUnit': 'дн.',
   },
 };

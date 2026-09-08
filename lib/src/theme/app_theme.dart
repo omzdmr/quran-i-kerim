@@ -81,9 +81,7 @@ class AppTheme {
         color: cardColor,
         elevation: 0,
         margin: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(22),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
       ),
       textTheme: TextTheme(
         headlineLarge: TextStyle(

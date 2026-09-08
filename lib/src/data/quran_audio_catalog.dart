@@ -16,6 +16,7 @@ class QuranAudioInfo {
     required this.provider,
     required this.providerKey,
     this.bitrate,
+    this.availableBitrates = const <int>[],
     this.style,
   });
 
@@ -29,6 +30,7 @@ class QuranAudioInfo {
   final QuranAudioProvider provider;
   final String providerKey;
   final int? bitrate;
+  final List<int> availableBitrates;
   final String? style;
 }
 
@@ -44,6 +46,7 @@ const quranAudioCatalog = <QuranAudioInfo>[
     provider: QuranAudioProvider.islamicNetwork,
     providerKey: 'ar.alafasy',
     bitrate: 128,
+    availableBitrates: <int>[64, 128],
     style: 'Murattal',
   ),
   QuranAudioInfo(
@@ -355,3 +358,11 @@ QuranAudioInfo? primaryQuranAudioForSource(String sourceId) {
 
 bool hasQuranAudioForSource(String sourceId) =>
     primaryQuranAudioForSource(sourceId) != null;
+
+List<int> quranAudioBitrates(QuranAudioInfo audio) {
+  if (audio.availableBitrates.isNotEmpty) {
+    final values = audio.availableBitrates.toSet().toList()..sort();
+    return values;
+  }
+  return audio.bitrate == null ? const <int>[] : <int>[audio.bitrate!];
+}

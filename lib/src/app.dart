@@ -7,10 +7,7 @@ import 'shell/app_shell.dart';
 import 'theme/app_theme.dart';
 
 class QuranModernApp extends StatelessWidget {
-  const QuranModernApp({
-    required this.settings,
-    super.key,
-  });
+  const QuranModernApp({required this.settings, super.key});
 
   final AppSettings settings;
 

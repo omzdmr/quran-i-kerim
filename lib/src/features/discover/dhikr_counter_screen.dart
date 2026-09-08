@@ -76,14 +76,14 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
   String? _lastIncrementedId;
 
   List<_DhikrEntry> get _entries => <_DhikrEntry>[
-        ..._builtIns,
-        ..._customEntries,
-      ];
+    ..._builtIns,
+    ..._customEntries,
+  ];
 
   _DhikrEntry get _selectedEntry => _entries.firstWhere(
-        (entry) => entry.id == _selectedId,
-        orElse: () => _builtIns.first,
-      );
+    (entry) => entry.id == _selectedId,
+    orElse: () => _builtIns.first,
+  );
 
   int get _count => _counts[_selectedId] ?? 0;
   int get _target => _targets[_selectedId] ?? 33;
@@ -103,7 +103,8 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
 
   String _displayLabel(_DhikrEntry entry, [String? languageCode]) {
     if (entry.custom) return entry.label;
-    final language = languageCode ?? Localizations.localeOf(context).languageCode;
+    final language =
+        languageCode ?? Localizations.localeOf(context).languageCode;
     return _builtInLabels[entry.id]?[language] ??
         _builtInLabels[entry.id]?['en'] ??
         entry.label;
@@ -155,7 +156,8 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
     final normalized = label.trim().toLowerCase();
     for (final entry in _builtIns) {
       if (entry.label.toLowerCase() == normalized) return entry.id;
-      for (final translated in _builtInLabels[entry.id]?.values ?? const <String>[]) {
+      for (final translated
+          in _builtInLabels[entry.id]?.values ?? const <String>[]) {
         if (translated.toLowerCase() == normalized) return entry.id;
       }
     }
@@ -171,7 +173,8 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
   ) {
     final migrated = <String, int>{};
     for (final entry in raw.entries) {
-      final stableId = _builtIns.any((item) => item.id == entry.key) ||
+      final stableId =
+          _builtIns.any((item) => item.id == entry.key) ||
               custom.any((item) => item.id == entry.key)
           ? entry.key
           : _idForLegacyLabel(entry.key, custom);
@@ -416,7 +419,8 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
               final name = nameController.text.trim();
               if (name.isEmpty) return;
               final duplicate = _entries.any(
-                (entry) => _displayLabel(entry).toLowerCase() == name.toLowerCase(),
+                (entry) =>
+                    _displayLabel(entry).toLowerCase() == name.toLowerCase(),
               );
               if (duplicate) return;
               final rawTarget = targetController.text.trim();
@@ -473,10 +477,11 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
     final target = _target;
     final progress = target <= 0 ? null : (_count % target) / target;
     final cycleValue = target <= 0 ? _count : _count % target;
-    final dailyItems = _dailyCounts.entries
-        .where((entry) => entry.value > 0 && _entryById(entry.key) != null)
-        .toList(growable: false)
-      ..sort((a, b) => b.value.compareTo(a.value));
+    final dailyItems =
+        _dailyCounts.entries
+            .where((entry) => entry.value > 0 && _entryById(entry.key) != null)
+            .toList(growable: false)
+          ..sort((a, b) => b.value.compareTo(a.value));
 
     return Scaffold(
       appBar: AppBar(
@@ -586,10 +591,7 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
             ),
           ),
           const SizedBox(height: 18),
-          SizedBox(
-            height: 210,
-            child: _CounterButton(onPressed: _increment),
-          ),
+          SizedBox(height: 210, child: _CounterButton(onPressed: _increment)),
           const SizedBox(height: 22),
           Row(
             children: [
@@ -626,9 +628,9 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
               Expanded(
                 child: Text(
                   l10n.text('todayBreakdown'),
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
                 ),
               ),
               Text(
@@ -724,7 +726,8 @@ class _CounterButtonState extends State<_CounterButton> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTapDown: (_) => _setPressed(true),

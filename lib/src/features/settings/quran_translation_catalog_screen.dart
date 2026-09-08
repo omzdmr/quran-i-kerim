@@ -354,8 +354,9 @@ class _TranslationDiscoveryScreenState
       return;
     }
     if (!info.downloadable) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(copy.notReady)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(copy.notReady)));
       return;
     }
 
@@ -380,7 +381,7 @@ class _TranslationDiscoveryScreenState
       setState(() => _progress.remove(info.id));
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('${copy.downloadFailed}: $error')));
+      ).showSnackBar(SnackBar(content: Text(copy.downloadFailed)));
     }
   }
 

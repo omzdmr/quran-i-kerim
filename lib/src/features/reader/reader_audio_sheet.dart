@@ -5,19 +5,31 @@ import 'package:flutter/material.dart';
 import 'package:quran/quran.dart' as quran;
 
 import '../../data/quran_audio_catalog.dart';
+import '../../data/translation_catalog.dart';
+import '../../data/translation_repository.dart';
+import '../../settings/app_settings.dart';
+import 'offline_audio_manager.dart';
 import 'reader_audio_cache.dart';
 
 class ReaderAudioSourceConfig {
   const ReaderAudioSourceConfig({
     required this.id,
+    required this.cacheId,
+    required this.sourceId,
     required this.code,
     required this.title,
     required this.urlForVerse,
+    required this.availableBitrates,
+    this.bitrate,
   });
 
   final String id;
+  final String cacheId;
+  final String sourceId;
   final String code;
   final String title;
+  final int? bitrate;
+  final List<int> availableBitrates;
   final String Function(int surah, int ayah) urlForVerse;
 }
 
@@ -32,6 +44,7 @@ int _absoluteVerseNumber(int surah, int ayah) {
 ReaderAudioSourceConfig? readerAudioConfigFor(
   String sourceId, {
   String? audioId,
+  int? bitrate,
 }) {
   final available = quranAudioForSource(sourceId);
   if (available.isEmpty) return null;
@@ -45,12 +58,22 @@ ReaderAudioSourceConfig? readerAudioConfigFor(
     }
   }
 
+  final bitrates = quranAudioBitrates(audio);
+  final selectedBitrate = bitrate != null && bitrates.contains(bitrate)
+      ? bitrate
+      : audio.bitrate;
   return ReaderAudioSourceConfig(
     id: audio.id,
+    cacheId: selectedBitrate == null
+        ? audio.id
+        : '${audio.id}_$selectedBitrate',
+    sourceId: sourceId,
     code: audio.code,
     title: audio.style == null
         ? audio.title
         : '${audio.title} · ${audio.style}',
+    bitrate: selectedBitrate,
+    availableBitrates: bitrates,
     urlForVerse: (surah, ayah) {
       if (audio.provider == QuranAudioProvider.quranEnc) {
         final s = surah.toString().padLeft(3, '0');
@@ -58,8 +81,8 @@ ReaderAudioSourceConfig? readerAudioConfigFor(
         return 'https://d.quranenc.com/data/audio/${audio.providerKey}/$s$a.mp3';
       }
       final absolute = _absoluteVerseNumber(surah, ayah);
-      final bitrate = audio.bitrate ?? 128;
-      return 'https://cdn.islamic.network/quran/audio/$bitrate/${audio.providerKey}/$absolute.mp3';
+      final resolvedBitrate = selectedBitrate ?? audio.bitrate ?? 128;
+      return 'https://cdn.islamic.network/quran/audio/$resolvedBitrate/${audio.providerKey}/$absolute.mp3';
     },
   );
 }
@@ -99,6 +122,11 @@ class ReaderAudioController extends ChangeNotifier {
   int _generation = 0;
   String? _loadedCacheKey;
   String? _error;
+  bool _continueAfterSurah = true;
+  Future<bool> Function()? _onRequestNextSurah;
+  Timer? _sleepTimer;
+  int? _sleepMinutes;
+  bool _sleepAtSurahEnd = false;
 
   ReaderAudioSourceConfig? get config => _config;
   int get surahNumber => _surah;
@@ -111,21 +139,27 @@ class ReaderAudioController extends ChangeNotifier {
   bool get isLoading => _loading;
   bool get isConfigured => _config != null;
   String? get error => _error;
+  int? get sleepMinutes => _sleepMinutes;
+  bool get sleepAtSurahEnd => _sleepAtSurahEnd;
 
   Future<void> configure({
     required ReaderAudioSourceConfig config,
     required int surah,
     required int initialAyah,
     required int verseCount,
+    bool continueAfterSurah = true,
+    Future<bool> Function()? onRequestNextSurah,
   }) async {
     final safeAyah = initialAyah.clamp(1, verseCount).toInt();
-    final sourceChanged = _config?.id != config.id || _surah != surah;
+    final sourceChanged = _config?.cacheId != config.cacheId || _surah != surah;
     if (_playing && !sourceChanged) return;
 
     final targetChanged = sourceChanged || _ayah != safeAyah;
     _config = config;
     _surah = surah;
     _verseCount = verseCount;
+    _continueAfterSurah = continueAfterSurah;
+    _onRequestNextSurah = onRequestNextSurah;
     _error = null;
 
     if (targetChanged) {
@@ -146,11 +180,17 @@ class ReaderAudioController extends ChangeNotifier {
     final config = _config;
     if (config == null) return;
     await ReaderAudioCache.instance.prefetchWindow(
-      sourceId: config.id,
+      sourceId: config.cacheId,
       surah: _surah,
       startAyah: startAyah.clamp(1, _verseCount).toInt(),
       verseCount: _verseCount,
       urlForAyah: (ayah) => config.urlForVerse(_surah, ayah),
+      isOfflineAvailable: (ayah) =>
+          OfflineAudioManager.instance.isVerseDownloaded(
+            storageKey: config.cacheId,
+            surah: _surah,
+            ayah: ayah,
+          ),
       windowSize: 4,
     );
   }
@@ -220,6 +260,35 @@ class ReaderAudioController extends ChangeNotifier {
 
   Future<void> seek(Duration value) => _player.seek(value);
 
+  void setContinueAfterSurah(bool value) {
+    _continueAfterSurah = value;
+  }
+
+  void setSleepTimer(Duration? duration) {
+    _sleepTimer?.cancel();
+    _sleepTimer = null;
+    _sleepMinutes = null;
+    _sleepAtSurahEnd = false;
+    if (duration != null && duration > Duration.zero) {
+      _sleepMinutes = duration.inMinutes;
+      _sleepTimer = Timer(duration, () {
+        _sleepTimer = null;
+        _sleepMinutes = null;
+        _sleepAtSurahEnd = false;
+        unawaited(stop());
+      });
+    }
+    notifyListeners();
+  }
+
+  void setSleepAtSurahEnd() {
+    _sleepTimer?.cancel();
+    _sleepTimer = null;
+    _sleepMinutes = null;
+    _sleepAtSurahEnd = true;
+    notifyListeners();
+  }
+
   Future<void> setRate(double value) async {
     _rate = value.clamp(.5, 2.0).toDouble();
     if (_playing) await _player.setPlaybackRate(_rate);
@@ -239,7 +308,7 @@ class ReaderAudioController extends ChangeNotifier {
 
   String _cacheKeyForCurrent() {
     final config = _config!;
-    return ReaderAudioCache.instance.cacheKeyFor(config.id, _surah, _ayah);
+    return ReaderAudioCache.instance.cacheKeyFor(config.cacheId, _surah, _ayah);
   }
 
   Future<void> _playCurrent() async {
@@ -248,7 +317,7 @@ class ReaderAudioController extends ChangeNotifier {
     final generation = _generation;
     final ayah = _ayah;
     final cacheKey = ReaderAudioCache.instance.cacheKeyFor(
-      config.id,
+      config.cacheId,
       _surah,
       ayah,
     );
@@ -256,10 +325,17 @@ class ReaderAudioController extends ChangeNotifier {
     _error = null;
     notifyListeners();
     try {
-      final file = await ReaderAudioCache.instance.ensureCached(
-        cacheKey: cacheKey,
-        url: config.urlForVerse(_surah, ayah),
+      final offline = await OfflineAudioManager.instance.offlineFile(
+        storageKey: config.cacheId,
+        surah: _surah,
+        ayah: ayah,
       );
+      final file =
+          offline ??
+          await ReaderAudioCache.instance.ensureCached(
+            cacheKey: cacheKey,
+            url: config.urlForVerse(_surah, ayah),
+          );
       if (generation != _generation || ayah != _ayah) return;
       _position = Duration.zero;
       _duration = Duration.zero;
@@ -284,6 +360,18 @@ class ReaderAudioController extends ChangeNotifier {
 
   Future<void> _onComplete() async {
     if (_ayah >= _verseCount) {
+      if (_sleepAtSurahEnd) {
+        _sleepAtSurahEnd = false;
+        _sleepMinutes = null;
+        _playing = false;
+        _position = _duration;
+        notifyListeners();
+        return;
+      }
+      if (_continueAfterSurah && _onRequestNextSurah != null) {
+        final handled = await _onRequestNextSurah!();
+        if (handled) return;
+      }
       _playing = false;
       _position = _duration;
       notifyListeners();
@@ -303,6 +391,7 @@ class ReaderAudioController extends ChangeNotifier {
     for (final subscription in _subscriptions) {
       subscription.cancel();
     }
+    _sleepTimer?.cancel();
     _player.dispose();
     super.dispose();
   }
@@ -316,6 +405,7 @@ class ReaderAudioSheet extends StatefulWidget {
     required this.onQuickControlsVisibilityChanged,
     required this.availableSources,
     required this.onSourceSelected,
+    required this.onBitrateSelected,
     super.key,
   });
 
@@ -325,6 +415,7 @@ class ReaderAudioSheet extends StatefulWidget {
   final ValueChanged<bool> onQuickControlsVisibilityChanged;
   final List<QuranAudioInfo> availableSources;
   final Future<void> Function(String audioId) onSourceSelected;
+  final Future<void> Function(int bitrate) onBitrateSelected;
 
   @override
   State<ReaderAudioSheet> createState() => _ReaderAudioSheetState();
@@ -332,6 +423,158 @@ class ReaderAudioSheet extends StatefulWidget {
 
 class _ReaderAudioSheetState extends State<ReaderAudioSheet> {
   late bool _quickControlsVisible = widget.quickControlsVisible;
+  String? _statsKey;
+  Future<AudioSurahStats>? _statsFuture;
+  bool _installingText = false;
+  double _textProgress = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    OfflineAudioManager.instance.addListener(_handleOfflineChanged);
+  }
+
+  @override
+  void dispose() {
+    OfflineAudioManager.instance.removeListener(_handleOfflineChanged);
+    super.dispose();
+  }
+
+  void _handleOfflineChanged() {
+    if (mounted) setState(() {});
+  }
+
+  Future<AudioSurahStats> _statsFor(ReaderAudioSourceConfig config) {
+    final key =
+        '${config.cacheId}|${widget.controller.surahNumber}|${widget.controller.verseCount}';
+    if (_statsKey != key || _statsFuture == null) {
+      _statsKey = key;
+      _statsFuture = OfflineAudioManager.instance.surahStats(
+        storageKey: config.cacheId,
+        surah: widget.controller.surahNumber,
+        verseCount: widget.controller.verseCount,
+      );
+    }
+    return _statsFuture!;
+  }
+
+  void _refreshStats() {
+    _statsKey = null;
+    _statsFuture = null;
+    if (mounted) setState(() {});
+  }
+
+  Future<bool> _allowLargeDownload(
+    AppSettings settings,
+    _AudioCopy copy,
+  ) async {
+    final kind = await OfflineAudioManager.instance.currentNetworkKind();
+    if (!mounted) return false;
+    if (kind == AudioNetworkKind.offline) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(copy.noConnection)));
+      return false;
+    }
+    if (settings.audioDownloadWifiOnly && kind != AudioNetworkKind.wifi) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(copy.wifiRequired)));
+      return false;
+    }
+    if (kind == AudioNetworkKind.mobile && settings.audioDownloadAskOnMobile) {
+      return await showDialog<bool>(
+            context: context,
+            builder: (dialogContext) => AlertDialog(
+              title: Text(copy.mobileDataTitle),
+              content: Text(copy.mobileDataBody),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: Text(copy.cancel),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(dialogContext, true),
+                  child: Text(copy.download),
+                ),
+              ],
+            ),
+          ) ??
+          false;
+    }
+    return true;
+  }
+
+  Future<bool> _ensureLinkedTranslation(
+    ReaderAudioSourceConfig config,
+    _AudioCopy copy,
+  ) async {
+    final info = translationById(config.sourceId);
+    if (info == null ||
+        info.bundled ||
+        await TranslationRepository.instance.isInstalled(info.id)) {
+      return true;
+    }
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(copy.translationRequiredTitle),
+        content: Text('${info.name}\n\n${copy.translationRequiredBody}'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(copy.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(copy.downloadTranslation),
+          ),
+        ],
+      ),
+    );
+    if (accepted != true || !mounted) return false;
+    setState(() {
+      _installingText = true;
+      _textProgress = 0;
+    });
+    try {
+      await TranslationRepository.instance.downloadTranslation(
+        info,
+        onProgress: (value) {
+          if (mounted) setState(() => _textProgress = value);
+        },
+      );
+      return true;
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(copy.translationDownloadFailed)));
+      }
+      return false;
+    } finally {
+      if (mounted) setState(() => _installingText = false);
+    }
+  }
+
+  Future<void> _startDownload(
+    ReaderAudioSourceConfig config,
+    _AudioCopy copy,
+  ) async {
+    final settings = AppSettingsScope.of(context);
+    if (!await _ensureLinkedTranslation(config, copy)) return;
+    if (!await _allowLargeDownload(settings, copy)) return;
+    _refreshStats();
+    unawaited(
+      OfflineAudioManager.instance.downloadSurah(
+        storageKey: config.cacheId,
+        surah: widget.controller.surahNumber,
+        verseCount: widget.controller.verseCount,
+        urlForAyah: (ayah) =>
+            config.urlForVerse(widget.controller.surahNumber, ayah),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -468,6 +711,79 @@ class _ReaderAudioSheetState extends State<ReaderAudioSheet> {
                     },
                   ),
                 ),
+                const SizedBox(height: 12),
+                if (_installingText) ...[
+                  LinearProgressIndicator(
+                    value: _textProgress <= 0 ? null : _textProgress,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(copy.downloadingTranslation),
+                  const SizedBox(height: 10),
+                ],
+                if (controller.config != null)
+                  _AudioOfflineSection(
+                    config: controller.config!,
+                    statsFuture: _statsFor(controller.config!),
+                    progress: OfflineAudioManager.instance.progressFor(
+                      controller.config!.cacheId,
+                      controller.surahNumber,
+                    ),
+                    estimateBytes: OfflineAudioManager.instance
+                        .estimateSurahBytes(
+                          verseCount: controller.verseCount,
+                          bitrate: controller.config!.bitrate,
+                        ),
+                    copy: copy,
+                    onDownload: () => _startDownload(controller.config!, copy),
+                    onPause: () => OfflineAudioManager.instance.pauseDownload(
+                      controller.config!.cacheId,
+                      controller.surahNumber,
+                    ),
+                    onCancel: () => OfflineAudioManager.instance.cancelDownload(
+                      controller.config!.cacheId,
+                      controller.surahNumber,
+                    ),
+                    onDelete: () async {
+                      await OfflineAudioManager.instance.deleteSurah(
+                        controller.config!.cacheId,
+                        controller.surahNumber,
+                      );
+                      _refreshStats();
+                    },
+                  ),
+                if (controller.config != null &&
+                    controller.config!.availableBitrates.length > 1) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Text(
+                        copy.audioQuality,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      const Spacer(),
+                      PopupMenuButton<int>(
+                        initialValue: controller.config!.bitrate,
+                        onSelected: (value) =>
+                            unawaited(widget.onBitrateSelected(value)),
+                        itemBuilder: (_) => [
+                          for (final bitrate
+                              in controller.config!.availableBitrates)
+                            PopupMenuItem<int>(
+                              value: bitrate,
+                              child: Text(copy.qualityLabel(bitrate)),
+                            ),
+                        ],
+                        child: Chip(
+                          label: Text(
+                            copy.qualityLabel(
+                              controller.config!.bitrate ?? 128,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -525,7 +841,10 @@ class _ReaderAudioSheetState extends State<ReaderAudioSheet> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     PopupMenuButton<double>(
                       onSelected: controller.setRate,
@@ -536,27 +855,86 @@ class _ReaderAudioSheetState extends State<ReaderAudioSheet> {
                         PopupMenuItem(value: 1.5, child: Text('1.5x')),
                         PopupMenuItem(value: 2.0, child: Text('2x')),
                       ],
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: scheme.surfaceContainer,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Text(
+                      child: Chip(
+                        avatar: const Icon(Icons.speed_rounded, size: 17),
+                        label: Text(
                           '${controller.rate.toStringAsFixed(controller.rate % 1 == 0 ? 0 : 2)}x',
-                          style: const TextStyle(fontWeight: FontWeight.w900),
                         ),
                       ),
                     ),
-                    const Spacer(),
+                    PopupMenuButton<String>(
+                      onSelected: (value) {
+                        if (value == 'end') {
+                          controller.setSleepAtSurahEnd();
+                        } else if (value == 'off') {
+                          controller.setSleepTimer(null);
+                        } else {
+                          controller.setSleepTimer(
+                            Duration(minutes: int.parse(value)),
+                          );
+                        }
+                      },
+                      itemBuilder: (_) => [
+                        for (final minutes in const [10, 20, 30, 45])
+                          PopupMenuItem(
+                            value: '$minutes',
+                            child: Text('$minutes ${copy.minutes}'),
+                          ),
+                        PopupMenuItem(
+                          value: 'end',
+                          child: Text(copy.endOfSurah),
+                        ),
+                        PopupMenuItem(value: 'off', child: Text(copy.off)),
+                      ],
+                      child: Chip(
+                        avatar: const Icon(Icons.bedtime_outlined, size: 17),
+                        label: Text(
+                          controller.sleepAtSurahEnd
+                              ? copy.endOfSurah
+                              : controller.sleepMinutes == null
+                              ? copy.timer
+                              : '${controller.sleepMinutes} ${copy.minutes}',
+                        ),
+                      ),
+                    ),
+                    PopupMenuButton<AudioAfterSurahBehavior>(
+                      initialValue: AppSettingsScope.of(
+                        context,
+                      ).audioAfterSurahBehavior,
+                      onSelected: (value) async {
+                        final settings = AppSettingsScope.of(context);
+                        await settings.setAudioAfterSurahBehavior(value);
+                        controller.setContinueAfterSurah(
+                          value == AudioAfterSurahBehavior.continueNext,
+                        );
+                      },
+                      itemBuilder: (_) => [
+                        PopupMenuItem(
+                          value: AudioAfterSurahBehavior.continueNext,
+                          child: Text(copy.continueNextSurah),
+                        ),
+                        PopupMenuItem(
+                          value: AudioAfterSurahBehavior.stop,
+                          child: Text(copy.stopAtSurahEnd),
+                        ),
+                      ],
+                      child: Chip(
+                        avatar: const Icon(Icons.queue_music_rounded, size: 17),
+                        label: Text(
+                          AppSettingsScope.of(
+                                    context,
+                                  ).audioAfterSurahBehavior ==
+                                  AudioAfterSurahBehavior.continueNext
+                              ? copy.continueNext
+                              : copy.stop,
+                        ),
+                      ),
+                    ),
                     TextButton.icon(
                       onPressed: () {
-                        setState(() {
-                          _quickControlsVisible = !_quickControlsVisible;
-                        });
+                        setState(
+                          () => _quickControlsVisible = !_quickControlsVisible,
+                        );
                         widget.onQuickControlsVisibilityChanged(
                           _quickControlsVisible,
                         );
@@ -589,6 +967,144 @@ class _ReaderAudioSheetState extends State<ReaderAudioSheet> {
       ),
     );
   }
+}
+
+class _AudioOfflineSection extends StatelessWidget {
+  const _AudioOfflineSection({
+    required this.config,
+    required this.statsFuture,
+    required this.progress,
+    required this.estimateBytes,
+    required this.copy,
+    required this.onDownload,
+    required this.onPause,
+    required this.onCancel,
+    required this.onDelete,
+  });
+
+  final ReaderAudioSourceConfig config;
+  final Future<AudioSurahStats> statsFuture;
+  final AudioDownloadProgress? progress;
+  final int estimateBytes;
+  final _AudioCopy copy;
+  final VoidCallback onDownload;
+  final VoidCallback onPause;
+  final VoidCallback onCancel;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final live = progress;
+    if (live != null && live.status == AudioDownloadStatus.downloading) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainer,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${copy.downloading} ${live.downloadedAyahs}/${live.verseCount}',
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+                IconButton(
+                  onPressed: onPause,
+                  icon: const Icon(Icons.pause_rounded),
+                  tooltip: copy.pauseDownload,
+                ),
+                IconButton(
+                  onPressed: onCancel,
+                  icon: const Icon(Icons.close_rounded),
+                  tooltip: copy.cancel,
+                ),
+              ],
+            ),
+            LinearProgressIndicator(value: live.fraction.clamp(0, 1)),
+          ],
+        ),
+      );
+    }
+    return FutureBuilder<AudioSurahStats>(
+      future: statsFuture,
+      builder: (context, snapshot) {
+        final stats = snapshot.data;
+        final complete =
+            live?.status == AudioDownloadStatus.completed ||
+            (stats?.complete ?? false);
+        final partial =
+            live?.status == AudioDownloadStatus.paused ||
+            live?.status == AudioDownloadStatus.failed ||
+            (stats?.partial ?? false);
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainer,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                complete
+                    ? Icons.offline_pin_rounded
+                    : Icons.download_for_offline_outlined,
+                color: complete ? scheme.primary : null,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      complete
+                          ? copy.offline
+                          : partial
+                          ? copy.resumeDownload
+                          : copy.downloadSurah,
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                    Text(
+                      complete
+                          ? _formatBytes(stats?.bytes ?? live?.bytes ?? 0)
+                          : partial
+                          ? '${stats?.downloadedAyahs ?? live?.downloadedAyahs ?? 0}/${stats?.verseCount ?? live?.verseCount ?? 0} · ${copy.resumeHint}'
+                          : '${copy.estimated} ${_formatBytes(estimateBytes)}',
+                      style: TextStyle(
+                        color: scheme.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (complete)
+                IconButton(
+                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete_outline_rounded),
+                  tooltip: copy.delete,
+                )
+              else
+                FilledButton.tonal(
+                  onPressed: onDownload,
+                  child: Text(partial ? copy.resume : copy.download),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+String _formatBytes(int bytes) {
+  if (bytes < 1024) return '$bytes B';
+  if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+  return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
 }
 
 String _formatDuration(Duration value) {
@@ -633,6 +1149,169 @@ class _AudioCopy {
     'إظهار الأزرار',
     'Düymələri göstər',
     'Показать кнопки',
+  );
+  String get downloadSurah => _pick(
+    'Bu sureyi indir',
+    'Download this surah',
+    'تنزيل هذه السورة',
+    'Bu surəni endir',
+    'Скачать эту суру',
+  );
+  String get download =>
+      _pick('İndir', 'Download', 'تنزيل', 'Endir', 'Скачать');
+  String get downloading => _pick(
+    'İndiriliyor',
+    'Downloading',
+    'جارٍ التنزيل',
+    'Endirilir',
+    'Загрузка',
+  );
+  String get offline => _pick(
+    'Offline hazır',
+    'Available offline',
+    'متاح دون اتصال',
+    'Oflayn hazırdır',
+    'Доступно офлайн',
+  );
+  String get resume =>
+      _pick('Devam et', 'Resume', 'متابعة', 'Davam et', 'Продолжить');
+  String get resumeDownload => _pick(
+    'İndirmeye devam et',
+    'Resume download',
+    'متابعة التنزيل',
+    'Endirməyə davam et',
+    'Продолжить загрузку',
+  );
+  String get resumeHint => _pick(
+    'kaldığı yerden devam eder',
+    'continues where it stopped',
+    'يتابع من حيث توقف',
+    'qaldığı yerdən davam edir',
+    'продолжит с места остановки',
+  );
+  String get pauseDownload => _pick(
+    'İndirmeyi duraklat',
+    'Pause download',
+    'إيقاف التنزيل مؤقتًا',
+    'Endirməni dayandır',
+    'Приостановить загрузку',
+  );
+  String get delete => _pick('Sil', 'Delete', 'حذف', 'Sil', 'Удалить');
+  String get cancel => _pick('İptal', 'Cancel', 'إلغاء', 'Ləğv et', 'Отмена');
+  String get estimated =>
+      _pick('Yaklaşık', 'About', 'تقريبًا', 'Təxminən', 'Примерно');
+  String get audioQuality => _pick(
+    'Ses kalitesi',
+    'Audio quality',
+    'جودة الصوت',
+    'Səs keyfiyyəti',
+    'Качество аудио',
+  );
+  String qualityLabel(int bitrate) => bitrate <= 64
+      ? _pick(
+          'Veri tasarrufu · $bitrate kbps',
+          'Data saver · $bitrate kbps',
+          'توفير البيانات · $bitrate kbps',
+          'Məlumat qənaəti · $bitrate kbps',
+          'Экономия данных · $bitrate kbps',
+        )
+      : _pick(
+          'Standart · $bitrate kbps',
+          'Standard · $bitrate kbps',
+          'قياسي · $bitrate kbps',
+          'Standart · $bitrate kbps',
+          'Стандарт · $bitrate kbps',
+        );
+  String get timer =>
+      _pick('Zamanlayıcı', 'Timer', 'المؤقت', 'Taymer', 'Таймер');
+  String get minutes => _pick('dk', 'min', 'د', 'dəq', 'мин');
+  String get endOfSurah => _pick(
+    'Sure bitince',
+    'End of surah',
+    'عند نهاية السورة',
+    'Surə bitəndə',
+    'В конце суры',
+  );
+  String get off => _pick('Kapalı', 'Off', 'إيقاف', 'Söndürülüb', 'Выкл.');
+  String get continueNext =>
+      _pick('Devam', 'Continue', 'متابعة', 'Davam', 'Продолжить');
+  String get stop => _pick('Dur', 'Stop', 'توقف', 'Dayan', 'Стоп');
+  String get continueNextSurah => _pick(
+    'Sonraki sureye devam et',
+    'Continue to next surah',
+    'المتابعة إلى السورة التالية',
+    'Növbəti surəyə davam et',
+    'Продолжить следующую суру',
+  );
+  String get stopAtSurahEnd => _pick(
+    'Sure bitince dur',
+    'Stop at end of surah',
+    'توقف عند نهاية السورة',
+    'Surə bitəndə dayan',
+    'Остановиться в конце суры',
+  );
+  String get noConnection => _pick(
+    'İnternet bağlantısı yok.',
+    'No internet connection.',
+    'لا يوجد اتصال بالإنترنت.',
+    'İnternet bağlantısı yoxdur.',
+    'Нет подключения к интернету.',
+  );
+  String get wifiRequired => _pick(
+    'Büyük indirmeler yalnızca Wi‑Fi ile açık. İndirilenler ayarından değiştirebilirsin.',
+    'Large downloads are Wi‑Fi only. Change it in Downloads settings.',
+    'التنزيلات الكبيرة عبر Wi‑Fi فقط.',
+    'Böyük endirmələr yalnız Wi‑Fi üçündür.',
+    'Большие загрузки разрешены только по Wi‑Fi.',
+  );
+  String get mobileDataTitle => _pick(
+    'Mobil veri kullanılsın mı?',
+    'Use mobile data?',
+    'استخدام بيانات الهاتف؟',
+    'Mobil data istifadə edilsin?',
+    'Использовать мобильные данные?',
+  );
+  String get mobileDataBody => _pick(
+    'Ses dosyaları büyük olabilir. Bu sureyi mobil veri ile indirmek istiyor musun?',
+    'Audio files can be large. Download this surah over mobile data?',
+    'قد تكون ملفات الصوت كبيرة. هل تريد التنزيل عبر بيانات الهاتف؟',
+    'Səs faylları böyük ola bilər. Mobil data ilə endirilsin?',
+    'Аудиофайлы могут быть большими. Скачать через мобильную сеть?',
+  );
+  String get translationRequiredTitle => _pick(
+    'Meal metni gerekli',
+    'Translation text required',
+    'نص الترجمة مطلوب',
+    'Tərcümə mətni lazımdır',
+    'Нужен текст перевода',
+  );
+  String get translationRequiredBody => _pick(
+    'Bu ses yalnız kendi meal metniyle kullanılabilir. Önce eşleşen meal indirilecek.',
+    'This audio can only be used with its matching translation. The matching text will be downloaded first.',
+    'لا يمكن استخدام هذا الصوت إلا مع ترجمته المطابقة.',
+    'Bu səs yalnız uyğun tərcümə ilə istifadə olunur.',
+    'Это аудио используется только с соответствующим переводом.',
+  );
+  String get downloadTranslation => _pick(
+    'Meali indir',
+    'Download translation',
+    'تنزيل الترجمة',
+    'Tərcüməni endir',
+    'Скачать перевод',
+  );
+  String get downloadingTranslation => _pick(
+    'Eşleşen meal indiriliyor…',
+    'Downloading matching translation…',
+    'جارٍ تنزيل الترجمة المطابقة…',
+    'Uyğun tərcümə endirilir…',
+    'Загружается соответствующий перевод…',
+  );
+  String get translationDownloadFailed => _pick(
+    'Meal indirilemedi. Bağlantıyı kontrol edip tekrar dene.',
+    'Translation could not be downloaded. Check the connection and try again.',
+    'تعذر تنزيل الترجمة.',
+    'Tərcümə endirilə bilmədi.',
+    'Не удалось скачать перевод.',
   );
   String get audioError => _pick(
     'Ses açılamadı. Bağlantıyı kontrol edip yeniden deneyin.',

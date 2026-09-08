@@ -8,6 +8,7 @@ import '../../l10n/app_localizations.dart';
 import '../../settings/app_settings.dart';
 import '../reader/passage_preview_screen.dart';
 import '../settings/settings_screen.dart';
+import 'downloads_screen.dart';
 
 enum _ArchiveFilter { all, highlights, bookmarks, notes }
 
@@ -29,12 +30,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final l10n = context.l10n;
     final settings = AppSettingsScope.of(context);
     final items = _archiveItems(settings)
-        .where((item) => switch (_filter) {
-              _ArchiveFilter.all => true,
-              _ArchiveFilter.highlights => item.kind == _ArchiveKind.highlight,
-              _ArchiveFilter.bookmarks => item.kind == _ArchiveKind.bookmark,
-              _ArchiveFilter.notes => item.kind == _ArchiveKind.note,
-            })
+        .where(
+          (item) => switch (_filter) {
+            _ArchiveFilter.all => true,
+            _ArchiveFilter.highlights => item.kind == _ArchiveKind.highlight,
+            _ArchiveFilter.bookmarks => item.kind == _ArchiveKind.bookmark,
+            _ArchiveFilter.notes => item.kind == _ArchiveKind.note,
+          },
+        )
         .toList(growable: false);
 
     return SafeArea(
@@ -179,6 +182,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Icons.download_done_rounded,
             l10n.downloads,
             l10n.downloadsDescription,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const DownloadsScreen()),
+            ),
           ),
           _SettingsTile(
             Icons.language_rounded,
@@ -198,10 +204,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         label: Text(label),
         avatar: switch (value) {
           _ArchiveFilter.all => const Icon(Icons.apps_rounded, size: 18),
-          _ArchiveFilter.highlights =>
-            const Icon(Icons.format_color_fill_rounded, size: 18),
-          _ArchiveFilter.bookmarks =>
-            const Icon(Icons.bookmark_rounded, size: 18),
+          _ArchiveFilter.highlights => const Icon(
+            Icons.format_color_fill_rounded,
+            size: 18,
+          ),
+          _ArchiveFilter.bookmarks => const Icon(
+            Icons.bookmark_rounded,
+            size: 18,
+          ),
           _ArchiveFilter.notes => const Icon(Icons.note_alt_rounded, size: 18),
         },
         onSelected: (_) => setState(() => _filter = value),
@@ -331,8 +341,8 @@ class _ArchiveItem {
     final ayahPart = ayahs.length == 1
         ? '${ayahs.single}'
         : _isContiguous
-            ? '${ayahs.first}-${ayahs.last}'
-            : ayahs.join(',');
+        ? '${ayahs.first}-${ayahs.last}'
+        : ayahs.join(',');
     return '${surahInfo.nameTr} $surah:$ayahPart';
   }
 
@@ -493,8 +503,9 @@ class _ArchiveCard extends StatelessWidget {
             MaterialPageRoute<void>(
               builder: (_) => PassagePreviewScreen(
                 selectionKey: item.key,
-                sourceCode:
-                    item.kind == _ArchiveKind.note ? item.sourceCode : null,
+                sourceCode: item.kind == _ArchiveKind.note
+                    ? item.sourceCode
+                    : null,
               ),
             ),
           );
@@ -673,11 +684,12 @@ class _EmptyArchive extends StatelessWidget {
 }
 
 class _SettingsTile extends StatelessWidget {
-  const _SettingsTile(this.icon, this.title, this.subtitle);
+  const _SettingsTile(this.icon, this.title, this.subtitle, {this.onTap});
 
   final IconData icon;
   final String title;
   final String? subtitle;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -689,15 +701,13 @@ class _SettingsTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
       ),
       child: ListTile(
+        onTap: onTap,
         contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
         leading: Icon(icon),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
         subtitle: subtitle == null
             ? null
-            : Text(
-                subtitle!,
-                style: TextStyle(color: scheme.onSurfaceVariant),
-              ),
+            : Text(subtitle!, style: TextStyle(color: scheme.onSurfaceVariant)),
         trailing: const Icon(Icons.chevron_right),
       ),
     );
@@ -705,9 +715,9 @@ class _SettingsTile extends StatelessWidget {
 }
 
 Color _highlightMaterialColor(VerseHighlightColor color) => switch (color) {
-      VerseHighlightColor.yellow => const Color(0xFFFFEB00),
-      VerseHighlightColor.green => const Color(0xFF45E879),
-      VerseHighlightColor.blue => const Color(0xFF18C4E8),
-      VerseHighlightColor.orange => const Color(0xFFFFB45E),
-      VerseHighlightColor.pink => const Color(0xFFE88AC6),
-    };
+  VerseHighlightColor.yellow => const Color(0xFFFFEB00),
+  VerseHighlightColor.green => const Color(0xFF45E879),
+  VerseHighlightColor.blue => const Color(0xFF18C4E8),
+  VerseHighlightColor.orange => const Color(0xFFFFB45E),
+  VerseHighlightColor.pink => const Color(0xFFE88AC6),
+};

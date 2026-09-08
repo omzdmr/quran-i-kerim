@@ -87,6 +87,7 @@ class ReaderAudioCache {
     required int startAyah,
     required int verseCount,
     required String Function(int ayah) urlForAyah,
+    Future<bool> Function(int ayah)? isOfflineAvailable,
     int windowSize = 4,
   }) async {
     final safeStart = startAyah.clamp(1, verseCount).toInt();
@@ -94,9 +95,14 @@ class ReaderAudioCache {
 
     final newest = <_PrefetchTask>[];
     for (var ayah = safeStart; ayah <= endAyah; ayah++) {
+      if (isOfflineAvailable != null && await isOfflineAvailable(ayah)) {
+        continue;
+      }
       final key = cacheKeyFor(sourceId, surah, ayah);
       final existing = await cachedFile(key);
-      if (existing != null || _inFlight.containsKey(key) || _queuedKeys.contains(key)) {
+      if (existing != null ||
+          _inFlight.containsKey(key) ||
+          _queuedKeys.contains(key)) {
         continue;
       }
       newest.add(_PrefetchTask(cacheKey: key, url: urlForAyah(ayah)));
@@ -120,6 +126,19 @@ class ReaderAudioCache {
     return '${safeSource}_${surah.toString().padLeft(3, '0')}_${ayah.toString().padLeft(3, '0')}';
   }
 
+  Future<int> temporaryCacheBytes() async {
+    final directory = await _directory();
+    var total = 0;
+    if (!await directory.exists()) return total;
+    await for (final entity in directory.list()) {
+      if (entity is! File || !entity.path.endsWith('.mp3')) continue;
+      try {
+        total += await entity.length();
+      } catch (_) {}
+    }
+    return total;
+  }
+
   Future<void> clearTemporaryCache() async {
     final directory = await _directory();
     if (!await directory.exists()) return;
@@ -139,12 +158,13 @@ class ReaderAudioCache {
       _queuedKeys.remove(task.cacheKey);
       _activePrefetches++;
       unawaited(
-        ensureCached(cacheKey: task.cacheKey, url: task.url)
-            .catchError((_) => File(''))
-            .whenComplete(() {
-              _activePrefetches--;
-              _pumpPrefetchQueue();
-            }),
+        ensureCached(
+          cacheKey: task.cacheKey,
+          url: task.url,
+        ).catchError((_) => File('')).whenComplete(() {
+          _activePrefetches--;
+          _pumpPrefetchQueue();
+        }),
       );
     }
   }

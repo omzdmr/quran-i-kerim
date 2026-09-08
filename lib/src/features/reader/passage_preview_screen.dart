@@ -71,8 +71,8 @@ class PassagePreviewScreen extends StatelessWidget {
     final part = ayahs.length == 1
         ? '${ayahs.single}'
         : _contiguous(ayahs)
-            ? '${ayahs.first}-${ayahs.last}'
-            : ayahs.join(',');
+        ? '${ayahs.first}-${ayahs.last}'
+        : ayahs.join(',');
     return '$name $surah:$part';
   }
 
@@ -143,9 +143,7 @@ class PassagePreviewScreen extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_uiText(languageCode, 'title')),
-      ),
+      appBar: AppBar(title: Text(_uiText(languageCode, 'title'))),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 38),
@@ -162,7 +160,10 @@ class PassagePreviewScreen extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 13,
+                    vertical: 7,
+                  ),
                   decoration: BoxDecoration(
                     color: scheme.surfaceContainer,
                     borderRadius: BorderRadius.circular(16),
@@ -185,7 +186,9 @@ class PassagePreviewScreen extends StatelessWidget {
                   );
                 }
                 if (!isArabic && !snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator.adaptive());
+                  return const Center(
+                    child: CircularProgressIndicator.adaptive(),
+                  );
                 }
                 final map = snapshot.data ?? const <String, String>{};
                 final children = <InlineSpan>[];
@@ -259,10 +262,7 @@ class PassagePreviewScreen extends StatelessWidget {
                   ? 'Tanzil.net · CC BY 3.0'
                   : '${sourceInfo?.publisher ?? ''}\n${sourceInfo?.source ?? ''} · ${sourceInfo?.version ?? ''}',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: scheme.onSurfaceVariant,
-                height: 1.45,
-              ),
+              style: TextStyle(color: scheme.onSurfaceVariant, height: 1.45),
             ),
           ],
         ),

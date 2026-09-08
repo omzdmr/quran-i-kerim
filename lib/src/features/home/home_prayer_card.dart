@@ -97,9 +97,9 @@ class _HomePrayerCardState extends State<HomePrayerCard> {
       child: InkWell(
         borderRadius: BorderRadius.circular(24),
         onTap: () async {
-          await Navigator.of(context).push<void>(
-            MaterialPageRoute(builder: (_) => const PrayerScreen()),
-          );
+          await Navigator.of(
+            context,
+          ).push<void>(MaterialPageRoute(builder: (_) => const PrayerScreen()));
           if (mounted) _load();
         },
         child: Padding(

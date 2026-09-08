@@ -144,8 +144,9 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     });
     AppNavigation.instance.setReaderSelectionActive(false);
     if (save) {
-      AppSettingsScope.of(context)
-          .saveReadingPosition(surah: surah.number, ayah: safeAyah);
+      AppSettingsScope.of(
+        context,
+      ).saveReadingPosition(surah: surah.number, ayah: safeAyah);
     }
     HapticFeedback.selectionClick();
     _scheduleScrollToAyah(safeAyah);
@@ -162,8 +163,9 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       _selectedAyahs.clear();
     });
     AppNavigation.instance.setReaderSelectionActive(false);
-    AppSettingsScope.of(context)
-        .saveReadingPosition(surah: surah.number, ayah: 1);
+    AppSettingsScope.of(
+      context,
+    ).saveReadingPosition(surah: surah.number, ayah: 1);
     HapticFeedback.selectionClick();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) _scrollController.jumpTo(0);
@@ -254,8 +256,9 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     });
     AppNavigation.instance.setReaderSelectionActive(_selectedAyahs.isNotEmpty);
     HapticFeedback.selectionClick();
-    AppSettingsScope.of(context)
-        .saveReadingPosition(surah: _surahNumber, ayah: ayahNumber);
+    AppSettingsScope.of(
+      context,
+    ).saveReadingPosition(surah: _surahNumber, ayah: ayahNumber);
   }
 
   void _clearSelection() {
@@ -280,15 +283,20 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     return bundledTurkishTranslationId;
   }
 
-  ReaderAudioSourceConfig? _audioConfig(AppSettings settings) =>
-      readerAudioConfigFor(
-        settings.selectedQuranSourceId,
-        audioId: settings.selectedAudioSourceFor(
-          settings.selectedQuranSourceId,
-        ),
-      );
+  ReaderAudioSourceConfig? _audioConfig(AppSettings settings) {
+    final sourceId = settings.selectedQuranSourceId;
+    final audioId = settings.selectedAudioSourceFor(sourceId);
+    return readerAudioConfigFor(
+      sourceId,
+      audioId: audioId,
+      bitrate: audioId == null
+          ? null
+          : settings.selectedAudioBitrateFor(audioId),
+    );
+  }
 
   Future<void> _prepareAudio(ReaderAudioSourceConfig config) async {
+    final settings = AppSettingsScope.of(context);
     final surah = surahByNumber(_surahNumber);
     final sameSession =
         _audioController.isConfigured &&
@@ -300,16 +308,25 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       surah: _surahNumber,
       initialAyah: targetAyah.clamp(1, surah.verseCount).toInt(),
       verseCount: surah.verseCount,
+      continueAfterSurah:
+          settings.audioAfterSurahBehavior ==
+          AudioAfterSurahBehavior.continueNext,
+      onRequestNextSurah: _continueAudioToNextSurah,
     );
   }
 
   Future<void> _primeAudio(ReaderAudioSourceConfig config, int ayah) async {
+    final settings = AppSettingsScope.of(context);
     final surah = surahByNumber(_surahNumber);
     await _audioController.configure(
       config: config,
       surah: _surahNumber,
       initialAyah: ayah.clamp(1, surah.verseCount).toInt(),
       verseCount: surah.verseCount,
+      continueAfterSurah:
+          settings.audioAfterSurahBehavior ==
+          AudioAfterSurahBehavior.continueNext,
+      onRequestNextSurah: _continueAudioToNextSurah,
     );
   }
 
@@ -369,8 +386,79 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       surah: _surahNumber,
       initialAyah: currentAyah.clamp(1, surah.verseCount).toInt(),
       verseCount: surah.verseCount,
+      continueAfterSurah:
+          settings.audioAfterSurahBehavior ==
+          AudioAfterSurahBehavior.continueNext,
+      onRequestNextSurah: _continueAudioToNextSurah,
     );
     if (mounted) setState(() {});
+  }
+
+  Future<void> _selectAudioBitrate(int bitrate) async {
+    final settings = AppSettingsScope.of(context);
+    final sourceId = settings.selectedQuranSourceId;
+    final available = quranAudioForSource(sourceId);
+    final audioId =
+        _audioController.config?.id ??
+        settings.selectedAudioSourceFor(sourceId) ??
+        (available.isEmpty ? null : available.first.id);
+    if (audioId == null) return;
+    final currentAyah = _audioController.isConfigured
+        ? _audioController.currentAyah
+        : 1;
+    final wasPlaying = _audioController.isPlaying;
+    await settings.setSelectedAudioBitrate(audioId, bitrate);
+    final config = readerAudioConfigFor(
+      sourceId,
+      audioId: audioId,
+      bitrate: bitrate,
+    );
+    if (config == null) return;
+    final surah = surahByNumber(_surahNumber);
+    await _audioController.configure(
+      config: config,
+      surah: _surahNumber,
+      initialAyah: currentAyah.clamp(1, surah.verseCount).toInt(),
+      verseCount: surah.verseCount,
+      continueAfterSurah:
+          settings.audioAfterSurahBehavior ==
+          AudioAfterSurahBehavior.continueNext,
+      onRequestNextSurah: _continueAudioToNextSurah,
+    );
+    if (wasPlaying) await _audioController.toggle();
+    if (mounted) setState(() {});
+  }
+
+  Future<bool> _continueAudioToNextSurah() async {
+    if (!mounted || _surahNumber >= 114) return false;
+    final config = _audioController.config;
+    if (config == null) return false;
+    final next = surahByNumber(_surahNumber + 1);
+    final settings = AppSettingsScope.of(context);
+    setState(() {
+      _surahNumber = next.number;
+      _anchorAyah = 1;
+      _visibleAyah = 1;
+      _selectedAyahs.clear();
+      _lastAudioAyah = null;
+    });
+    AppNavigation.instance.setReaderSelectionActive(false);
+    await settings.saveReadingPosition(surah: next.number, ayah: 1);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _scrollController.hasClients) _scrollController.jumpTo(0);
+    });
+    await _audioController.configure(
+      config: config,
+      surah: next.number,
+      initialAyah: 1,
+      verseCount: next.verseCount,
+      continueAfterSurah:
+          settings.audioAfterSurahBehavior ==
+          AudioAfterSurahBehavior.continueNext,
+      onRequestNextSurah: _continueAudioToNextSurah,
+    );
+    await _audioController.toggle();
+    return true;
   }
 
   Future<void> _showAudioPlayer(ReaderAudioSourceConfig config) async {
@@ -391,6 +479,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
           AppSettingsScope.of(context).selectedQuranSourceId,
         ),
         onSourceSelected: _selectAudioSource,
+        onBitrateSelected: _selectAudioBitrate,
       ),
     );
   }
@@ -890,8 +979,10 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
           Text(
             arabicMode ? surah.nameAr : _surahName(surah),
             textDirection: arabicMode ? TextDirection.rtl : null,
-            style: Theme.of(context).textTheme.headlineMedium
-                ?.copyWith(fontFamily: 'serif', fontSize: 31),
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              fontFamily: 'serif',
+              fontSize: 31,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
@@ -1172,8 +1263,9 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       if (seen.add(key)) results.add(result);
     }
 
-    final numeric = RegExp(r'^(\d{1,3})\s*[:/.\- ]\s*(\d{1,3})$')
-        .firstMatch(query);
+    final numeric = RegExp(
+      r'^(\d{1,3})\s*[:/.\- ]\s*(\d{1,3})$',
+    ).firstMatch(query);
     if (numeric != null) {
       final surahNumber = int.tryParse(numeric.group(1)!);
       final ayah = int.tryParse(numeric.group(2)!);
@@ -1421,8 +1513,9 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   Future<void> _applyHighlight(VerseHighlightColor? color) async {
     final selected = _selection;
     if (selected.isEmpty) return;
-    await AppSettingsScope.of(context)
-        .setHighlightForSelection(_surahNumber, selected, color);
+    await AppSettingsScope.of(
+      context,
+    ).setHighlightForSelection(_surahNumber, selected, color);
     if (!mounted) return;
     HapticFeedback.lightImpact();
     _clearSelection();
@@ -1431,8 +1524,9 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   Future<void> _bookmarkSelection() async {
     final selected = _selection;
     if (selected.isEmpty) return;
-    await AppSettingsScope.of(context)
-        .bookmarkSelection(_surahNumber, selected);
+    await AppSettingsScope.of(
+      context,
+    ).bookmarkSelection(_surahNumber, selected);
     if (!mounted) return;
     HapticFeedback.lightImpact();
     ScaffoldMessenger.of(context).showSnackBar(
@@ -1614,9 +1708,9 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
                             ),
                           ),
                         ),
@@ -1665,9 +1759,9 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                             Text(
                               _selectionReference(),
                               style: TextStyle(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ],

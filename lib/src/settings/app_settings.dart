@@ -13,6 +13,8 @@ enum ReaderLineSpacing { compact, normal, relaxed }
 
 enum VerseHighlightColor { yellow, green, blue, orange, pink }
 
+enum AudioAfterSurahBehavior { continueNext, stop }
+
 class AppSettings extends ChangeNotifier {
   static const _themeKey = 'theme_mode';
   static const _localeKey = 'app_locale';
@@ -23,6 +25,10 @@ class AppSettings extends ChangeNotifier {
   static const _sourceUserSelectedKey = 'quran_source_user_selected_v1';
   static const _readerTextSizeKey = 'reader_text_size';
   static const _selectedAudioBySourceKey = 'selected_audio_by_source_v1';
+  static const _selectedAudioBitrateKey = 'selected_audio_bitrate_v1';
+  static const _audioWifiOnlyKey = 'audio_download_wifi_only_v1';
+  static const _audioAskMobileKey = 'audio_download_ask_mobile_v1';
+  static const _audioAfterSurahKey = 'audio_after_surah_v1';
 
   static const _arabicFontSizeKey = 'arabic_font_size';
   static const _translationFontSizeKey = 'translation_font_size';
@@ -50,6 +56,11 @@ class AppSettings extends ChangeNotifier {
   Map<String, String> _archiveTimes = <String, String>{};
   Set<String> _readingDays = <String>{};
   Map<String, String> _selectedAudioBySource = <String, String>{};
+  Map<String, String> _selectedAudioBitrate = <String, String>{};
+  bool _audioDownloadWifiOnly = true;
+  bool _audioDownloadAskOnMobile = true;
+  AudioAfterSurahBehavior _audioAfterSurahBehavior =
+      AudioAfterSurahBehavior.continueNext;
 
   ThemeMode get themeMode => _themeMode;
   Locale? get locale => _locale;
@@ -61,6 +72,13 @@ class AppSettings extends ChangeNotifier {
 
   String? selectedAudioSourceFor(String sourceId) =>
       _selectedAudioBySource[sourceId];
+
+  int? selectedAudioBitrateFor(String audioId) =>
+      int.tryParse(_selectedAudioBitrate[audioId] ?? '');
+  bool get audioDownloadWifiOnly => _audioDownloadWifiOnly;
+  bool get audioDownloadAskOnMobile => _audioDownloadAskOnMobile;
+  AudioAfterSurahBehavior get audioAfterSurahBehavior =>
+      _audioAfterSurahBehavior;
 
   ReaderDisplayMode get readerMode => readerUsesArabic
       ? ReaderDisplayMode.arabic
@@ -184,6 +202,14 @@ class AppSettings extends ChangeNotifier {
     _selectedAudioBySource = _decodeStringMap(
       prefs.getString(_selectedAudioBySourceKey),
     );
+    _selectedAudioBitrate = _decodeStringMap(
+      prefs.getString(_selectedAudioBitrateKey),
+    );
+    _audioDownloadWifiOnly = prefs.getBool(_audioWifiOnlyKey) ?? true;
+    _audioDownloadAskOnMobile = prefs.getBool(_audioAskMobileKey) ?? true;
+    _audioAfterSurahBehavior = prefs.getString(_audioAfterSurahKey) == 'stop'
+        ? AudioAfterSurahBehavior.stop
+        : AudioAfterSurahBehavior.continueNext;
   }
 
   Map<String, String> _decodeStringMap(String? encoded) {
@@ -277,6 +303,47 @@ class AppSettings extends ChangeNotifier {
     await prefs.setString(
       _selectedAudioBySourceKey,
       jsonEncode(_selectedAudioBySource),
+    );
+  }
+
+  Future<void> setSelectedAudioBitrate(String audioId, int bitrate) async {
+    final id = audioId.trim();
+    if (id.isEmpty || bitrate <= 0) return;
+    final value = '$bitrate';
+    if (_selectedAudioBitrate[id] == value) return;
+    _selectedAudioBitrate[id] = value;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _selectedAudioBitrateKey,
+      jsonEncode(_selectedAudioBitrate),
+    );
+  }
+
+  Future<void> setAudioDownloadWifiOnly(bool value) async {
+    if (_audioDownloadWifiOnly == value) return;
+    _audioDownloadWifiOnly = value;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_audioWifiOnlyKey, value);
+  }
+
+  Future<void> setAudioDownloadAskOnMobile(bool value) async {
+    if (_audioDownloadAskOnMobile == value) return;
+    _audioDownloadAskOnMobile = value;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_audioAskMobileKey, value);
+  }
+
+  Future<void> setAudioAfterSurahBehavior(AudioAfterSurahBehavior value) async {
+    if (_audioAfterSurahBehavior == value) return;
+    _audioAfterSurahBehavior = value;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _audioAfterSurahKey,
+      value == AudioAfterSurahBehavior.stop ? 'stop' : 'continue',
     );
   }
 

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../data/translation_catalog.dart';
 import '../../l10n/app_localizations.dart';
 import '../../settings/app_settings.dart';
+import '../profile/downloads_screen.dart';
 import 'quran_translation_catalog_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -137,7 +138,10 @@ class SettingsScreen extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.download_for_offline_outlined, color: scheme.primary),
+                Icon(
+                  Icons.download_for_offline_outlined,
+                  color: scheme.primary,
+                ),
                 const SizedBox(width: 11),
                 Expanded(
                   child: Text(
@@ -165,6 +169,19 @@ class SettingsScreen extends StatelessWidget {
               },
               icon: const Icon(Icons.travel_explore_rounded),
               label: Text(l10n.languageAndTranslation),
+            ),
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.tonalIcon(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const DownloadsScreen(),
+                ),
+              ),
+              icon: const Icon(Icons.download_done_rounded),
+              label: Text(l10n.downloads),
             ),
           ),
           const SizedBox(height: 30),
@@ -205,18 +222,15 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Text(
           title,
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
         ),
         if (description != null) ...[
           const SizedBox(height: 8),
           Text(
             description!,
-            style: TextStyle(
-              color: scheme.onSurfaceVariant,
-              height: 1.4,
-            ),
+            style: TextStyle(color: scheme.onSurfaceVariant, height: 1.4),
           ),
         ],
       ],
@@ -346,7 +360,10 @@ class _ChoiceTile extends StatelessWidget {
                 if (trailingLabel != null) ...[
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: scheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(10),

@@ -15,7 +15,12 @@ class SurahInfo {
 const surahCatalog = <SurahInfo>[
   SurahInfo(number: 1, nameTr: 'Fâtiha', nameAr: 'الفاتحة', verseCount: 7),
   SurahInfo(number: 2, nameTr: 'Bakara', nameAr: 'البقرة', verseCount: 286),
-  SurahInfo(number: 3, nameTr: 'Âl-i İmrân', nameAr: 'آل عمران', verseCount: 200),
+  SurahInfo(
+    number: 3,
+    nameTr: 'Âl-i İmrân',
+    nameAr: 'آل عمران',
+    verseCount: 200,
+  ),
   SurahInfo(number: 4, nameTr: 'Nisâ', nameAr: 'النساء', verseCount: 176),
   SurahInfo(number: 5, nameTr: 'Mâide', nameAr: 'المائدة', verseCount: 120),
   SurahInfo(number: 6, nameTr: "En'âm", nameAr: 'الأنعام', verseCount: 165),
@@ -35,7 +40,12 @@ const surahCatalog = <SurahInfo>[
   SurahInfo(number: 20, nameTr: 'Tâhâ', nameAr: 'طه', verseCount: 135),
   SurahInfo(number: 21, nameTr: 'Enbiyâ', nameAr: 'الأنبياء', verseCount: 112),
   SurahInfo(number: 22, nameTr: 'Hac', nameAr: 'الحج', verseCount: 78),
-  SurahInfo(number: 23, nameTr: "Mü'minûn", nameAr: 'المؤمنون', verseCount: 118),
+  SurahInfo(
+    number: 23,
+    nameTr: "Mü'minûn",
+    nameAr: 'المؤمنون',
+    verseCount: 118,
+  ),
   SurahInfo(number: 24, nameTr: 'Nûr', nameAr: 'النور', verseCount: 64),
   SurahInfo(number: 25, nameTr: 'Furkân', nameAr: 'الفرقان', verseCount: 77),
   SurahInfo(number: 26, nameTr: 'Şuarâ', nameAr: 'الشعراء', verseCount: 227),
@@ -72,10 +82,20 @@ const surahCatalog = <SurahInfo>[
   SurahInfo(number: 57, nameTr: 'Hadîd', nameAr: 'الحديد', verseCount: 29),
   SurahInfo(number: 58, nameTr: 'Mücâdele', nameAr: 'المجادلة', verseCount: 22),
   SurahInfo(number: 59, nameTr: 'Haşr', nameAr: 'الحشر', verseCount: 24),
-  SurahInfo(number: 60, nameTr: 'Mümtehine', nameAr: 'الممتحنة', verseCount: 13),
+  SurahInfo(
+    number: 60,
+    nameTr: 'Mümtehine',
+    nameAr: 'الممتحنة',
+    verseCount: 13,
+  ),
   SurahInfo(number: 61, nameTr: 'Saff', nameAr: 'الصف', verseCount: 14),
   SurahInfo(number: 62, nameTr: 'Cuma', nameAr: 'الجمعة', verseCount: 11),
-  SurahInfo(number: 63, nameTr: 'Münâfikûn', nameAr: 'المنافقون', verseCount: 11),
+  SurahInfo(
+    number: 63,
+    nameTr: 'Münâfikûn',
+    nameAr: 'المنافقون',
+    verseCount: 11,
+  ),
   SurahInfo(number: 64, nameTr: 'Teğâbün', nameAr: 'التغابن', verseCount: 18),
   SurahInfo(number: 65, nameTr: 'Talâk', nameAr: 'الطلاق', verseCount: 12),
   SurahInfo(number: 66, nameTr: 'Tahrîm', nameAr: 'التحريم', verseCount: 12),
@@ -95,7 +115,12 @@ const surahCatalog = <SurahInfo>[
   SurahInfo(number: 80, nameTr: 'Abese', nameAr: 'عبس', verseCount: 42),
   SurahInfo(number: 81, nameTr: 'Tekvîr', nameAr: 'التكوير', verseCount: 29),
   SurahInfo(number: 82, nameTr: 'İnfitâr', nameAr: 'الانفطار', verseCount: 19),
-  SurahInfo(number: 83, nameTr: 'Mutaffifîn', nameAr: 'المطففين', verseCount: 36),
+  SurahInfo(
+    number: 83,
+    nameTr: 'Mutaffifîn',
+    nameAr: 'المطففين',
+    verseCount: 36,
+  ),
   SurahInfo(number: 84, nameTr: 'İnşikâk', nameAr: 'الانشقاق', verseCount: 25),
   SurahInfo(number: 85, nameTr: 'Burûc', nameAr: 'البروج', verseCount: 22),
   SurahInfo(number: 86, nameTr: 'Târık', nameAr: 'الطارق', verseCount: 17),
@@ -129,4 +154,5 @@ const surahCatalog = <SurahInfo>[
   SurahInfo(number: 114, nameTr: 'Nâs', nameAr: 'الناس', verseCount: 6),
 ];
 
-SurahInfo surahByNumber(int number) => surahCatalog[number.clamp(1, 114).toInt() - 1];
+SurahInfo surahByNumber(int number) =>
+    surahCatalog[number.clamp(1, 114).toInt() - 1];

@@ -61,10 +61,7 @@ class _AppShellState extends State<AppShell> {
   int _indexForDx(double dx, double width) {
     if (width <= 0) return _index;
     final itemWidth = width / _screens.length;
-    return (dx / itemWidth)
-        .floor()
-        .clamp(0, _screens.length - 1)
-        .toInt();
+    return (dx / itemWidth).floor().clamp(0, _screens.length - 1).toInt();
   }
 
   void _beginNavigationDrag(double dx, double width) {
@@ -128,7 +125,8 @@ class _AppShellState extends State<AppShell> {
     final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final l10n = context.l10n;
-    final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
 
     return SafeArea(
       minimum: const EdgeInsets.fromLTRB(18, 0, 18, 10),
@@ -139,9 +137,7 @@ class _AppShellState extends State<AppShell> {
           child: Container(
             height: 74,
             decoration: BoxDecoration(
-              color: isDark
-                  ? const Color(0xB82A2A2A)
-                  : const Color(0xC9F5F4EF),
+              color: isDark ? const Color(0xB82A2A2A) : const Color(0xC9F5F4EF),
               borderRadius: BorderRadius.circular(35),
               border: Border.all(
                 color: isDark
@@ -174,7 +170,9 @@ class _AppShellState extends State<AppShell> {
                       AnimatedPositioned(
                         duration: reduceMotion
                             ? Duration.zero
-                            : Duration(milliseconds: _draggingNavigation ? 90 : 260),
+                            : Duration(
+                                milliseconds: _draggingNavigation ? 90 : 260,
+                              ),
                         curve: _draggingNavigation
                             ? Curves.easeOutCubic
                             : Curves.easeOutBack,
@@ -192,19 +190,25 @@ class _AppShellState extends State<AppShell> {
                                 colors: isDark
                                     ? [
                                         Colors.white.withValues(alpha: .14),
-                                        scheme.surfaceContainerHighest.withValues(alpha: .80),
+                                        scheme.surfaceContainerHighest
+                                            .withValues(alpha: .80),
                                       ]
                                     : [
                                         Colors.white.withValues(alpha: .86),
-                                        scheme.surfaceContainerHighest.withValues(alpha: .72),
+                                        scheme.surfaceContainerHighest
+                                            .withValues(alpha: .72),
                                       ],
                               ),
                               border: Border.all(
-                                color: Colors.white.withValues(alpha: isDark ? .10 : .62),
+                                color: Colors.white.withValues(
+                                  alpha: isDark ? .10 : .62,
+                                ),
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: isDark ? .16 : .07),
+                                  color: Colors.black.withValues(
+                                    alpha: isDark ? .16 : .07,
+                                  ),
                                   blurRadius: 12,
                                   offset: const Offset(0, 4),
                                 ),
@@ -215,15 +219,30 @@ class _AppShellState extends State<AppShell> {
                       ),
                       Row(
                         children: [
-                          _navItem(0, Icons.home_outlined, Icons.home_rounded, l10n.navHome),
-                          _navItem(1, Icons.menu_book_outlined, Icons.menu_book_rounded, l10n.navQuran),
+                          _navItem(
+                            0,
+                            Icons.home_outlined,
+                            Icons.home_rounded,
+                            l10n.navHome,
+                          ),
+                          _navItem(
+                            1,
+                            Icons.menu_book_outlined,
+                            Icons.menu_book_rounded,
+                            l10n.navQuran,
+                          ),
                           _navItem(
                             2,
                             Icons.library_add_check_outlined,
                             Icons.library_add_check_rounded,
                             l10n.navPlans,
                           ),
-                          _navItem(3, Icons.search_rounded, Icons.search_rounded, l10n.navDiscover),
+                          _navItem(
+                            3,
+                            Icons.search_rounded,
+                            Icons.search_rounded,
+                            l10n.navDiscover,
+                          ),
                           _navItem(
                             4,
                             Icons.account_circle_outlined,
@@ -251,7 +270,8 @@ class _AppShellState extends State<AppShell> {
   ) {
     final scheme = Theme.of(context).colorScheme;
     final selected = _visualNavigationIndex == index;
-    final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
 
     return Expanded(
       child: _PressScale(
@@ -267,7 +287,9 @@ class _AppShellState extends State<AppShell> {
               children: [
                 AnimatedScale(
                   scale: selected ? 1.08 : 1,
-                  duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 180),
+                  duration: reduceMotion
+                      ? Duration.zero
+                      : const Duration(milliseconds: 180),
                   curve: Curves.easeOutBack,
                   child: Icon(
                     selected ? selectedIcon : icon,
@@ -277,7 +299,9 @@ class _AppShellState extends State<AppShell> {
                 ),
                 const SizedBox(height: 2),
                 AnimatedDefaultTextStyle(
-                  duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 160),
+                  duration: reduceMotion
+                      ? Duration.zero
+                      : const Duration(milliseconds: 160),
                   style: TextStyle(
                     color: selected ? scheme.primary : scheme.onSurface,
                     fontSize: 10.5,
@@ -319,7 +343,8 @@ class _PressScaleState extends State<_PressScale> {
 
   @override
   Widget build(BuildContext context) {
-    final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -329,7 +354,9 @@ class _PressScaleState extends State<_PressScale> {
       onTap: widget.enabled ? widget.onTap : null,
       child: AnimatedScale(
         scale: _pressed && widget.enabled ? .94 : 1,
-        duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 105),
+        duration: reduceMotion
+            ? Duration.zero
+            : const Duration(milliseconds: 105),
         curve: Curves.easeOutCubic,
         child: widget.child,
       ),

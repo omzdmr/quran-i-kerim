@@ -424,8 +424,9 @@ class _PrayerScreenState extends State<PrayerScreen> {
                 child: _PrayerShortcut(
                   icon: Icons.calendar_month_outlined,
                   title: l10n.text('monthlyTimes'),
-                  subtitle: MaterialLocalizations.of(context)
-                      .formatMonthYear(_now),
+                  subtitle: MaterialLocalizations.of(
+                    context,
+                  ).formatMonthYear(_now),
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute<void>(
                       builder: (_) => MonthlyPrayerTimesScreen(
@@ -548,8 +549,9 @@ class _MonthlyPrayerTimesScreenState extends State<MonthlyPrayerTimesScreen> {
                   child: Column(
                     children: [
                       Text(
-                        MaterialLocalizations.of(context)
-                            .formatMonthYear(_month),
+                        MaterialLocalizations.of(
+                          context,
+                        ).formatMonthYear(_month),
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w900,
@@ -950,8 +952,9 @@ class _MonthlyDayCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            MaterialLocalizations.of(context)
-                .formatMediumDate(schedule.localDate),
+            MaterialLocalizations.of(
+              context,
+            ).formatMediumDate(schedule.localDate),
             style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 12),

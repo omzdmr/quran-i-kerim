@@ -647,23 +647,28 @@ class _CommunityFeed extends StatelessWidget {
     const values = <String, Map<String, String>>{
       'tr': {
         'title': 'Senin etkinliklerin',
-        'body': 'Kaydettiğin, vurguladığın ve not aldığın ayetler burada görünür. Arkadaş sistemi geldiğinde bu akış arkadaş etkinliklerini de gösterebilir.',
-        'empty': 'Henüz bir etkinlik yok. Bir ayet kaydettiğinde, vurguladığında veya not eklediğinde burada görünecek.',
+        'body':
+            'Kaydettiğin, vurguladığın ve not aldığın ayetler burada görünür. Arkadaş sistemi geldiğinde bu akış arkadaş etkinliklerini de gösterebilir.',
+        'empty':
+            'Henüz bir etkinlik yok. Bir ayet kaydettiğinde, vurguladığında veya not eklediğinde burada görünecek.',
         'bookmark': 'Bir ayeti kaydettin',
         'highlight': 'Bir ayeti vurguladın',
         'note': 'Bir ayete not ekledin',
       },
       'en': {
         'title': 'Your activity',
-        'body': 'Verses you save, highlight or annotate appear here. When friends arrive, this feed can also include their activity.',
-        'empty': 'No activity yet. Save, highlight or add a note to a verse and it will appear here.',
+        'body':
+            'Verses you save, highlight or annotate appear here. When friends arrive, this feed can also include their activity.',
+        'empty':
+            'No activity yet. Save, highlight or add a note to a verse and it will appear here.',
         'bookmark': 'You saved a verse',
         'highlight': 'You highlighted a verse',
         'note': 'You added a note to a verse',
       },
       'ar': {
         'title': 'نشاطك',
-        'body': 'تظهر هنا الآيات التي تحفظها أو تميزها أو تضيف إليها ملاحظات. وعند إضافة الأصدقاء يمكن أن يعرض هذا القسم نشاطهم أيضاً.',
+        'body':
+            'تظهر هنا الآيات التي تحفظها أو تميزها أو تضيف إليها ملاحظات. وعند إضافة الأصدقاء يمكن أن يعرض هذا القسم نشاطهم أيضاً.',
         'empty': 'لا يوجد نشاط بعد. احفظ آية أو ميزها أو أضف ملاحظة لتظهر هنا.',
         'bookmark': 'حفظت آية',
         'highlight': 'ميزت آية',
@@ -671,16 +676,20 @@ class _CommunityFeed extends StatelessWidget {
       },
       'az': {
         'title': 'Sənin fəaliyyətin',
-        'body': 'Yadda saxladığın, vurğuladığın və qeyd əlavə etdiyin ayələr burada görünür. Dost sistemi gələndə bu axın onların fəaliyyətini də göstərə bilər.',
-        'empty': 'Hələ fəaliyyət yoxdur. Ayəni yadda saxla, vurğula və ya qeyd əlavə et.',
+        'body':
+            'Yadda saxladığın, vurğuladığın və qeyd əlavə etdiyin ayələr burada görünür. Dost sistemi gələndə bu axın onların fəaliyyətini də göstərə bilər.',
+        'empty':
+            'Hələ fəaliyyət yoxdur. Ayəni yadda saxla, vurğula və ya qeyd əlavə et.',
         'bookmark': 'Bir ayəni yadda saxladın',
         'highlight': 'Bir ayəni vurğuladın',
         'note': 'Bir ayəyə qeyd əlavə etdin',
       },
       'ru': {
         'title': 'Ваша активность',
-        'body': 'Здесь появляются сохранённые и выделенные аяты и заметки. После появления друзей лента сможет показывать и их активность.',
-        'empty': 'Пока активности нет. Сохраните или выделите аят либо добавьте заметку.',
+        'body':
+            'Здесь появляются сохранённые и выделенные аяты и заметки. После появления друзей лента сможет показывать и их активность.',
+        'empty':
+            'Пока активности нет. Сохраните или выделите аят либо добавьте заметку.',
         'bookmark': 'Вы сохранили аят',
         'highlight': 'Вы выделили аят',
         'note': 'Вы добавили заметку к аяту',
@@ -735,8 +744,9 @@ class _CommunityFeed extends StatelessWidget {
                   Expanded(
                     child: Text(
                       _text(languageCode, 'title'),
-                      style: Theme.of(context).textTheme.titleLarge
-                          ?.copyWith(fontWeight: FontWeight.w900),
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
                 ],
