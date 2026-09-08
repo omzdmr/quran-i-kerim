@@ -4,6 +4,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:quran/quran.dart' as quran;
 
+import '../../data/quran_audio_catalog.dart';
 import '../../data/translation_catalog.dart';
 import 'reader_audio_cache.dart';
 
@@ -22,25 +23,25 @@ class ReaderAudioSourceConfig {
 }
 
 ReaderAudioSourceConfig? readerAudioConfigFor(String sourceId) {
-  if (sourceId == arabicOriginalSourceId) {
+  final audio = primaryQuranAudioForSource(sourceId);
+  if (audio == null) return null;
+
+  if (audio.kind == QuranAudioKind.recitation) {
     return ReaderAudioSourceConfig(
-      id: 'arabic_recitation_alafasy',
-      code: 'AR',
-      title: 'Mishary Rashid Alafasy',
+      id: audio.id,
+      code: audio.code,
+      title: audio.title,
       urlForVerse: (surah, ayah) =>
           quran.getAudioURLByVerse(surah, ayah, bitrate: 64),
     );
   }
 
   final info = translationById(sourceId);
-  if (info == null || !info.hasAudio || info.sourceKey != 'english_rwwad') {
-    return null;
-  }
-
+  if (info == null || info.sourceKey != 'english_rwwad') return null;
   return ReaderAudioSourceConfig(
-    id: info.id,
-    code: info.code,
-    title: info.name,
+    id: audio.id,
+    code: audio.code,
+    title: audio.title,
     urlForVerse: (surah, ayah) {
       final s = surah.toString().padLeft(3, '0');
       final a = ayah.toString().padLeft(3, '0');

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../data/quran_audio_catalog.dart';
 import '../../data/translation_catalog.dart';
 import '../../data/translation_repository.dart';
 import '../../settings/app_settings.dart';
@@ -133,7 +134,7 @@ class _QuranTranslationCatalogScreenState
             subtitle: selectedId == arabicOriginalSourceId
                 ? 'Tanzil.net · ${copy.offline}'
                 : '${selectedInfo?.publisher ?? ''} · ${selectedInfo?.source ?? ''}',
-            hasAudio: selectedInfo?.hasAudio ?? false,
+            hasAudio: hasQuranAudioForSource(selectedId),
             currentLabel: copy.current,
           ),
           const SizedBox(height: 26),
@@ -176,7 +177,8 @@ class _QuranTranslationCatalogScreenState
                 child: _InstalledSourceRow(
                   source: source,
                   onTap: () => _selectAndClose(source.sourceId),
-                  onDelete: source.info != null &&
+                  onDelete:
+                      source.info != null &&
                           !source.info!.bundled &&
                           _installed.contains(source.info!.id)
                       ? () => _deleteDownloaded(source.info!)
@@ -256,11 +258,8 @@ class _TranslationDiscoveryScreenState
     });
   }
 
-  String _normalize(String value) => value
-      .trim()
-      .replaceAll('İ', 'i')
-      .replaceAll('I', 'ı')
-      .toLowerCase();
+  String _normalize(String value) =>
+      value.trim().replaceAll('İ', 'i').replaceAll('I', 'ı').toLowerCase();
 
   bool _matches(BuildContext context, TranslationInfo item) {
     final query = _normalize(_query);
@@ -276,6 +275,31 @@ class _TranslationDiscoveryScreenState
       copy.nativeLanguageName(item.languageCode),
     ].map(_normalize).join(' ');
     return haystack.contains(query);
+  }
+
+  TranslationInfo _audioDiscoveryItem(
+    BuildContext context,
+    QuranAudioInfo audio,
+  ) {
+    final linked = translationById(audio.sourceId);
+    if (linked != null) return linked;
+    final copy = _TranslationUiCopy.of(context);
+    return TranslationInfo(
+      id: audio.sourceId,
+      code: audio.code,
+      languageCode: audio.languageCode,
+      name: audio.sourceId == arabicOriginalSourceId
+          ? copy.arabicOriginal
+          : audio.title,
+      publisher: audio.title,
+      source: audio.attribution,
+      sourceKey: audio.id,
+      version: 'audio',
+      bundled: true,
+      available: true,
+      downloadable: false,
+      hasAudio: true,
+    );
   }
 
   List<TranslationInfo> _visibleItems(BuildContext context) {
@@ -296,7 +320,9 @@ class _TranslationDiscoveryScreenState
         filtered = all;
         break;
       case _TranslationFilter.audio:
-        filtered = all.where((item) => item.hasAudio);
+        filtered = quranAudioCatalog
+            .map((audio) => _audioDiscoveryItem(context, audio))
+            .where((item) => _matches(context, item));
         break;
     }
 
@@ -326,9 +352,8 @@ class _TranslationDiscoveryScreenState
       return;
     }
     if (!info.downloadable) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(copy.notReady)),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(copy.notReady)));
       return;
     }
 
@@ -338,9 +363,7 @@ class _TranslationDiscoveryScreenState
         info,
         onProgress: (value) {
           if (!mounted) return;
-          setState(
-            () => _progress[info.id] = value.clamp(0.0, 1.0).toDouble(),
-          );
+          setState(() => _progress[info.id] = value.clamp(0.0, 1.0).toDouble());
         },
       );
       if (!mounted) return;
@@ -353,9 +376,9 @@ class _TranslationDiscoveryScreenState
     } catch (error) {
       if (!mounted) return;
       setState(() => _progress.remove(info.id));
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${copy.downloadFailed}: $error')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('${copy.downloadFailed}: $error')));
     }
   }
 
@@ -366,7 +389,9 @@ class _TranslationDiscoveryScreenState
     final items = _visibleItems(context);
     final grouped = <String, List<TranslationInfo>>{};
     for (final item in items) {
-      grouped.putIfAbsent(item.languageCode, () => <TranslationInfo>[]).add(item);
+      grouped
+          .putIfAbsent(item.languageCode, () => <TranslationInfo>[])
+          .add(item);
     }
 
     return Scaffold(
@@ -592,14 +617,13 @@ class _InstalledSource {
   factory _InstalledSource.arabic({
     required String title,
     required String subtitle,
-  }) =>
-      _InstalledSource(
-        sourceId: arabicOriginalSourceId,
-        code: 'AR',
-        title: title,
-        subtitle: subtitle,
-        hasAudio: false,
-      );
+  }) => _InstalledSource(
+    sourceId: arabicOriginalSourceId,
+    code: 'AR',
+    title: title,
+    subtitle: subtitle,
+    hasAudio: hasQuranAudioForSource(arabicOriginalSourceId),
+  );
 
   factory _InstalledSource.translation(TranslationInfo info) =>
       _InstalledSource(
@@ -607,7 +631,7 @@ class _InstalledSource {
         code: info.code,
         title: info.name,
         subtitle: '${info.publisher} · ${info.source}',
-        hasAudio: info.hasAudio,
+        hasAudio: hasQuranAudioForSource(info.id),
         info: info,
       );
 
@@ -693,10 +717,7 @@ class _InstalledSourceRow extends StatelessWidget {
                   ],
                 )
               else
-                Icon(
-                  Icons.cloud_done_outlined,
-                  color: scheme.onSurfaceVariant,
-                ),
+                Icon(Icons.cloud_done_outlined, color: scheme.onSurfaceVariant),
             ],
           ),
         ),
@@ -895,177 +916,197 @@ class _TranslationUiCopy {
   final String languageCode;
 
   String get managerTitle => _pick(
-        tr: 'Kuran Çevirileri',
-        en: 'Quran Translations',
-        ar: 'ترجمات القرآن',
-        az: 'Quran tərcümələri',
-        ru: 'Переводы Корана',
-      );
+    tr: 'Kuran Çevirileri',
+    en: 'Quran Translations',
+    ar: 'ترجمات القرآن',
+    az: 'Quran tərcümələri',
+    ru: 'Переводы Корана',
+  );
   String get current => _pick(
-        tr: 'Şu an okunan',
-        en: 'Currently reading',
-        ar: 'الترجمة الحالية',
-        az: 'Hazırda oxunan',
-        ru: 'Текущий перевод',
-      );
+    tr: 'Şu an okunan',
+    en: 'Currently reading',
+    ar: 'الترجمة الحالية',
+    az: 'Hazırda oxunan',
+    ru: 'Текущий перевод',
+  );
   String get myTranslations => _pick(
-        tr: 'Benim Çevirilerim',
-        en: 'My Translations',
-        ar: 'ترجماتي',
-        az: 'Mənim tərcümələrim',
-        ru: 'Мои переводы',
-      );
+    tr: 'Benim Çevirilerim',
+    en: 'My Translations',
+    ar: 'ترجماتي',
+    az: 'Mənim tərcümələrim',
+    ru: 'Мои переводы',
+  );
   String get moreTranslations => _pick(
-        tr: 'Daha Fazla Çeviri',
-        en: 'More Translations',
-        ar: 'المزيد من الترجمات',
-        az: 'Daha çox tərcümə',
-        ru: 'Больше переводов',
-      );
+    tr: 'Daha Fazla Çeviri',
+    en: 'More Translations',
+    ar: 'المزيد من الترجمات',
+    az: 'Daha çox tərcümə',
+    ru: 'Больше переводов',
+  );
   String get searchTranslations => _pick(
-        tr: 'Çeviri ara',
-        en: 'Search translations',
-        ar: 'البحث في الترجمات',
-        az: 'Tərcümə axtar',
-        ru: 'Поиск переводов',
-      );
+    tr: 'Çeviri ara',
+    en: 'Search translations',
+    ar: 'البحث في الترجمات',
+    az: 'Tərcümə axtar',
+    ru: 'Поиск переводов',
+  );
   String get searchHint => _pick(
-        tr: 'Dil, meal, kod veya yayıncı ara',
-        en: 'Search language, translation, code or publisher',
-        ar: 'ابحث باللغة أو الترجمة أو الرمز أو الناشر',
-        az: 'Dil, tərcümə, kod və ya nəşriyyat axtar',
-        ru: 'Язык, перевод, код или издатель',
-      );
+    tr: 'Dil, meal, kod veya yayıncı ara',
+    en: 'Search language, translation, code or publisher',
+    ar: 'ابحث باللغة أو الترجمة أو الرمز أو الناشر',
+    az: 'Dil, tərcümə, kod və ya nəşriyyat axtar',
+    ru: 'Язык, перевод, код или издатель',
+  );
   String get recommended => _pick(
-        tr: 'Önerilen',
-        en: 'Recommended',
-        ar: 'مقترح',
-        az: 'Tövsiyə edilən',
-        ru: 'Рекомендуемые',
-      );
-  String get all => _pick(
-        tr: 'Tümü',
-        en: 'All',
-        ar: 'الكل',
-        az: 'Hamısı',
-        ru: 'Все',
-      );
+    tr: 'Önerilen',
+    en: 'Recommended',
+    ar: 'مقترح',
+    az: 'Tövsiyə edilən',
+    ru: 'Рекомендуемые',
+  );
+  String get all =>
+      _pick(tr: 'Tümü', en: 'All', ar: 'الكل', az: 'Hamısı', ru: 'Все');
   String get audioAvailable => _pick(
-        tr: 'Ses Mevcut',
-        en: 'Audio Available',
-        ar: 'الصوت متاح',
-        az: 'Səs mövcuddur',
-        ru: 'Есть аудио',
-      );
+    tr: 'Ses Mevcut',
+    en: 'Audio Available',
+    ar: 'الصوت متاح',
+    az: 'Səs mövcuddur',
+    ru: 'Есть аудио',
+  );
   String get offline => _pick(
-        tr: 'çevrimdışı',
-        en: 'offline',
-        ar: 'دون اتصال',
-        az: 'oflayn',
-        ru: 'офлайн',
-      );
+    tr: 'çevrimdışı',
+    en: 'offline',
+    ar: 'دون اتصال',
+    az: 'oflayn',
+    ru: 'офлайн',
+  );
   String get arabicOriginal => _pick(
-        tr: 'Arapça Orijinal',
-        en: 'Arabic Original',
-        ar: 'النص العربي الأصلي',
-        az: 'Ərəbcə orijinal',
-        ru: 'Арабский оригинал',
-      );
+    tr: 'Arapça Orijinal',
+    en: 'Arabic Original',
+    ar: 'النص العربي الأصلي',
+    az: 'Ərəbcə orijinal',
+    ru: 'Арабский оригинал',
+  );
   String get onlyCurrentInstalled => _pick(
-        tr: 'Şimdilik yalnızca mevcut okuma kaynağı yüklü.',
-        en: 'Only the current reading source is installed for now.',
-        ar: 'مصدر القراءة الحالي هو الوحيد المثبت حالياً.',
-        az: 'Hələlik yalnız hazırkı oxu mənbəyi quraşdırılıb.',
-        ru: 'Пока установлен только текущий источник чтения.',
-      );
+    tr: 'Şimdilik yalnızca mevcut okuma kaynağı yüklü.',
+    en: 'Only the current reading source is installed for now.',
+    ar: 'مصدر القراءة الحالي هو الوحيد المثبت حالياً.',
+    az: 'Hələlik yalnız hazırkı oxu mənbəyi quraşdırılıb.',
+    ru: 'Пока установлен только текущий источник чтения.',
+  );
   String get managerHint => _pick(
-        tr: 'İndirilen mealler cihazda kalır. Arapça tilavet, çeviri sesi olarak gösterilmez.',
-        en: 'Downloaded translations stay on the device. Arabic recitation is not shown as translation audio.',
-        ar: 'تبقى الترجمات المنزلة على الجهاز. لا تُعرض التلاوة العربية كصوت للترجمة.',
-        az: 'Endirilən tərcümələr cihazda qalır. Ərəbcə tilavət tərcümə səsi kimi göstərilmir.',
-        ru: 'Скачанные переводы остаются на устройстве. Арабское чтение не помечается как аудио перевода.',
-      );
+    tr: 'İndirilen mealler cihazda kalır. Arapça tilavet, çeviri sesi olarak gösterilmez.',
+    en: 'Downloaded translations stay on the device. Arabic recitation is not shown as translation audio.',
+    ar: 'تبقى الترجمات المنزلة على الجهاز. لا تُعرض التلاوة العربية كصوت للترجمة.',
+    az: 'Endirilən tərcümələr cihazda qalır. Ərəbcə tilavət tərcümə səsi kimi göstərilmir.',
+    ru: 'Скачанные переводы остаются на устройстве. Арабское чтение не помечается как аудио перевода.',
+  );
   String get download => _pick(
-        tr: 'İndir',
-        en: 'Download',
-        ar: 'تنزيل',
-        az: 'Endir',
-        ru: 'Скачать',
-      );
+    tr: 'İndir',
+    en: 'Download',
+    ar: 'تنزيل',
+    az: 'Endir',
+    ru: 'Скачать',
+  );
   String get downloadFailed => _pick(
-        tr: 'Çeviri indirilemedi',
-        en: 'Could not download translation',
-        ar: 'تعذر تنزيل الترجمة',
-        az: 'Tərcüməni endirmək mümkün olmadı',
-        ru: 'Не удалось скачать перевод',
-      );
+    tr: 'Çeviri indirilemedi',
+    en: 'Could not download translation',
+    ar: 'تعذر تنزيل الترجمة',
+    az: 'Tərcüməni endirmək mümkün olmadı',
+    ru: 'Не удалось скачать перевод',
+  );
   String get notReady => _pick(
-        tr: 'Bu çeviri için doğrulanmış indirme paketi henüz hazır değil.',
-        en: 'A verified download package is not ready for this translation yet.',
-        ar: 'حزمة تنزيل موثقة لهذه الترجمة غير جاهزة بعد.',
-        az: 'Bu tərcümə üçün təsdiqlənmiş endirmə paketi hələ hazır deyil.',
-        ru: 'Проверенный пакет для этого перевода пока не готов.',
-      );
+    tr: 'Bu çeviri için doğrulanmış indirme paketi henüz hazır değil.',
+    en: 'A verified download package is not ready for this translation yet.',
+    ar: 'حزمة تنزيل موثقة لهذه الترجمة غير جاهزة بعد.',
+    az: 'Bu tərcümə üçün təsdiqlənmiş endirmə paketi hələ hazır deyil.',
+    ru: 'Проверенный пакет для этого перевода пока не готов.',
+  );
   String get noResults => _pick(
-        tr: 'Aramanıza uygun çeviri bulunamadı.',
-        en: 'No translations match your search.',
-        ar: 'لم يتم العثور على ترجمة مطابقة.',
-        az: 'Axtarışınıza uyğun tərcümə tapılmadı.',
-        ru: 'Подходящих переводов не найдено.',
-      );
+    tr: 'Aramanıza uygun çeviri bulunamadı.',
+    en: 'No translations match your search.',
+    ar: 'لم يتم العثور على ترجمة مطابقة.',
+    az: 'Axtarışınıza uyğun tərcümə tapılmadı.',
+    ru: 'Подходящих переводов не найдено.',
+  );
   String get noAudio => _pick(
-        tr: 'Şu an katalogdaki doğrulanmış çeviriler arasında sesli meal bulunmuyor.',
-        en: 'None of the currently verified translations has spoken-translation audio.',
-        ar: 'لا توجد حالياً ترجمة صوتية ضمن الترجمات الموثقة في الفهرس.',
-        az: 'Hazırda təsdiqlənmiş tərcümələr arasında səsli tərcümə yoxdur.',
-        ru: 'Среди проверенных переводов пока нет озвученного перевода.',
-      );
-  String get delete => _pick(
-        tr: 'Sil',
-        en: 'Delete',
-        ar: 'حذف',
-        az: 'Sil',
-        ru: 'Удалить',
-      );
+    tr: 'Şu an katalogdaki doğrulanmış çeviriler arasında sesli meal bulunmuyor.',
+    en: 'None of the currently verified translations has spoken-translation audio.',
+    ar: 'لا توجد حالياً ترجمة صوتية ضمن الترجمات الموثقة في الفهرس.',
+    az: 'Hazırda təsdiqlənmiş tərcümələr arasında səsli tərcümə yoxdur.',
+    ru: 'Среди проверенных переводов пока нет озвученного перевода.',
+  );
+  String get delete =>
+      _pick(tr: 'Sil', en: 'Delete', ar: 'حذف', az: 'Sil', ru: 'Удалить');
   String get deleteTitle => _pick(
-        tr: 'İndirilen çeviri silinsin mi?',
-        en: 'Delete downloaded translation?',
-        ar: 'حذف الترجمة المنزلة؟',
-        az: 'Endirilmiş tərcümə silinsin?',
-        ru: 'Удалить скачанный перевод?',
-      );
+    tr: 'İndirilen çeviri silinsin mi?',
+    en: 'Delete downloaded translation?',
+    ar: 'حذف الترجمة المنزلة؟',
+    az: 'Endirilmiş tərcümə silinsin?',
+    ru: 'Удалить скачанный перевод?',
+  );
   String get deleteBody => _pick(
-        tr: 'Çeviri cihazdan kaldırılır; daha sonra yeniden indirebilirsiniz.',
-        en: 'The translation will be removed from this device and can be downloaded again later.',
-        ar: 'ستُحذف الترجمة من الجهاز ويمكن تنزيلها مرة أخرى لاحقاً.',
-        az: 'Tərcümə cihazdan silinəcək və sonra yenidən endirilə bilər.',
-        ru: 'Перевод будет удалён с устройства, его можно скачать снова позже.',
-      );
+    tr: 'Çeviri cihazdan kaldırılır; daha sonra yeniden indirebilirsiniz.',
+    en: 'The translation will be removed from this device and can be downloaded again later.',
+    ar: 'ستُحذف الترجمة من الجهاز ويمكن تنزيلها مرة أخرى لاحقاً.',
+    az: 'Tərcümə cihazdan silinəcək və sonra yenidən endirilə bilər.',
+    ru: 'Перевод будет удалён с устройства, его можно скачать снова позже.',
+  );
   String get cancel => _pick(
-        tr: 'Vazgeç',
-        en: 'Cancel',
-        ar: 'إلغاء',
-        az: 'Ləğv et',
-        ru: 'Отмена',
-      );
+    tr: 'Vazgeç',
+    en: 'Cancel',
+    ar: 'إلغاء',
+    az: 'Ləğv et',
+    ru: 'Отмена',
+  );
 
   String languageName(String code) => switch (code) {
-        'tr' => _pick(tr: 'Türkçe', en: 'Turkish', ar: 'التركية', az: 'Türkcə', ru: 'Турецкий'),
-        'en' => _pick(tr: 'İngilizce', en: 'English', ar: 'الإنجليزية', az: 'İngiliscə', ru: 'Английский'),
-        'az' => _pick(tr: 'Azerbaycanca', en: 'Azerbaijani', ar: 'الأذربيجانية', az: 'Azərbaycanca', ru: 'Азербайджанский'),
-        'ru' => _pick(tr: 'Rusça', en: 'Russian', ar: 'الروسية', az: 'Rusca', ru: 'Русский'),
-        'ar' => _pick(tr: 'Arapça', en: 'Arabic', ar: 'العربية', az: 'Ərəbcə', ru: 'Арабский'),
-        _ => code.toUpperCase(),
-      };
+    'tr' => _pick(
+      tr: 'Türkçe',
+      en: 'Turkish',
+      ar: 'التركية',
+      az: 'Türkcə',
+      ru: 'Турецкий',
+    ),
+    'en' => _pick(
+      tr: 'İngilizce',
+      en: 'English',
+      ar: 'الإنجليزية',
+      az: 'İngiliscə',
+      ru: 'Английский',
+    ),
+    'az' => _pick(
+      tr: 'Azerbaycanca',
+      en: 'Azerbaijani',
+      ar: 'الأذربيجانية',
+      az: 'Azərbaycanca',
+      ru: 'Азербайджанский',
+    ),
+    'ru' => _pick(
+      tr: 'Rusça',
+      en: 'Russian',
+      ar: 'الروسية',
+      az: 'Rusca',
+      ru: 'Русский',
+    ),
+    'ar' => _pick(
+      tr: 'Arapça',
+      en: 'Arabic',
+      ar: 'العربية',
+      az: 'Ərəbcə',
+      ru: 'Арабский',
+    ),
+    _ => code.toUpperCase(),
+  };
 
   String nativeLanguageName(String code) => switch (code) {
-        'tr' => 'Türkçe',
-        'en' => 'English',
-        'az' => 'Azərbaycanca',
-        'ru' => 'Русский',
-        'ar' => 'العربية',
-        _ => code.toUpperCase(),
-      };
+    'tr' => 'Türkçe',
+    'en' => 'English',
+    'az' => 'Azərbaycanca',
+    'ru' => 'Русский',
+    'ar' => 'العربية',
+    _ => code.toUpperCase(),
+  };
 
   String _pick({
     required String tr,
@@ -1073,12 +1114,11 @@ class _TranslationUiCopy {
     required String ar,
     required String az,
     required String ru,
-  }) =>
-      switch (languageCode) {
-        'tr' => tr,
-        'ar' => ar,
-        'az' => az,
-        'ru' => ru,
-        _ => en,
-      };
+  }) => switch (languageCode) {
+    'tr' => tr,
+    'ar' => ar,
+    'az' => az,
+    'ru' => ru,
+    _ => en,
+  };
 }
