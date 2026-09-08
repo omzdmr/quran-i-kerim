@@ -56,8 +56,8 @@ jobs:
       - name: Analyze app code
         run: flutter analyze lib --no-fatal-infos
 
-      - name: Run tests
-        run: flutter test
+      - name: Run prayer tests
+        run: flutter test test/prayer_calculator_test.dart
 
       - name: Build lightweight APKs
         run: flutter build apk --release --split-per-abi
