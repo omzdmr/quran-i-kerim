@@ -1,0 +1,53 @@
+name: Apply Audio v2 polish
+
+on:
+  push:
+    branches: [ feature/localization-v01 ]
+    paths:
+      - '.github/workflows/apply-audio-v2-polish.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.2'
+          channel: stable
+          cache: true
+
+      - name: Apply polish
+        run: python3 tool/apply_audio_v2_polish.py
+
+      - name: Remove helper
+        run: rm tool/apply_audio_v2_polish.py
+
+      - name: Fetch bundled content
+        run: python3 tool/fetch_content.py
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Format
+        run: dart format lib test
+
+      - name: Analyze
+        run: flutter analyze lib --no-fatal-infos
+
+      - name: Run tests
+        run: flutter test
+
+      - name: Commit source changes
+        run: |
+          git config user.name 'omzdmr'
+          git config user.email '154471764+omzdmr@users.noreply.github.com'
+          git add -A
+          git commit -m 'Polish Audio v2 player and downloads navigation'
+          git push
