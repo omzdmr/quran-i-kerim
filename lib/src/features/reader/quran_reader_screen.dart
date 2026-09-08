@@ -12,6 +12,7 @@ import '../../data/translation_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../navigation/app_navigation.dart';
 import '../../settings/app_settings.dart';
+import '../settings/quran_translation_catalog_screen.dart';
 
 class QuranReaderScreen extends StatefulWidget {
   const QuranReaderScreen({super.key});
@@ -968,79 +969,22 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
 
   Future<void> _showTranslations() async {
     final settings = AppSettingsScope.of(context);
-    final scheme = Theme.of(context).colorScheme;
-    final l10n = context.l10n;
-    final installed = <TranslationInfo>[];
-    for (final info in translationCatalog) {
-      if (await TranslationRepository.instance.isInstalled(info.id)) {
-        installed.add(info);
-      }
-    }
-    if (!mounted) return;
+    final before = settings.selectedQuranSourceId;
+    final visibleAyah = settings.lastAyah;
 
-    final picked = await showModalBottomSheet<String>(
+    await showModalBottomSheet<String>(
       context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
       showDragHandle: true,
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                l10n.text('readingText'),
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                l10n.text('singleTextReaderHint'),
-                style: TextStyle(color: scheme.onSurfaceVariant),
-              ),
-              const SizedBox(height: 16),
-              for (final info in installed) ...[
-                _VersionChoice(
-                  code: info.code,
-                  title: info.name,
-                  subtitle: '${info.publisher} · ${l10n.text('offline')}',
-                  selected: settings.selectedQuranSourceId == info.id,
-                  onTap: () => Navigator.pop(sheetContext, info.id),
-                ),
-                const SizedBox(height: 8),
-              ],
-              _VersionChoice(
-                code: 'AR',
-                title: l10n.arabicOriginal,
-                subtitle: 'Tanzil.net · ${l10n.text('offline')}',
-                selected:
-                    settings.selectedQuranSourceId == arabicOriginalSourceId,
-                onTap: () => Navigator.pop(
-                  sheetContext,
-                  arabicOriginalSourceId,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                l10n.text('newTranslationsHint'),
-                style: TextStyle(
-                  color: scheme.onSurfaceVariant,
-                  height: 1.45,
-                ),
-              ),
-            ],
-          ),
-        ),
+      builder: (sheetContext) => const FractionallySizedBox(
+        heightFactor: .93,
+        child: QuranTranslationCatalogScreen(),
       ),
     );
 
-    if (picked == null || !mounted) return;
-    final visibleAyah = settings.lastAyah;
-    await settings.setSelectedQuranSource(picked);
+    if (!mounted || settings.selectedQuranSourceId == before) return;
     _invalidateTranslationFuture();
-    if (!mounted) return;
     HapticFeedback.selectionClick();
     setState(() {});
     _scheduleScrollToAyah(visibleAyah);
