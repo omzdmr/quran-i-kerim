@@ -1,12 +1,22 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 class PlansScreen extends StatelessWidget {
   const PlansScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    const topics = ['SABIR', 'HUZUR', 'KAYGI', 'ŞÜKÜR', 'AİLE', 'RAMAZAN'];
+    final l10n = context.l10n;
+    final topics = [
+      l10n.text('patience').toUpperCase(),
+      l10n.text('peace').toUpperCase(),
+      l10n.text('anxiety').toUpperCase(),
+      l10n.text('gratitude').toUpperCase(),
+      l10n.text('family').toUpperCase(),
+      l10n.text('ramadan').toUpperCase(),
+    ];
 
     return SafeArea(
       child: ListView(
@@ -16,7 +26,7 @@ class PlansScreen extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Okuma Planları',
+                  l10n.text('readingPlans'),
                   style: Theme.of(context).textTheme.headlineLarge,
                 ),
               ),
@@ -27,16 +37,16 @@ class PlansScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 26),
-          const SizedBox(
+          SizedBox(
             height: 44,
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  _TopPill('Okuma Planlarım'),
-                  _TopPill('Planlar Bul', selected: true),
-                  _TopPill('Kaydedildi'),
-                  _TopPill('Tamamlandı'),
+                  _TopPill(l10n.text('myPlans')),
+                  _TopPill(l10n.text('findPlans'), selected: true),
+                  _TopPill(l10n.text('saved')),
+                  _TopPill(l10n.text('completed')),
                 ],
               ),
             ),
@@ -65,22 +75,22 @@ class PlansScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 34),
-          const _PlanSection('Huzur', [
-            ('7 Gün', 'İç Huzuru', '7'),
-            ('5 Gün', 'Dinlenmek için Zaman Ayırmak', '5'),
-            ('10 Gün', 'Tevekkül', '10'),
+          _PlanSection(l10n.text('peace'), [
+            (l10n.text('day7'), l10n.text('innerPeace'), '7'),
+            (l10n.text('day5'), l10n.text('makeTimeRest'), '5'),
+            (l10n.text('day10'), l10n.text('trust'), '10'),
           ]),
           const SizedBox(height: 30),
-          const _PlanSection('Kuran’ın Tümü', [
-            ('30 Gün', '30 Günde Kuran’a Başlangıç', '30'),
-            ('90 Gün', '90 Günde Kuran Okuma', '90'),
-            ('1 Yıl', 'Bir Yılda Kuran', '365'),
+          _PlanSection(l10n.text('allQuran'), [
+            (l10n.text('day30'), l10n.text('quran30'), '30'),
+            (l10n.text('day90'), l10n.text('quran90'), '90'),
+            (l10n.text('year1'), l10n.text('quranYear'), '365'),
           ]),
           const SizedBox(height: 30),
-          const _PlanSection('Ramazan', [
-            ('30 Gün', 'Ramazan Hatmi', '30'),
-            ('10 Gün', 'Son On Gece', '10'),
-            ('7 Gün', 'Ramazan’a Hazırlık', '7'),
+          _PlanSection(l10n.text('ramadan'), [
+            (l10n.text('day30'), l10n.text('ramadanKhatm'), '30'),
+            (l10n.text('day10'), l10n.text('lastTenNights'), '10'),
+            (l10n.text('day7'), l10n.text('prepareRamadan'), '7'),
           ]),
         ],
       ),
@@ -124,6 +134,7 @@ class _PlanSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -133,7 +144,7 @@ class _PlanSection extends StatelessWidget {
               child: Text(title, style: Theme.of(context).textTheme.headlineMedium),
             ),
             Text(
-              'Hepsini Gör  ›',
+              l10n.text('viewAll'),
               style: TextStyle(color: scheme.primary, fontSize: 15),
             ),
           ],
@@ -177,7 +188,7 @@ class _PlanSection extends StatelessWidget {
                 ),
                 FilledButton.tonal(
                   onPressed: () {},
-                  child: const Text('Başla'),
+                  child: Text(l10n.text('start')),
                 ),
               ],
             ),
