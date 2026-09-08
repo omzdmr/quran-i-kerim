@@ -3,11 +3,14 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 import '../application/prayer_calculator.dart';
+import '../application/prayer_preferences_store.dart';
+import '../domain/prayer_city_catalog.dart';
 import '../domain/prayer_models.dart';
+import 'prayer_city_picker.dart';
+import 'prayer_settings_screen.dart';
 
 class PrayerScreen extends StatefulWidget {
   const PrayerScreen({super.key});
@@ -17,17 +20,16 @@ class PrayerScreen extends StatefulWidget {
 }
 
 class _PrayerScreenState extends State<PrayerScreen> {
-  static const _cityKey = 'prayer_city_id';
-
   final PrayerCalculator _calculator = PrayerCalculator();
   Timer? _timer;
-  _PrayerCity _city = _prayerCities.first;
+  PrayerCity _city = prayerCities.first;
+  PrayerSettingsSnapshot _prayerSettings = const PrayerSettingsSnapshot();
   bool _showTomorrow = false;
 
   @override
   void initState() {
     super.initState();
-    _restoreCity();
+    _restoreState();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() {});
     });
@@ -39,20 +41,21 @@ class _PrayerScreenState extends State<PrayerScreen> {
     super.dispose();
   }
 
-  Future<void> _restoreCity() async {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString(_cityKey);
-    if (!mounted || saved == null) return;
-    final matches = _prayerCities.where((city) => city.id == saved);
-    if (matches.isEmpty) return;
-    setState(() => _city = matches.first);
+  Future<void> _restoreState() async {
+    final cityId = await PrayerPreferencesStore.loadCityId();
+    final settings = await PrayerPreferencesStore.load();
+    if (!mounted) return;
+    setState(() {
+      _city = prayerCityById(cityId);
+      _prayerSettings = settings;
+    });
   }
 
   PrayerDaySchedule _scheduleFor(DateTime localDate) {
     return _calculator.calculate(
       location: _city.location,
       date: localDate,
-      preferences: PrayerPreferences(calculationMethod: _city.method),
+      preferences: _prayerSettings.preferencesFor(_city.defaultMethod),
     );
   }
 
@@ -85,86 +88,34 @@ class _PrayerScreenState extends State<PrayerScreen> {
   }
 
   Future<void> _pickCity() async {
-    final picked = await showModalBottomSheet<_PrayerCity>(
+    final picked = await showModalBottomSheet<PrayerCity>(
       context: context,
       isScrollControlled: true,
       showDragHandle: false,
-      builder: (sheetContext) => FractionallySizedBox(
-        heightFactor: .82,
-        child: SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
-                child: Row(
-                  children: [
-                    IconButton.filledTonal(
-                      onPressed: () => Navigator.pop(sheetContext),
-                      icon: const Icon(Icons.close_rounded),
-                    ),
-                    const Expanded(
-                      child: Text(
-                        'Şehir seç',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
-                      ),
-                    ),
-                    const SizedBox(width: 48),
-                  ],
-                ),
-              ),
-              const Divider(height: 1),
-              Expanded(
-                child: ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 24),
-                  itemCount: _prayerCities.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 6),
-                  itemBuilder: (context, index) {
-                    final city = _prayerCities[index];
-                    final selected = city.id == _city.id;
-                    return Material(
-                      color: selected
-                          ? Theme.of(context).colorScheme.primaryContainer
-                          : Theme.of(context).colorScheme.surfaceContainer,
-                      borderRadius: BorderRadius.circular(18),
-                      child: ListTile(
-                        onTap: () => Navigator.pop(sheetContext, city),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        leading: Icon(
-                          selected
-                              ? Icons.location_on_rounded
-                              : Icons.location_on_outlined,
-                        ),
-                        title: Text(
-                          city.label,
-                          style: const TextStyle(fontWeight: FontWeight.w800),
-                        ),
-                        subtitle: Text(city.region),
-                        trailing: selected
-                            ? const Icon(Icons.check_circle_rounded)
-                            : const Icon(Icons.chevron_right_rounded),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      builder: (_) => PrayerCityPicker(selectedCityId: _city.id),
     );
 
     if (picked == null || !mounted) return;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_cityKey, picked.id);
+    await PrayerPreferencesStore.saveCityId(picked.id);
     if (!mounted) return;
     setState(() {
       _city = picked;
       _showTomorrow = false;
     });
     HapticFeedback.selectionClick();
+  }
+
+  Future<void> _openPrayerSettings() async {
+    final updated = await Navigator.of(context).push<PrayerSettingsSnapshot>(
+      MaterialPageRoute(
+        builder: (_) => PrayerSettingsScreen(
+          city: _city,
+          initial: _prayerSettings,
+        ),
+      ),
+    );
+    if (updated == null || !mounted) return;
+    setState(() => _prayerSettings = updated);
   }
 
   @override
@@ -179,6 +130,11 @@ class _PrayerScreenState extends State<PrayerScreen> {
         title: const Text('Namaz Vakitleri'),
         centerTitle: false,
         actions: [
+          IconButton(
+            onPressed: _openPrayerSettings,
+            icon: const Icon(Icons.tune_rounded),
+            tooltip: 'Namaz ayarları',
+          ),
           IconButton(
             onPressed: _pickCity,
             icon: const Icon(Icons.location_on_outlined),
@@ -210,7 +166,7 @@ class _PrayerScreenState extends State<PrayerScreen> {
                           ),
                         ),
                         Text(
-                          _city.region,
+                          _city.country,
                           style: TextStyle(color: scheme.onSurfaceVariant),
                         ),
                       ],
@@ -286,7 +242,10 @@ class _PrayerScreenState extends State<PrayerScreen> {
                   subtitle: _monthYear(_now),
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute<void>(
-                      builder: (_) => MonthlyPrayerTimesScreen(city: _city),
+                      builder: (_) => MonthlyPrayerTimesScreen(
+                        city: _city,
+                        settings: _prayerSettings,
+                      ),
                     ),
                   ),
                 ),
@@ -326,7 +285,7 @@ class _PrayerScreenState extends State<PrayerScreen> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Vakitler cihazda hesaplanır; günlük internet bağlantısı gerekmez. Şehir ve hesaplama yöntemi sonraki ayarlarda daha ayrıntılı özelleştirilecek.',
+                    'Vakitler cihazda hesaplanır; günlük internet gerekmez. Hesaplama yöntemi, İkindi tercihi, yüksek enlem kuralı ve dakika düzeltmeleri ayarlardan değiştirilebilir.',
                     style: TextStyle(
                       color: scheme.onSurfaceVariant,
                       height: 1.45,
@@ -343,9 +302,14 @@ class _PrayerScreenState extends State<PrayerScreen> {
 }
 
 class MonthlyPrayerTimesScreen extends StatefulWidget {
-  const MonthlyPrayerTimesScreen({required this.city, super.key});
+  const MonthlyPrayerTimesScreen({
+    required this.city,
+    required this.settings,
+    super.key,
+  });
 
-  final _PrayerCity city;
+  final PrayerCity city;
+  final PrayerSettingsSnapshot settings;
 
   @override
   State<MonthlyPrayerTimesScreen> createState() => _MonthlyPrayerTimesScreenState();
@@ -354,6 +318,7 @@ class MonthlyPrayerTimesScreen extends StatefulWidget {
 class _MonthlyPrayerTimesScreenState extends State<MonthlyPrayerTimesScreen> {
   final PrayerCalculator _calculator = PrayerCalculator();
   late DateTime _month;
+  String _filter = 'all';
 
   @override
   void initState() {
@@ -371,8 +336,8 @@ class _MonthlyPrayerTimesScreenState extends State<MonthlyPrayerTimesScreen> {
         _calculator.calculate(
           location: widget.city.location,
           date: DateTime(_month.year, _month.month, day),
-          preferences: PrayerPreferences(
-            calculationMethod: widget.city.method,
+          preferences: widget.settings.preferencesFor(
+            widget.city.defaultMethod,
           ),
         ),
     ];
@@ -420,6 +385,35 @@ class _MonthlyPrayerTimesScreenState extends State<MonthlyPrayerTimesScreen> {
             ),
           ),
           const Divider(height: 1),
+          SizedBox(
+            height: 52,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              children: [
+                for (final option in const [
+                  ('all', 'Tümü'),
+                  ('fajr', 'İmsak'),
+                  ('sunrise', 'Güneş'),
+                  ('dhuhr', 'Öğle'),
+                  ('asr', 'İkindi'),
+                  ('maghrib', 'Akşam'),
+                  ('isha', 'Yatsı'),
+                ]) ...[
+                  ChoiceChip(
+                    label: Text(option.$2),
+                    selected: _filter == option.$1,
+                    onSelected: (_) {
+                      setState(() => _filter = option.$1);
+                      HapticFeedback.selectionClick();
+                    },
+                  ),
+                  const SizedBox(width: 7),
+                ],
+              ],
+            ),
+          ),
+          const Divider(height: 1),
           Expanded(
             child: ListView.separated(
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 28),
@@ -427,7 +421,7 @@ class _MonthlyPrayerTimesScreenState extends State<MonthlyPrayerTimesScreen> {
               separatorBuilder: (_, __) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
                 final schedule = schedules[index];
-                return _MonthlyDayCard(schedule: schedule);
+                return _MonthlyDayCard(schedule: schedule, filter: _filter);
               },
             ),
           ),
@@ -444,7 +438,7 @@ class QiblaInfoScreen extends StatelessWidget {
     super.key,
   });
 
-  final _PrayerCity city;
+  final PrayerCity city;
   final double qiblaDegrees;
 
   @override
@@ -608,14 +602,17 @@ class _PrayerShortcut extends StatelessWidget {
 }
 
 class _MonthlyDayCard extends StatelessWidget {
-  const _MonthlyDayCard({required this.schedule});
+  const _MonthlyDayCard({required this.schedule, required this.filter});
 
   final PrayerDaySchedule schedule;
+  final String filter;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final rows = schedule.rows;
+    final rows = filter == 'all'
+        ? schedule.rows
+        : schedule.rows.where((row) => row.id == filter).toList();
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 15),
       decoration: BoxDecoration(
@@ -662,124 +659,6 @@ class _MonthlyDayCard extends StatelessWidget {
     );
   }
 }
-
-class _PrayerCity {
-  const _PrayerCity({
-    required this.id,
-    required this.label,
-    required this.region,
-    required this.location,
-    required this.method,
-  });
-
-  final String id;
-  final String label;
-  final String region;
-  final PrayerLocation location;
-  final PrayerCalculationMethod method;
-}
-
-const _prayerCities = <_PrayerCity>[
-  _PrayerCity(
-    id: 'istanbul',
-    label: 'İstanbul',
-    region: 'Türkiye',
-    location: PrayerLocation(
-      latitude: 41.0082,
-      longitude: 28.9784,
-      timeZoneId: 'Europe/Istanbul',
-    ),
-    method: PrayerCalculationMethod.turkiye,
-  ),
-  _PrayerCity(
-    id: 'ankara',
-    label: 'Ankara',
-    region: 'Türkiye',
-    location: PrayerLocation(
-      latitude: 39.9334,
-      longitude: 32.8597,
-      timeZoneId: 'Europe/Istanbul',
-    ),
-    method: PrayerCalculationMethod.turkiye,
-  ),
-  _PrayerCity(
-    id: 'izmir',
-    label: 'İzmir',
-    region: 'Türkiye',
-    location: PrayerLocation(
-      latitude: 38.4237,
-      longitude: 27.1428,
-      timeZoneId: 'Europe/Istanbul',
-    ),
-    method: PrayerCalculationMethod.turkiye,
-  ),
-  _PrayerCity(
-    id: 'beijing',
-    label: 'Pekin',
-    region: 'Çin',
-    location: PrayerLocation(
-      latitude: 39.9042,
-      longitude: 116.4074,
-      timeZoneId: 'Asia/Shanghai',
-    ),
-    method: PrayerCalculationMethod.muslimWorldLeague,
-  ),
-  _PrayerCity(
-    id: 'shanghai',
-    label: 'Şanghay',
-    region: 'Çin',
-    location: PrayerLocation(
-      latitude: 31.2304,
-      longitude: 121.4737,
-      timeZoneId: 'Asia/Shanghai',
-    ),
-    method: PrayerCalculationMethod.muslimWorldLeague,
-  ),
-  _PrayerCity(
-    id: 'guangzhou',
-    label: 'Guangzhou',
-    region: 'Çin',
-    location: PrayerLocation(
-      latitude: 23.1291,
-      longitude: 113.2644,
-      timeZoneId: 'Asia/Shanghai',
-    ),
-    method: PrayerCalculationMethod.muslimWorldLeague,
-  ),
-  _PrayerCity(
-    id: 'hong_kong',
-    label: 'Hong Kong',
-    region: 'Hong Kong',
-    location: PrayerLocation(
-      latitude: 22.3193,
-      longitude: 114.1694,
-      timeZoneId: 'Asia/Hong_Kong',
-    ),
-    method: PrayerCalculationMethod.muslimWorldLeague,
-  ),
-  _PrayerCity(
-    id: 'seoul',
-    label: 'Seul',
-    region: 'Güney Kore',
-    location: PrayerLocation(
-      latitude: 37.5665,
-      longitude: 126.9780,
-      timeZoneId: 'Asia/Seoul',
-    ),
-    method: PrayerCalculationMethod.muslimWorldLeague,
-  ),
-  _PrayerCity(
-    id: 'busan',
-    label: 'Busan',
-    region: 'Güney Kore',
-    location: PrayerLocation(
-      latitude: 35.1796,
-      longitude: 129.0756,
-      timeZoneId: 'Asia/Seoul',
-    ),
-    method: PrayerCalculationMethod.muslimWorldLeague,
-  ),
-];
 
 const _months = <String>[
   'Ocak',
