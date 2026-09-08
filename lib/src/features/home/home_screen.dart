@@ -5,6 +5,7 @@ import 'package:quran/quran.dart' as quran;
 import '../../data/surah_catalog.dart';
 import '../../data/translation_catalog.dart';
 import '../../data/translation_repository.dart';
+import '../../l10n/app_localizations.dart';
 import '../../navigation/app_navigation.dart';
 import '../../settings/app_settings.dart';
 import 'home_prayer_card.dart';
@@ -40,11 +41,11 @@ class _HomeScreenState extends State<HomeScreen> {
     return _dailyVerseRefs[day % _dailyVerseRefs.length];
   }
 
-  String get _greeting {
+  String _greeting(AppLocalizations l10n) {
     final hour = DateTime.now().hour;
-    if (hour < 11) return 'Günaydın';
-    if (hour < 18) return 'İyi günler';
-    return 'İyi akşamlar';
+    if (hour < 11) return l10n.text('goodMorning');
+    if (hour < 18) return l10n.text('goodDay');
+    return l10n.text('goodEvening');
   }
 
   @override
@@ -52,6 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final scheme = Theme.of(context).colorScheme;
     final settings = AppSettingsScope.of(context);
     final lastSurah = surahByNumber(settings.lastSurah);
+    final l10n = context.l10n;
 
     return SafeArea(
       child: Column(
@@ -60,9 +62,9 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.fromLTRB(24, 22, 24, 4),
             child: Row(
               children: [
-                _tabButton('Bugün', 0),
+                _tabButton(l10n.text('today'), 0),
                 const SizedBox(width: 28),
-                _tabButton('Topluluk', 1),
+                _tabButton(l10n.text('community'), 1),
               ],
             ),
           ),
@@ -75,7 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              _greeting,
+                              _greeting(l10n),
                               style: Theme.of(context).textTheme.headlineMedium,
                             ),
                           ),
@@ -100,22 +102,22 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 18),
                       const HomePrayerCard(),
                       const SizedBox(height: 18),
-                      const _InfoCard(
-                        eyebrow: 'Bugünün 5 Dakikası',
-                        title: 'Bugün Kuran ile biraz zaman geçirin.',
-                        button: '4–6 dakika',
+                      _InfoCard(
+                        eyebrow: l10n.text('todayFiveMinutes'),
+                        title: l10n.text('spendTimeQuran'),
+                        button: l10n.text('minutes46'),
                         icon: Icons.auto_awesome_outlined,
                       ),
                       const SizedBox(height: 32),
                       Text(
-                        'Sizin için daha fazlası',
+                        l10n.text('moreForYou'),
                         style: Theme.of(context).textTheme.headlineMedium,
                       ),
                       const SizedBox(height: 18),
-                      const _InfoCard(
-                        eyebrow: 'Başlayacak bir yere mi ihtiyacınız var?',
-                        title: 'Kuran’da zaman geçirmenize yardımcı olacak bir plan seçin.',
-                        button: 'Planları keşfet',
+                      _InfoCard(
+                        eyebrow: l10n.text('needPlaceToStart'),
+                        title: l10n.text('choosePlanHelp'),
+                        button: l10n.text('explorePlans'),
                         icon: Icons.route_outlined,
                       ),
                     ],
@@ -173,6 +175,7 @@ class _VerseCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final surah = surahByNumber(reference.$1);
     final translation = translationCatalog.first;
+    final l10n = context.l10n;
 
     return ConstrainedBox(
       constraints: const BoxConstraints(minHeight: 330),
@@ -201,7 +204,7 @@ class _VerseCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Günün Ayeti', style: TextStyle(color: Colors.white70)),
+                Text(l10n.text('dailyVerse'), style: const TextStyle(color: Colors.white70)),
                 const SizedBox(height: 6),
                 Text(
                   '${surah.nameTr} ${reference.$1}:${reference.$2} · ${translation.code}',
@@ -231,15 +234,15 @@ class _VerseCard extends StatelessWidget {
                   ),
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
-                      return const Text(
-                        'Türkçe meal şu anda gösterilemiyor.',
-                        style: TextStyle(color: Colors.white70, height: 1.5),
+                      return Text(
+                        l10n.text('translationUnavailable'),
+                        style: const TextStyle(color: Colors.white70, height: 1.5),
                       );
                     }
                     return AnimatedSwitcher(
                       duration: const Duration(milliseconds: 180),
                       child: Text(
-                        snapshot.data ?? 'Meal yükleniyor…',
+                        snapshot.data ?? l10n.text('translationLoading'),
                         key: ValueKey(snapshot.data),
                         style: const TextStyle(
                           color: Colors.white,
@@ -251,13 +254,13 @@ class _VerseCard extends StatelessWidget {
                   },
                 ),
                 const SizedBox(height: 24),
-                const Row(
+                Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _Stat(Icons.bookmark_border_rounded, 'Kaydet'),
-                    _Stat(Icons.headphones_outlined, 'Dinle'),
-                    _Stat(Icons.ios_share_outlined, 'Paylaş'),
-                    _Stat(Icons.more_horiz, 'Daha fazla'),
+                    _Stat(Icons.bookmark_border_rounded, l10n.text('save')),
+                    _Stat(Icons.headphones_outlined, l10n.text('listen')),
+                    _Stat(Icons.ios_share_outlined, l10n.text('share')),
+                    _Stat(Icons.more_horiz, l10n.text('more')),
                   ],
                 ),
               ],
@@ -278,6 +281,7 @@ class _ContinueCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
     return Material(
       color: scheme.surfaceContainer,
       borderRadius: BorderRadius.circular(24),
@@ -306,7 +310,7 @@ class _ContinueCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Kaldığınız yerden devam edin',
+                      l10n.text('continueReading'),
                       style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
                     ),
                     const SizedBox(height: 4),
@@ -388,10 +392,7 @@ class _InfoCard extends StatelessWidget {
                   ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-                    child: Text(
-                      button,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
+                    child: Text(button, style: const TextStyle(fontWeight: FontWeight.w700)),
                   ),
                 ),
               ],
@@ -411,6 +412,7 @@ class _CommunityPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 72, 20, 120),
       children: [
@@ -423,13 +425,10 @@ class _CommunityPlaceholder extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Birlikte okumak',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
+              Text(l10n.text('readTogether'), style: Theme.of(context).textTheme.headlineMedium),
               const SizedBox(height: 18),
               Text(
-                'Özel arkadaş grupları ve birlikte okuma planları daha sonraki sürümlerde burada yer alacak.',
+                l10n.text('communitySoon'),
                 style: TextStyle(
                   color: scheme.onSurfaceVariant,
                   fontSize: 17,
