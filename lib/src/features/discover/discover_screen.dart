@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../prayer/presentation/prayer_screen.dart';
 import 'dhikr_counter_screen.dart';
 
@@ -10,15 +11,16 @@ class DiscoverScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final cards = const [
-      ('Sabır', Color(0xFF6F533F), Icons.hourglass_bottom_rounded),
-      ('Kaygı', Color(0xFF8A620D), Icons.psychology_alt_outlined),
-      ('Öfke', Color(0xFF493884), Icons.whatshot_outlined),
-      ('Umut', Color(0xFF7B1737), Icons.wb_sunny_outlined),
-      ('Şükür', Color(0xFF795C5A), Icons.favorite_outline),
-      ('Huzur', Color(0xFF25658A), Icons.spa_outlined),
-      ('Korku', Color(0xFF747113), Icons.shield_outlined),
-      ('Aile', Color(0xFF4A7080), Icons.groups_outlined),
+    final l10n = context.l10n;
+    final cards = [
+      (l10n.text('patience'), const Color(0xFF6F533F), Icons.hourglass_bottom_rounded),
+      (l10n.text('anxiety'), const Color(0xFF8A620D), Icons.psychology_alt_outlined),
+      (l10n.text('anger'), const Color(0xFF493884), Icons.whatshot_outlined),
+      (l10n.text('hope'), const Color(0xFF7B1737), Icons.wb_sunny_outlined),
+      (l10n.text('gratitude'), const Color(0xFF795C5A), Icons.favorite_outline),
+      (l10n.text('peace'), const Color(0xFF25658A), Icons.spa_outlined),
+      (l10n.text('fear'), const Color(0xFF747113), Icons.shield_outlined),
+      (l10n.text('family'), const Color(0xFF4A7080), Icons.groups_outlined),
     ];
 
     void openPrayer() {
@@ -39,11 +41,11 @@ class DiscoverScreen extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 44, 20, 120),
         children: [
-          Text('Keşfedin', style: Theme.of(context).textTheme.headlineLarge),
+          Text(l10n.text('discoverTitle'), style: Theme.of(context).textTheme.headlineLarge),
           const SizedBox(height: 26),
           TextField(
             decoration: InputDecoration(
-              hintText: 'Ayet, konu veya plan ara',
+              hintText: l10n.text('discoverSearchHint'),
               prefixIcon: const Icon(Icons.search_rounded, size: 29),
               filled: true,
               fillColor: scheme.surfaceContainer,
@@ -54,48 +56,52 @@ class DiscoverScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 18),
-          _PrayerFeatureCard(onTap: openPrayer),
+          _PrayerFeatureCard(
+            onTap: openPrayer,
+            title: l10n.text('prayerTimes'),
+            subtitle: l10n.text('prayerSubtitle'),
+          ),
           const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
                 child: _Shortcut(
                   Icons.touch_app_outlined,
-                  'Zikirmatik',
+                  l10n.text('dhikrCounter'),
                   onTap: openDhikr,
                 ),
               ),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: _Shortcut(
                   Icons.nights_stay_outlined,
-                  'Sabah / Akşam',
+                  l10n.text('morningEvening'),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          const Row(
+          Row(
             children: [
               Expanded(
                 child: _Shortcut(
                   Icons.library_add_check_outlined,
-                  'Okuma Planları',
+                  l10n.text('readingPlans'),
                 ),
               ),
-              SizedBox(width: 12),
-              Expanded(child: _Shortcut(Icons.menu_book_outlined, 'Ayetler')),
+              const SizedBox(width: 12),
+              Expanded(child: _Shortcut(Icons.menu_book_outlined, l10n.text('verses'))),
             ],
           ),
           const SizedBox(height: 12),
-          const Row(
+          Row(
             children: [
               Expanded(
-                child: _Shortcut(Icons.auto_stories_outlined, 'Tefsirler'),
+                child: _Shortcut(Icons.auto_stories_outlined, l10n.text('tafsirs')),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
-                child: _Shortcut(Icons.headphones_outlined, 'Sesli Kuran'),
+                child: _Shortcut(Icons.headphones_outlined, l10n.text('audioQuran')),
               ),
             ],
           ),
@@ -147,9 +153,15 @@ class DiscoverScreen extends StatelessWidget {
 }
 
 class _PrayerFeatureCard extends StatelessWidget {
-  const _PrayerFeatureCard({required this.onTap});
+  const _PrayerFeatureCard({
+    required this.onTap,
+    required this.title,
+    required this.subtitle,
+  });
 
   final VoidCallback onTap;
+  final String title;
+  final String subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -174,16 +186,16 @@ class _PrayerFeatureCard extends StatelessWidget {
                 child: Icon(Icons.mosque_outlined, color: scheme.primary),
               ),
               const SizedBox(width: 14),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Namaz Vakitleri',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                      title,
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
                     ),
-                    SizedBox(height: 3),
-                    Text('Geri sayım · Kıble · Aylık vakitler'),
+                    const SizedBox(height: 3),
+                    Text(subtitle),
                   ],
                 ),
               ),
