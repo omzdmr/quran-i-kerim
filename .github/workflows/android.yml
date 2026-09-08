@@ -37,12 +37,11 @@ jobs:
           java-version: '17'
           cache: gradle
 
-      - name: Restore stable test signing key
-        uses: actions/cache@v4
-        with:
-          path: .ci/test-signing.jks
-          key: quran-i-kerim-arm64-test-signing-v2
-          fail-on-cache-miss: true
+      - name: Restore fixed non-production test signing key
+        run: |
+          mkdir -p .ci
+          base64 --decode .ci/NON_PRODUCTION_TEST_SIGNING_KEY.b64 > .ci/test-signing.jks
+          chmod 600 .ci/test-signing.jks
 
       - name: Verify stable test signing certificate
         run: |
@@ -117,7 +116,22 @@ jobs:
           test/translation_catalog_test.dart
 
       - name: Build ARM64 test APK
-        run: flutter build apk --release --target-platform android-arm64 --build-number=${{ github.run_number }}
+        run: |
+          BUILD_NUMBER=$((100000 + GITHUB_RUN_NUMBER))
+          echo "Building version 0.5.0 ($BUILD_NUMBER)"
+          flutter build apk \
+            --release \
+            --target-platform android-arm64 \
+            --build-name=0.5.0 \
+            --build-number="$BUILD_NUMBER"
+
+      - name: Verify APK signer and identity
+        run: |
+          APK="build/app/outputs/flutter-apk/app-release.apk"
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)"
+          "$APKSIGNER" verify --print-certs "$APK" | tee /tmp/apk-signature.txt
+          grep -q "B4:3E:F1:1A:40:8E:65:C3:CE:42:73:8D:6D:44:94:2A:F2:CB:78:78:04:23:CE:E6:4B:78:2A:8C:79:36:AE:5C" /tmp/apk-signature.txt
+          grep -q 'applicationId = "com.omzdmr.quran_i_kerim"' android/app/build.gradle.kts
 
       - name: Upload ARM64 APK
         uses: actions/upload-artifact@v4
