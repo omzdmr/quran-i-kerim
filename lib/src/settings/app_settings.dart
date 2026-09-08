@@ -28,7 +28,7 @@ class AppSettings extends ChangeNotifier {
   Locale? _locale;
   int _lastSurah = 1;
   int _lastAyah = 1;
-  ReaderDisplayMode _readerMode = ReaderDisplayMode.arabicAndTranslation;
+  ReaderDisplayMode _readerMode = ReaderDisplayMode.translation;
   ReaderLineSpacing _readerLineSpacing = ReaderLineSpacing.normal;
   double _arabicFontSize = 29;
   double _translationFontSize = 17.5;
@@ -99,8 +99,9 @@ class AppSettings extends ChangeNotifier {
 
     _readerMode = switch (prefs.getString(_readerModeKey)) {
       'arabic' => ReaderDisplayMode.arabic,
+      'arabic_translation' => ReaderDisplayMode.arabicAndTranslation,
       'translation' => ReaderDisplayMode.translation,
-      _ => ReaderDisplayMode.arabicAndTranslation,
+      _ => ReaderDisplayMode.translation,
     };
 
     _readerLineSpacing = switch (prefs.getString(_readerLineSpacingKey)) {
@@ -259,7 +260,39 @@ class AppSettings extends ChangeNotifier {
         : '$surah:${sorted.join(',')}';
   }
 
-  bool isBookmarked(int surah, int ayah) => _bookmarks.contains(verseKey(surah, ayah));
+  List<int>? _selectionAyahs(String key, int expectedSurah) {
+    final separator = key.indexOf(':');
+    if (separator < 1 || separator == key.length - 1) return null;
+    final surah = int.tryParse(key.substring(0, separator));
+    if (surah != expectedSurah) return null;
+
+    final part = key.substring(separator + 1);
+    if (part.contains('-')) {
+      final bounds = part.split('-');
+      if (bounds.length != 2) return null;
+      final start = int.tryParse(bounds.first);
+      final end = int.tryParse(bounds.last);
+      if (start == null || end == null || start < 1 || end < start) return null;
+      return [for (var value = start; value <= end; value++) value];
+    }
+    if (part.contains(',')) {
+      final result = <int>[];
+      for (final raw in part.split(',')) {
+        final value = int.tryParse(raw);
+        if (value == null || value < 1) return null;
+        result.add(value);
+      }
+      return result;
+    }
+    final single = int.tryParse(part);
+    return single == null || single < 1 ? null : <int>[single];
+  }
+
+  bool _selectionContains(String key, int surah, int ayah) =>
+      _selectionAyahs(key, surah)?.contains(ayah) ?? false;
+
+  bool isBookmarked(int surah, int ayah) =>
+      _bookmarks.any((key) => _selectionContains(key, surah, ayah));
 
   Future<void> toggleBookmark(int surah, int ayah) async {
     final key = verseKey(surah, ayah);
@@ -269,9 +302,12 @@ class AppSettings extends ChangeNotifier {
   }
 
   Future<void> bookmarkSelection(int surah, Iterable<int> ayahs) async {
-    for (final ayah in ayahs) {
-      _bookmarks.add(verseKey(surah, ayah));
-    }
+    final selected = ayahs.toSet().toList()..sort();
+    if (selected.isEmpty) return;
+    _bookmarks.removeWhere(
+      (key) => selected.any((ayah) => _selectionContains(key, surah, ayah)),
+    );
+    _bookmarks.add(selectionKey(surah, selected));
     notifyListeners();
     await _persistBookmarks();
   }
@@ -282,7 +318,12 @@ class AppSettings extends ChangeNotifier {
     await prefs.setStringList(_bookmarksKey, sorted);
   }
 
-  String? noteFor(int surah, int ayah) => _notes[verseKey(surah, ayah)];
+  String? noteFor(int surah, int ayah) {
+    for (final entry in _notes.entries) {
+      if (_selectionContains(entry.key, surah, ayah)) return entry.value;
+    }
+    return null;
+  }
 
   String? noteForSelection(int surah, Iterable<int> ayahs) =>
       _notes[selectionKey(surah, ayahs)];
@@ -309,7 +350,13 @@ class AppSettings extends ChangeNotifier {
   }
 
   VerseHighlightColor? highlightFor(int surah, int ayah) {
-    final stored = _highlights[verseKey(surah, ayah)];
+    String? stored;
+    for (final entry in _highlights.entries) {
+      if (_selectionContains(entry.key, surah, ayah)) {
+        stored = entry.value;
+        break;
+      }
+    }
     if (stored == null) return null;
     for (final color in VerseHighlightColor.values) {
       if (color.name == stored) return color;
@@ -328,13 +375,13 @@ class AppSettings extends ChangeNotifier {
     Iterable<int> ayahs,
     VerseHighlightColor? color,
   ) async {
-    for (final ayah in ayahs) {
-      final key = verseKey(surah, ayah);
-      if (color == null) {
-        _highlights.remove(key);
-      } else {
-        _highlights[key] = color.name;
-      }
+    final selected = ayahs.toSet().toList()..sort();
+    if (selected.isEmpty) return;
+    _highlights.removeWhere(
+      (key, _) => selected.any((ayah) => _selectionContains(key, surah, ayah)),
+    );
+    if (color != null) {
+      _highlights[selectionKey(surah, selected)] = color.name;
     }
     notifyListeners();
 
