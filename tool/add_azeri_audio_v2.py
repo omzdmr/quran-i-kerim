@@ -29,32 +29,37 @@ path.write_text(text, encoding='utf-8')
 
 path = Path('lib/src/data/translation_catalog.dart')
 text = path.read_text(encoding='utf-8')
-old = """    bundled: false,
+old = """    sourceKey: 'azeri_musayev',
+    version: '1.0.4',
+    bundled: false,
     available: true,
     downloadable: true,
   ),
-  TranslationInfo(
-    id: 'russian_rwwad',
 """
-new = """    bundled: false,
+new = """    sourceKey: 'azeri_musayev',
+    version: '1.0.4',
+    bundled: false,
     available: true,
     downloadable: true,
     hasAudio: true,
   ),
-  TranslationInfo(
-    id: 'russian_rwwad',
 """
 text = replace_once(text, old, new, 'Azeri hasAudio flag')
 path.write_text(text, encoding='utf-8')
 
 path = Path('test/translation_catalog_test.dart')
 text = path.read_text(encoding='utf-8')
-old = """    expect(vakfi!.providerKey, 'tr.vakfi-audio');
-    expect(hasQuranAudioForSource(bundledTurkishTranslationId), isFalse);
+old = """      expect(vakfi, isNotNull);
+      expect(vakfi!.providerKey, 'tr.vakfi-audio');
+      expect(hasQuranAudioForSource(bundledTurkishTranslationId), isFalse);
 """
-new = """    expect(vakfi!.providerKey, 'tr.vakfi-audio');
-    expect(primaryQuranAudioForSource('azeri_musayev')?.providerKey, 'azeri_musayev');
-    expect(hasQuranAudioForSource(bundledTurkishTranslationId), isFalse);
+new = """      expect(vakfi, isNotNull);
+      expect(vakfi!.providerKey, 'tr.vakfi-audio');
+      expect(
+        primaryQuranAudioForSource('azeri_musayev')?.providerKey,
+        'azeri_musayev',
+      );
+      expect(hasQuranAudioForSource(bundledTurkishTranslationId), isFalse);
 """
 text = replace_once(text, old, new, 'Azeri audio test')
 path.write_text(text, encoding='utf-8')
