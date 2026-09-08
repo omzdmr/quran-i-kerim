@@ -68,7 +68,8 @@ class _PrayerCityPickerState extends State<PrayerCityPicker> {
       final seen = <String>{};
       final merged = <PrayerCity>[];
       for (final city in [...priority, ...world]) {
-        final key = '${city.label}|${city.country}|${city.location.latitude.toStringAsFixed(3)}|${city.location.longitude.toStringAsFixed(3)}';
+        final key =
+            '${city.label}|${city.country}|${city.location.latitude.toStringAsFixed(3)}|${city.location.longitude.toStringAsFixed(3)}';
         if (seen.add(key)) merged.add(city);
         if (merged.length >= 60) break;
       }
@@ -325,7 +326,11 @@ class _NotFoundActions extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.location_searching_rounded, size: 48, color: scheme.primary),
+            Icon(
+              Icons.location_searching_rounded,
+              size: 48,
+              color: scheme.primary,
+            ),
             const SizedBox(height: 14),
             Text(
               l10n.text('cityNotFound'),
@@ -404,7 +409,9 @@ class _CityTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         child: ListTile(
           onTap: () => Navigator.pop(context, city),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
           leading: Icon(
             selected ? Icons.location_on_rounded : Icons.location_on_outlined,
           ),

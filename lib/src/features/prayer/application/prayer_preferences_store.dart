@@ -103,7 +103,9 @@ class PrayerPreferencesStore {
 
   static Future<PrayerSettingsSnapshot> load() async {
     final prefs = await SharedPreferences.getInstance();
-    final storedNotificationIds = prefs.getStringList(_notificationPrayerIdsKey);
+    final storedNotificationIds = prefs.getStringList(
+      _notificationPrayerIdsKey,
+    );
     return PrayerSettingsSnapshot(
       methodOverride: _enumByName(
         PrayerCalculationMethod.values,

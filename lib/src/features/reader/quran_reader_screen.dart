@@ -329,6 +329,21 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     }
   }
 
+  Future<void> _listenSelection(ReaderAudioSourceConfig config) async {
+    final selected = _selection;
+    if (selected.isEmpty) return;
+    final targetAyah = selected.first;
+    await _prepareAudio(config);
+    await _audioController.playAyah(targetAyah);
+    if (!mounted) return;
+    setState(() {
+      _audioFollowEnabled = true;
+      _manualReaderScroll = false;
+    });
+    _clearSelection();
+    _scheduleScrollToAyah(targetAyah, audioFollow: true);
+  }
+
   Future<void> _showAudioPlayer(ReaderAudioSourceConfig config) async {
     await _prepareAudio(config);
     if (!mounted) return;
@@ -501,6 +516,9 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                     onHighlight: _applyHighlight,
                     onBookmark: _bookmarkSelection,
                     onNote: _editSelectionNote,
+                    onListen: audioConfig == null
+                        ? null
+                        : () => _listenSelection(audioConfig),
                     onCopy: _copySelection,
                     onCompare: _showCompareSheet,
                   ),
@@ -2107,6 +2125,7 @@ class _SelectionTray extends StatelessWidget {
     required this.onHighlight,
     required this.onBookmark,
     required this.onNote,
+    required this.onListen,
     required this.onCopy,
     required this.onCompare,
   });
@@ -2114,6 +2133,7 @@ class _SelectionTray extends StatelessWidget {
   final ValueChanged<VerseHighlightColor?> onHighlight;
   final VoidCallback onBookmark;
   final VoidCallback onNote;
+  final VoidCallback? onListen;
   final VoidCallback onCopy;
   final VoidCallback onCompare;
 
@@ -2156,6 +2176,12 @@ class _SelectionTray extends StatelessWidget {
                 label: l10n.text('note'),
                 onTap: onNote,
               ),
+              if (onListen != null)
+                _SelectionAction(
+                  icon: Icons.headphones_rounded,
+                  label: l10n.text('listen'),
+                  onTap: onListen!,
+                ),
               _SelectionAction(
                 icon: Icons.copy_rounded,
                 label: l10n.text('copy'),

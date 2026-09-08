@@ -36,8 +36,10 @@ class PrayerNotificationService {
     await initialize();
     var granted = true;
     if (Platform.isAndroid) {
-      final android = _plugin.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
+      final android = _plugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
       final notificationGranted =
           await android?.requestNotificationsPermission() ?? true;
       granted = granted && notificationGranted;
@@ -48,9 +50,12 @@ class PrayerNotificationService {
         await android?.requestExactAlarmsPermission();
       }
     } else if (Platform.isIOS) {
-      final ios = _plugin.resolvePlatformSpecificImplementation<
-          IOSFlutterLocalNotificationsPlugin>();
-      final iosGranted = await ios?.requestPermissions(
+      final ios = _plugin
+          .resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin
+          >();
+      final iosGranted =
+          await ios?.requestPermissions(
             alert: true,
             badge: false,
             sound: true,
@@ -111,8 +116,10 @@ class PrayerNotificationService {
 
     var scheduleMode = AndroidScheduleMode.inexactAllowWhileIdle;
     if (Platform.isAndroid) {
-      final android = _plugin.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
+      final android = _plugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
       final canExact = await android?.canScheduleExactNotifications() ?? false;
       if (canExact) scheduleMode = AndroidScheduleMode.exactAllowWhileIdle;
     }
@@ -126,10 +133,7 @@ class PrayerNotificationService {
         priority: Priority.high,
         category: AndroidNotificationCategory.reminder,
       ),
-      iOS: DarwinNotificationDetails(
-        presentAlert: true,
-        presentSound: true,
-      ),
+      iOS: DarwinNotificationDetails(presentAlert: true, presentSound: true),
     );
 
     // 12 days x 5 prayers = 60 requests, staying below iOS's common pending
@@ -182,57 +186,57 @@ class _PrayerNotificationCopy {
   String _prayer(String id) {
     final values = switch (languageCode) {
       'tr' => const {
-          'fajr': 'İmsak',
-          'dhuhr': 'Öğle',
-          'asr': 'İkindi',
-          'maghrib': 'Akşam',
-          'isha': 'Yatsı',
-        },
+        'fajr': 'İmsak',
+        'dhuhr': 'Öğle',
+        'asr': 'İkindi',
+        'maghrib': 'Akşam',
+        'isha': 'Yatsı',
+      },
       'ar' => const {
-          'fajr': 'الفجر',
-          'dhuhr': 'الظهر',
-          'asr': 'العصر',
-          'maghrib': 'المغرب',
-          'isha': 'العشاء',
-        },
+        'fajr': 'الفجر',
+        'dhuhr': 'الظهر',
+        'asr': 'العصر',
+        'maghrib': 'المغرب',
+        'isha': 'العشاء',
+      },
       'az' => const {
-          'fajr': 'Sübh',
-          'dhuhr': 'Zöhr',
-          'asr': 'Əsr',
-          'maghrib': 'Məğrib',
-          'isha': 'İşa',
-        },
+        'fajr': 'Sübh',
+        'dhuhr': 'Zöhr',
+        'asr': 'Əsr',
+        'maghrib': 'Məğrib',
+        'isha': 'İşa',
+      },
       'ru' => const {
-          'fajr': 'Фаджр',
-          'dhuhr': 'Зухр',
-          'asr': 'Аср',
-          'maghrib': 'Магриб',
-          'isha': 'Иша',
-        },
+        'fajr': 'Фаджр',
+        'dhuhr': 'Зухр',
+        'asr': 'Аср',
+        'maghrib': 'Магриб',
+        'isha': 'Иша',
+      },
       _ => const {
-          'fajr': 'Fajr',
-          'dhuhr': 'Dhuhr',
-          'asr': 'Asr',
-          'maghrib': 'Maghrib',
-          'isha': 'Isha',
-        },
+        'fajr': 'Fajr',
+        'dhuhr': 'Dhuhr',
+        'asr': 'Asr',
+        'maghrib': 'Maghrib',
+        'isha': 'Isha',
+      },
     };
     return values[id] ?? id;
   }
 
   String title(String id) => switch (languageCode) {
-        'tr' => '${_prayer(id)} vakti',
-        'ar' => 'وقت ${_prayer(id)}',
-        'az' => '${_prayer(id)} vaxtı',
-        'ru' => 'Время: ${_prayer(id)}',
-        _ => '${_prayer(id)} time',
-      };
+    'tr' => '${_prayer(id)} vakti',
+    'ar' => 'وقت ${_prayer(id)}',
+    'az' => '${_prayer(id)} vaxtı',
+    'ru' => 'Время: ${_prayer(id)}',
+    _ => '${_prayer(id)} time',
+  };
 
   String body(String id) => switch (languageCode) {
-        'tr' => '${_prayer(id)} vakti girdi.',
-        'ar' => 'حان الآن وقت ${_prayer(id)}.',
-        'az' => '${_prayer(id)} vaxtı daxil oldu.',
-        'ru' => 'Наступило время молитвы ${_prayer(id)}.',
-        _ => 'It is time for ${_prayer(id)}.',
-      };
+    'tr' => '${_prayer(id)} vakti girdi.',
+    'ar' => 'حان الآن وقت ${_prayer(id)}.',
+    'az' => '${_prayer(id)} vaxtı daxil oldu.',
+    'ru' => 'Наступило время молитвы ${_prayer(id)}.',
+    _ => 'It is time for ${_prayer(id)}.',
+  };
 }

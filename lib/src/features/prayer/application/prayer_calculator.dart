@@ -66,8 +66,10 @@ class PrayerCalculator {
       PrayerCalculationMethod.turkiye => CalculationMethodParameters.turkiye(),
       PrayerCalculationMethod.muslimWorldLeague =>
         CalculationMethodParameters.muslimWorldLeague(),
-      PrayerCalculationMethod.ummAlQura => CalculationMethodParameters.ummAlQura(),
-      PrayerCalculationMethod.egyptian => CalculationMethodParameters.egyptian(),
+      PrayerCalculationMethod.ummAlQura =>
+        CalculationMethodParameters.ummAlQura(),
+      PrayerCalculationMethod.egyptian =>
+        CalculationMethodParameters.egyptian(),
       PrayerCalculationMethod.karachi => CalculationMethodParameters.karachi(),
       PrayerCalculationMethod.northAmerica =>
         CalculationMethodParameters.northAmerica(),
@@ -81,8 +83,9 @@ class PrayerCalculator {
     Coordinates coordinates,
   ) {
     return switch (method) {
-      PrayerHighLatitudeMethod.recommended =>
-        HighLatitudeRule.recommended(coordinates),
+      PrayerHighLatitudeMethod.recommended => HighLatitudeRule.recommended(
+        coordinates,
+      ),
       PrayerHighLatitudeMethod.middleOfTheNight =>
         HighLatitudeRule.middleOfTheNight,
       PrayerHighLatitudeMethod.seventhOfTheNight =>

@@ -120,14 +120,9 @@ class _QiblaLauncherScreenState extends State<QiblaLauncherScreen> {
       final schedule = _calculator.calculate(
         location: city.location,
         date: DateTime.now(),
-        preferences: PrayerPreferences(
-          calculationMethod: city.defaultMethod,
-        ),
+        preferences: PrayerPreferences(calculationMethod: city.defaultMethod),
       );
-      return QiblaInfoScreen(
-        city: city,
-        qiblaDegrees: schedule.qiblaDegrees,
-      );
+      return QiblaInfoScreen(city: city, qiblaDegrees: schedule.qiblaDegrees);
     }
 
     final l10n = context.l10n;
@@ -204,17 +199,16 @@ class _QiblaLauncherScreenState extends State<QiblaLauncherScreen> {
     );
   }
 
-  String _failureMessage(
-    BuildContext context,
-    PrayerLocationFailure? failure,
-  ) {
+  String _failureMessage(BuildContext context, PrayerLocationFailure? failure) {
     final l10n = context.l10n;
     return switch (failure) {
-      PrayerLocationFailure.serviceDisabled =>
-        l10n.text('locationServicesDisabled'),
+      PrayerLocationFailure.serviceDisabled => l10n.text(
+        'locationServicesDisabled',
+      ),
       PrayerLocationFailure.permissionDenied ||
-      PrayerLocationFailure.permissionDeniedForever =>
-        l10n.text('locationPermissionDenied'),
+      PrayerLocationFailure.permissionDeniedForever => l10n.text(
+        'locationPermissionDenied',
+      ),
       PrayerLocationFailure.unavailable => l10n.text('locationFailed'),
       null => l10n.text('qiblaLocationPromptBody'),
     };

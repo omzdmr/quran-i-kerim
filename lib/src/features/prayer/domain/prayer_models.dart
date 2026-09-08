@@ -85,11 +85,11 @@ class PrayerDaySchedule {
   final double qiblaDegrees;
 
   List<({String id, String label, DateTime time})> get rows => [
-        (id: 'fajr', label: 'İmsak', time: fajr),
-        (id: 'sunrise', label: 'Güneş', time: sunrise),
-        (id: 'dhuhr', label: 'Öğle', time: dhuhr),
-        (id: 'asr', label: 'İkindi', time: asr),
-        (id: 'maghrib', label: 'Akşam', time: maghrib),
-        (id: 'isha', label: 'Yatsı', time: isha),
-      ];
+    (id: 'fajr', label: 'İmsak', time: fajr),
+    (id: 'sunrise', label: 'Güneş', time: sunrise),
+    (id: 'dhuhr', label: 'Öğle', time: dhuhr),
+    (id: 'asr', label: 'İkindi', time: asr),
+    (id: 'maghrib', label: 'Akşam', time: maghrib),
+    (id: 'isha', label: 'Yatsı', time: isha),
+  ];
 }

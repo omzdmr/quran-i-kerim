@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../prayer/presentation/prayer_screen.dart';
+import '../prayer/presentation/qibla_launcher_screen.dart';
 import 'dhikr_counter_screen.dart';
 
 class DiscoverScreen extends StatelessWidget {
@@ -13,8 +14,16 @@ class DiscoverScreen extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final l10n = context.l10n;
     final cards = [
-      (l10n.text('patience'), const Color(0xFF6F533F), Icons.hourglass_bottom_rounded),
-      (l10n.text('anxiety'), const Color(0xFF8A620D), Icons.psychology_alt_outlined),
+      (
+        l10n.text('patience'),
+        const Color(0xFF6F533F),
+        Icons.hourglass_bottom_rounded,
+      ),
+      (
+        l10n.text('anxiety'),
+        const Color(0xFF8A620D),
+        Icons.psychology_alt_outlined,
+      ),
       (l10n.text('anger'), const Color(0xFF493884), Icons.whatshot_outlined),
       (l10n.text('hope'), const Color(0xFF7B1737), Icons.wb_sunny_outlined),
       (l10n.text('gratitude'), const Color(0xFF795C5A), Icons.favorite_outline),
@@ -25,8 +34,14 @@ class DiscoverScreen extends StatelessWidget {
 
     void openPrayer() {
       HapticFeedback.selectionClick();
+      Navigator.of(context)
+          .push(MaterialPageRoute<void>(builder: (_) => const PrayerScreen()));
+    }
+
+    void openQibla() {
+      HapticFeedback.selectionClick();
       Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const PrayerScreen()),
+        MaterialPageRoute<void>(builder: (_) => const QiblaLauncherScreen()),
       );
     }
 
@@ -41,7 +56,10 @@ class DiscoverScreen extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 44, 20, 120),
         children: [
-          Text(l10n.text('discoverTitle'), style: Theme.of(context).textTheme.headlineLarge),
+          Text(
+            l10n.text('discoverTitle'),
+            style: Theme.of(context).textTheme.headlineLarge,
+          ),
           const SizedBox(height: 26),
           TextField(
             decoration: InputDecoration(
@@ -60,6 +78,12 @@ class DiscoverScreen extends StatelessWidget {
             onTap: openPrayer,
             title: l10n.text('prayerTimes'),
             subtitle: l10n.text('prayerSubtitle'),
+          ),
+          const SizedBox(height: 12),
+          _Shortcut(
+            Icons.explore_outlined,
+            l10n.text('qibla'),
+            onTap: openQibla,
           ),
           const SizedBox(height: 12),
           Row(
@@ -90,18 +114,26 @@ class DiscoverScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              Expanded(child: _Shortcut(Icons.menu_book_outlined, l10n.text('verses'))),
+              Expanded(
+                child: _Shortcut(Icons.menu_book_outlined, l10n.text('verses')),
+              ),
             ],
           ),
           const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
-                child: _Shortcut(Icons.auto_stories_outlined, l10n.text('tafsirs')),
+                child: _Shortcut(
+                  Icons.auto_stories_outlined,
+                  l10n.text('tafsirs'),
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _Shortcut(Icons.headphones_outlined, l10n.text('audioQuran')),
+                child: _Shortcut(
+                  Icons.headphones_outlined,
+                  l10n.text('audioQuran'),
+                ),
               ),
             ],
           ),
@@ -192,7 +224,10 @@ class _PrayerFeatureCard extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     const SizedBox(height: 3),
                     Text(subtitle),

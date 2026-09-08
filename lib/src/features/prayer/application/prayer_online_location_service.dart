@@ -50,7 +50,9 @@ class PrayerOnlineLocationService {
       final request = await client.getUrl(uri);
       request.headers.set(HttpHeaders.acceptHeader, 'application/json');
       request.headers.set(HttpHeaders.acceptLanguageHeader, languageCode);
-      final response = await request.close().timeout(const Duration(seconds: 12));
+      final response = await request.close().timeout(
+        const Duration(seconds: 12),
+      );
       if (response.statusCode != HttpStatus.ok) {
         throw HttpException('Nominatim ${response.statusCode}');
       }

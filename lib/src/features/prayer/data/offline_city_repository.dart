@@ -48,7 +48,10 @@ class OfflinePrayerCityRepository {
 
   Future<List<_OfflineCityEntry>> _load() async {
     final data = await rootBundle.load(_assetPath);
-    final bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+    final bytes = data.buffer.asUint8List(
+      data.offsetInBytes,
+      data.lengthInBytes,
+    );
     final rows = await compute(_decodeCityRows, bytes);
     return [
       for (final row in rows)
@@ -77,9 +80,7 @@ class OfflinePrayerCityRepository {
 List<List<Object?>> _decodeCityRows(Uint8List compressed) {
   final decodedBytes = gzip.decode(compressed);
   final raw = jsonDecode(utf8.decode(decodedBytes)) as List<dynamic>;
-  return [
-    for (final row in raw) (row as List<dynamic>).cast<Object?>(),
-  ];
+  return [for (final row in raw) (row as List<dynamic>).cast<Object?>()];
 }
 
 class _OfflineCityEntry {

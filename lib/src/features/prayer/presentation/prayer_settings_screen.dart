@@ -44,14 +44,14 @@ class _PrayerSettingsScreenState extends State<PrayerSettingsScreen> {
   }
 
   PrayerSettingsSnapshot get _snapshot => PrayerSettingsSnapshot(
-        methodOverride: _methodOverride,
-        asrMethod: _asrMethod,
-        highLatitudeMethod: _highLatitudeMethod,
-        adjustments: _adjustments,
-        notificationsEnabled: _notificationsEnabled,
-        notificationPrayerIds: _notificationPrayerIds,
-        hijriOffsetDays: _hijriOffsetDays,
-      );
+    methodOverride: _methodOverride,
+    asrMethod: _asrMethod,
+    highLatitudeMethod: _highLatitudeMethod,
+    adjustments: _adjustments,
+    notificationsEnabled: _notificationsEnabled,
+    notificationPrayerIds: _notificationPrayerIds,
+    hijriOffsetDays: _hijriOffsetDays,
+  );
 
   Future<void> _save() async {
     final snapshot = _snapshot;
@@ -85,7 +85,9 @@ class _PrayerSettingsScreenState extends State<PrayerSettingsScreen> {
     });
     if (!granted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.l10n.text('notificationPermissionDenied'))),
+        SnackBar(
+          content: Text(context.l10n.text('notificationPermissionDenied')),
+        ),
       );
     }
   }
@@ -324,10 +326,7 @@ class _PrayerSettingsScreenState extends State<PrayerSettingsScreen> {
             ),
             child: Text(
               l10n.text('prayerSettingsInfo'),
-              style: TextStyle(
-                color: scheme.onSurfaceVariant,
-                height: 1.45,
-              ),
+              style: TextStyle(color: scheme.onSurfaceVariant, height: 1.45),
             ),
           ),
         ],
@@ -465,8 +464,9 @@ String _methodLabel(BuildContext context, PrayerCalculationMethod method) {
     PrayerCalculationMethod.egyptian => l10n.text('egyptianMethod'),
     PrayerCalculationMethod.karachi => l10n.text('karachiMethod'),
     PrayerCalculationMethod.northAmerica => l10n.text('northAmericaMethod'),
-    PrayerCalculationMethod.moonsightingCommittee =>
-      l10n.text('moonsightingMethod'),
+    PrayerCalculationMethod.moonsightingCommittee => l10n.text(
+      'moonsightingMethod',
+    ),
   };
 }
 
@@ -478,8 +478,7 @@ String _highLatitudeLabel(
   return switch (value) {
     PrayerHighLatitudeMethod.recommended => l10n.text('recommended'),
     PrayerHighLatitudeMethod.middleOfTheNight => l10n.text('middleOfNight'),
-    PrayerHighLatitudeMethod.seventhOfTheNight =>
-      l10n.text('seventhOfNight'),
+    PrayerHighLatitudeMethod.seventhOfTheNight => l10n.text('seventhOfNight'),
     PrayerHighLatitudeMethod.twilightAngle => l10n.text('twilightAngle'),
   };
 }

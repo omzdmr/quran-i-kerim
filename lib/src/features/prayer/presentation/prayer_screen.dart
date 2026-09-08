@@ -11,6 +11,7 @@ import '../application/prayer_calculator.dart';
 import '../application/prayer_location_service.dart';
 import '../application/prayer_notification_service.dart';
 import '../application/prayer_preferences_store.dart';
+import '../application/prayer_region_resolver.dart';
 import '../domain/hijri_date.dart';
 import '../domain/prayer_city_catalog.dart';
 import '../domain/prayer_models.dart';
@@ -66,13 +67,26 @@ class _PrayerScreenState extends State<PrayerScreen> {
       }
     }
 
+    if (cityId == PrayerPreferencesStore.manualLocationId) {
+      final savedManual = await PrayerPreferencesStore.loadManualLocation();
+      if (!mounted) return;
+      if (savedManual != null) {
+        setState(() {
+          _city = _cityFromManual(savedManual);
+          _usingDeviceLocation = false;
+          _prayerSettings = settings;
+        });
+        return;
+      }
+    }
+
     setState(() {
       _city = prayerCityById(cityId);
       _usingDeviceLocation = false;
       _prayerSettings = settings;
     });
     if (cityId == null) {
-      unawaited(_useCurrentLocation(silent: true, preferCached: true));
+      unawaited(_useCurrentLocation(preferCached: true));
     }
   }
 
@@ -80,6 +94,15 @@ class _PrayerScreenState extends State<PrayerScreen> {
     id: PrayerPreferencesStore.deviceLocationId,
     label: 'GPS',
     country: '',
+    group: value.regionCode,
+    location: value.location,
+    defaultMethod: value.defaultMethod,
+  );
+
+  PrayerCity _cityFromManual(PrayerManualLocationSnapshot value) => PrayerCity(
+    id: value.sourceId,
+    label: value.label,
+    country: value.country,
     group: value.regionCode,
     location: value.location,
     defaultMethod: value.defaultMethod,
@@ -191,11 +214,30 @@ class _PrayerScreenState extends State<PrayerScreen> {
       showDragHandle: false,
       builder: (_) => PrayerCityPicker(
         selectedCityId: _usingDeviceLocation ? null : _city.id,
+        onUseCurrentLocation: () => _useCurrentLocation(preferCached: true),
       ),
     );
 
     if (picked == null || !mounted) return;
-    await PrayerPreferencesStore.saveCityId(picked.id);
+    final isPriority = prayerCities.any((city) => city.id == picked.id);
+    if (isPriority) {
+      await PrayerPreferencesStore.saveCityId(picked.id);
+    } else {
+      final region = resolvePrayerRegion(
+        picked.location.latitude,
+        picked.location.longitude,
+      );
+      await PrayerPreferencesStore.saveManualLocation(
+        PrayerManualLocationSnapshot(
+          sourceId: picked.id,
+          label: picked.label,
+          country: picked.country,
+          location: picked.location,
+          defaultMethod: picked.defaultMethod,
+          regionCode: region.regionCode,
+        ),
+      );
+    }
     if (!mounted) return;
     setState(() {
       _city = picked;
@@ -582,7 +624,7 @@ class _MonthlyPrayerTimesScreenState extends State<MonthlyPrayerTimesScreen> {
   }
 }
 
-class QiblaInfoScreen extends StatelessWidget {
+class QiblaInfoScreen extends StatefulWidget {
   const QiblaInfoScreen({
     required this.city,
     required this.qiblaDegrees,
@@ -591,6 +633,22 @@ class QiblaInfoScreen extends StatelessWidget {
 
   final PrayerCity city;
   final double qiblaDegrees;
+
+  @override
+  State<QiblaInfoScreen> createState() => _QiblaInfoScreenState();
+}
+
+class _QiblaInfoScreenState extends State<QiblaInfoScreen> {
+  bool _wasAligned = false;
+
+  void _handleAlignment(bool aligned) {
+    if (aligned && !_wasAligned) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) HapticFeedback.mediumImpact();
+      });
+    }
+    _wasAligned = aligned;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -603,18 +661,19 @@ class QiblaInfoScreen extends StatelessWidget {
         builder: (context, snapshot) {
           final heading = snapshot.data?.heading;
           final rawDelta = heading == null
-              ? qiblaDegrees
-              : (qiblaDegrees - heading + 360) % 360;
+              ? widget.qiblaDegrees
+              : (widget.qiblaDegrees - heading + 360) % 360;
           final signedDelta = rawDelta > 180 ? rawDelta - 360 : rawDelta;
           final aligned = heading != null && signedDelta.abs() <= 5;
+          _handleAlignment(aligned);
           final angle = rawDelta * math.pi / 180;
           return ListView(
             padding: const EdgeInsets.fromLTRB(22, 18, 22, 32),
             children: [
               Text(
-                city.id == PrayerPreferencesStore.deviceLocationId
+                widget.city.id == PrayerPreferencesStore.deviceLocationId
                     ? l10n.text('currentLocation')
-                    : city.label,
+                    : widget.city.label,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 18,
@@ -627,7 +686,7 @@ class QiblaInfoScreen extends StatelessWidget {
                     ? l10n.text('compassUnavailable')
                     : aligned
                     ? l10n.text('qiblaAligned')
-                    : l10n.text('liveQibla'),
+                    : l10n.text('pointTopToKaaba'),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: aligned ? scheme.primary : scheme.onSurfaceVariant,
@@ -637,32 +696,54 @@ class QiblaInfoScreen extends StatelessWidget {
               const SizedBox(height: 22),
               Center(
                 child: Container(
-                  width: 250,
-                  height: 250,
+                  width: 268,
+                  height: 268,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: scheme.surfaceContainer,
                     border: Border.all(
                       color: aligned ? scheme.primary : scheme.outlineVariant,
-                      width: aligned ? 2 : 1,
+                      width: aligned ? 2.4 : 1,
                     ),
                   ),
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
                       const Positioned(
-                        top: 15,
+                        top: 13,
                         child: Text(
                           'N',
                           textDirection: TextDirection.ltr,
                           style: TextStyle(fontWeight: FontWeight.w900),
                         ),
                       ),
+                      Positioned(
+                        top: 42,
+                        child: Icon(
+                          Icons.keyboard_arrow_up_rounded,
+                          size: 34,
+                          color: aligned ? scheme.primary : scheme.onSurface,
+                        ),
+                      ),
                       Transform.rotate(
                         angle: angle,
-                        child: Icon(
-                          Icons.navigation_rounded,
-                          size: 118,
+                        child: SizedBox(
+                          width: 232,
+                          height: 232,
+                          child: Align(
+                            alignment: Alignment.topCenter,
+                            child: Transform.rotate(
+                              angle: -angle,
+                              child: const _KaabaMarker(),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
                           color: scheme.primary,
                         ),
                       ),
@@ -673,7 +754,7 @@ class QiblaInfoScreen extends StatelessWidget {
               const SizedBox(height: 24),
               Text(
                 heading == null
-                    ? '${qiblaDegrees.round()}°'
+                    ? '${widget.qiblaDegrees.round()}°'
                     : '${signedDelta.abs().round()}°',
                 textAlign: TextAlign.center,
                 textDirection: TextDirection.ltr,
@@ -685,6 +766,8 @@ class QiblaInfoScreen extends StatelessWidget {
               Text(
                 heading == null
                     ? l10n.text('qiblaNorthDescription')
+                    : aligned
+                    ? l10n.text('qiblaAligned')
                     : l10n.text('liveQibla'),
                 textAlign: TextAlign.center,
                 style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 16),
@@ -707,6 +790,50 @@ class QiblaInfoScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+class _KaabaMarker extends StatelessWidget {
+  const _KaabaMarker();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 42,
+    height: 42,
+    decoration: BoxDecoration(
+      color: const Color(0xFF171717),
+      borderRadius: BorderRadius.circular(5),
+      border: Border.all(color: const Color(0xFFB99A45), width: 1.2),
+      boxShadow: const [
+        BoxShadow(
+          blurRadius: 7,
+          offset: Offset(0, 2),
+          color: Color(0x33000000),
+        ),
+      ],
+    ),
+    child: Stack(
+      children: [
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 10,
+          child: Container(height: 5, color: const Color(0xFFC9A94E)),
+        ),
+        Positioned(
+          right: 7,
+          bottom: 5,
+          child: Container(
+            width: 8,
+            height: 13,
+            decoration: BoxDecoration(
+              color: const Color(0xFFB68C32),
+              borderRadius: BorderRadius.circular(1),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _PrayerTimeRow extends StatelessWidget {

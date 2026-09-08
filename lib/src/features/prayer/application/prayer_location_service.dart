@@ -37,7 +37,9 @@ class PrayerLocationService {
     bool preferCached = false,
   }) async {
     if (!await Geolocator.isLocationServiceEnabled()) {
-      throw const PrayerLocationException(PrayerLocationFailure.serviceDisabled);
+      throw const PrayerLocationException(
+        PrayerLocationFailure.serviceDisabled,
+      );
     }
 
     var permission = await Geolocator.checkPermission();
@@ -50,7 +52,9 @@ class PrayerLocationService {
       );
     }
     if (permission == LocationPermission.denied) {
-      throw const PrayerLocationException(PrayerLocationFailure.permissionDenied);
+      throw const PrayerLocationException(
+        PrayerLocationFailure.permissionDenied,
+      );
     }
 
     Position? position;

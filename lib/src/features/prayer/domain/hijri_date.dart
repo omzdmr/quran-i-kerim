@@ -9,16 +9,17 @@ class PrayerHijriDate {
   final int month;
   final int day;
 
-  static PrayerHijriDate fromGregorian(
-    DateTime date, {
-    int offsetDays = 0,
-  }) {
-    final adjusted = DateTime(date.year, date.month, date.day)
-        .add(Duration(days: offsetDays));
+  static PrayerHijriDate fromGregorian(DateTime date, {int offsetDays = 0}) {
+    final adjusted = DateTime(
+      date.year,
+      date.month,
+      date.day,
+    ).add(Duration(days: offsetDays));
     final a = (14 - adjusted.month) ~/ 12;
     final y = adjusted.year + 4800 - a;
     final m = adjusted.month + 12 * a - 3;
-    final julianDay = adjusted.day +
+    final julianDay =
+        adjusted.day +
         ((153 * m + 2) ~/ 5) +
         365 * y +
         y ~/ 4 -
@@ -29,9 +30,11 @@ class PrayerHijriDate {
     var l = julianDay - 1948440 + 10632;
     final n = (l - 1) ~/ 10631;
     l = l - 10631 * n + 354;
-    final j = ((10985 - l) ~/ 5316) * ((50 * l) ~/ 17719) +
+    final j =
+        ((10985 - l) ~/ 5316) * ((50 * l) ~/ 17719) +
         (l ~/ 5670) * ((43 * l) ~/ 15238);
-    l = l -
+    l =
+        l -
         ((30 - j) ~/ 15) * ((17719 * j) ~/ 50) -
         (j ~/ 16) * ((15238 * j) ~/ 43) +
         29;
@@ -118,6 +121,5 @@ class PrayerHijriDate {
     return list[(month - 1).clamp(0, 11)];
   }
 
-  String format(String languageCode) =>
-      '$day ${monthName(languageCode)} $year';
+  String format(String languageCode) => '$day ${monthName(languageCode)} $year';
 }
