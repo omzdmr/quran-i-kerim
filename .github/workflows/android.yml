@@ -130,7 +130,8 @@ jobs:
           APK="build/app/outputs/flutter-apk/app-release.apk"
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)"
           "$APKSIGNER" verify --print-certs "$APK" | tee /tmp/apk-signature.txt
-          grep -q "B4:3E:F1:1A:40:8E:65:C3:CE:42:73:8D:6D:44:94:2A:F2:CB:78:78:04:23:CE:E6:4B:78:2A:8C:79:36:AE:5C" /tmp/apk-signature.txt
+          digest="$(sed -n 's/.*certificate SHA-256 digest: //p' /tmp/apk-signature.txt | head -1 | tr '[:upper:]' '[:lower:]')"
+          test "$digest" = "b43ef11a408e65c3ce42738d6d44942af2cb78780423cee64b782a8c7936ae5c"
           grep -q 'applicationId = "com.omzdmr.quran_i_kerim"' android/app/build.gradle.kts
 
       - name: Upload ARM64 APK
