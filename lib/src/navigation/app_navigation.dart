@@ -11,7 +11,8 @@ class ReaderTarget {
 ///
 /// The bottom-tab shell stays the owner of tab selection while screens such as
 /// Home and Profile can request that the Quran tab opens at a specific ayah.
-/// No router package or network state is required.
+/// Reader selection state is also exposed so the shell can yield the bottom
+/// area to the verse action tray instead of stacking two navigation surfaces.
 class AppNavigation {
   AppNavigation._();
 
@@ -20,13 +21,20 @@ class AppNavigation {
   final ValueNotifier<int?> tabRequest = ValueNotifier<int?>(null);
   final ValueNotifier<ReaderTarget?> readerRequest =
       ValueNotifier<ReaderTarget?>(null);
+  final ValueNotifier<bool> readerSelectionActive = ValueNotifier<bool>(false);
 
   void openReader({required int surah, required int ayah}) {
+    readerSelectionActive.value = false;
     readerRequest.value = ReaderTarget(
       surah: surah.clamp(1, 114).toInt(),
       ayah: ayah < 1 ? 1 : ayah,
     );
     tabRequest.value = 1;
+  }
+
+  void setReaderSelectionActive(bool active) {
+    if (readerSelectionActive.value == active) return;
+    readerSelectionActive.value = active;
   }
 
   void consumeTabRequest() => tabRequest.value = null;
