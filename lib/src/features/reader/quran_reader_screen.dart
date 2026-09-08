@@ -33,7 +33,6 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   bool _audioQuickControlsVisible = true;
   double _horizontalDragDistance = 0;
   double _verticalPointerDistance = 0;
-  bool? _pendingReaderChromeVisible;
   int _visibleAyah = 1;
   int? _lastAudioAyah;
   bool _audioFollowEnabled = true;
@@ -102,7 +101,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       _scheduleScrollToAyah(_anchorAyah);
       final config = _audioConfig(settings);
       if (config != null) {
-        _primeAudio(config, _visibleAyah);
+        _primeAudio(config, 1);
       }
     });
   }
@@ -285,11 +284,11 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
 
   Future<void> _prepareAudio(ReaderAudioSourceConfig config) async {
     final surah = surahByNumber(_surahNumber);
-    final targetAyah =
-        _audioController.isPlaying &&
-            _audioController.surahNumber == _surahNumber
-        ? _audioController.currentAyah
-        : _visibleAyah;
+    final sameSession =
+        _audioController.isConfigured &&
+        _audioController.config?.id == config.id &&
+        _audioController.surahNumber == _surahNumber;
+    final targetAyah = sameSession ? _audioController.currentAyah : 1;
     await _audioController.configure(
       config: config,
       surah: _surahNumber,
@@ -350,20 +349,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
 
   void _setReaderChromeVisible(bool visible) {
     if (!mounted || _readerChromeVisible == visible) return;
-    final previousOffset = _scrollController.hasClients
-        ? _scrollController.offset
-        : null;
     setState(() => _readerChromeVisible = visible);
-    if (previousOffset == null) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_scrollController.hasClients) return;
-      const chromeHeight = 69.0;
-      final adjusted =
-          previousOffset + (visible ? chromeHeight : -chromeHeight);
-      _scrollController.jumpTo(
-        adjusted.clamp(0.0, _scrollController.position.maxScrollExtent),
-      );
-    });
   }
 
   @override
@@ -373,201 +359,102 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     final surah = surahByNumber(_surahNumber);
     final settings = AppSettingsScope.of(context);
     final audioConfig = _audioConfig(settings);
+    final showTopChrome = _readerChromeVisible || _selectedAyahs.isNotEmpty;
+    final showQuickAudio =
+        _selectedAyahs.isEmpty &&
+        _readerChromeVisible &&
+        audioConfig != null &&
+        _audioQuickControlsVisible;
 
     return SafeArea(
       child: Stack(
         children: [
-          Column(
-            children: [
-              AnimatedSize(
-                duration: const Duration(milliseconds: 180),
+          Positioned.fill(
+            child: FutureBuilder<Map<String, String>>(
+              future: _translationFuture(settings),
+              builder: (context, snapshot) {
+                final translations = snapshot.data ?? const <String, String>{};
+                return _readerScrollView(
+                  surah: surah,
+                  settings: settings,
+                  translations: translations,
+                  translationError: snapshot.hasError,
+                );
+              },
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 0,
+            child: IgnorePointer(
+              ignoring: !showTopChrome,
+              child: AnimatedSlide(
+                offset: showTopChrome ? Offset.zero : const Offset(0, -1.05),
+                duration: const Duration(milliseconds: 210),
                 curve: Curves.easeOutCubic,
-                child: (_readerChromeVisible || _selectedAyahs.isNotEmpty)
-                    ? Column(
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 12, 10, 8),
-                            child: _selectedAyahs.isNotEmpty
-                                ? Container(
-                                    height: 48,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: scheme.surfaceContainer,
-                                      borderRadius: BorderRadius.circular(24),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        IconButton(
-                                          visualDensity: VisualDensity.compact,
-                                          onPressed: _clearSelection,
-                                          icon: const Icon(Icons.close_rounded),
-                                          tooltip: l10n.text('closeSelection'),
-                                        ),
-                                        Expanded(
-                                          child: Text(
-                                            '${l10n.text('selectedPrefix')}: ${_selectionReference()}',
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w900,
-                                            ),
-                                          ),
-                                        ),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 9,
-                                            vertical: 4,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: scheme.primaryContainer,
-                                            borderRadius: BorderRadius.circular(
-                                              14,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            '${_selectedAyahs.length}',
-                                            style: TextStyle(
-                                              color: scheme.primary,
-                                              fontWeight: FontWeight.w900,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 6),
-                                      ],
-                                    ),
-                                  )
-                                : Row(
-                                    children: [
-                                      Expanded(
-                                        child: Container(
-                                          height: 48,
-                                          decoration: BoxDecoration(
-                                            color: scheme.surfaceContainer,
-                                            borderRadius: BorderRadius.circular(
-                                              24,
-                                            ),
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              Expanded(
-                                                child: _segment(
-                                                  '${_surahName(surah)} ${surah.number}',
-                                                  _showSurahs,
-                                                ),
-                                              ),
-                                              Container(
-                                                width: 1,
-                                                height: 32,
-                                                color: scheme.outline
-                                                    .withValues(alpha: .28),
-                                              ),
-                                              SizedBox(
-                                                width: 82,
-                                                child: _segment(
-                                                  _activeVersionCode(settings),
-                                                  _showTranslations,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      if (audioConfig != null)
-                                        IconButton(
-                                          visualDensity: VisualDensity.compact,
-                                          onPressed: () =>
-                                              _showAudioPlayer(audioConfig),
-                                          icon: const Icon(
-                                            Icons.volume_up_outlined,
-                                            size: 27,
-                                          ),
-                                          tooltip: l10n.text('listen'),
-                                        ),
-                                      IconButton(
-                                        visualDensity: VisualDensity.compact,
-                                        onPressed: _showSearch,
-                                        icon: const Icon(
-                                          Icons.search_rounded,
-                                          size: 28,
-                                        ),
-                                        tooltip: l10n.text(
-                                          'readerSearchTooltip',
-                                        ),
-                                      ),
-                                      IconButton(
-                                        visualDensity: VisualDensity.compact,
-                                        onPressed: _showReaderMenu,
-                                        icon: const Icon(
-                                          Icons.more_horiz_rounded,
-                                          size: 29,
-                                        ),
-                                        tooltip: l10n.text(
-                                          'readerSettingsTooltip',
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                          ),
-                          const Divider(height: 1),
-                        ],
-                      )
-                    : const SizedBox.shrink(),
-              ),
-              Expanded(
-                child: FutureBuilder<Map<String, String>>(
-                  future: _translationFuture(settings),
-                  builder: (context, snapshot) {
-                    final translations =
-                        snapshot.data ?? const <String, String>{};
-                    return _readerScrollView(
+                child: AnimatedOpacity(
+                  opacity: showTopChrome ? 1 : 0,
+                  duration: const Duration(milliseconds: 160),
+                  curve: Curves.easeOut,
+                  child: Material(
+                    color: scheme.surface,
+                    child: _readerTopChrome(
+                      scheme: scheme,
+                      l10n: l10n,
                       surah: surah,
                       settings: settings,
-                      translations: translations,
-                      translationError: snapshot.hasError,
-                    );
-                  },
+                      audioConfig: audioConfig,
+                    ),
+                  ),
                 ),
               ),
-            ],
+            ),
           ),
-          if (_selectedAyahs.isEmpty &&
-              _readerChromeVisible &&
-              audioConfig != null &&
-              _audioQuickControlsVisible)
+          if (audioConfig != null && _audioQuickControlsVisible)
             Positioned(
               left: 74,
               right: 74,
               bottom: 82,
-              child: Material(
-                elevation: 8,
-                color: scheme.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(28),
-                child: SizedBox(
-                  height: 56,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      IconButton(
-                        onPressed: () => _skipAudio(audioConfig, -1),
-                        icon: const Icon(Icons.skip_previous_rounded),
-                      ),
-                      IconButton.filled(
-                        onPressed: () => _toggleAudio(audioConfig),
-                        icon: Icon(
-                          _audioController.isPlaying
-                              ? Icons.pause_rounded
-                              : Icons.play_arrow_rounded,
+              child: IgnorePointer(
+                ignoring: !showQuickAudio,
+                child: AnimatedSlide(
+                  offset: showQuickAudio ? Offset.zero : const Offset(0, .85),
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
+                  child: AnimatedOpacity(
+                    opacity: showQuickAudio ? 1 : 0,
+                    duration: const Duration(milliseconds: 165),
+                    curve: Curves.easeOut,
+                    child: Material(
+                      elevation: showQuickAudio ? 8 : 0,
+                      color: scheme.surfaceContainerHigh,
+                      borderRadius: BorderRadius.circular(28),
+                      child: SizedBox(
+                        height: 56,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            IconButton(
+                              onPressed: () => _skipAudio(audioConfig, -1),
+                              icon: const Icon(Icons.skip_previous_rounded),
+                            ),
+                            IconButton.filled(
+                              onPressed: () => _toggleAudio(audioConfig),
+                              icon: Icon(
+                                _audioController.isPlaying
+                                    ? Icons.pause_rounded
+                                    : Icons.play_arrow_rounded,
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => _skipAudio(audioConfig, 1),
+                              icon: const Icon(Icons.skip_next_rounded),
+                            ),
+                          ],
                         ),
                       ),
-                      IconButton(
-                        onPressed: () => _skipAudio(audioConfig, 1),
-                        icon: const Icon(Icons.skip_next_rounded),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -626,6 +513,127 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     );
   }
 
+  Widget _readerTopChrome({
+    required ColorScheme scheme,
+    required AppLocalizations l10n,
+    required SurahInfo surah,
+    required AppSettings settings,
+    required ReaderAudioSourceConfig? audioConfig,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 10, 8),
+          child: _selectedAyahs.isNotEmpty
+              ? Container(
+                  height: 48,
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainer,
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        onPressed: _clearSelection,
+                        icon: const Icon(Icons.close_rounded),
+                        tooltip: l10n.text('closeSelection'),
+                      ),
+                      Expanded(
+                        child: Text(
+                          '${l10n.text('selectedPrefix')}: ${_selectionReference()}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: scheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Text(
+                          '${_selectedAyahs.length}',
+                          style: TextStyle(
+                            color: scheme.primary,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+                  ),
+                )
+              : Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: scheme.surfaceContainer,
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: _segment(
+                                '${_surahName(surah)} ${surah.number}',
+                                _showSurahs,
+                              ),
+                            ),
+                            Container(
+                              width: 1,
+                              height: 32,
+                              color: scheme.outline.withValues(alpha: .28),
+                            ),
+                            SizedBox(
+                              width: 82,
+                              child: _segment(
+                                _activeVersionCode(settings),
+                                _showTranslations,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    if (audioConfig != null)
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () => _showAudioPlayer(audioConfig),
+                        icon: const Icon(Icons.volume_up_outlined, size: 27),
+                        tooltip: l10n.text('listen'),
+                      ),
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      onPressed: _showSearch,
+                      icon: const Icon(Icons.search_rounded, size: 28),
+                      tooltip: l10n.text('readerSearchTooltip'),
+                    ),
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      onPressed: _showReaderMenu,
+                      icon: const Icon(Icons.more_horiz_rounded, size: 29),
+                      tooltip: l10n.text('readerSettingsTooltip'),
+                    ),
+                  ],
+                ),
+        ),
+        const Divider(height: 1),
+      ],
+    );
+  }
+
   Widget _readerScrollView({
     required SurahInfo surah,
     required AppSettings settings,
@@ -642,18 +650,15 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
               setState(() => _audioFollowEnabled = false);
             }
           }
-          var shouldShow = notification.direction != ScrollDirection.reverse;
           if (_scrollController.hasClients && _scrollController.offset < 18) {
-            shouldShow = true;
+            _setReaderChromeVisible(true);
+          } else if (notification.direction == ScrollDirection.reverse) {
+            _setReaderChromeVisible(false);
+          } else if (notification.direction == ScrollDirection.forward) {
+            _setReaderChromeVisible(true);
           }
-          _pendingReaderChromeVisible = shouldShow;
         }
         if (notification is ScrollEndNotification) {
-          final pending = _pendingReaderChromeVisible;
-          _pendingReaderChromeVisible = null;
-          if (pending != null && pending != _readerChromeVisible) {
-            _setReaderChromeVisible(pending);
-          }
           _saveVisibleReadingPosition();
         }
         return false;
@@ -677,7 +682,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
           controller: _scrollController,
           padding: EdgeInsets.fromLTRB(
             22,
-            28,
+            96,
             22,
             _selectedAyahs.isEmpty ? 118 : 78,
           ),

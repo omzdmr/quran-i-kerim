@@ -2,12 +2,16 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_compass/flutter_compass.dart';
 import 'package:flutter/services.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 import '../../../l10n/app_localizations.dart';
 import '../application/prayer_calculator.dart';
+import '../application/prayer_location_service.dart';
+import '../application/prayer_notification_service.dart';
 import '../application/prayer_preferences_store.dart';
+import '../domain/hijri_date.dart';
 import '../domain/prayer_city_catalog.dart';
 import '../domain/prayer_models.dart';
 import 'prayer_city_picker.dart';
@@ -26,6 +30,8 @@ class _PrayerScreenState extends State<PrayerScreen> {
   PrayerCity _city = prayerCities.first;
   PrayerSettingsSnapshot _prayerSettings = const PrayerSettingsSnapshot();
   bool _showTomorrow = false;
+  bool _usingDeviceLocation = false;
+  bool _locating = false;
 
   @override
   void initState() {
@@ -46,10 +52,100 @@ class _PrayerScreenState extends State<PrayerScreen> {
     final cityId = await PrayerPreferencesStore.loadCityId();
     final settings = await PrayerPreferencesStore.load();
     if (!mounted) return;
+
+    if (cityId == PrayerPreferencesStore.deviceLocationId) {
+      final savedDevice = await PrayerPreferencesStore.loadDeviceLocation();
+      if (!mounted) return;
+      if (savedDevice != null) {
+        setState(() {
+          _city = _cityFromDevice(savedDevice);
+          _usingDeviceLocation = true;
+          _prayerSettings = settings;
+        });
+        return;
+      }
+    }
+
     setState(() {
       _city = prayerCityById(cityId);
+      _usingDeviceLocation = false;
       _prayerSettings = settings;
     });
+    if (cityId == null) {
+      unawaited(_useCurrentLocation(silent: true, preferCached: true));
+    }
+  }
+
+  PrayerCity _cityFromDevice(PrayerDeviceLocationSnapshot value) => PrayerCity(
+    id: PrayerPreferencesStore.deviceLocationId,
+    label: 'GPS',
+    country: '',
+    group: value.regionCode,
+    location: value.location,
+    defaultMethod: value.defaultMethod,
+  );
+
+  Future<void> _useCurrentLocation({
+    bool silent = false,
+    bool preferCached = false,
+  }) async {
+    if (_locating) return;
+    setState(() => _locating = true);
+    try {
+      final result = await PrayerLocationService.current(
+        preferCached: preferCached,
+      );
+      final saved = PrayerDeviceLocationSnapshot(
+        location: result.location,
+        defaultMethod: result.defaultMethod,
+        regionCode: result.regionCode,
+      );
+      await PrayerPreferencesStore.saveDeviceLocation(saved);
+      if (!mounted) return;
+      setState(() {
+        _city = _cityFromDevice(saved);
+        _usingDeviceLocation = true;
+        _showTomorrow = false;
+      });
+      await _refreshNotificationsForCurrentLocation();
+      if (!mounted) return;
+      HapticFeedback.selectionClick();
+    } on PrayerLocationException catch (error) {
+      if (!mounted || silent) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_locationFailureMessage(error.failure))),
+      );
+    } catch (_) {
+      if (!mounted || silent) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.text('locationFailed'))),
+      );
+    } finally {
+      if (mounted) setState(() => _locating = false);
+    }
+  }
+
+  String _locationFailureMessage(PrayerLocationFailure failure) {
+    final l10n = context.l10n;
+    return switch (failure) {
+      PrayerLocationFailure.serviceDisabled => l10n.text(
+        'locationServicesDisabled',
+      ),
+      PrayerLocationFailure.permissionDenied ||
+      PrayerLocationFailure.permissionDeniedForever => l10n.text(
+        'locationPermissionDenied',
+      ),
+      PrayerLocationFailure.unavailable => l10n.text('locationFailed'),
+    };
+  }
+
+  Future<void> _refreshNotificationsForCurrentLocation() async {
+    if (!_prayerSettings.notificationsEnabled) return;
+    await PrayerNotificationService.reschedule(
+      location: _city.location,
+      defaultMethod: _city.defaultMethod,
+      settings: _prayerSettings,
+    );
   }
 
   PrayerDaySchedule _scheduleFor(DateTime localDate) {
@@ -93,7 +189,9 @@ class _PrayerScreenState extends State<PrayerScreen> {
       context: context,
       isScrollControlled: true,
       showDragHandle: false,
-      builder: (_) => PrayerCityPicker(selectedCityId: _city.id),
+      builder: (_) => PrayerCityPicker(
+        selectedCityId: _usingDeviceLocation ? null : _city.id,
+      ),
     );
 
     if (picked == null || !mounted) return;
@@ -101,18 +199,19 @@ class _PrayerScreenState extends State<PrayerScreen> {
     if (!mounted) return;
     setState(() {
       _city = picked;
+      _usingDeviceLocation = false;
       _showTomorrow = false;
     });
+    await _refreshNotificationsForCurrentLocation();
+    if (!mounted) return;
     HapticFeedback.selectionClick();
   }
 
   Future<void> _openPrayerSettings() async {
     final updated = await Navigator.of(context).push<PrayerSettingsSnapshot>(
       MaterialPageRoute(
-        builder: (_) => PrayerSettingsScreen(
-          city: _city,
-          initial: _prayerSettings,
-        ),
+        builder: (_) =>
+            PrayerSettingsScreen(city: _city, initial: _prayerSettings),
       ),
     );
     if (updated == null || !mounted) return;
@@ -126,12 +225,28 @@ class _PrayerScreenState extends State<PrayerScreen> {
     final schedule = _shownSchedule;
     final next = _nextPrayer();
     final remaining = next.time.difference(_now);
+    final hijri = PrayerHijriDate.fromGregorian(
+      _now,
+      offsetDays: _prayerSettings.hijriOffsetDays,
+    );
+    final languageCode = Localizations.localeOf(context).languageCode;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.prayerTimes),
         centerTitle: false,
         actions: [
+          IconButton(
+            onPressed: _locating ? null : () => _useCurrentLocation(),
+            icon: _locating
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2.2),
+                  )
+                : const Icon(Icons.my_location_rounded),
+            tooltip: l10n.text('useCurrentLocation'),
+          ),
           IconButton(
             onPressed: _openPrayerSettings,
             icon: const Icon(Icons.tune_rounded),
@@ -161,14 +276,20 @@ class _PrayerScreenState extends State<PrayerScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _city.label,
+                          _usingDeviceLocation
+                              ? l10n.text('currentLocation')
+                              : _city.label,
                           style: const TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.w900,
                           ),
                         ),
                         Text(
-                          _city.country,
+                          _usingDeviceLocation
+                              ? '${_city.location.latitude.toStringAsFixed(3)}, ${_city.location.longitude.toStringAsFixed(3)} · ${_city.location.timeZoneId}'
+                              : _city.country,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(color: scheme.onSurfaceVariant),
                         ),
                       ],
@@ -180,6 +301,26 @@ class _PrayerScreenState extends State<PrayerScreen> {
             ),
           ),
           const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(
+                Icons.calendar_today_outlined,
+                size: 18,
+                color: scheme.primary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                hijri.format(languageCode),
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+              const Spacer(),
+              Text(
+                l10n.text('hijriDate'),
+                style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.fromLTRB(22, 24, 22, 22),
             decoration: BoxDecoration(
@@ -375,9 +516,7 @@ class _MonthlyPrayerTimesScreenState extends State<MonthlyPrayerTimesScreen> {
                       Text(
                         widget.city.label,
                         style: TextStyle(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurfaceVariant,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -433,10 +572,7 @@ class _MonthlyPrayerTimesScreenState extends State<MonthlyPrayerTimesScreen> {
               separatorBuilder: (_, __) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
                 final schedule = schedules[index];
-                return _MonthlyDayCard(
-                  schedule: schedule,
-                  filter: _filter,
-                );
+                return _MonthlyDayCard(schedule: schedule, filter: _filter);
               },
             ),
           ),
@@ -460,75 +596,116 @@ class QiblaInfoScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final l10n = context.l10n;
-    final angle = qiblaDegrees * math.pi / 180;
     return Scaffold(
       appBar: AppBar(title: Text(l10n.text('qibla'))),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(22, 18, 22, 32),
-        children: [
-          Text(
-            city.label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 26),
-          Center(
-            child: Container(
-              width: 250,
-              height: 250,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: scheme.surfaceContainer,
-                border: Border.all(color: scheme.outlineVariant),
+      body: StreamBuilder<CompassEvent>(
+        stream: FlutterCompass.events,
+        builder: (context, snapshot) {
+          final heading = snapshot.data?.heading;
+          final rawDelta = heading == null
+              ? qiblaDegrees
+              : (qiblaDegrees - heading + 360) % 360;
+          final signedDelta = rawDelta > 180 ? rawDelta - 360 : rawDelta;
+          final aligned = heading != null && signedDelta.abs() <= 5;
+          final angle = rawDelta * math.pi / 180;
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(22, 18, 22, 32),
+            children: [
+              Text(
+                city.id == PrayerPreferencesStore.deviceLocationId
+                    ? l10n.text('currentLocation')
+                    : city.label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  const Positioned(
-                    top: 15,
-                    child: Text(
-                      'N',
-                      textDirection: TextDirection.ltr,
-                      style: TextStyle(fontWeight: FontWeight.w900),
+              const SizedBox(height: 8),
+              Text(
+                heading == null
+                    ? l10n.text('compassUnavailable')
+                    : aligned
+                    ? l10n.text('qiblaAligned')
+                    : l10n.text('liveQibla'),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: aligned ? scheme.primary : scheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 22),
+              Center(
+                child: Container(
+                  width: 250,
+                  height: 250,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: scheme.surfaceContainer,
+                    border: Border.all(
+                      color: aligned ? scheme.primary : scheme.outlineVariant,
+                      width: aligned ? 2 : 1,
                     ),
                   ),
-                  Transform.rotate(
-                    angle: angle,
-                    child: Icon(
-                      Icons.navigation_rounded,
-                      size: 118,
-                      color: scheme.primary,
-                    ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      const Positioned(
+                        top: 15,
+                        child: Text(
+                          'N',
+                          textDirection: TextDirection.ltr,
+                          style: TextStyle(fontWeight: FontWeight.w900),
+                        ),
+                      ),
+                      AnimatedRotation(
+                        turns: rawDelta / 360,
+                        duration: const Duration(milliseconds: 120),
+                        curve: Curves.easeOut,
+                        child: Icon(
+                          Icons.navigation_rounded,
+                          size: 118,
+                          color: scheme.primary,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            '${qiblaDegrees.round()}°',
-            textAlign: TextAlign.center,
-            textDirection: TextDirection.ltr,
-            style: const TextStyle(fontSize: 42, fontWeight: FontWeight.w900),
-          ),
-          Text(
-            l10n.text('qiblaNorthDescription'),
-            textAlign: TextAlign.center,
-            style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 16),
-          ),
-          const SizedBox(height: 26),
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: scheme.surfaceContainer,
-              borderRadius: BorderRadius.circular(22),
-            ),
-            child: Text(
-              l10n.text('qiblaCalibrationInfo'),
-              style: const TextStyle(height: 1.5),
-            ),
-          ),
-        ],
+              const SizedBox(height: 24),
+              Text(
+                heading == null
+                    ? '${qiblaDegrees.round()}°'
+                    : '${signedDelta.abs().round()}°',
+                textAlign: TextAlign.center,
+                textDirection: TextDirection.ltr,
+                style: const TextStyle(
+                  fontSize: 42,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              Text(
+                heading == null
+                    ? l10n.text('qiblaNorthDescription')
+                    : l10n.text('liveQibla'),
+                textAlign: TextAlign.center,
+                style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 16),
+              ),
+              const SizedBox(height: 26),
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainer,
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: Text(
+                  l10n.text('qiblaCalibrationInfo'),
+                  style: const TextStyle(height: 1.5),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -648,9 +825,8 @@ class _MonthlyDayCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            MaterialLocalizations.of(context).formatMediumDate(
-              schedule.localDate,
-            ),
+            MaterialLocalizations.of(context)
+                .formatMediumDate(schedule.localDate),
             style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 12),

@@ -174,6 +174,13 @@ class ReaderAudioController extends ChangeNotifier {
     await _moveToAyah(_ayah + 1);
   }
 
+  Future<void> playAyah(int targetAyah) async {
+    if (_config == null) return;
+    final wasPlaying = _playing;
+    await _moveToAyah(targetAyah.clamp(1, _verseCount).toInt());
+    if (!wasPlaying) await _playCurrent();
+  }
+
   Future<void> _moveToAyah(int targetAyah) async {
     final wasPlaying = _playing;
     _generation++;
@@ -348,6 +355,36 @@ class _ReaderAudioSheetState extends State<ReaderAudioSheet> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text(
+                    copy.chooseVerse,
+                    style: TextStyle(
+                      color: scheme.onSurfaceVariant,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 42,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: controller.verseCount,
+                    separatorBuilder: (_, __) => const SizedBox(width: 6),
+                    itemBuilder: (context, index) {
+                      final ayah = index + 1;
+                      return ChoiceChip(
+                        label: Text('$ayah'),
+                        selected: ayah == controller.currentAyah,
+                        onSelected: (_) => controller.playAyah(ayah),
+                        visualDensity: VisualDensity.compact,
+                      );
+                    },
+                  ),
+                ),
                 const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -498,6 +535,8 @@ class _AudioCopy {
     'Növbəti ayə',
     'Следующий аят',
   );
+  String get chooseVerse =>
+      _pick('Ayet seç', 'Choose verse', 'اختر الآية', 'Ayə seç', 'Выбрать аят');
   String get hideButtons => _pick(
     'Tuşları gizle',
     'Hide controls',
