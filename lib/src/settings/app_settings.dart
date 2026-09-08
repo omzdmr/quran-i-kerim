@@ -4,6 +4,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../data/translation_catalog.dart';
+
 enum ReaderDisplayMode { arabic, arabicAndTranslation, translation }
 
 enum ReaderLineSpacing { compact, normal, relaxed }
@@ -16,6 +18,7 @@ class AppSettings extends ChangeNotifier {
   static const _lastSurahKey = 'last_surah';
   static const _lastAyahKey = 'last_ayah';
   static const _readerModeKey = 'reader_mode';
+  static const _selectedQuranSourceKey = 'selected_quran_source';
   static const _readerTextSizeKey = 'reader_text_size';
 
   // Eski test build'leriyle geriye uyumluluk için tutuluyor.
@@ -34,7 +37,7 @@ class AppSettings extends ChangeNotifier {
   Locale? _locale;
   int _lastSurah = 1;
   int _lastAyah = 1;
-  ReaderDisplayMode _readerMode = ReaderDisplayMode.translation;
+  String _selectedQuranSourceId = bundledTurkishTranslationId;
   ReaderLineSpacing _readerLineSpacing = ReaderLineSpacing.normal;
   double _readerTextSize = 25;
   Set<String> _bookmarks = <String>{};
@@ -48,7 +51,14 @@ class AppSettings extends ChangeNotifier {
   Locale? get locale => _locale;
   int get lastSurah => _lastSurah;
   int get lastAyah => _lastAyah;
-  ReaderDisplayMode get readerMode => _readerMode;
+  String get selectedQuranSourceId => _selectedQuranSourceId;
+  bool get readerUsesArabic => _selectedQuranSourceId == arabicOriginalSourceId;
+
+  /// Compatibility view for reader code while source selection migrates from
+  /// a binary Arabic/translation enum to stable translation IDs.
+  ReaderDisplayMode get readerMode =>
+      readerUsesArabic ? ReaderDisplayMode.arabic : ReaderDisplayMode.translation;
+
   ReaderLineSpacing get readerLineSpacing => _readerLineSpacing;
 
   /// Arapça ve meal için ortak okuma boyutu.
@@ -112,14 +122,17 @@ class AppSettings extends ChangeNotifier {
     _lastSurah = savedSurah.clamp(1, 114).toInt();
     _lastAyah = savedAyah < 1 ? 1 : savedAyah;
 
-    // Eski “Arapça + meal” görünümünü yeni tek-metin okuyucuya taşırken
-    // varsayılan olarak Türkçe meale düşürüyoruz.
-    _readerMode = switch (prefs.getString(_readerModeKey)) {
-      'arabic' => ReaderDisplayMode.arabic,
-      'translation' => ReaderDisplayMode.translation,
-      'arabic_translation' => ReaderDisplayMode.translation,
-      _ => ReaderDisplayMode.translation,
-    };
+    final savedSource = prefs.getString(_selectedQuranSourceKey)?.trim();
+    if (savedSource != null && savedSource.isNotEmpty) {
+      _selectedQuranSourceId = savedSource;
+    } else {
+      // Migrate the old binary reader mode without losing the user's choice.
+      _selectedQuranSourceId = switch (prefs.getString(_readerModeKey)) {
+        'arabic' => arabicOriginalSourceId,
+        _ => bundledTurkishTranslationId,
+      };
+      await prefs.setString(_selectedQuranSourceKey, _selectedQuranSourceId);
+    }
 
     _readerLineSpacing = switch (prefs.getString(_readerLineSpacingKey)) {
       'compact' => ReaderLineSpacing.compact,
@@ -131,8 +144,6 @@ class AppSettings extends ChangeNotifier {
       _readerTextSize =
           (prefs.getDouble(_readerTextSizeKey) ?? 25).clamp(18, 40).toDouble();
     } else {
-      // Eski build'lerde iki ayrı boyut vardı. Yeni okuyucu ilk geçişte
-      // okunabilir, dengeli tek boyutla başlasın.
       _readerTextSize = 25;
     }
 
@@ -206,24 +217,28 @@ class AppSettings extends ChangeNotifier {
     await prefs.setString(_localeKey, locale?.languageCode ?? 'system');
   }
 
-  Future<void> setReaderMode(ReaderDisplayMode mode) async {
-    final safeMode = mode == ReaderDisplayMode.arabicAndTranslation
-        ? ReaderDisplayMode.translation
-        : mode;
-    if (_readerMode == safeMode) return;
-    _readerMode = safeMode;
+  Future<void> setSelectedQuranSource(String sourceId) async {
+    final safe = sourceId.trim();
+    if (safe.isEmpty || _selectedQuranSourceId == safe) return;
+    _selectedQuranSourceId = safe;
     notifyListeners();
 
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      _readerModeKey,
-      switch (safeMode) {
-        ReaderDisplayMode.arabic => 'arabic',
-        ReaderDisplayMode.translation => 'translation',
-        ReaderDisplayMode.arabicAndTranslation => 'translation',
-      },
-    );
+    await Future.wait([
+      prefs.setString(_selectedQuranSourceKey, safe),
+      // Keep old builds readable during the test period.
+      prefs.setString(
+        _readerModeKey,
+        safe == arabicOriginalSourceId ? 'arabic' : 'translation',
+      ),
+    ]);
   }
+
+  Future<void> setReaderMode(ReaderDisplayMode mode) => setSelectedQuranSource(
+        mode == ReaderDisplayMode.arabic
+            ? arabicOriginalSourceId
+            : bundledTurkishTranslationId,
+      );
 
   Future<void> setReaderLineSpacing(ReaderLineSpacing spacing) async {
     if (_readerLineSpacing == spacing) return;
@@ -250,8 +265,6 @@ class AppSettings extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await Future.wait([
       prefs.setDouble(_readerTextSizeKey, safe),
-      // Eski build'e dönülürse tamamen saçmalamasın diye iki eski anahtarı da
-      // aynı değerde tutuyoruz.
       prefs.setDouble(_arabicFontSizeKey, safe),
       prefs.setDouble(_translationFontSizeKey, safe),
     ]);
