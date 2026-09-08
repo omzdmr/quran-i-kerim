@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../domain/prayer_city_catalog.dart';
 
 class PrayerCityPicker extends StatefulWidget {
@@ -24,12 +25,15 @@ class _PrayerCityPickerState extends State<PrayerCityPicker> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
     final normalized = _normalize(_query);
     final filtered = normalized.isEmpty
         ? prayerCities
-        : prayerCities
-            .where((city) => _normalize(city.searchText).contains(normalized))
-            .toList(growable: false);
+        : prayerCities.where((city) {
+            final localizedGroup = _groupLabel(context, city.group);
+            return _normalize('${city.searchText} $localizedGroup')
+                .contains(normalized);
+          }).toList(growable: false);
 
     return FractionallySizedBox(
       heightFactor: .9,
@@ -44,11 +48,14 @@ class _PrayerCityPickerState extends State<PrayerCityPicker> {
                     onPressed: () => Navigator.pop(context),
                     icon: const Icon(Icons.close_rounded),
                   ),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Şehir seç',
+                      l10n.text('chooseCity'),
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 48),
@@ -61,7 +68,7 @@ class _PrayerCityPickerState extends State<PrayerCityPicker> {
                 controller: _controller,
                 onChanged: (value) => setState(() => _query = value),
                 decoration: InputDecoration(
-                  hintText: 'Şehir veya ülke ara',
+                  hintText: l10n.text('citySearchHint'),
                   prefixIcon: const Icon(Icons.search_rounded),
                   suffixIcon: _query.isEmpty
                       ? null
@@ -84,17 +91,20 @@ class _PrayerCityPickerState extends State<PrayerCityPicker> {
             Padding(
               padding: const EdgeInsets.fromLTRB(18, 0, 18, 10),
               child: Align(
-                alignment: Alignment.centerLeft,
+                alignment: AlignmentDirectional.centerStart,
                 child: Text(
-                  'Türkiye, Hicaz/Körfez, Orta Doğu, Güney ve Güneydoğu Asya önceliklidir. Liste çevrimdışı çalışır.',
-                  style: TextStyle(color: scheme.onSurfaceVariant, height: 1.35),
+                  l10n.text('cityPickerInfo'),
+                  style: TextStyle(
+                    color: scheme.onSurfaceVariant,
+                    height: 1.35,
+                  ),
                 ),
               ),
             ),
             const Divider(height: 1),
             Expanded(
               child: filtered.isEmpty
-                  ? const Center(child: Text('Şehir bulunamadı.'))
+                  ? Center(child: Text(l10n.text('cityNotFound')))
                   : ListView.builder(
                       padding: const EdgeInsets.fromLTRB(14, 10, 14, 28),
                       itemCount: filtered.length,
@@ -115,7 +125,7 @@ class _PrayerCityPickerState extends State<PrayerCityPicker> {
                                   8,
                                 ),
                                 child: Text(
-                                  city.group,
+                                  _groupLabel(context, city.group),
                                   style: TextStyle(
                                     color: scheme.primary,
                                     fontSize: 13,
@@ -141,7 +151,9 @@ class _PrayerCityPickerState extends State<PrayerCityPicker> {
                                 ),
                                 title: Text(
                                   city.label,
-                                  style: const TextStyle(fontWeight: FontWeight.w800),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                  ),
                                 ),
                                 subtitle: Text(city.country),
                                 trailing: selected
@@ -159,6 +171,20 @@ class _PrayerCityPickerState extends State<PrayerCityPicker> {
         ),
       ),
     );
+  }
+
+  String _groupLabel(BuildContext context, String group) {
+    final l10n = context.l10n;
+    return switch (group) {
+      'Türkiye' => l10n.text('groupTurkey'),
+      'Hicaz ve Körfez' => l10n.text('groupGulf'),
+      'Orta Doğu' => l10n.text('groupMiddleEast'),
+      'Güney Asya' => l10n.text('groupSouthAsia'),
+      'Güneydoğu Asya' => l10n.text('groupSoutheastAsia'),
+      'Orta Asya ve Kafkasya' => l10n.text('groupCentralAsia'),
+      'Doğu Asya' => l10n.text('groupEastAsia'),
+      _ => group,
+    };
   }
 
   String _normalize(String value) => value
