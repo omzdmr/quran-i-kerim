@@ -1,0 +1,66 @@
+name: Apply Audio v2 catalog
+
+on:
+  push:
+    branches: [ feature/localization-v01 ]
+    paths:
+      - '.github/workflows/apply-audio-v2-catalog.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.2'
+          channel: stable
+          cache: true
+
+      - name: Apply Audio v2 patch
+        run: python3 tool/apply_audio_v2_catalog.py
+
+      - name: Remove helper
+        run: rm tool/apply_audio_v2_catalog.py
+
+      - name: Format Dart
+        run: >-
+          dart format
+          lib/src/data/quran_audio_catalog.dart
+          lib/src/data/translation_catalog.dart
+          lib/src/data/translation_repository.dart
+          lib/src/settings/app_settings.dart
+          lib/src/features/reader/reader_audio_sheet.dart
+          lib/src/features/reader/quran_reader_screen.dart
+          lib/src/features/settings/quran_translation_catalog_screen.dart
+          test/translation_catalog_test.dart
+
+      - name: Fetch bundled content
+        run: python3 tool/fetch_content.py
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze lib --no-fatal-infos
+
+      - name: Run focused tests
+        run: >-
+          flutter test
+          test/translation_catalog_test.dart
+          test/app_settings_source_test.dart
+          test/translation_repository_test.dart
+
+      - name: Commit source changes
+        run: |
+          git config user.name 'omzdmr'
+          git config user.email '154471764+omzdmr@users.noreply.github.com'
+          git add -A lib test pubspec.lock
+          git commit -m 'Add multilingual human Audio v2 catalog'
+          git push
