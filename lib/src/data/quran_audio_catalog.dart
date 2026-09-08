@@ -28,8 +28,8 @@ const quranAudioCatalog = <QuranAudioInfo>[
     sourceId: arabicOriginalSourceId,
     languageCode: 'ar',
     code: 'AR',
-    title: 'Arabic Quran',
-    attribution: 'Mishary Rashid Alafasy · Islamic Network',
+    title: 'Mishary Rashid Alafasy',
+    attribution: 'Islamic Network · 64 kbps',
     kind: QuranAudioKind.recitation,
   ),
   QuranAudioInfo(
