@@ -1,4 +1,4 @@
-name: Apply prayer reader v10
+name: Apply prayer reader v10 final
 
 on:
   push:
@@ -28,7 +28,7 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Apply patch
+      - name: Apply final fixes
         run: python3 tool/apply_prayer_reader_v10.py
 
       - name: Format changed Dart
@@ -36,8 +36,6 @@ jobs:
           dart format
           lib/src/features/prayer/presentation/prayer_screen.dart
           lib/src/features/reader/reader_audio_sheet.dart
-          lib/src/features/reader/quran_reader_screen.dart
-          lib/src/l10n/strings/feature_strings.dart
 
       - name: Commit source changes
         run: |
@@ -45,8 +43,6 @@ jobs:
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add \
             lib/src/features/prayer/presentation/prayer_screen.dart \
-            lib/src/features/reader/reader_audio_sheet.dart \
-            lib/src/features/reader/quran_reader_screen.dart \
-            lib/src/l10n/strings/feature_strings.dart
-          git commit -m 'Add GPS prayer tools and smooth reader chrome'
+            lib/src/features/reader/reader_audio_sheet.dart
+          git commit -m 'Fix live Qibla rotation and audio replay'
           git push origin HEAD:feature/localization-v01
