@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:quran_i_kerim/src/data/quran_audio_catalog.dart';
 import 'package:quran_i_kerim/src/data/translation_catalog.dart';
 
 void main() {
@@ -23,5 +24,17 @@ void main() {
 
   test('unsupported device languages fall back to bundled English', () {
     expect(defaultQuranSourceForLanguage('de'), englishTranslationId);
+  });
+
+  test('audio catalog includes Arabic recitation and English spoken translation', () {
+    final arabic = primaryQuranAudioForSource(arabicOriginalSourceId);
+    final english = primaryQuranAudioForSource(englishTranslationId);
+
+    expect(arabic, isNotNull);
+    expect(arabic!.kind, QuranAudioKind.recitation);
+    expect(arabic.title, 'Mishary Rashid Alafasy');
+    expect(english, isNotNull);
+    expect(english!.kind, QuranAudioKind.translation);
+    expect(hasQuranAudioForSource(bundledTurkishTranslationId), isFalse);
   });
 }
