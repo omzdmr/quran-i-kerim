@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../prayer/presentation/prayer_screen.dart';
+import 'dhikr_counter_screen.dart';
 
 class DiscoverScreen extends StatelessWidget {
   const DiscoverScreen({super.key});
@@ -24,6 +25,13 @@ class DiscoverScreen extends StatelessWidget {
       HapticFeedback.selectionClick();
       Navigator.of(context).push(
         MaterialPageRoute<void>(builder: (_) => const PrayerScreen()),
+      );
+    }
+
+    void openDhikr() {
+      HapticFeedback.selectionClick();
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const DhikrCounterScreen()),
       );
     }
 
@@ -50,14 +58,33 @@ class DiscoverScreen extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
+              Expanded(
+                child: _Shortcut(
+                  Icons.touch_app_outlined,
+                  'Zikirmatik',
+                  onTap: openDhikr,
+                ),
+              ),
+              const SizedBox(width: 12),
               const Expanded(
+                child: _Shortcut(
+                  Icons.nights_stay_outlined,
+                  'Sabah / Akşam',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Row(
+            children: [
+              Expanded(
                 child: _Shortcut(
                   Icons.library_add_check_outlined,
                   'Okuma Planları',
                 ),
               ),
-              const SizedBox(width: 12),
-              const Expanded(child: _Shortcut(Icons.menu_book_outlined, 'Ayetler')),
+              SizedBox(width: 12),
+              Expanded(child: _Shortcut(Icons.menu_book_outlined, 'Ayetler')),
             ],
           ),
           const SizedBox(height: 12),
@@ -170,20 +197,17 @@ class _PrayerFeatureCard extends StatelessWidget {
 }
 
 class _Shortcut extends StatelessWidget {
-  const _Shortcut(this.icon, this.label);
+  const _Shortcut(this.icon, this.label, {this.onTap});
 
   final IconData icon;
   final String label;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Container(
+    final content = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 17),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(16),
-      ),
       child: Row(
         children: [
           Icon(icon, color: scheme.primary),
@@ -195,6 +219,26 @@ class _Shortcut extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+
+    if (onTap == null) {
+      return Container(
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainer,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: content,
+      );
+    }
+
+    return Material(
+      color: scheme.surfaceContainer,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: content,
       ),
     );
   }
