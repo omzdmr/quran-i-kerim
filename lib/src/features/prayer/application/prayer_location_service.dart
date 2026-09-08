@@ -1,5 +1,6 @@
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:lat_lng_to_timezone/lat_lng_to_timezone.dart' as tzmap;
 
 import '../domain/prayer_models.dart';
 import 'prayer_region_resolver.dart';
@@ -74,13 +75,24 @@ class PrayerLocationService {
       throw const PrayerLocationException(PrayerLocationFailure.unavailable);
     }
 
-    final timezone = await FlutterTimezone.getLocalTimezone();
+    String timezoneId;
+    try {
+      timezoneId = tzmap.latLngToTimezoneString(
+        position.latitude,
+        position.longitude,
+      );
+      if (timezoneId.isEmpty) throw StateError('empty timezone');
+    } catch (_) {
+      final deviceTimezone = await FlutterTimezone.getLocalTimezone();
+      timezoneId = deviceTimezone.identifier;
+    }
+
     final region = resolvePrayerRegion(position.latitude, position.longitude);
     return PrayerDeviceLocationResult(
       location: PrayerLocation(
         latitude: position.latitude,
         longitude: position.longitude,
-        timeZoneId: timezone.identifier,
+        timeZoneId: timezoneId,
         label: 'GPS',
       ),
       defaultMethod: region.method,
