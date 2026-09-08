@@ -1,5 +1,6 @@
 import 'dart:collection';
 import 'dart:convert';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -54,17 +55,11 @@ class AppSettings extends ChangeNotifier {
   String get selectedQuranSourceId => _selectedQuranSourceId;
   bool get readerUsesArabic => _selectedQuranSourceId == arabicOriginalSourceId;
 
-  /// Compatibility view for reader code while source selection migrates from
-  /// a binary Arabic/translation enum to stable translation IDs.
   ReaderDisplayMode get readerMode =>
       readerUsesArabic ? ReaderDisplayMode.arabic : ReaderDisplayMode.translation;
 
   ReaderLineSpacing get readerLineSpacing => _readerLineSpacing;
-
-  /// Arapça ve meal için ortak okuma boyutu.
   double get readerTextSize => _readerTextSize;
-
-  /// Eski çağrıları kırmamak için ikisi de artık ortak boyutu döndürür.
   double get arabicFontSize => _readerTextSize;
   double get translationFontSize => _readerTextSize;
 
@@ -126,11 +121,18 @@ class AppSettings extends ChangeNotifier {
     if (savedSource != null && savedSource.isNotEmpty) {
       _selectedQuranSourceId = savedSource;
     } else {
-      // Migrate the old binary reader mode without losing the user's choice.
-      _selectedQuranSourceId = switch (prefs.getString(_readerModeKey)) {
-        'arabic' => arabicOriginalSourceId,
-        _ => bundledTurkishTranslationId,
-      };
+      final legacyMode = prefs.getString(_readerModeKey);
+      if (legacyMode != null) {
+        _selectedQuranSourceId = legacyMode == 'arabic'
+            ? arabicOriginalSourceId
+            : bundledTurkishTranslationId;
+      } else {
+        final deviceLocales = ui.PlatformDispatcher.instance.locales;
+        final deviceLanguage = deviceLocales.isEmpty
+            ? ui.PlatformDispatcher.instance.locale.languageCode
+            : deviceLocales.first.languageCode;
+        _selectedQuranSourceId = defaultQuranSourceForLanguage(deviceLanguage);
+      }
       await prefs.setString(_selectedQuranSourceKey, _selectedQuranSourceId);
     }
 
@@ -226,7 +228,6 @@ class AppSettings extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await Future.wait([
       prefs.setString(_selectedQuranSourceKey, safe),
-      // Keep old builds readable during the test period.
       prefs.setString(
         _readerModeKey,
         safe == arabicOriginalSourceId ? 'arabic' : 'translation',
@@ -271,7 +272,6 @@ class AppSettings extends ChangeNotifier {
   }
 
   Future<void> setArabicFontSize(double value) => setReaderTextSize(value);
-
   Future<void> setTranslationFontSize(double value) => setReaderTextSize(value);
 
   Future<void> saveReadingPosition({
