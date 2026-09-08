@@ -20,9 +20,9 @@ class AppSettings extends ChangeNotifier {
   static const _lastAyahKey = 'last_ayah';
   static const _readerModeKey = 'reader_mode';
   static const _selectedQuranSourceKey = 'selected_quran_source';
+  static const _sourceUserSelectedKey = 'quran_source_user_selected_v1';
   static const _readerTextSizeKey = 'reader_text_size';
 
-  // Eski test build'leriyle geriye uyumluluk için tutuluyor.
   static const _arabicFontSizeKey = 'arabic_font_size';
   static const _translationFontSizeKey = 'translation_font_size';
 
@@ -99,6 +99,13 @@ class AppSettings extends ChangeNotifier {
     return _readingDays.where((day) => day.startsWith(prefix)).length;
   }
 
+  String _deviceLanguage() {
+    final locales = ui.PlatformDispatcher.instance.locales;
+    return locales.isEmpty
+        ? ui.PlatformDispatcher.instance.locale.languageCode
+        : locales.first.languageCode;
+  }
+
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
     _themeMode = switch (prefs.getString(_themeKey)) {
@@ -118,22 +125,24 @@ class AppSettings extends ChangeNotifier {
     _lastAyah = savedAyah < 1 ? 1 : savedAyah;
 
     final savedSource = prefs.getString(_selectedQuranSourceKey)?.trim();
-    if (savedSource != null && savedSource.isNotEmpty) {
+    final sourceWasExplicitlySelected =
+        prefs.getBool(_sourceUserSelectedKey) ?? false;
+
+    if (savedSource != null &&
+        savedSource.isNotEmpty &&
+        sourceWasExplicitlySelected) {
       _selectedQuranSourceId = savedSource;
     } else {
       final legacyMode = prefs.getString(_readerModeKey);
-      if (legacyMode != null) {
-        _selectedQuranSourceId = legacyMode == 'arabic'
-            ? arabicOriginalSourceId
-            : bundledTurkishTranslationId;
+      if (savedSource == null && legacyMode == 'arabic') {
+        _selectedQuranSourceId = arabicOriginalSourceId;
       } else {
-        final deviceLocales = ui.PlatformDispatcher.instance.locales;
-        final deviceLanguage = deviceLocales.isEmpty
-            ? ui.PlatformDispatcher.instance.locale.languageCode
-            : deviceLocales.first.languageCode;
-        _selectedQuranSourceId = defaultQuranSourceForLanguage(deviceLanguage);
+        _selectedQuranSourceId = defaultQuranSourceForLanguage(_deviceLanguage());
       }
-      await prefs.setString(_selectedQuranSourceKey, _selectedQuranSourceId);
+      await Future.wait([
+        prefs.setString(_selectedQuranSourceKey, _selectedQuranSourceId),
+        prefs.setBool(_sourceUserSelectedKey, false),
+      ]);
     }
 
     _readerLineSpacing = switch (prefs.getString(_readerLineSpacingKey)) {
@@ -221,13 +230,15 @@ class AppSettings extends ChangeNotifier {
 
   Future<void> setSelectedQuranSource(String sourceId) async {
     final safe = sourceId.trim();
-    if (safe.isEmpty || _selectedQuranSourceId == safe) return;
+    if (safe.isEmpty) return;
+    final changed = _selectedQuranSourceId != safe;
     _selectedQuranSourceId = safe;
-    notifyListeners();
+    if (changed) notifyListeners();
 
     final prefs = await SharedPreferences.getInstance();
     await Future.wait([
       prefs.setString(_selectedQuranSourceKey, safe),
+      prefs.setBool(_sourceUserSelectedKey, true),
       prefs.setString(
         _readerModeKey,
         safe == arabicOriginalSourceId ? 'arabic' : 'translation',
