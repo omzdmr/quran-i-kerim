@@ -9,6 +9,7 @@ import 'package:quran/quran.dart' as quran;
 import '../../data/surah_catalog.dart';
 import '../../data/translation_catalog.dart';
 import '../../data/translation_repository.dart';
+import '../../l10n/app_localizations.dart';
 import '../../navigation/app_navigation.dart';
 import '../../settings/app_settings.dart';
 
@@ -27,12 +28,12 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   final ScrollController _scrollController = ScrollController();
   final GlobalKey<_ContinuousVerseTextState> _textKey =
       GlobalKey<_ContinuousVerseTextState>();
-  late final Future<Map<String, String>> _turkishTranslation;
+  String? _cachedSourceId;
+  Future<Map<String, String>>? _cachedTranslationFuture;
 
   @override
   void initState() {
     super.initState();
-    _turkishTranslation = TranslationRepository.instance.loadBundledTurkish();
     AppNavigation.instance.readerRequest.addListener(_handleReaderRequest);
   }
 
@@ -57,6 +58,24 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       _handleReaderRequest();
       _scheduleScrollToAyah(_anchorAyah);
     });
+  }
+
+  Future<Map<String, String>> _translationFuture(AppSettings settings) {
+    if (settings.readerUsesArabic) {
+      return Future<Map<String, String>>.value(const <String, String>{});
+    }
+    if (_cachedSourceId != settings.selectedQuranSourceId ||
+        _cachedTranslationFuture == null) {
+      _cachedSourceId = settings.selectedQuranSourceId;
+      _cachedTranslationFuture = TranslationRepository.instance
+          .loadSourceVerses(settings.selectedQuranSourceId);
+    }
+    return _cachedTranslationFuture!;
+  }
+
+  void _invalidateTranslationFuture() {
+    _cachedSourceId = null;
+    _cachedTranslationFuture = null;
   }
 
   void _handleReaderRequest() {
@@ -94,12 +113,13 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       _selectedAyahs.clear();
     });
     AppNavigation.instance.setReaderSelectionActive(false);
-    AppSettingsScope.of(context).saveReadingPosition(surah: surah.number, ayah: 1);
+    AppSettingsScope.of(context).saveReadingPosition(
+      surah: surah.number,
+      ayah: 1,
+    );
     HapticFeedback.selectionClick();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.jumpTo(0);
-      }
+      if (_scrollController.hasClients) _scrollController.jumpTo(0);
     });
   }
 
@@ -136,12 +156,17 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     return values;
   }
 
+  String _surahName(SurahInfo surah) =>
+      Localizations.localeOf(context).languageCode == 'ar'
+          ? surah.nameAr
+          : surah.nameTr;
+
   String _selectionReference() {
     final surah = surahByNumber(_surahNumber);
     final values = _selection;
-    if (values.isEmpty) return '${surah.nameTr} $_surahNumber';
+    if (values.isEmpty) return '${_surahName(surah)} $_surahNumber';
     if (values.length == 1) {
-      return '${surah.nameTr} $_surahNumber:${values.single}';
+      return '${_surahName(surah)} $_surahNumber:${values.single}';
     }
 
     var contiguous = true;
@@ -151,11 +176,10 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
         break;
       }
     }
-
     final ayahPart = contiguous
         ? '${values.first}-${values.last}'
         : values.join(',');
-    return '${surah.nameTr} $_surahNumber:$ayahPart';
+    return '${_surahName(surah)} $_surahNumber:$ayahPart';
   }
 
   void _toggleAyahSelection(int ayahNumber) {
@@ -181,14 +205,23 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     AppNavigation.instance.setReaderSelectionActive(false);
   }
 
-  String _activeVersionCode(AppSettings settings) =>
-      settings.readerMode == ReaderDisplayMode.arabic
-          ? 'AR'
-          : translationCatalog.first.code;
+  String _activeVersionCode(AppSettings settings) {
+    if (settings.readerUsesArabic) return 'AR';
+    return translationById(settings.selectedQuranSourceId)?.code ?? 'RWD';
+  }
+
+  String _sourceIdForCode(String code) {
+    if (code == 'AR') return arabicOriginalSourceId;
+    for (final info in translationCatalog) {
+      if (info.code == code) return info.id;
+    }
+    return bundledTurkishTranslationId;
+  }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
     final surah = surahByNumber(_surahNumber);
     final settings = AppSettingsScope.of(context);
 
@@ -213,11 +246,11 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                               visualDensity: VisualDensity.compact,
                               onPressed: _clearSelection,
                               icon: const Icon(Icons.close_rounded),
-                              tooltip: 'Seçimi kapat',
+                              tooltip: l10n.text('closeSelection'),
                             ),
                             Expanded(
                               child: Text(
-                                'Seçili: ${_selectionReference()}',
+                                '${l10n.text('selectedPrefix')}: ${_selectionReference()}',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
@@ -260,7 +293,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                                 children: [
                                   Expanded(
                                     child: _segment(
-                                      '${surah.nameTr} ${surah.number}',
+                                      '${_surahName(surah)} ${surah.number}',
                                       _showSurahs,
                                     ),
                                   ),
@@ -270,7 +303,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                                     color: scheme.outline.withValues(alpha: .28),
                                   ),
                                   SizedBox(
-                                    width: 76,
+                                    width: 82,
                                     child: _segment(
                                       _activeVersionCode(settings),
                                       _showTranslations,
@@ -284,12 +317,12 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                           IconButton(
                             onPressed: _showSearch,
                             icon: const Icon(Icons.search_rounded, size: 28),
-                            tooltip: 'Kuran ve meal ara',
+                            tooltip: l10n.text('readerSearchTooltip'),
                           ),
                           IconButton(
                             onPressed: _showReaderMenu,
                             icon: const Icon(Icons.more_horiz_rounded, size: 29),
-                            tooltip: 'Okuma ayarları',
+                            tooltip: l10n.text('readerSettingsTooltip'),
                           ),
                         ],
                       ),
@@ -297,9 +330,10 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
               const Divider(height: 1),
               Expanded(
                 child: FutureBuilder<Map<String, String>>(
-                  future: _turkishTranslation,
+                  future: _translationFuture(settings),
                   builder: (context, snapshot) {
-                    final translations = snapshot.data ?? const <String, String>{};
+                    final translations =
+                        snapshot.data ?? const <String, String>{};
                     return _readerScrollView(
                       surah: surah,
                       settings: settings,
@@ -357,13 +391,21 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       },
       child: SingleChildScrollView(
         controller: _scrollController,
-        padding: EdgeInsets.fromLTRB(22, 28, 22, _selectedAyahs.isEmpty ? 118 : 78),
+        padding: EdgeInsets.fromLTRB(
+          22,
+          28,
+          22,
+          _selectedAyahs.isEmpty ? 118 : 78,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _surahHeader(surah, settings),
-            if (translationError && settings.readerMode != ReaderDisplayMode.arabic)
-              _TranslationError(onRetry: () => setState(() {})),
+            if (translationError && !settings.readerUsesArabic)
+              _TranslationError(onRetry: () {
+                _invalidateTranslationFuture();
+                setState(() {});
+              }),
             _ContinuousVerseText(
               key: _textKey,
               surahNumber: _surahNumber,
@@ -371,7 +413,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
               translations: translations,
               mode: settings.readerMode,
               textSize: settings.readerTextSize,
-              lineHeight: settings.readerMode == ReaderDisplayMode.arabic
+              lineHeight: settings.readerUsesArabic
                   ? settings.arabicLineHeight
                   : settings.translationLineHeight,
               selectedAyahs: _selectedAyahs,
@@ -406,7 +448,10 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
         ),
@@ -414,7 +459,8 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
 
   Widget _surahHeader(SurahInfo surah, AppSettings settings) {
     final scheme = Theme.of(context).colorScheme;
-    final arabicMode = settings.readerMode == ReaderDisplayMode.arabic;
+    final l10n = context.l10n;
+    final arabicMode = settings.readerUsesArabic;
     final hasSeparateBasmala = surah.number != 1 && surah.number != 9;
 
     return Padding(
@@ -422,8 +468,8 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       child: Column(
         children: [
           Text(
-            arabicMode ? surah.nameAr : surah.nameTr,
-            textDirection: arabicMode ? TextDirection.rtl : TextDirection.ltr,
+            arabicMode ? surah.nameAr : _surahName(surah),
+            textDirection: arabicMode ? TextDirection.rtl : null,
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontFamily: 'serif',
                   fontSize: 31,
@@ -431,7 +477,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            '${surah.verseCount} ayet',
+            '${surah.verseCount} ${l10n.text('verseUnit')}',
             style: TextStyle(
               color: scheme.onSurfaceVariant,
               fontWeight: FontWeight.w600,
@@ -457,6 +503,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   }
 
   void _showReaderMenu() {
+    final l10n = context.l10n;
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -468,8 +515,8 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
             children: [
               ListTile(
                 leading: const Icon(Icons.text_fields_rounded),
-                title: const Text('Yazı tipi ve okuma görünümü'),
-                subtitle: const Text('Ortak metin boyutu ve satır aralığı'),
+                title: Text(l10n.text('readerAppearanceMenu')),
+                subtitle: Text(l10n.text('readerAppearanceMenuSubtitle')),
                 onTap: () {
                   Navigator.pop(sheetContext);
                   _showReadingAppearance();
@@ -477,19 +524,19 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.translate_rounded),
-                title: const Text('Okuma metni'),
+                title: Text(l10n.text('readingText')),
                 subtitle: Text(
-                  '${_activeVersionCode(AppSettingsScope.of(context))} · çevrimdışı',
+                  '${_activeVersionCode(AppSettingsScope.of(context))} · ${l10n.text('offline')}',
                 ),
                 onTap: () {
                   Navigator.pop(sheetContext);
                   _showTranslations();
                 },
               ),
-              const ListTile(
-                leading: Icon(Icons.verified_outlined),
-                title: Text('Arapça metin kaynağı'),
-                subtitle: Text('Tanzil.net · çevrimdışı ve değiştirilmeden'),
+              ListTile(
+                leading: const Icon(Icons.verified_outlined),
+                title: Text(l10n.text('arabicTextSource')),
+                subtitle: Text(l10n.text('arabicTextSourceSubtitle')),
               ),
             ],
           ),
@@ -500,6 +547,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
 
   Future<void> _showReadingAppearance() async {
     final settings = AppSettingsScope.of(context);
+    final l10n = context.l10n;
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -511,17 +559,20 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
             builder: (context, setSheetState) => ListView(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
               children: [
-                const Text(
-                  'Okuma görünümü',
-                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
+                Text(
+                  l10n.text('readerAppearance'),
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
                 const SizedBox(height: 18),
                 _FontSizeControl(
-                  title: 'Metin boyutu',
+                  title: l10n.text('textSize'),
                   value: settings.readerTextSize.round(),
-                  preview: settings.readerMode == ReaderDisplayMode.arabic
+                  preview: settings.readerUsesArabic
                       ? 'بِسْمِ اللَّهِ'
-                      : 'Kuran meali',
+                      : l10n.text('quranTranslationPreview'),
                   onDecrease: () {
                     settings.setReaderTextSize(settings.readerTextSize - 1.5);
                     HapticFeedback.selectionClick();
@@ -534,9 +585,9 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                   },
                 ),
                 const SizedBox(height: 20),
-                const Text(
-                  'Satır aralığı',
-                  style: TextStyle(fontWeight: FontWeight.w900),
+                Text(
+                  l10n.text('lineSpacing'),
+                  style: const TextStyle(fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 10),
                 Wrap(
@@ -545,9 +596,9 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                     for (final option in ReaderLineSpacing.values)
                       ChoiceChip(
                         label: Text(switch (option) {
-                          ReaderLineSpacing.compact => 'Sık',
-                          ReaderLineSpacing.normal => 'Normal',
-                          ReaderLineSpacing.relaxed => 'Ferah',
+                          ReaderLineSpacing.compact => l10n.text('compact'),
+                          ReaderLineSpacing.normal => l10n.text('normal'),
+                          ReaderLineSpacing.relaxed => l10n.text('relaxed'),
                         }),
                         selected: settings.readerLineSpacing == option,
                         onSelected: (_) {
@@ -560,7 +611,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  'Boyut ayarı seçili metinden bağımsızdır. RWD’den Arapçaya geçseniz de aynı okuma boyutu korunur.',
+                  l10n.text('readerSizeHint'),
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                     height: 1.45,
@@ -575,8 +626,18 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   }
 
   Future<void> _showSearch() async {
-    final translations = await _turkishTranslation;
+    final settings = AppSettingsScope.of(context);
+    Map<String, String> translations = const <String, String>{};
+    if (!settings.readerUsesArabic) {
+      try {
+        translations = await TranslationRepository.instance
+            .loadSourceVerses(settings.selectedQuranSourceId);
+      } catch (_) {
+        if (!mounted) return;
+      }
+    }
     if (!mounted) return;
+    final l10n = context.l10n;
     final controller = TextEditingController();
     String query = '';
 
@@ -589,7 +650,11 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
         child: SafeArea(
           child: StatefulBuilder(
             builder: (context, setSheetState) {
-              final results = _searchResults(query, translations);
+              final results = _searchResults(
+                query,
+                translations,
+                searchArabic: settings.readerUsesArabic,
+              );
               return Column(
                 children: [
                   Padding(
@@ -600,11 +665,14 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                           onPressed: () => Navigator.pop(sheetContext),
                           icon: const Icon(Icons.close_rounded),
                         ),
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'Kuran’da ara',
+                            l10n.text('quranSearchTitle'),
                             textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 48),
@@ -618,7 +686,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                       autofocus: true,
                       onChanged: (value) => setSheetState(() => query = value),
                       decoration: InputDecoration(
-                        hintText: 'Bakara, 2:255 veya sabır ara',
+                        hintText: l10n.text('quranSearchHint'),
                         prefixIcon: const Icon(Icons.search_rounded),
                         suffixIcon: query.isEmpty
                             ? null
@@ -641,7 +709,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                     child: query.trim().isEmpty
                         ? const _SearchHint()
                         : results.isEmpty
-                            ? const Center(child: Text('Sonuç bulunamadı.'))
+                            ? Center(child: Text(l10n.text('noResults')))
                             : ListView.separated(
                                 padding: const EdgeInsets.fromLTRB(14, 4, 14, 24),
                                 itemCount: results.length,
@@ -672,8 +740,9 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
 
   List<_SearchResult> _searchResults(
     String rawQuery,
-    Map<String, String> translations,
-  ) {
+    Map<String, String> translations, {
+    required bool searchArabic,
+  }) {
     final query = _normalizeSearch(rawQuery);
     if (query.isEmpty) return const <_SearchResult>[];
     final results = <_SearchResult>[];
@@ -699,8 +768,10 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
             _SearchResult(
               surah: surahNumber,
               ayah: ayah,
-              title: '${surah.nameTr} $surahNumber:$ayah',
-              subtitle: translations['$surahNumber:$ayah'] ?? '',
+              title: '${_surahName(surah)} $surahNumber:$ayah',
+              subtitle: searchArabic
+                  ? quran.getVerse(surahNumber, ayah)
+                  : translations['$surahNumber:$ayah'] ?? '',
             ),
           );
         }
@@ -708,22 +779,23 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     }
 
     for (final surah in surahCatalog) {
-      final normalizedName = _normalizeSearch(surah.nameTr);
-      if (normalizedName.contains(query) ||
-          _normalizeSearch(surah.nameAr).contains(query)) {
+      final normalizedTr = _normalizeSearch(surah.nameTr);
+      final normalizedAr = _normalizeSearch(surah.nameAr);
+      if (normalizedTr.contains(query) || normalizedAr.contains(query)) {
         addResult(
           _SearchResult(
             surah: surah.number,
             ayah: 1,
-            title: '${surah.nameTr} · ${surah.verseCount} ayet',
+            title:
+                '${_surahName(surah)} · ${surah.verseCount} ${context.l10n.text('verseUnit')}',
             subtitle: surah.nameAr,
             isSurah: true,
           ),
         );
       }
-      if (query.startsWith('$normalizedName ')) {
+      if (query.startsWith('$normalizedTr ')) {
         final possibleAyah =
-            int.tryParse(query.substring(normalizedName.length).trim());
+            int.tryParse(query.substring(normalizedTr.length).trim());
         if (possibleAyah != null &&
             possibleAyah >= 1 &&
             possibleAyah <= surah.verseCount) {
@@ -731,8 +803,10 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
             _SearchResult(
               surah: surah.number,
               ayah: possibleAyah,
-              title: '${surah.nameTr} ${surah.number}:$possibleAyah',
-              subtitle: translations['${surah.number}:$possibleAyah'] ?? '',
+              title: '${_surahName(surah)} ${surah.number}:$possibleAyah',
+              subtitle: searchArabic
+                  ? quran.getVerse(surah.number, possibleAyah)
+                  : translations['${surah.number}:$possibleAyah'] ?? '',
             ),
           );
         }
@@ -740,28 +814,47 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     }
 
     if (query.length >= 2) {
-      for (final entry in translations.entries) {
-        if (results.length >= 60) break;
-        if (!_normalizeSearch(entry.value).contains(query)) continue;
-        final parts = entry.key.split(':');
-        if (parts.length != 2) continue;
-        final surahNumber = int.tryParse(parts[0]);
-        final ayah = int.tryParse(parts[1]);
-        if (surahNumber == null ||
-            ayah == null ||
-            surahNumber < 1 ||
-            surahNumber > 114) {
-          continue;
+      if (searchArabic) {
+        for (final surah in surahCatalog) {
+          for (var ayah = 1; ayah <= surah.verseCount; ayah++) {
+            if (results.length >= 60) break;
+            final text = quran.getVerse(surah.number, ayah);
+            if (!_normalizeSearch(text).contains(query)) continue;
+            addResult(
+              _SearchResult(
+                surah: surah.number,
+                ayah: ayah,
+                title: '${_surahName(surah)} ${surah.number}:$ayah',
+                subtitle: text,
+              ),
+            );
+          }
+          if (results.length >= 60) break;
         }
-        final surah = surahByNumber(surahNumber);
-        addResult(
-          _SearchResult(
-            surah: surahNumber,
-            ayah: ayah,
-            title: '${surah.nameTr} $surahNumber:$ayah',
-            subtitle: entry.value,
-          ),
-        );
+      } else {
+        for (final entry in translations.entries) {
+          if (results.length >= 60) break;
+          if (!_normalizeSearch(entry.value).contains(query)) continue;
+          final parts = entry.key.split(':');
+          if (parts.length != 2) continue;
+          final surahNumber = int.tryParse(parts[0]);
+          final ayah = int.tryParse(parts[1]);
+          if (surahNumber == null ||
+              ayah == null ||
+              surahNumber < 1 ||
+              surahNumber > 114) {
+            continue;
+          }
+          final surah = surahByNumber(surahNumber);
+          addResult(
+            _SearchResult(
+              surah: surahNumber,
+              ayah: ayah,
+              title: '${_surahName(surah)} $surahNumber:$ayah',
+              subtitle: entry.value,
+            ),
+          );
+        }
       }
     }
 
@@ -775,6 +868,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       .toLowerCase();
 
   Future<void> _showSurahs() async {
+    final l10n = context.l10n;
     final controller = TextEditingController();
     String query = '';
 
@@ -806,11 +900,11 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                           onPressed: () => Navigator.pop(sheetContext),
                           icon: const Icon(Icons.close),
                         ),
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'Sureler',
+                            l10n.text('surahs'),
                             textAlign: TextAlign.center,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w900,
                             ),
@@ -826,7 +920,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                       controller: controller,
                       onChanged: (value) => setSheetState(() => query = value),
                       decoration: InputDecoration(
-                        hintText: 'Sure adı veya numara ara',
+                        hintText: l10n.text('surahSearchHint'),
                         prefixIcon: const Icon(Icons.search_rounded),
                         suffixIcon: query.isEmpty
                             ? null
@@ -875,9 +969,16 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   Future<void> _showTranslations() async {
     final settings = AppSettingsScope.of(context);
     final scheme = Theme.of(context).colorScheme;
-    final candidate = translationCatalog.first;
+    final l10n = context.l10n;
+    final installed = <TranslationInfo>[];
+    for (final info in translationCatalog) {
+      if (await TranslationRepository.instance.isInstalled(info.id)) {
+        installed.add(info);
+      }
+    }
+    if (!mounted) return;
 
-    final picked = await showModalBottomSheet<ReaderDisplayMode>(
+    final picked = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
       builder: (sheetContext) => SafeArea(
@@ -887,41 +988,47 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Okuma metni',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+              Text(
+                l10n.text('readingText'),
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               const SizedBox(height: 6),
               Text(
-                'Okuyucuda aynı anda tek metin gösterilir.',
+                l10n.text('singleTextReaderHint'),
                 style: TextStyle(color: scheme.onSurfaceVariant),
               ),
               const SizedBox(height: 16),
-              _VersionChoice(
-                code: candidate.code,
-                title: 'Türkçe Tercüme',
-                subtitle: '${candidate.publisher} · çevrimdışı',
-                selected: settings.readerMode == ReaderDisplayMode.translation,
-                onTap: () => Navigator.pop(
-                  sheetContext,
-                  ReaderDisplayMode.translation,
+              for (final info in installed) ...[
+                _VersionChoice(
+                  code: info.code,
+                  title: info.name,
+                  subtitle: '${info.publisher} · ${l10n.text('offline')}',
+                  selected: settings.selectedQuranSourceId == info.id,
+                  onTap: () => Navigator.pop(sheetContext, info.id),
                 ),
-              ),
-              const SizedBox(height: 8),
+                const SizedBox(height: 8),
+              ],
               _VersionChoice(
                 code: 'AR',
-                title: 'Arapça · Orijinal Kuran metni',
-                subtitle: 'Tanzil.net · çevrimdışı',
-                selected: settings.readerMode == ReaderDisplayMode.arabic,
+                title: l10n.arabicOriginal,
+                subtitle: 'Tanzil.net · ${l10n.text('offline')}',
+                selected:
+                    settings.selectedQuranSourceId == arabicOriginalSourceId,
                 onTap: () => Navigator.pop(
                   sheetContext,
-                  ReaderDisplayMode.arabic,
+                  arabicOriginalSourceId,
                 ),
               ),
               const SizedBox(height: 12),
               Text(
-                'Yeni mealler ve diller indirildikçe burada listelenecek.',
-                style: TextStyle(color: scheme.onSurfaceVariant, height: 1.45),
+                l10n.text('newTranslationsHint'),
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant,
+                  height: 1.45,
+                ),
               ),
             ],
           ),
@@ -931,9 +1038,11 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
 
     if (picked == null || !mounted) return;
     final visibleAyah = settings.lastAyah;
-    await settings.setReaderMode(picked);
+    await settings.setSelectedQuranSource(picked);
+    _invalidateTranslationFuture();
     if (!mounted) return;
     HapticFeedback.selectionClick();
+    setState(() {});
     _scheduleScrollToAyah(visibleAyah);
   }
 
@@ -953,15 +1062,18 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   Future<void> _bookmarkSelection() async {
     final selected = _selection;
     if (selected.isEmpty) return;
-    await AppSettingsScope.of(context).bookmarkSelection(_surahNumber, selected);
+    await AppSettingsScope.of(context).bookmarkSelection(
+      _surahNumber,
+      selected,
+    );
     if (!mounted) return;
     HapticFeedback.lightImpact();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           selected.length == 1
-              ? 'Ayet kaydedildi'
-              : '${_selectionReference()} tek kayıt olarak kaydedildi',
+              ? context.l10n.text('verseSaved')
+              : context.l10n.text('selectionSaved'),
         ),
       ),
     );
@@ -972,10 +1084,14 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     final selected = _selection;
     if (selected.isEmpty) return;
     final settings = AppSettingsScope.of(context);
-    final translations = await _turkishTranslation;
+    Map<String, String> translations = const <String, String>{};
+    if (!settings.readerUsesArabic) {
+      translations = await TranslationRepository.instance
+          .loadSourceVerses(settings.selectedQuranSourceId);
+    }
     if (!mounted) return;
 
-    final body = settings.readerMode == ReaderDisplayMode.arabic
+    final body = settings.readerUsesArabic
         ? selected.map((ayah) => quran.getVerse(_surahNumber, ayah)).join(' ')
         : selected
             .map((ayah) => translations['$_surahNumber:$ayah'])
@@ -988,7 +1104,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     if (!mounted) return;
     HapticFeedback.lightImpact();
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Seçili ayet kopyalandı')),
+      SnackBar(content: Text(context.l10n.text('selectionCopied'))),
     );
     _clearSelection();
   }
@@ -996,11 +1112,20 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   Future<void> _showCompareSheet() async {
     final selected = _selection;
     if (selected.isEmpty) return;
-    final translations = await _turkishTranslation;
-    if (!mounted) return;
     final settings = AppSettingsScope.of(context);
-    final currentCode = _activeVersionCode(settings);
-    final shownCodes = <String>[currentCode];
+    final l10n = context.l10n;
+    final repo = TranslationRepository.instance;
+    final installed = <TranslationInfo>[];
+    final textMaps = <String, Map<String, String>>{};
+    for (final info in translationCatalog) {
+      if (await repo.isInstalled(info.id)) {
+        installed.add(info);
+        textMaps[info.id] = await repo.loadSourceVerses(info.id);
+      }
+    }
+    if (!mounted) return;
+
+    final shownSources = <String>[settings.selectedQuranSourceId];
 
     await showModalBottomSheet<void>(
       context: context,
@@ -1011,33 +1136,43 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
         heightFactor: .9,
         child: StatefulBuilder(
           builder: (context, setSheetState) {
-            String textFor(String code) {
-              if (code == 'AR') {
+            String textFor(String sourceId) {
+              if (sourceId == arabicOriginalSourceId) {
                 return selected
                     .map((ayah) => quran.getVerse(_surahNumber, ayah))
                     .join(' ');
               }
+              final map = textMaps[sourceId] ?? const <String, String>{};
               return selected
-                  .map((ayah) => translations['$_surahNumber:$ayah'])
+                  .map((ayah) => map['$_surahNumber:$ayah'])
                   .whereType<String>()
                   .join(' ');
             }
 
-            String titleFor(String code) => code == 'AR'
-                ? 'Arapça · Orijinal Kuran metni'
-                : 'Türkçe Tercüme';
+            String titleFor(String sourceId) =>
+                sourceId == arabicOriginalSourceId
+                    ? l10n.arabicOriginal
+                    : translationById(sourceId)?.name ?? sourceId;
+
+            String codeFor(String sourceId) =>
+                sourceId == arabicOriginalSourceId
+                    ? 'AR'
+                    : translationById(sourceId)?.code ?? sourceId;
 
             Future<void> addVersion() async {
               final available = <_CompareVersion>[
-                if (!shownCodes.contains(translationCatalog.first.code))
+                for (final info in installed)
+                  if (!shownSources.contains(info.id))
+                    _CompareVersion(
+                      sourceId: info.id,
+                      code: info.code,
+                      title: info.name,
+                    ),
+                if (!shownSources.contains(arabicOriginalSourceId))
                   _CompareVersion(
-                    code: translationCatalog.first.code,
-                    title: 'Türkçe Tercüme',
-                  ),
-                if (!shownCodes.contains('AR'))
-                  const _CompareVersion(
+                    sourceId: arabicOriginalSourceId,
                     code: 'AR',
-                    title: 'Arapça · Orijinal Kuran metni',
+                    title: l10n.arabicOriginal,
                   ),
               ];
               if (available.isEmpty) return;
@@ -1051,9 +1186,9 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Metin ekle',
-                          style: TextStyle(
+                        Text(
+                          l10n.text('addText'),
+                          style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w900,
                           ),
@@ -1063,9 +1198,10 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                           ListTile(
                             contentPadding: EdgeInsets.zero,
                             leading: SizedBox(
-                              width: 44,
+                              width: 55,
                               child: Text(
                                 version.code,
+                                textDirection: TextDirection.ltr,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w900,
                                 ),
@@ -1083,12 +1219,12 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
               );
               if (picked != null) {
                 HapticFeedback.selectionClick();
-                setSheetState(() => shownCodes.add(picked.code));
+                setSheetState(() => shownSources.add(picked.sourceId));
               }
             }
 
-            Widget versionBlock(String code) {
-              final arabic = code == 'AR';
+            Widget versionBlock(String sourceId) {
+              final arabic = sourceId == arabicOriginalSourceId;
               return Padding(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
                 child: Column(
@@ -1097,7 +1233,8 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                     Row(
                       children: [
                         Text(
-                          code,
+                          codeFor(sourceId),
+                          textDirection: TextDirection.ltr,
                           style: const TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w900,
@@ -1106,7 +1243,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                         const Spacer(),
                         Flexible(
                           child: Text(
-                            titleFor(code),
+                            titleFor(sourceId),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -1120,7 +1257,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                     ),
                     const SizedBox(height: 18),
                     Text(
-                      textFor(code),
+                      textFor(sourceId),
                       textDirection:
                           arabic ? TextDirection.rtl : TextDirection.ltr,
                       textAlign: arabic ? TextAlign.right : TextAlign.left,
@@ -1150,9 +1287,9 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                       Expanded(
                         child: Column(
                           children: [
-                            const Text(
-                              'Metinleri Karşılaştır',
-                              style: TextStyle(
+                            Text(
+                              l10n.text('compareTexts'),
+                              style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w800,
                               ),
@@ -1175,9 +1312,10 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                 const Divider(height: 1),
                 Expanded(
                   child: ListView.separated(
-                    itemCount: shownCodes.length,
+                    itemCount: shownSources.length,
                     separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (_, index) => versionBlock(shownCodes[index]),
+                    itemBuilder: (_, index) =>
+                        versionBlock(shownSources[index]),
                   ),
                 ),
                 const Divider(height: 1),
@@ -1188,9 +1326,11 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                     child: SizedBox(
                       width: double.infinity,
                       child: TextButton.icon(
-                        onPressed: shownCodes.length >= 2 ? null : addVersion,
+                        onPressed: shownSources.length >= installed.length + 1
+                            ? null
+                            : addVersion,
                         icon: const Icon(Icons.add_rounded, size: 30),
-                        label: const Text('Metin Ekle'),
+                        label: Text(l10n.text('addText')),
                       ),
                     ),
                   ),
@@ -1217,18 +1357,31 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
         ..addAll(ayahs);
     });
     HapticFeedback.selectionClick();
-    await _editSelectionNote(sourceOverride: settings.noteSourceForKey(key));
+    await _editSelectionNote(
+      sourceOverride: settings.noteSourceForKey(key),
+    );
   }
 
   Future<void> _editSelectionNote({String? sourceOverride}) async {
     final settings = AppSettingsScope.of(context);
     final selected = _selection;
     if (selected.isEmpty) return;
-    final translations = await _turkishTranslation;
-    if (!mounted) return;
 
     final sourceCode = sourceOverride ?? _activeVersionCode(settings);
-    final arabicSource = sourceCode == 'AR';
+    final sourceId = _sourceIdForCode(sourceCode);
+    final arabicSource = sourceId == arabicOriginalSourceId;
+    Map<String, String> translations = const <String, String>{};
+    if (!arabicSource) {
+      try {
+        translations = await TranslationRepository.instance
+            .loadSourceVerses(sourceId);
+      } catch (_) {
+        translations = await TranslationRepository.instance
+            .loadBundledTurkish();
+      }
+    }
+    if (!mounted) return;
+
     final selectedText = arabicSource
         ? selected.map((ayah) => quran.getVerse(_surahNumber, ayah)).join(' ')
         : selected
@@ -1239,6 +1392,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     final controller = TextEditingController(
       text: settings.noteForSelection(_surahNumber, selected) ?? '',
     );
+    final l10n = context.l10n;
 
     final value = await showModalBottomSheet<String>(
       context: context,
@@ -1264,11 +1418,11 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                       onPressed: () => Navigator.pop(sheetContext),
                       icon: const Icon(Icons.close_rounded),
                     ),
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Not',
+                        l10n.text('note'),
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
                         ),
@@ -1277,7 +1431,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                     FilledButton(
                       onPressed: () =>
                           Navigator.pop(sheetContext, controller.text),
-                      child: const Text('Kaydet'),
+                      child: Text(l10n.save),
                     ),
                   ],
                 ),
@@ -1288,7 +1442,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                   minLines: 4,
                   maxLines: 7,
                   decoration: InputDecoration(
-                    hintText: 'Notunuzu yazın',
+                    hintText: l10n.text('noteHint'),
                     filled: true,
                     fillColor: scheme.surfaceContainer,
                     border: OutlineInputBorder(
@@ -1299,7 +1453,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                 ),
                 const SizedBox(height: 22),
                 Align(
-                  alignment: Alignment.centerLeft,
+                  alignment: AlignmentDirectional.centerStart,
                   child: Text(
                     '${_selectionReference()} · $sourceCode',
                     style: const TextStyle(
@@ -1348,7 +1502,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Notunuz yalnızca bu cihazda saklanır.',
+                        l10n.text('noteLocalOnly'),
                         style: TextStyle(color: scheme.onSurfaceVariant),
                       ),
                     ),
@@ -1429,9 +1583,7 @@ class _ContinuousVerseTextState extends State<_ContinuousVerseText> {
       for (var ayah = 1; ayah <= widget.verseCount; ayah++) ayah,
     };
     for (final ayah in _recognizers.keys.toList()) {
-      if (!needed.contains(ayah)) {
-        _recognizers.remove(ayah)?.dispose();
-      }
+      if (!needed.contains(ayah)) _recognizers.remove(ayah)?.dispose();
     }
     for (final ayah in needed) {
       final recognizer = _recognizers.putIfAbsent(
@@ -1508,7 +1660,7 @@ class _ContinuousVerseTextState extends State<_ContinuousVerseText> {
       final text = arabicMode
           ? quran.getVerse(widget.surahNumber, ayah)
           : widget.translations['${widget.surahNumber}:$ayah'] ??
-              'Meal yükleniyor…';
+              context.l10n.translationLoading;
 
       final numberStyle = TextStyle(
         color: highlightedColor == null
@@ -1623,6 +1775,7 @@ class _SelectionTray extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
     return Material(
       elevation: 16,
       borderRadius: BorderRadius.circular(26),
@@ -1643,7 +1796,7 @@ class _SelectionTray extends StatelessWidget {
               IconButton(
                 onPressed: () => onHighlight(null),
                 icon: const Icon(Icons.format_color_reset_rounded, size: 20),
-                tooltip: 'Vurguyu kaldır',
+                tooltip: l10n.text('removeHighlight'),
               ),
               Container(
                 width: 1,
@@ -1653,22 +1806,22 @@ class _SelectionTray extends StatelessWidget {
               ),
               _SelectionAction(
                 icon: Icons.bookmark_border_rounded,
-                label: 'Kaydet',
+                label: l10n.save,
                 onTap: onBookmark,
               ),
               _SelectionAction(
                 icon: Icons.note_alt_outlined,
-                label: 'Not',
+                label: l10n.text('note'),
                 onTap: onNote,
               ),
               _SelectionAction(
                 icon: Icons.copy_rounded,
-                label: 'Kopyala',
+                label: l10n.text('copy'),
                 onTap: onCopy,
               ),
               _SelectionAction(
                 icon: Icons.compare_arrows_rounded,
-                label: 'Karşılaştır',
+                label: l10n.text('compare'),
                 onTap: onCompare,
               ),
             ],
@@ -1738,8 +1891,13 @@ class _SelectionActionState extends State<_SelectionAction> {
 }
 
 class _CompareVersion {
-  const _CompareVersion({required this.code, required this.title});
+  const _CompareVersion({
+    required this.sourceId,
+    required this.code,
+    required this.title,
+  });
 
+  final String sourceId;
   final String code;
   final String title;
 }
@@ -1773,9 +1931,10 @@ class _VersionChoice extends StatelessWidget {
           child: Row(
             children: [
               SizedBox(
-                width: 50,
+                width: 58,
                 child: Text(
                   code,
+                  textDirection: TextDirection.ltr,
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w900,
@@ -1860,6 +2019,7 @@ class _FontSizeControl extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -1884,7 +2044,7 @@ class _FontSizeControl extends StatelessWidget {
           IconButton.filledTonal(
             onPressed: onDecrease,
             icon: const Icon(Icons.text_decrease_rounded),
-            tooltip: 'Küçült',
+            tooltip: l10n.text('shrink'),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -1896,7 +2056,7 @@ class _FontSizeControl extends StatelessWidget {
           IconButton.filledTonal(
             onPressed: onIncrease,
             icon: const Icon(Icons.text_increase_rounded),
-            tooltip: 'Büyüt',
+            tooltip: l10n.text('enlarge'),
           ),
         ],
       ),
@@ -1918,6 +2078,7 @@ class _SurahRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final arabicUi = Localizations.localeOf(context).languageCode == 'ar';
     return Material(
       color: selected ? scheme.primaryContainer : Colors.transparent,
       child: ListTile(
@@ -1927,6 +2088,7 @@ class _SurahRow extends StatelessWidget {
           width: 34,
           child: Text(
             '${surah.number}',
+            textDirection: TextDirection.ltr,
             style: TextStyle(
               color: selected ? scheme.primary : scheme.onSurfaceVariant,
               fontWeight: FontWeight.w700,
@@ -1934,15 +2096,19 @@ class _SurahRow extends StatelessWidget {
           ),
         ),
         title: Text(
-          surah.nameTr,
+          arabicUi ? surah.nameAr : surah.nameTr,
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
         ),
-        subtitle: Text('${surah.verseCount} ayet'),
-        trailing: Text(
-          surah.nameAr,
-          textDirection: TextDirection.rtl,
-          style: const TextStyle(fontFamily: 'serif', fontSize: 20),
+        subtitle: Text(
+          '${surah.verseCount} ${context.l10n.text('verseUnit')}',
         ),
+        trailing: arabicUi
+            ? null
+            : Text(
+                surah.nameAr,
+                textDirection: TextDirection.rtl,
+                style: const TextStyle(fontFamily: 'serif', fontSize: 20),
+              ),
       ),
     );
   }
@@ -1969,7 +2135,7 @@ class _TranslationError extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Türkçe meal paketi açılamadı. Arapça metin kullanılabilir.',
+              context.l10n.text('translationPackError'),
               style: TextStyle(color: scheme.onErrorContainer),
             ),
           ),
@@ -1989,6 +2155,7 @@ class _SearchHint extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(30),
@@ -1997,13 +2164,16 @@ class _SearchHint extends StatelessWidget {
           children: [
             Icon(Icons.search_rounded, size: 44, color: scheme.primary),
             const SizedBox(height: 14),
-            const Text(
-              'Sure, ayet veya meal içinde ara',
-              style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+            Text(
+              l10n.text('searchHintTitle'),
+              style: const TextStyle(
+                fontSize: 19,
+                fontWeight: FontWeight.w900,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Örnek: “Bakara”, “2:255” veya “sabır”. Arama cihazdaki çevrimdışı meal üzerinde yapılır.',
+              l10n.text('searchHintBody'),
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: scheme.onSurfaceVariant,
