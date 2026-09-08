@@ -78,10 +78,11 @@ class _QuranTranslationCatalogScreenState
           ),
           const SizedBox(height: 18),
           _OriginalArabicTile(
-            selected: settings.readerMode == ReaderDisplayMode.arabic,
+            selected:
+                settings.selectedQuranSourceId == arabicOriginalSourceId,
             onTap: () {
               HapticFeedback.selectionClick();
-              settings.setReaderMode(ReaderDisplayMode.arabic);
+              settings.setSelectedQuranSource(arabicOriginalSourceId);
             },
           ),
           for (final item in items) ...[
@@ -89,12 +90,11 @@ class _QuranTranslationCatalogScreenState
             _TranslationTile(
               info: item,
               languageName: _languageName(item.languageCode),
-              selected: item.bundled &&
-                  settings.readerMode != ReaderDisplayMode.arabic,
+              selected: settings.selectedQuranSourceId == item.id,
               onTap: () {
                 HapticFeedback.selectionClick();
                 if (item.bundled) {
-                  settings.setReaderMode(ReaderDisplayMode.translation);
+                  settings.setSelectedQuranSource(item.id);
                   return;
                 }
                 ScaffoldMessenger.of(context).showSnackBar(
