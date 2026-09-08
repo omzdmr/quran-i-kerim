@@ -38,6 +38,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
 
   @override
   void dispose() {
+    AppNavigation.instance.setReaderSelectionActive(false);
     AppNavigation.instance.readerRequest.removeListener(_handleReaderRequest);
     _scrollController.dispose();
     super.dispose();
@@ -74,6 +75,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       _anchorAyah = safeAyah;
       _selectedAyahs.clear();
     });
+    AppNavigation.instance.setReaderSelectionActive(false);
     if (save) {
       AppSettingsScope.of(context).saveReadingPosition(
         surah: surah.number,
@@ -91,6 +93,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       _anchorAyah = 1;
       _selectedAyahs.clear();
     });
+    AppNavigation.instance.setReaderSelectionActive(false);
     AppSettingsScope.of(context).saveReadingPosition(surah: surah.number, ayah: 1);
     HapticFeedback.selectionClick();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -161,6 +164,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
         _selectedAyahs.remove(ayahNumber);
       }
     });
+    AppNavigation.instance.setReaderSelectionActive(_selectedAyahs.isNotEmpty);
     HapticFeedback.selectionClick();
     AppSettingsScope.of(context).saveReadingPosition(
       surah: _surahNumber,
@@ -169,8 +173,12 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   }
 
   void _clearSelection() {
-    if (_selectedAyahs.isEmpty) return;
+    if (_selectedAyahs.isEmpty) {
+      AppNavigation.instance.setReaderSelectionActive(false);
+      return;
+    }
     setState(_selectedAyahs.clear);
+    AppNavigation.instance.setReaderSelectionActive(false);
   }
 
   String _activeVersionCode(AppSettings settings) =>
@@ -191,52 +199,100 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 10, 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Container(
+                child: _selectedAyahs.isNotEmpty
+                    ? Container(
                         height: 48,
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
                         decoration: BoxDecoration(
                           color: scheme.surfaceContainer,
                           borderRadius: BorderRadius.circular(24),
                         ),
                         child: Row(
                           children: [
+                            IconButton(
+                              visualDensity: VisualDensity.compact,
+                              onPressed: _clearSelection,
+                              icon: const Icon(Icons.close_rounded),
+                              tooltip: 'Seçimi kapat',
+                            ),
                             Expanded(
-                              child: _segment(
-                                '${surah.nameTr} ${surah.number}',
-                                _showSurahs,
+                              child: Text(
+                                'Seçili: ${_selectionReference()}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                ),
                               ),
                             ),
                             Container(
-                              width: 1,
-                              height: 32,
-                              color: scheme.outline.withValues(alpha: .28),
-                            ),
-                            SizedBox(
-                              width: 76,
-                              child: _segment(
-                                _activeVersionCode(settings),
-                                _showTranslations,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 9,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: scheme.primaryContainer,
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Text(
+                                '${_selectedAyahs.length}',
+                                style: TextStyle(
+                                  color: scheme.primary,
+                                  fontWeight: FontWeight.w900,
+                                ),
                               ),
                             ),
+                            const SizedBox(width: 6),
                           ],
                         ),
+                      )
+                    : Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: scheme.surfaceContainer,
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: _segment(
+                                      '${surah.nameTr} ${surah.number}',
+                                      _showSurahs,
+                                    ),
+                                  ),
+                                  Container(
+                                    width: 1,
+                                    height: 32,
+                                    color: scheme.outline.withValues(alpha: .28),
+                                  ),
+                                  SizedBox(
+                                    width: 76,
+                                    child: _segment(
+                                      _activeVersionCode(settings),
+                                      _showTranslations,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          IconButton(
+                            onPressed: _showSearch,
+                            icon: const Icon(Icons.search_rounded, size: 28),
+                            tooltip: 'Kuran ve meal ara',
+                          ),
+                          IconButton(
+                            onPressed: _showReaderMenu,
+                            icon: const Icon(Icons.more_horiz_rounded, size: 29),
+                            tooltip: 'Okuma ayarları',
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(width: 4),
-                    IconButton(
-                      onPressed: _showSearch,
-                      icon: const Icon(Icons.search_rounded, size: 28),
-                      tooltip: 'Kuran ve meal ara',
-                    ),
-                    IconButton(
-                      onPressed: _showReaderMenu,
-                      icon: const Icon(Icons.more_horiz_rounded, size: 29),
-                      tooltip: 'Okuma ayarları',
-                    ),
-                  ],
-                ),
               ),
               const Divider(height: 1),
               Expanded(
@@ -258,7 +314,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
           Positioned(
             left: 10,
             right: 10,
-            bottom: 76,
+            bottom: 8,
             child: IgnorePointer(
               ignoring: _selectedAyahs.isEmpty,
               child: AnimatedSlide(
@@ -271,10 +327,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                   opacity: _selectedAyahs.isEmpty ? 0 : 1,
                   duration: const Duration(milliseconds: 150),
                   child: _SelectionTray(
-                    reference: _selectionReference(),
-                    count: _selectedAyahs.length,
-                    onClose: _clearSelection,
-                    onHighlight: _chooseHighlight,
+                    onHighlight: _applyHighlight,
                     onBookmark: _bookmarkSelection,
                     onNote: _editSelectionNote,
                     onCopy: _copySelection,
@@ -304,7 +357,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       },
       child: SingleChildScrollView(
         controller: _scrollController,
-        padding: const EdgeInsets.fromLTRB(22, 28, 22, 118),
+        padding: EdgeInsets.fromLTRB(22, 28, 22, _selectedAyahs.isEmpty ? 118 : 78),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -884,64 +937,14 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     _scheduleScrollToAyah(visibleAyah);
   }
 
-  Future<void> _chooseHighlight() async {
-    final settings = AppSettingsScope.of(context);
+  Future<void> _applyHighlight(VerseHighlightColor? color) async {
     final selected = _selection;
     if (selected.isEmpty) return;
-
-    final picked = await showModalBottomSheet<Object?>(
-      context: context,
-      showDragHandle: true,
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 26),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Vurgu rengi',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _selectionReference(),
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 22),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  for (final color in VerseHighlightColor.values)
-                    _HighlightDot(
-                      color: color,
-                      onTap: () => Navigator.pop(sheetContext, color),
-                    ),
-                  IconButton.filledTonal(
-                    onPressed: () => Navigator.pop(sheetContext, 'clear'),
-                    icon: const Icon(Icons.format_color_reset_rounded),
-                    tooltip: 'Vurguyu kaldır',
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
+    await AppSettingsScope.of(context).setHighlightForSelection(
+      _surahNumber,
+      selected,
+      color,
     );
-
-    if (!mounted || picked == null) return;
-    if (picked == 'clear') {
-      await settings.setHighlightForSelection(_surahNumber, selected, null);
-    } else if (picked is VerseHighlightColor) {
-      await settings.setHighlightForSelection(
-        _surahNumber,
-        selected,
-        picked,
-      );
-    }
     if (!mounted) return;
     HapticFeedback.lightImpact();
     _clearSelection();
@@ -1604,9 +1607,6 @@ class _ContinuousVerseTextState extends State<_ContinuousVerseText> {
 
 class _SelectionTray extends StatelessWidget {
   const _SelectionTray({
-    required this.reference,
-    required this.count,
-    required this.onClose,
     required this.onHighlight,
     required this.onBookmark,
     required this.onNote,
@@ -1614,10 +1614,7 @@ class _SelectionTray extends StatelessWidget {
     required this.onCompare,
   });
 
-  final String reference;
-  final int count;
-  final VoidCallback onClose;
-  final VoidCallback onHighlight;
+  final ValueChanged<VerseHighlightColor?> onHighlight;
   final VoidCallback onBookmark;
   final VoidCallback onNote;
   final VoidCallback onCopy;
@@ -1627,84 +1624,55 @@ class _SelectionTray extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Material(
-      elevation: 14,
-      borderRadius: BorderRadius.circular(24),
+      elevation: 16,
+      borderRadius: BorderRadius.circular(26),
       color: scheme.surfaceContainerHigh,
       clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(8, 4, 8, 7),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              height: 38,
-              child: Row(
-                children: [
-                  IconButton(
-                    visualDensity: VisualDensity.compact,
-                    onPressed: onClose,
-                    icon: const Icon(Icons.close_rounded, size: 22),
-                    tooltip: 'Seçimi kapat',
-                  ),
-                  Expanded(
-                    child: Text(
-                      reference,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w900),
-                    ),
-                  ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: scheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(13),
-                    ),
-                    child: Text(
-                      '$count',
-                      style: TextStyle(
-                        color: scheme.primary,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                ],
+      child: SizedBox(
+        height: 70,
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+          child: Row(
+            children: [
+              for (final color in VerseHighlightColor.values)
+                _HighlightDot(
+                  color: color,
+                  onTap: () => onHighlight(color),
+                ),
+              IconButton(
+                onPressed: () => onHighlight(null),
+                icon: const Icon(Icons.format_color_reset_rounded, size: 20),
+                tooltip: 'Vurguyu kaldır',
               ),
-            ),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _SelectionAction(
-                    icon: Icons.palette_outlined,
-                    label: 'Renk',
-                    onTap: onHighlight,
-                  ),
-                  _SelectionAction(
-                    icon: Icons.bookmark_border_rounded,
-                    label: 'Kaydet',
-                    onTap: onBookmark,
-                  ),
-                  _SelectionAction(
-                    icon: Icons.note_alt_outlined,
-                    label: 'Not',
-                    onTap: onNote,
-                  ),
-                  _SelectionAction(
-                    icon: Icons.copy_rounded,
-                    label: 'Kopyala',
-                    onTap: onCopy,
-                  ),
-                  _SelectionAction(
-                    icon: Icons.compare_arrows_rounded,
-                    label: 'Karşılaştır',
-                    onTap: onCompare,
-                  ),
-                ],
+              Container(
+                width: 1,
+                height: 36,
+                margin: const EdgeInsets.symmetric(horizontal: 5),
+                color: scheme.outlineVariant,
               ),
-            ),
-          ],
+              _SelectionAction(
+                icon: Icons.bookmark_border_rounded,
+                label: 'Kaydet',
+                onTap: onBookmark,
+              ),
+              _SelectionAction(
+                icon: Icons.note_alt_outlined,
+                label: 'Not',
+                onTap: onNote,
+              ),
+              _SelectionAction(
+                icon: Icons.copy_rounded,
+                label: 'Kopyala',
+                onTap: onCopy,
+              ),
+              _SelectionAction(
+                icon: Icons.compare_arrows_rounded,
+                label: 'Karşılaştır',
+                onTap: onCompare,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1853,10 +1821,10 @@ class _HighlightDot extends StatelessWidget {
         onTap: onTap,
         customBorder: const CircleBorder(),
         child: Padding(
-          padding: const EdgeInsets.all(5),
+          padding: const EdgeInsets.all(3),
           child: Container(
-            width: 44,
-            height: 44,
+            width: 32,
+            height: 32,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: _highlightMaterialColor(color),
