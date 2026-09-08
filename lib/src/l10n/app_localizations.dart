@@ -97,6 +97,14 @@ class AppLocalizations {
   String get languageAndTranslation => _value('languageAndTranslation');
   String get currentLanguageAndTranslation =>
       _value('currentLanguageAndTranslation');
+
+  // Frequently used surface labels. Keeping typed getters for these avoids
+  // scattering string keys through primary UI code while text(String) remains
+  // available for the larger feature vocabulary.
+  String get today => _value('today');
+  String get save => _value('save');
+  String get prayerTimes => _value('prayerTimes');
+  String get translationLoading => _value('translationLoading');
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
