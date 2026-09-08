@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+
 import 'l10n/app_localizations.dart';
 import 'settings/app_settings.dart';
 import 'shell/app_shell.dart';
@@ -28,6 +29,17 @@ class QuranModernApp extends StatelessWidget {
             themeMode: settings.themeMode,
             locale: settings.locale,
             supportedLocales: AppLocalizations.supportedLocales,
+            localeListResolutionCallback: (deviceLocales, supportedLocales) {
+              if (settings.locale != null) return settings.locale;
+              for (final deviceLocale in deviceLocales ?? const <Locale>[]) {
+                for (final supported in supportedLocales) {
+                  if (supported.languageCode == deviceLocale.languageCode) {
+                    return supported;
+                  }
+                }
+              }
+              return const Locale('en');
+            },
             localizationsDelegates: const [
               AppLocalizations.delegate,
               GlobalMaterialLocalizations.delegate,

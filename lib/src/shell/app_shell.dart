@@ -21,6 +21,7 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int _index = 0;
   bool _draggingNavigation = false;
+  int? _previewNavigationIndex;
 
   static const _screens = [
     HomeScreen(),
@@ -65,6 +66,46 @@ class _AppShellState extends State<AppShell> {
         .clamp(0, _screens.length - 1)
         .toInt();
   }
+
+  void _beginNavigationDrag(double dx, double width) {
+    final candidate = _indexForDx(dx, width);
+    setState(() {
+      _draggingNavigation = true;
+      _previewNavigationIndex = candidate;
+    });
+    if (candidate != _index) HapticFeedback.selectionClick();
+  }
+
+  void _updateNavigationDrag(double dx, double width) {
+    final candidate = _indexForDx(dx, width);
+    if (candidate == _previewNavigationIndex) return;
+    setState(() => _previewNavigationIndex = candidate);
+    HapticFeedback.selectionClick();
+  }
+
+  void _finishNavigationDrag() {
+    if (!mounted) return;
+    final target = _previewNavigationIndex;
+    if (target != null && target != _index) {
+      AppNavigation.instance.setReaderSelectionActive(false);
+    }
+    setState(() {
+      if (target != null) _index = target;
+      _previewNavigationIndex = null;
+      _draggingNavigation = false;
+    });
+  }
+
+  void _cancelNavigationDrag() {
+    if (!mounted) return;
+    setState(() {
+      _previewNavigationIndex = null;
+      _draggingNavigation = false;
+    });
+  }
+
+  int get _visualNavigationIndex =>
+      _draggingNavigation ? (_previewNavigationIndex ?? _index) : _index;
 
   @override
   Widget build(BuildContext context) {
@@ -122,29 +163,22 @@ class _AppShellState extends State<AppShell> {
 
                 return GestureDetector(
                   behavior: HitTestBehavior.translucent,
-                  onHorizontalDragStart: (details) {
-                    setState(() => _draggingNavigation = true);
-                    _selectTab(_indexForDx(details.localPosition.dx, width));
-                  },
-                  onHorizontalDragUpdate: (details) {
-                    _selectTab(_indexForDx(details.localPosition.dx, width));
-                  },
-                  onHorizontalDragEnd: (_) {
-                    if (mounted) setState(() => _draggingNavigation = false);
-                  },
-                  onHorizontalDragCancel: () {
-                    if (mounted) setState(() => _draggingNavigation = false);
-                  },
+                  onHorizontalDragStart: (details) =>
+                      _beginNavigationDrag(details.localPosition.dx, width),
+                  onHorizontalDragUpdate: (details) =>
+                      _updateNavigationDrag(details.localPosition.dx, width),
+                  onHorizontalDragEnd: (_) => _finishNavigationDrag(),
+                  onHorizontalDragCancel: _cancelNavigationDrag,
                   child: Stack(
                     children: [
                       AnimatedPositioned(
                         duration: reduceMotion
                             ? Duration.zero
-                            : Duration(milliseconds: _draggingNavigation ? 105 : 260),
+                            : Duration(milliseconds: _draggingNavigation ? 90 : 260),
                         curve: _draggingNavigation
-                            ? Curves.easeOut
+                            ? Curves.easeOutCubic
                             : Curves.easeOutBack,
-                        left: (_index * itemWidth) + 5,
+                        left: (_visualNavigationIndex * itemWidth) + 5,
                         top: 5,
                         width: itemWidth - 10,
                         height: 64,
@@ -216,7 +250,7 @@ class _AppShellState extends State<AppShell> {
     String label,
   ) {
     final scheme = Theme.of(context).colorScheme;
-    final selected = _index == index;
+    final selected = _visualNavigationIndex == index;
     final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
 
     return Expanded(
@@ -224,7 +258,7 @@ class _AppShellState extends State<AppShell> {
         enabled: !_draggingNavigation,
         onTap: () => _selectTab(index),
         child: Semantics(
-          selected: selected,
+          selected: _index == index,
           button: true,
           label: label,
           child: SizedBox.expand(
@@ -233,7 +267,7 @@ class _AppShellState extends State<AppShell> {
               children: [
                 AnimatedScale(
                   scale: selected ? 1.08 : 1,
-                  duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 220),
+                  duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 180),
                   curve: Curves.easeOutBack,
                   child: Icon(
                     selected ? selectedIcon : icon,
@@ -243,7 +277,7 @@ class _AppShellState extends State<AppShell> {
                 ),
                 const SizedBox(height: 2),
                 AnimatedDefaultTextStyle(
-                  duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 180),
+                  duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 160),
                   style: TextStyle(
                     color: selected ? scheme.primary : scheme.onSurface,
                     fontSize: 10.5,

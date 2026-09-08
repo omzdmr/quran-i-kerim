@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
 import '../../l10n/app_localizations.dart';
 import '../../settings/app_settings.dart';
 
@@ -12,25 +14,13 @@ class SettingsScreen extends StatelessWidget {
     final l10n = context.l10n;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.settings),
-      ),
+      appBar: AppBar(title: Text(l10n.settings)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
         children: [
-          Text(
-            l10n.appearance,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            l10n.appearanceDescription,
-            style: TextStyle(
-              color: scheme.onSurfaceVariant,
-              height: 1.4,
-            ),
+          _SectionHeader(
+            title: l10n.appearance,
+            description: l10n.appearanceDescription,
           ),
           const SizedBox(height: 18),
           _ChoiceTile(
@@ -55,19 +45,9 @@ class SettingsScreen extends StatelessWidget {
             onTap: () => settings.setThemeMode(ThemeMode.dark),
           ),
           const SizedBox(height: 30),
-          Text(
-            l10n.language,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            l10n.languageDescription,
-            style: TextStyle(
-              color: scheme.onSurfaceVariant,
-              height: 1.4,
-            ),
+          _SectionHeader(
+            title: l10n.language,
+            description: l10n.languageDescription,
           ),
           const SizedBox(height: 18),
           _ChoiceTile(
@@ -75,22 +55,101 @@ class SettingsScreen extends StatelessWidget {
             subtitle: l10n.useDeviceLanguageDescription,
             icon: Icons.language_rounded,
             selected: settings.locale == null,
-            onTap: () => settings.setLocale(null),
+            onTap: () {
+              HapticFeedback.selectionClick();
+              settings.setLocale(null);
+            },
           ),
-          _ChoiceTile(
+          _LanguageChoiceTile(
+            code: 'TR',
             title: l10n.turkish,
             subtitle: l10n.turkishDescription,
-            icon: Icons.translate_rounded,
             selected: settings.locale?.languageCode == 'tr',
             onTap: () => settings.setLocale(const Locale('tr')),
           ),
-          const SizedBox(height: 28),
-          Text(
-            l10n.reading,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+          _LanguageChoiceTile(
+            code: 'EN',
+            title: l10n.english,
+            subtitle: l10n.englishDescription,
+            selected: settings.locale?.languageCode == 'en',
+            onTap: () => settings.setLocale(const Locale('en')),
           ),
+          _LanguageChoiceTile(
+            code: 'AR',
+            title: l10n.arabic,
+            subtitle: l10n.arabicDescription,
+            selected: settings.locale?.languageCode == 'ar',
+            onTap: () => settings.setLocale(const Locale('ar')),
+          ),
+          _LanguageChoiceTile(
+            code: 'AZ',
+            title: l10n.azerbaijani,
+            subtitle: l10n.azerbaijaniDescription,
+            selected: settings.locale?.languageCode == 'az',
+            onTap: () => settings.setLocale(const Locale('az')),
+          ),
+          _LanguageChoiceTile(
+            code: 'RU',
+            title: l10n.russian,
+            subtitle: l10n.russianDescription,
+            selected: settings.locale?.languageCode == 'ru',
+            onTap: () => settings.setLocale(const Locale('ru')),
+          ),
+          const SizedBox(height: 30),
+          _SectionHeader(
+            title: l10n.quranLanguage,
+            description: l10n.quranLanguageDescription,
+          ),
+          const SizedBox(height: 18),
+          _ChoiceTile(
+            title: l10n.turkishMeal,
+            subtitle: l10n.turkishMealDescription,
+            icon: Icons.translate_rounded,
+            trailingLabel: 'RWD',
+            selected: settings.readerMode != ReaderDisplayMode.arabic,
+            onTap: () {
+              HapticFeedback.selectionClick();
+              settings.setReaderMode(ReaderDisplayMode.translation);
+            },
+          ),
+          _ChoiceTile(
+            title: l10n.arabicOriginal,
+            subtitle: l10n.arabicOriginalDescription,
+            icon: Icons.menu_book_rounded,
+            trailingLabel: 'AR',
+            selected: settings.readerMode == ReaderDisplayMode.arabic,
+            onTap: () {
+              HapticFeedback.selectionClick();
+              settings.setReaderMode(ReaderDisplayMode.arabic);
+            },
+          ),
+          Container(
+            margin: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: scheme.outlineVariant),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.download_for_offline_outlined, color: scheme.primary),
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Text(
+                    l10n.moreTranslationsSoon,
+                    style: TextStyle(
+                      color: scheme.onSurfaceVariant,
+                      height: 1.45,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 30),
+          _SectionHeader(title: l10n.reading),
           const SizedBox(height: 12),
           Container(
             decoration: BoxDecoration(
@@ -113,20 +172,118 @@ class SettingsScreen extends StatelessWidget {
   }
 }
 
-class _ChoiceTile extends StatelessWidget {
-  const _ChoiceTile({
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title, this.description});
+
+  final String title;
+  final String? description;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
+        ),
+        if (description != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            description!,
+            style: TextStyle(
+              color: scheme.onSurfaceVariant,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _LanguageChoiceTile extends StatelessWidget {
+  const _LanguageChoiceTile({
+    required this.code,
     required this.title,
     required this.subtitle,
-    required this.icon,
     required this.selected,
     required this.onTap,
   });
 
+  final String code;
   final String title;
   final String subtitle;
-  final IconData icon;
   final bool selected;
   final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return _ChoiceTile(
+      title: title,
+      subtitle: subtitle,
+      selected: selected,
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
+      leading: _LanguageBadge(code: code, selected: selected),
+    );
+  }
+}
+
+class _LanguageBadge extends StatelessWidget {
+  const _LanguageBadge({required this.code, required this.selected});
+
+  final String code;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: 42,
+      height: 34,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: selected ? scheme.primary : scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        code,
+        textDirection: TextDirection.ltr,
+        style: TextStyle(
+          color: selected ? scheme.onPrimary : scheme.onSurface,
+          fontSize: 12,
+          fontWeight: FontWeight.w900,
+          letterSpacing: .5,
+        ),
+      ),
+    );
+  }
+}
+
+class _ChoiceTile extends StatelessWidget {
+  const _ChoiceTile({
+    required this.title,
+    required this.subtitle,
+    required this.selected,
+    required this.onTap,
+    this.icon,
+    this.leading,
+    this.trailingLabel,
+  }) : assert(icon != null || leading != null);
+
+  final String title;
+  final String subtitle;
+  final IconData? icon;
+  final Widget? leading;
+  final bool selected;
+  final VoidCallback onTap;
+  final String? trailingLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -143,7 +300,7 @@ class _ChoiceTile extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
               children: [
-                Icon(icon, size: 27),
+                leading ?? Icon(icon, size: 27),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
@@ -167,6 +324,24 @@ class _ChoiceTile extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (trailingLabel != null) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: scheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      trailingLabel!,
+                      textDirection: TextDirection.ltr,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(width: 8),
                 Icon(
                   selected
