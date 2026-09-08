@@ -171,14 +171,23 @@ class _VerseCard extends StatelessWidget {
     AppNavigation.instance.openReader(surah: reference.$1, ayah: reference.$2);
   }
 
+  Future<String?> _selectedTranslationVerse(AppSettings settings) async {
+    if (settings.readerUsesArabic) return null;
+    final verses = await TranslationRepository.instance
+        .loadSourceVerses(settings.selectedQuranSourceId);
+    return verses['${reference.$1}:${reference.$2}'];
+  }
+
   @override
   Widget build(BuildContext context) {
     final surah = surahByNumber(reference.$1);
-    final translation = translationCatalog.first;
+    final settings = AppSettingsScope.of(context);
+    final translation = translationById(settings.selectedQuranSourceId);
+    final sourceCode = settings.readerUsesArabic ? 'AR' : translation?.code ?? 'RWD';
     final l10n = context.l10n;
 
     return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 330),
+      constraints: const BoxConstraints(minHeight: 300),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -207,7 +216,7 @@ class _VerseCard extends StatelessWidget {
                 Text(l10n.text('dailyVerse'), style: const TextStyle(color: Colors.white70)),
                 const SizedBox(height: 6),
                 Text(
-                  '${surah.nameTr} ${reference.$1}:${reference.$2} · ${translation.code}',
+                  '${surah.nameTr} ${reference.$1}:${reference.$2} · $sourceCode',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 20,
@@ -226,33 +235,32 @@ class _VerseCard extends StatelessWidget {
                     height: 1.8,
                   ),
                 ),
-                const SizedBox(height: 18),
-                FutureBuilder<String?>(
-                  future: TranslationRepository.instance.turkishVerse(
-                    reference.$1,
-                    reference.$2,
-                  ),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasError) {
-                      return Text(
-                        l10n.text('translationUnavailable'),
-                        style: const TextStyle(color: Colors.white70, height: 1.5),
-                      );
-                    }
-                    return AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 180),
-                      child: Text(
-                        snapshot.data ?? l10n.text('translationLoading'),
-                        key: ValueKey(snapshot.data),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 17,
-                          height: 1.5,
+                if (!settings.readerUsesArabic) ...[
+                  const SizedBox(height: 18),
+                  FutureBuilder<String?>(
+                    future: _selectedTranslationVerse(settings),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasError) {
+                        return Text(
+                          l10n.text('translationUnavailable'),
+                          style: const TextStyle(color: Colors.white70, height: 1.5),
+                        );
+                      }
+                      return AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 180),
+                        child: Text(
+                          snapshot.data ?? l10n.text('translationLoading'),
+                          key: ValueKey('${settings.selectedQuranSourceId}:${snapshot.data}'),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 17,
+                            height: 1.5,
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                ),
+                      );
+                    },
+                  ),
+                ],
                 const SizedBox(height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
