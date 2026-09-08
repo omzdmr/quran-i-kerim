@@ -22,6 +22,7 @@ class AppSettings extends ChangeNotifier {
   static const _selectedQuranSourceKey = 'selected_quran_source';
   static const _sourceUserSelectedKey = 'quran_source_user_selected_v1';
   static const _readerTextSizeKey = 'reader_text_size';
+  static const _selectedAudioBySourceKey = 'selected_audio_by_source_v1';
 
   static const _arabicFontSizeKey = 'arabic_font_size';
   static const _translationFontSizeKey = 'translation_font_size';
@@ -48,6 +49,7 @@ class AppSettings extends ChangeNotifier {
   Map<String, String> _highlights = <String, String>{};
   Map<String, String> _archiveTimes = <String, String>{};
   Set<String> _readingDays = <String>{};
+  Map<String, String> _selectedAudioBySource = <String, String>{};
 
   ThemeMode get themeMode => _themeMode;
   Locale? get locale => _locale;
@@ -56,6 +58,9 @@ class AppSettings extends ChangeNotifier {
   String get selectedQuranSourceId => _selectedQuranSourceId;
   bool get quranSourceWasUserSelected => _quranSourceWasUserSelected;
   bool get readerUsesArabic => _selectedQuranSourceId == arabicOriginalSourceId;
+
+  String? selectedAudioSourceFor(String sourceId) =>
+      _selectedAudioBySource[sourceId];
 
   ReaderDisplayMode get readerMode => readerUsesArabic
       ? ReaderDisplayMode.arabic
@@ -176,6 +181,9 @@ class AppSettings extends ChangeNotifier {
     _archiveTimes = _decodeStringMap(prefs.getString(_archiveTimesKey));
     _readingDays = (prefs.getStringList(_readingDaysKey) ?? const <String>[])
         .toSet();
+    _selectedAudioBySource = _decodeStringMap(
+      prefs.getString(_selectedAudioBySourceKey),
+    );
   }
 
   Map<String, String> _decodeStringMap(String? encoded) {
@@ -256,6 +264,20 @@ class AppSettings extends ChangeNotifier {
         safe == arabicOriginalSourceId ? 'arabic' : 'translation',
       ),
     ]);
+  }
+
+  Future<void> setSelectedAudioSource(String sourceId, String audioId) async {
+    final source = sourceId.trim();
+    final audio = audioId.trim();
+    if (source.isEmpty || audio.isEmpty) return;
+    if (_selectedAudioBySource[source] == audio) return;
+    _selectedAudioBySource[source] = audio;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _selectedAudioBySourceKey,
+      jsonEncode(_selectedAudioBySource),
+    );
   }
 
   Future<void> setReaderMode(ReaderDisplayMode mode) => setSelectedQuranSource(

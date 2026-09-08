@@ -1,6 +1,11 @@
 const arabicOriginalSourceId = 'arabic_original';
 const bundledTurkishTranslationId = 'turkish_rwwad';
 const englishTranslationId = 'english_rwwad';
+const turkishShabanTranslationId = 'turkish_shaban';
+const turkishAliOzekTranslationId = 'turkish_shahin';
+const turkishVakfiTranslationId = 'turkish_vakfi';
+
+enum TranslationProvider { quranEnc, islamicNetwork }
 
 class TranslationInfo {
   const TranslationInfo({
@@ -17,6 +22,7 @@ class TranslationInfo {
     required this.downloadable,
     this.assetPath,
     this.hasAudio = false,
+    this.provider = TranslationProvider.quranEnc,
   });
 
   final String id;
@@ -25,30 +31,14 @@ class TranslationInfo {
   final String name;
   final String publisher;
   final String source;
-
-  /// Upstream QuranEnc translation key. Kept separate from our internal ID so
-  /// the package format can change without losing source provenance.
   final String sourceKey;
-
   final String version;
-
-  /// Included in the application package and usable with no download.
   final bool bundled;
-
-  /// Asset path for bundled translations. Arabic original is handled by the
-  /// Quran text package and therefore has no TranslationInfo entry.
   final String? assetPath;
-
-  /// The catalog entry has been verified and may be shown to users.
   final bool available;
-
-  /// A verified network-download path exists and the app may install the pack.
   final bool downloadable;
-
-  /// True only when this exact translation has a verified spoken-translation
-  /// audio source. Arabic recitation is deliberately not treated as translation
-  /// audio, so the reader never shows a misleading speaker icon.
   final bool hasAudio;
+  final TranslationProvider provider;
 }
 
 const translationCatalog = <TranslationInfo>[
@@ -65,7 +55,47 @@ const translationCatalog = <TranslationInfo>[
     assetPath: 'assets/data/translations/tr_rwwad.json.gz',
     available: true,
     downloadable: false,
-    hasAudio: false,
+  ),
+  TranslationInfo(
+    id: turkishShabanTranslationId,
+    code: 'ŞP-TR',
+    languageCode: 'tr',
+    name: 'Türkçe Tercüme - Şaban Piriş',
+    publisher: 'Şaban Piriş · Rowad Tercüme Merkezi gözetimi',
+    source: 'QuranEnc.com',
+    sourceKey: 'turkish_shaban',
+    version: 'latest',
+    bundled: false,
+    available: true,
+    downloadable: true,
+  ),
+  TranslationInfo(
+    id: turkishAliOzekTranslationId,
+    code: 'AÖ-TR',
+    languageCode: 'tr',
+    name: 'Türkçe Tercüme - Dr. Ali Özek ve Diğerleri',
+    publisher: 'Dr. Ali Özek ve Diğerleri · Rowad Tercüme Merkezi gözetimi',
+    source: 'QuranEnc.com',
+    sourceKey: 'turkish_shahin',
+    version: 'latest',
+    bundled: false,
+    available: true,
+    downloadable: true,
+  ),
+  TranslationInfo(
+    id: turkishVakfiTranslationId,
+    code: 'VAKFI-TR',
+    languageCode: 'tr',
+    name: 'Diyanet Vakfı Meali',
+    publisher: 'Diyanet Vakfı',
+    source: 'Al Quran Cloud · Islamic Network',
+    sourceKey: 'tr.vakfi',
+    version: 'provider-current',
+    bundled: false,
+    available: true,
+    downloadable: true,
+    hasAudio: true,
+    provider: TranslationProvider.islamicNetwork,
   ),
   TranslationInfo(
     id: englishTranslationId,
@@ -83,6 +113,146 @@ const translationCatalog = <TranslationInfo>[
     hasAudio: true,
   ),
   TranslationInfo(
+    id: 'french_rashid',
+    code: 'RSH-FR',
+    languageCode: 'fr',
+    name: 'Traduction française',
+    publisher: 'QuranEnc.com',
+    source: 'QuranEnc.com',
+    sourceKey: 'french_rashid',
+    version: 'latest',
+    bundled: false,
+    available: true,
+    downloadable: true,
+    hasAudio: true,
+  ),
+  TranslationInfo(
+    id: 'portuguese_nasr',
+    code: 'NASR-PT',
+    languageCode: 'pt',
+    name: 'Tradução portuguesa',
+    publisher: 'QuranEnc.com',
+    source: 'QuranEnc.com',
+    sourceKey: 'portuguese_nasr',
+    version: 'latest',
+    bundled: false,
+    available: true,
+    downloadable: true,
+    hasAudio: true,
+  ),
+  TranslationInfo(
+    id: 'dutch_center',
+    code: 'CTR-NL',
+    languageCode: 'nl',
+    name: 'Nederlandse vertaling',
+    publisher: 'QuranEnc.com',
+    source: 'QuranEnc.com',
+    sourceKey: 'dutch_center',
+    version: 'latest',
+    bundled: false,
+    available: true,
+    downloadable: true,
+    hasAudio: true,
+  ),
+  TranslationInfo(
+    id: 'tagalog_rwwad',
+    code: 'RWD-TL',
+    languageCode: 'tl',
+    name: 'Salin sa Tagalog',
+    publisher: 'Rowwad Translation Center',
+    source: 'QuranEnc.com',
+    sourceKey: 'tagalog_rwwad',
+    version: 'latest',
+    bundled: false,
+    available: true,
+    downloadable: true,
+    hasAudio: true,
+  ),
+  TranslationInfo(
+    id: 'chinese_suliman',
+    code: 'SLM-ZH',
+    languageCode: 'zh',
+    name: '中文翻译',
+    publisher: 'QuranEnc.com',
+    source: 'QuranEnc.com',
+    sourceKey: 'chinese_suliman',
+    version: 'latest',
+    bundled: false,
+    available: true,
+    downloadable: true,
+    hasAudio: true,
+  ),
+  TranslationInfo(
+    id: 'vietnamese_rwwad',
+    code: 'RWD-VI',
+    languageCode: 'vi',
+    name: 'Bản dịch tiếng Việt',
+    publisher: 'Rowwad Translation Center',
+    source: 'QuranEnc.com',
+    sourceKey: 'vietnamese_rwwad',
+    version: 'latest',
+    bundled: false,
+    available: true,
+    downloadable: true,
+    hasAudio: true,
+  ),
+  TranslationInfo(
+    id: 'persian_ih',
+    code: 'IH-FA',
+    languageCode: 'fa',
+    name: 'ترجمه فارسی',
+    publisher: 'QuranEnc.com',
+    source: 'QuranEnc.com',
+    sourceKey: 'persian_ih',
+    version: 'latest',
+    bundled: false,
+    available: true,
+    downloadable: true,
+    hasAudio: true,
+  ),
+  TranslationInfo(
+    id: 'assamese_rafeeq',
+    code: 'RAF-AS',
+    languageCode: 'as',
+    name: 'অসমীয়া অনুবাদ',
+    publisher: 'QuranEnc.com',
+    source: 'QuranEnc.com',
+    sourceKey: 'assamese_rafeeq',
+    version: 'latest',
+    bundled: false,
+    available: true,
+    downloadable: true,
+    hasAudio: true,
+  ),
+  TranslationInfo(
+    id: 'sinhalese_mahir',
+    code: 'MHR-SI',
+    languageCode: 'si',
+    name: 'සිංහල පරිවර්තනය',
+    publisher: 'QuranEnc.com',
+    source: 'QuranEnc.com',
+    sourceKey: 'sinhalese_mahir',
+    version: 'latest',
+    bundled: false,
+    available: true,
+    downloadable: true,
+    hasAudio: true,
+  ),
+  TranslationInfo(
+    id: 'somali_yacob',
+    code: 'YCB-SO',
+    languageCode: 'so',
+    name: 'Tarjumaadda Soomaaliga',
+    publisher: 'QuranEnc.com',
+    source: 'QuranEnc.com',
+    sourceKey: 'somali_yacob',
+    version: 'latest',
+    bundled: false,
+    available: true,
+    downloadable: true,
+    hasAudio: true,
+  ),
+  TranslationInfo(
     id: 'azeri_musayev',
     code: 'MUS-AZ',
     languageCode: 'az',
@@ -94,7 +264,6 @@ const translationCatalog = <TranslationInfo>[
     bundled: false,
     available: true,
     downloadable: true,
-    hasAudio: false,
   ),
   TranslationInfo(
     id: 'russian_rwwad',
@@ -108,7 +277,6 @@ const translationCatalog = <TranslationInfo>[
     bundled: false,
     available: true,
     downloadable: true,
-    hasAudio: false,
   ),
 ];
 
@@ -119,11 +287,6 @@ TranslationInfo? translationById(String id) {
   return null;
 }
 
-/// Default reading source for a fresh/device-language based setup.
-///
-/// Only sources guaranteed to exist offline are returned here. As more bundled
-/// defaults are added, this mapping can grow without coupling UI language to
-/// a specific translation forever.
 String defaultQuranSourceForLanguage(String languageCode) {
   return switch (languageCode.toLowerCase()) {
     'ar' => arabicOriginalSourceId,

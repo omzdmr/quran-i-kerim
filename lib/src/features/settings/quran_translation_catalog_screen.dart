@@ -320,7 +320,9 @@ class _TranslationDiscoveryScreenState
         filtered = all;
         break;
       case _TranslationFilter.audio:
+        final seenSources = <String>{};
         filtered = quranAudioCatalog
+            .where((audio) => seenSources.add(audio.sourceId))
             .map((audio) => _audioDiscoveryItem(context, audio))
             .where((item) => _matches(context, item));
         break;
@@ -1096,6 +1098,76 @@ class _TranslationUiCopy {
       az: 'Ərəbcə',
       ru: 'Арабский',
     ),
+    'fr' => _pick(
+      tr: 'Fransızca',
+      en: 'French',
+      ar: 'الفرنسية',
+      az: 'Fransızca',
+      ru: 'Французский',
+    ),
+    'pt' => _pick(
+      tr: 'Portekizce',
+      en: 'Portuguese',
+      ar: 'البرتغالية',
+      az: 'Portuqalca',
+      ru: 'Португальский',
+    ),
+    'nl' => _pick(
+      tr: 'Felemenkçe',
+      en: 'Dutch',
+      ar: 'الهولندية',
+      az: 'Niderlandca',
+      ru: 'Нидерландский',
+    ),
+    'tl' => _pick(
+      tr: 'Tagalogca',
+      en: 'Tagalog',
+      ar: 'التاغالوغية',
+      az: 'Taqaloqca',
+      ru: 'Тагальский',
+    ),
+    'zh' => _pick(
+      tr: 'Çince',
+      en: 'Chinese',
+      ar: 'الصينية',
+      az: 'Çincə',
+      ru: 'Китайский',
+    ),
+    'vi' => _pick(
+      tr: 'Vietnamca',
+      en: 'Vietnamese',
+      ar: 'الفيتنامية',
+      az: 'Vyetnamca',
+      ru: 'Вьетнамский',
+    ),
+    'fa' => _pick(
+      tr: 'Farsça',
+      en: 'Persian',
+      ar: 'الفارسية',
+      az: 'Farsca',
+      ru: 'Персидский',
+    ),
+    'as' => _pick(
+      tr: 'Assamca',
+      en: 'Assamese',
+      ar: 'الأسامية',
+      az: 'Assamca',
+      ru: 'Ассамский',
+    ),
+    'si' => _pick(
+      tr: 'Sinhala',
+      en: 'Sinhala',
+      ar: 'السنهالية',
+      az: 'Sinhala',
+      ru: 'Сингальский',
+    ),
+    'so' => _pick(
+      tr: 'Somalice',
+      en: 'Somali',
+      ar: 'الصومالية',
+      az: 'Somalicə',
+      ru: 'Сомалийский',
+    ),
     _ => code.toUpperCase(),
   };
 
@@ -1105,6 +1177,16 @@ class _TranslationUiCopy {
     'az' => 'Azərbaycanca',
     'ru' => 'Русский',
     'ar' => 'العربية',
+    'fr' => 'Français',
+    'pt' => 'Português',
+    'nl' => 'Nederlands',
+    'tl' => 'Tagalog',
+    'zh' => '中文',
+    'vi' => 'Tiếng Việt',
+    'fa' => 'فارسی',
+    'as' => 'অসমীয়া',
+    'si' => 'සිංහල',
+    'so' => 'Soomaali',
     _ => code.toUpperCase(),
   };
 

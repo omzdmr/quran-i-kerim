@@ -6,6 +6,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:quran/quran.dart' as quran;
 
+import '../../data/quran_audio_catalog.dart';
 import '../../data/quran_verse_metadata.dart';
 import '../../data/surah_catalog.dart';
 import '../../data/surah_localization.dart';
@@ -280,7 +281,12 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   }
 
   ReaderAudioSourceConfig? _audioConfig(AppSettings settings) =>
-      readerAudioConfigFor(settings.selectedQuranSourceId);
+      readerAudioConfigFor(
+        settings.selectedQuranSourceId,
+        audioId: settings.selectedAudioSourceFor(
+          settings.selectedQuranSourceId,
+        ),
+      );
 
   Future<void> _prepareAudio(ReaderAudioSourceConfig config) async {
     final surah = surahByNumber(_surahNumber);
@@ -344,6 +350,29 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     _scheduleScrollToAyah(targetAyah, audioFollow: true);
   }
 
+  Future<void> _selectAudioSource(String audioId) async {
+    final settings = AppSettingsScope.of(context);
+    final sourceId = settings.selectedQuranSourceId;
+    final candidates = quranAudioForSource(sourceId);
+    if (!candidates.any((audio) => audio.id == audioId)) return;
+    final currentAyah =
+        _audioController.isConfigured &&
+            _audioController.surahNumber == _surahNumber
+        ? _audioController.currentAyah
+        : 1;
+    await settings.setSelectedAudioSource(sourceId, audioId);
+    final config = readerAudioConfigFor(sourceId, audioId: audioId);
+    if (config == null) return;
+    final surah = surahByNumber(_surahNumber);
+    await _audioController.configure(
+      config: config,
+      surah: _surahNumber,
+      initialAyah: currentAyah.clamp(1, surah.verseCount).toInt(),
+      verseCount: surah.verseCount,
+    );
+    if (mounted) setState(() {});
+  }
+
   Future<void> _showAudioPlayer(ReaderAudioSourceConfig config) async {
     await _prepareAudio(config);
     if (!mounted) return;
@@ -358,6 +387,10 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
         onQuickControlsVisibilityChanged: (visible) {
           if (mounted) setState(() => _audioQuickControlsVisible = visible);
         },
+        availableSources: quranAudioForSource(
+          AppSettingsScope.of(context).selectedQuranSourceId,
+        ),
+        onSourceSelected: _selectAudioSource,
       ),
     );
   }

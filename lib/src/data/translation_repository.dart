@@ -111,8 +111,13 @@ class TranslationRepository {
     if (!info.downloadable) {
       throw StateError('Translation is not enabled for download: ${info.id}');
     }
+    if (info.provider == TranslationProvider.islamicNetwork) {
+      await _downloadIslamicNetworkTranslation(info, onProgress: onProgress);
+      return;
+    }
 
-    final client = HttpClient()..connectionTimeout = const Duration(seconds: 25);
+    final client = HttpClient()
+      ..connectionTimeout = const Duration(seconds: 25);
     try {
       onProgress?.call(.01);
       final catalogUri = Uri.https(
@@ -135,7 +140,9 @@ class TranslationRepository {
         );
       }
       final upstreamVersion = '${upstream['version'] ?? ''}'.trim();
-      if (upstreamVersion.isNotEmpty && upstreamVersion != info.version) {
+      if (info.version != 'latest' &&
+          upstreamVersion.isNotEmpty &&
+          upstreamVersion != info.version) {
         throw StateError(
           'Translation version changed from ${info.version} to $upstreamVersion. '
           'The catalog must be reviewed before installing it.',
@@ -163,7 +170,9 @@ class TranslationRepository {
                 ayah < 1 ||
                 translation is! String ||
                 translation.trim().isEmpty) {
-              throw const FormatException('QuranEnc returned an invalid verse.');
+              throw const FormatException(
+                'QuranEnc returned an invalid verse.',
+              );
             }
             final key = '$surah:$ayah';
             if (!seen.add(key)) {
@@ -226,6 +235,122 @@ class TranslationRepository {
     }
   }
 
+  Future<void> _downloadIslamicNetworkTranslation(
+    TranslationInfo info, {
+    ValueChanged<double>? onProgress,
+  }) async {
+    final client = HttpClient()
+      ..connectionTimeout = const Duration(seconds: 25);
+    try {
+      final items = <Map<String, dynamic>>[];
+      final seen = <String>{};
+      const concurrency = 6;
+      for (var start = 1; start <= 114; start += concurrency) {
+        final end = math.min(start + concurrency - 1, 114);
+        final chunks = await Future.wait([
+          for (var surah = start; surah <= end; surah++)
+            _fetchIslamicNetworkSurah(client, info, surah),
+        ]);
+        for (final chunk in chunks) {
+          for (final raw in chunk) {
+            final surah = int.tryParse('${raw['sura']}');
+            final ayah = int.tryParse('${raw['aya']}');
+            final translation = raw['translation'];
+            if (surah == null ||
+                surah < 1 ||
+                surah > 114 ||
+                ayah == null ||
+                ayah < 1 ||
+                translation is! String ||
+                translation.trim().isEmpty) {
+              throw const FormatException(
+                'Islamic Network returned an invalid verse.',
+              );
+            }
+            final key = '$surah:$ayah';
+            if (!seen.add(key)) {
+              throw FormatException(
+                'Islamic Network returned duplicate verse $key.',
+              );
+            }
+            items.add(raw);
+          }
+        }
+        onProgress?.call(.02 + .96 * (end / 114));
+      }
+
+      if (items.length < 6000) {
+        throw FormatException(
+          'Downloaded translation looks incomplete: ${items.length} verses.',
+        );
+      }
+      final package = <String, dynamic>{
+        'schema_version': 1,
+        'source': info.source,
+        'source_key': info.sourceKey,
+        'language_iso_code': info.languageCode,
+        'version': info.version,
+        'title': info.name,
+        'description': info.publisher,
+        'terms': const <String, dynamic>{
+          'provider': 'Islamic Network / Al Quran Cloud',
+          'attribution_required': true,
+          'preserve_translation_identity': true,
+        },
+        'items': items,
+      };
+      final encoded = utf8.encode(jsonEncode(package));
+      final compressed = Uint8List.fromList(gzip.encode(encoded));
+      decodeGzipPack(
+        compressed,
+        fallbackTranslationId: info.id,
+        fallbackLanguageCode: info.languageCode,
+        fallbackVersion: info.version,
+        fallbackSource: info.source,
+      );
+      final file = await _downloadFile(info.id);
+      final temp = File('${file.path}.tmp');
+      await temp.writeAsBytes(compressed, flush: true);
+      if (await file.exists()) await file.delete();
+      await temp.rename(file.path);
+      _downloadedPackFutures.remove(info.id);
+      onProgress?.call(1);
+    } finally {
+      client.close(force: true);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchIslamicNetworkSurah(
+    HttpClient client,
+    TranslationInfo info,
+    int surah,
+  ) async {
+    final uri = Uri.https(
+      'api.alquran.cloud',
+      '/v1/surah/$surah/${info.sourceKey}',
+    );
+    final payload = await _getJson(client, uri);
+    if (payload is! Map || payload['data'] is! Map) {
+      throw FormatException(
+        'Unexpected Islamic Network response for surah $surah.',
+      );
+    }
+    final data = Map<String, dynamic>.from(payload['data'] as Map);
+    final ayahs = data['ayahs'];
+    if (ayahs is! List) {
+      throw FormatException('Islamic Network ayahs missing for surah $surah.');
+    }
+    return [
+      for (final raw in ayahs)
+        if (raw is Map)
+          <String, dynamic>{
+            'sura': surah,
+            'aya': raw['numberInSurah'],
+            'translation': raw['text'],
+          },
+    ];
+  }
+
   Future<List<Map<String, dynamic>>> _fetchSurah(
     HttpClient client,
     TranslationInfo info,
@@ -248,7 +373,7 @@ class TranslationRepository {
     if (response.statusCode != HttpStatus.ok) {
       await response.drain<void>();
       throw HttpException(
-        'QuranEnc returned HTTP ${response.statusCode}.',
+        '${uri.host} returned HTTP ${response.statusCode}.',
         uri: uri,
       );
     }
@@ -353,7 +478,9 @@ class TranslationRepository {
 
     final schemaVersion = decoded['schema_version'];
     if (schemaVersion != 1) {
-      throw FormatException('Unsupported translation pack schema: $schemaVersion');
+      throw FormatException(
+        'Unsupported translation pack schema: $schemaVersion',
+      );
     }
 
     final rawItems = decoded['items'];
@@ -370,8 +497,14 @@ class TranslationRepository {
       final surah = int.tryParse('${raw['sura']}');
       final ayah = int.tryParse('${raw['aya']}');
       final translation = raw['translation'];
-      if (surah == null || surah < 1 || surah > 114 || ayah == null || ayah < 1) {
-        throw FormatException('Invalid verse identity: ${raw['sura']}:${raw['aya']}');
+      if (surah == null ||
+          surah < 1 ||
+          surah > 114 ||
+          ayah == null ||
+          ayah < 1) {
+        throw FormatException(
+          'Invalid verse identity: ${raw['sura']}:${raw['aya']}',
+        );
       }
       if (translation is! String || translation.trim().isEmpty) {
         throw FormatException('Empty translation at $surah:$ayah');
@@ -415,7 +548,11 @@ class TranslationRepository {
       }
       final surah = int.tryParse(entry.key.substring(0, separator));
       final ayah = int.tryParse(entry.key.substring(separator + 1));
-      if (surah == null || surah < 1 || surah > 114 || ayah == null || ayah < 1) {
+      if (surah == null ||
+          surah < 1 ||
+          surah > 114 ||
+          ayah == null ||
+          ayah < 1) {
         throw FormatException('Invalid verse key: ${entry.key}');
       }
       if (entry.value.trim().isEmpty) {

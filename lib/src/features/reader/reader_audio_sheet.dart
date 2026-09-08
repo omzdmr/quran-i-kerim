@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:quran/quran.dart' as quran;
 
 import '../../data/quran_audio_catalog.dart';
-import '../../data/translation_catalog.dart';
 import 'reader_audio_cache.dart';
 
 class ReaderAudioSourceConfig {
@@ -22,30 +21,45 @@ class ReaderAudioSourceConfig {
   final String Function(int surah, int ayah) urlForVerse;
 }
 
-ReaderAudioSourceConfig? readerAudioConfigFor(String sourceId) {
-  final audio = primaryQuranAudioForSource(sourceId);
-  if (audio == null) return null;
+int _absoluteVerseNumber(int surah, int ayah) {
+  var value = ayah;
+  for (var previous = 1; previous < surah; previous++) {
+    value += quran.getVerseCount(previous);
+  }
+  return value;
+}
 
-  if (audio.kind == QuranAudioKind.recitation) {
-    return ReaderAudioSourceConfig(
-      id: audio.id,
-      code: audio.code,
-      title: audio.title,
-      urlForVerse: (surah, ayah) =>
-          quran.getAudioURLByVerse(surah, ayah, bitrate: 64),
-    );
+ReaderAudioSourceConfig? readerAudioConfigFor(
+  String sourceId, {
+  String? audioId,
+}) {
+  final available = quranAudioForSource(sourceId);
+  if (available.isEmpty) return null;
+  var audio = available.first;
+  if (audioId != null) {
+    for (final candidate in available) {
+      if (candidate.id == audioId) {
+        audio = candidate;
+        break;
+      }
+    }
   }
 
-  final info = translationById(sourceId);
-  if (info == null || info.sourceKey != 'english_rwwad') return null;
   return ReaderAudioSourceConfig(
     id: audio.id,
     code: audio.code,
-    title: audio.title,
+    title: audio.style == null
+        ? audio.title
+        : '${audio.title} · ${audio.style}',
     urlForVerse: (surah, ayah) {
-      final s = surah.toString().padLeft(3, '0');
-      final a = ayah.toString().padLeft(3, '0');
-      return 'https://d.quranenc.com/data/audio/${info.sourceKey}/$s$a.mp3';
+      if (audio.provider == QuranAudioProvider.quranEnc) {
+        final s = surah.toString().padLeft(3, '0');
+        final a = ayah.toString().padLeft(3, '0');
+        return 'https://d.quranenc.com/data/audio/${audio.providerKey}/$s$a.mp3';
+      }
+      final absolute = _absoluteVerseNumber(surah, ayah);
+      final bitrate = audio.bitrate ?? 128;
+      return 'https://cdn.islamic.network/quran/audio/$bitrate/${audio.providerKey}/$absolute.mp3';
     },
   );
 }
@@ -300,6 +314,8 @@ class ReaderAudioSheet extends StatefulWidget {
     required this.surahLabel,
     required this.quickControlsVisible,
     required this.onQuickControlsVisibilityChanged,
+    required this.availableSources,
+    required this.onSourceSelected,
     super.key,
   });
 
@@ -307,6 +323,8 @@ class ReaderAudioSheet extends StatefulWidget {
   final String surahLabel;
   final bool quickControlsVisible;
   final ValueChanged<bool> onQuickControlsVisibilityChanged;
+  final List<QuranAudioInfo> availableSources;
+  final Future<void> Function(String audioId) onSourceSelected;
 
   @override
   State<ReaderAudioSheet> createState() => _ReaderAudioSheetState();
@@ -349,12 +367,68 @@ class _ReaderAudioSheetState extends State<ReaderAudioSheet> {
                             ),
                           ),
                           const SizedBox(height: 3),
-                          Text(
-                            '${controller.config?.code ?? ''} · ${controller.config?.title ?? ''}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: scheme.onSurfaceVariant),
-                          ),
+                          if (widget.availableSources.length <= 1)
+                            Text(
+                              '${controller.config?.code ?? ''} · ${controller.config?.title ?? ''}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(color: scheme.onSurfaceVariant),
+                            )
+                          else
+                            PopupMenuButton<String>(
+                              initialValue: controller.config?.id,
+                              onSelected: (value) =>
+                                  unawaited(widget.onSourceSelected(value)),
+                              itemBuilder: (_) => [
+                                for (final source in widget.availableSources)
+                                  PopupMenuItem<String>(
+                                    value: source.id,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          source.style == null
+                                              ? source.title
+                                              : '${source.title} · ${source.style}',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                        Text(
+                                          source.attribution,
+                                          style: TextStyle(
+                                            color: scheme.onSurfaceVariant,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      '${controller.config?.code ?? ''} · ${controller.config?.title ?? ''}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: scheme.onSurfaceVariant,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Icon(
+                                    Icons.expand_more_rounded,
+                                    size: 18,
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                                ],
+                              ),
+                            ),
                         ],
                       ),
                     ),
