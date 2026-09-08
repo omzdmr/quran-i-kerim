@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../application/prayer_notification_service.dart';
 import '../application/prayer_preferences_store.dart';
 import '../domain/prayer_city_catalog.dart';
 import '../domain/prayer_models.dart';
@@ -25,6 +26,10 @@ class _PrayerSettingsScreenState extends State<PrayerSettingsScreen> {
   late PrayerAsrMethod _asrMethod;
   late PrayerHighLatitudeMethod _highLatitudeMethod;
   late PrayerMinuteAdjustments _adjustments;
+  late bool _notificationsEnabled;
+  late Set<String> _notificationPrayerIds;
+  late int _hijriOffsetDays;
+  bool _requestingNotificationPermission = false;
 
   @override
   void initState() {
@@ -33,6 +38,9 @@ class _PrayerSettingsScreenState extends State<PrayerSettingsScreen> {
     _asrMethod = widget.initial.asrMethod;
     _highLatitudeMethod = widget.initial.highLatitudeMethod;
     _adjustments = widget.initial.adjustments;
+    _notificationsEnabled = widget.initial.notificationsEnabled;
+    _notificationPrayerIds = {...widget.initial.notificationPrayerIds};
+    _hijriOffsetDays = widget.initial.hijriOffsetDays;
   }
 
   PrayerSettingsSnapshot get _snapshot => PrayerSettingsSnapshot(
@@ -40,13 +48,46 @@ class _PrayerSettingsScreenState extends State<PrayerSettingsScreen> {
         asrMethod: _asrMethod,
         highLatitudeMethod: _highLatitudeMethod,
         adjustments: _adjustments,
+        notificationsEnabled: _notificationsEnabled,
+        notificationPrayerIds: _notificationPrayerIds,
+        hijriOffsetDays: _hijriOffsetDays,
       );
 
   Future<void> _save() async {
-    await PrayerPreferencesStore.save(_snapshot);
+    final snapshot = _snapshot;
+    await PrayerPreferencesStore.save(snapshot);
+    if (snapshot.notificationsEnabled) {
+      await PrayerNotificationService.reschedule(
+        location: widget.city.location,
+        defaultMethod: widget.city.defaultMethod,
+        settings: snapshot,
+      );
+    } else {
+      await PrayerNotificationService.cancelAll();
+    }
     if (!mounted) return;
     HapticFeedback.lightImpact();
-    Navigator.pop(context, _snapshot);
+    Navigator.pop(context, snapshot);
+  }
+
+  Future<void> _setNotificationsEnabled(bool enabled) async {
+    if (!enabled) {
+      setState(() => _notificationsEnabled = false);
+      return;
+    }
+    if (_requestingNotificationPermission) return;
+    setState(() => _requestingNotificationPermission = true);
+    final granted = await PrayerNotificationService.requestPermissions();
+    if (!mounted) return;
+    setState(() {
+      _requestingNotificationPermission = false;
+      _notificationsEnabled = granted;
+    });
+    if (!granted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.text('notificationPermissionDenied'))),
+      );
+    }
   }
 
   @override
@@ -90,6 +131,103 @@ class _PrayerSettingsScreenState extends State<PrayerSettingsScreen> {
                 setState(() => _methodOverride = value);
                 HapticFeedback.selectionClick();
               },
+            ),
+          ),
+          const SizedBox(height: 12),
+          _SectionCard(
+            title: l10n.text('prayerNotifications'),
+            subtitle: l10n.text('prayerNotificationsInfo'),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    l10n.text('prayerNotifications'),
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  value: _notificationsEnabled,
+                  onChanged: _requestingNotificationPermission
+                      ? null
+                      : _setNotificationsEnabled,
+                  secondary: _requestingNotificationPermission
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2.2),
+                        )
+                      : const Icon(Icons.notifications_active_outlined),
+                ),
+                if (_notificationsEnabled) ...[
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final id in const [
+                        'fajr',
+                        'dhuhr',
+                        'asr',
+                        'maghrib',
+                        'isha',
+                      ])
+                        FilterChip(
+                          label: Text(_prayerLabel(context, id)),
+                          selected: _notificationPrayerIds.contains(id),
+                          onSelected: (selected) {
+                            setState(() {
+                              if (selected) {
+                                _notificationPrayerIds.add(id);
+                              } else {
+                                _notificationPrayerIds.remove(id);
+                              }
+                            });
+                            HapticFeedback.selectionClick();
+                          },
+                        ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          _SectionCard(
+            title: l10n.text('hijriDateOffset'),
+            subtitle: l10n.text('hijriDateOffsetInfo'),
+            child: Row(
+              children: [
+                IconButton.filledTonal(
+                  onPressed: _hijriOffsetDays <= -2
+                      ? null
+                      : () {
+                          setState(() => _hijriOffsetDays--);
+                          HapticFeedback.selectionClick();
+                        },
+                  icon: const Icon(Icons.remove_rounded),
+                ),
+                Expanded(
+                  child: Text(
+                    _hijriOffsetDays == 0
+                        ? '0 ${l10n.text('daysUnit')}'
+                        : '${_hijriOffsetDays > 0 ? '+' : ''}$_hijriOffsetDays ${l10n.text('daysUnit')}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                IconButton.filledTonal(
+                  onPressed: _hijriOffsetDays >= 2
+                      ? null
+                      : () {
+                          setState(() => _hijriOffsetDays++);
+                          HapticFeedback.selectionClick();
+                        },
+                  icon: const Icon(Icons.add_rounded),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 12),
@@ -304,6 +442,18 @@ class _AdjustmentRow extends StatelessWidget {
       ],
     );
   }
+}
+
+String _prayerLabel(BuildContext context, String id) {
+  final l10n = context.l10n;
+  return switch (id) {
+    'fajr' => l10n.text('fajr'),
+    'dhuhr' => l10n.text('dhuhr'),
+    'asr' => l10n.text('asr'),
+    'maghrib' => l10n.text('maghrib'),
+    'isha' => l10n.text('isha'),
+    _ => id,
+  };
 }
 
 String _methodLabel(BuildContext context, PrayerCalculationMethod method) {
