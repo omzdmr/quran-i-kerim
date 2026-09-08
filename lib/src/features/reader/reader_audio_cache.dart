@@ -16,7 +16,7 @@ class ReaderAudioCache {
     final file = File('${directory.path}/$cacheKey.mp3');
     if (!await file.exists()) return null;
     if (await file.length() <= 0) {
-      await file.delete().catchError((_) {});
+      await _deleteQuietly(file);
       return null;
     }
     return file;
@@ -52,11 +52,11 @@ class ReaderAudioCache {
         if (await partial.length() <= 0) {
           throw const FileSystemException('Audio cache file is empty');
         }
-        if (await file.exists()) await file.delete();
+        if (await file.exists()) await _deleteQuietly(file);
         return await partial.rename(file.path);
       } catch (_) {
         if (await partial.exists()) {
-          await partial.delete().catchError((_) {});
+          await _deleteQuietly(partial);
         }
         rethrow;
       } finally {
@@ -95,8 +95,16 @@ class ReaderAudioCache {
     if (!await directory.exists()) return;
     await for (final entity in directory.list()) {
       if (entity is File) {
-        await entity.delete().catchError((_) {});
+        await _deleteQuietly(entity);
       }
+    }
+  }
+
+  Future<void> _deleteQuietly(File file) async {
+    try {
+      if (await file.exists()) await file.delete();
+    } catch (_) {
+      // Temporary cache cleanup is best-effort.
     }
   }
 
