@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../data/translation_catalog.dart';
 import '../../l10n/app_localizations.dart';
 import '../../settings/app_settings.dart';
 import 'quran_translation_catalog_screen.dart';
@@ -107,10 +108,11 @@ class SettingsScreen extends StatelessWidget {
             subtitle: l10n.turkishMealDescription,
             icon: Icons.translate_rounded,
             trailingLabel: 'RWD',
-            selected: settings.readerMode != ReaderDisplayMode.arabic,
+            selected:
+                settings.selectedQuranSourceId == bundledTurkishTranslationId,
             onTap: () {
               HapticFeedback.selectionClick();
-              settings.setReaderMode(ReaderDisplayMode.translation);
+              settings.setSelectedQuranSource(bundledTurkishTranslationId);
             },
           ),
           _ChoiceTile(
@@ -118,10 +120,10 @@ class SettingsScreen extends StatelessWidget {
             subtitle: l10n.arabicOriginalDescription,
             icon: Icons.menu_book_rounded,
             trailingLabel: 'AR',
-            selected: settings.readerMode == ReaderDisplayMode.arabic,
+            selected: settings.selectedQuranSourceId == arabicOriginalSourceId,
             onTap: () {
               HapticFeedback.selectionClick();
-              settings.setReaderMode(ReaderDisplayMode.arabic);
+              settings.setSelectedQuranSource(arabicOriginalSourceId);
             },
           ),
           Container(
