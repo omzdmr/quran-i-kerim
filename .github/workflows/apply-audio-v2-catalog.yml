@@ -29,6 +29,9 @@ jobs:
       - name: Remove helper
         run: rm tool/apply_audio_v2_catalog.py
 
+      - name: Clean generated imports
+        run: sed -i "/import '..\/..\/data\/translation_catalog.dart';/d" lib/src/features/reader/reader_audio_sheet.dart
+
       - name: Format Dart
         run: >-
           dart format
