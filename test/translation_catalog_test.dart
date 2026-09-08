@@ -21,7 +21,7 @@ void main() {
     expect(defaultQuranSourceForLanguage('ar'), arabicOriginalSourceId);
   });
 
-  test('unsupported device languages fall back to the bundled Turkish source', () {
-    expect(defaultQuranSourceForLanguage('de'), bundledTurkishTranslationId);
+  test('unsupported device languages fall back to bundled English', () {
+    expect(defaultQuranSourceForLanguage('de'), englishTranslationId);
   });
 }
