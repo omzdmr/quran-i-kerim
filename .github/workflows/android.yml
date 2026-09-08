@@ -2,7 +2,7 @@ name: Android APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, feature/prayer-v01 ]
   workflow_dispatch:
 
 permissions:
@@ -55,6 +55,9 @@ jobs:
 
       - name: Analyze app code
         run: flutter analyze lib --no-fatal-infos
+
+      - name: Run tests
+        run: flutter test
 
       - name: Build lightweight APKs
         run: flutter build apk --release --split-per-abi
