@@ -1,5 +1,5 @@
 const arabicOriginalSourceId = 'arabic_original';
-const bundledTurkishTranslationId = 'turish_rwwad';
+const bundledTurkishTranslationId = 'turkish_rwwad';
 const englishTranslationId = 'english_rwwad';
 
 class TranslationInfo {
