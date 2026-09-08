@@ -284,17 +284,20 @@ class _TranslationDiscoveryScreenState
         .where((item) => item.available && _matches(context, item))
         .toList(growable: false);
 
-    Iterable<TranslationInfo> filtered = all;
+    Iterable<TranslationInfo> filtered;
     switch (_filter) {
       case _TranslationFilter.recommended:
         final sameLanguage = all
             .where((item) => item.languageCode == uiLanguage)
             .toList(growable: false);
         filtered = sameLanguage.isEmpty ? all : sameLanguage;
+        break;
       case _TranslationFilter.all:
         filtered = all;
+        break;
       case _TranslationFilter.audio:
         filtered = all.where((item) => item.hasAudio);
+        break;
     }
 
     final copy = _TranslationUiCopy.of(context);
@@ -329,13 +332,15 @@ class _TranslationDiscoveryScreenState
       return;
     }
 
-    setState(() => _progress[info.id] = 0);
+    setState(() => _progress[info.id] = 0.0);
     try {
       await TranslationRepository.instance.downloadTranslation(
         info,
         onProgress: (value) {
           if (!mounted) return;
-          setState(() => _progress[info.id] = value.clamp(0, 1));
+          setState(
+            () => _progress[info.id] = value.clamp(0.0, 1.0).toDouble(),
+          );
         },
       );
       if (!mounted) return;
@@ -483,7 +488,8 @@ class _TranslationDiscoveryScreenState
                             padding: const EdgeInsets.only(bottom: 8),
                             child: _DiscoveryTranslationRow(
                               info: item,
-                              installed: item.bundled || _installed.contains(item.id),
+                              installed:
+                                  item.bundled || _installed.contains(item.id),
                               progress: _progress[item.id],
                               onTap: () => _pick(item),
                             ),
