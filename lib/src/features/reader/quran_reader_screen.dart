@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:quran/quran.dart' as quran;
@@ -16,11 +19,14 @@ class QuranReaderScreen extends StatefulWidget {
 }
 
 class _QuranReaderScreenState extends State<QuranReaderScreen> {
+  static const int _chunkSize = 3;
+
   int _surahNumber = 1;
-  int _anchorAyah = 0;
+  int _anchorAyah = 1;
   bool _didRestorePosition = false;
-  Key _centerKey = UniqueKey();
   final Set<int> _selectedAyahs = <int>{};
+  final ScrollController _scrollController = ScrollController();
+  final Map<int, GlobalKey> _chunkKeys = <int, GlobalKey>{};
   late final Future<Map<String, String>> _turkishTranslation;
 
   @override
@@ -33,6 +39,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   @override
   void dispose() {
     AppNavigation.instance.readerRequest.removeListener(_handleReaderRequest);
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -44,9 +51,11 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     _surahNumber = settings.lastSurah;
     final surah = surahByNumber(_surahNumber);
     _anchorAyah = settings.lastAyah.clamp(1, surah.verseCount).toInt();
-    _centerKey = UniqueKey();
     _didRestorePosition = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) => _handleReaderRequest());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _handleReaderRequest();
+      _scheduleScrollToAyah(_anchorAyah);
+    });
   }
 
   void _handleReaderRequest() {
@@ -64,7 +73,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       _surahNumber = surah.number;
       _anchorAyah = safeAyah;
       _selectedAyahs.clear();
-      _centerKey = UniqueKey();
+      _chunkKeys.clear();
     });
     if (save) {
       AppSettingsScope.of(context).saveReadingPosition(
@@ -73,18 +82,53 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       );
     }
     HapticFeedback.selectionClick();
+    _scheduleScrollToAyah(safeAyah);
   }
 
   void _openSurahAtStart(int surahNumber) {
     final surah = surahByNumber(surahNumber);
     setState(() {
       _surahNumber = surah.number;
-      _anchorAyah = 0;
+      _anchorAyah = 1;
       _selectedAyahs.clear();
-      _centerKey = UniqueKey();
+      _chunkKeys.clear();
     });
     AppSettingsScope.of(context).saveReadingPosition(surah: surah.number, ayah: 1);
     HapticFeedback.selectionClick();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(0);
+      }
+    });
+  }
+
+  int _chunkStartForAyah(int ayah) => ((ayah - 1) ~/ _chunkSize) * _chunkSize + 1;
+
+  GlobalKey _keyForChunk(int startAyah) =>
+      _chunkKeys.putIfAbsent(startAyah, GlobalKey.new);
+
+  void _scheduleScrollToAyah(int ayah, {int attempt = 0}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final start = _chunkStartForAyah(ayah);
+      final targetContext = _keyForChunk(start).currentContext;
+      if (targetContext != null) {
+        Scrollable.ensureVisible(
+          targetContext,
+          alignment: .05,
+          duration: attempt == 0
+              ? const Duration(milliseconds: 260)
+              : Duration.zero,
+          curve: Curves.easeOutCubic,
+        );
+        return;
+      }
+      if (attempt < 4) {
+        Future<void>.delayed(const Duration(milliseconds: 70), () {
+          if (mounted) _scheduleScrollToAyah(ayah, attempt: attempt + 1);
+        });
+      }
+    });
   }
 
   List<int> get _selection {
@@ -132,11 +176,10 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     setState(_selectedAyahs.clear);
   }
 
-  String _activeVersionCode(AppSettings settings) => switch (settings.readerMode) {
-        ReaderDisplayMode.arabic => 'AR',
-        ReaderDisplayMode.translation => translationCatalog.first.code,
-        ReaderDisplayMode.arabicAndTranslation => 'AR+${translationCatalog.first.code}',
-      };
+  String _activeVersionCode(AppSettings settings) =>
+      settings.readerMode == ReaderDisplayMode.arabic
+          ? 'AR'
+          : translationCatalog.first.code;
 
   @override
   Widget build(BuildContext context) {
@@ -174,7 +217,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                               color: scheme.outline.withValues(alpha: .28),
                             ),
                             SizedBox(
-                              width: 78,
+                              width: 76,
                               child: _segment(
                                 _activeVersionCode(settings),
                                 _showTranslations,
@@ -216,20 +259,20 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
             ],
           ),
           Positioned(
-            left: 12,
-            right: 12,
-            bottom: 78,
+            left: 10,
+            right: 10,
+            bottom: 76,
             child: IgnorePointer(
               ignoring: _selectedAyahs.isEmpty,
               child: AnimatedSlide(
                 offset: _selectedAyahs.isEmpty
-                    ? const Offset(0, 1.25)
+                    ? const Offset(0, 1.15)
                     : Offset.zero,
-                duration: const Duration(milliseconds: 220),
+                duration: const Duration(milliseconds: 210),
                 curve: Curves.easeOutCubic,
                 child: AnimatedOpacity(
                   opacity: _selectedAyahs.isEmpty ? 0 : 1,
-                  duration: const Duration(milliseconds: 160),
+                  duration: const Duration(milliseconds: 150),
                   child: _SelectionTray(
                     reference: _selectionReference(),
                     count: _selectedAyahs.length,
@@ -255,79 +298,73 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     required Map<String, String> translations,
     required bool translationError,
   }) {
-    final anchor = _anchorAyah.clamp(0, surah.verseCount).toInt();
-    final bottomPadding = _selectedAyahs.isEmpty ? 132.0 : 184.0;
+    final chunkCount = (surah.verseCount / _chunkSize).ceil();
 
-    Widget verse(int ayah) => _Verse(
-          surahNumber: _surahNumber,
-          ayahNumber: ayah,
-          arabic: quran.getVerse(_surahNumber, ayah),
-          translation: translations['$_surahNumber:$ayah'],
-          mode: settings.readerMode,
-          arabicFontSize: settings.arabicFontSize,
-          translationFontSize: settings.translationFontSize,
-          arabicLineHeight: settings.arabicLineHeight,
-          translationLineHeight: settings.translationLineHeight,
-          bookmarked: settings.isBookmarked(_surahNumber, ayah),
-          hasNote: settings.noteFor(_surahNumber, ayah)?.isNotEmpty ?? false,
-          highlight: settings.highlightFor(_surahNumber, ayah),
-          selected: _selectedAyahs.contains(ayah),
-          onTap: () => _toggleAyahSelection(ayah),
-        );
-
-    Widget header() => Column(
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        if (notification is ScrollEndNotification) {
+          _saveApproximateVisiblePosition();
+        }
+        return false;
+      },
+      child: SingleChildScrollView(
+        controller: _scrollController,
+        padding: const EdgeInsets.fromLTRB(22, 28, 22, 118),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _surahHeader(surah, settings),
             if (translationError && settings.readerMode != ReaderDisplayMode.arabic)
               _TranslationError(onRetry: () => setState(() {})),
+            for (var chunkIndex = 0; chunkIndex < chunkCount; chunkIndex++)
+              _VerseChunk(
+                key: _keyForChunk(chunkIndex * _chunkSize + 1),
+                surahNumber: _surahNumber,
+                startAyah: chunkIndex * _chunkSize + 1,
+                endAyah: math.min(
+                  surah.verseCount,
+                  chunkIndex * _chunkSize + _chunkSize,
+                ),
+                translations: translations,
+                mode: settings.readerMode,
+                textSize: settings.readerTextSize,
+                lineHeight: settings.readerMode == ReaderDisplayMode.arabic
+                    ? settings.arabicLineHeight
+                    : settings.translationLineHeight,
+                selectedAyahs: _selectedAyahs,
+                settings: settings,
+                onAyahTap: _toggleAyahSelection,
+                onNoteTap: _openNoteForAyah,
+              ),
           ],
-        );
-
-    final beforeCount = anchor == 0 ? 0 : anchor;
-    final centerCount = anchor == 0
-        ? surah.verseCount + 1
-        : surah.verseCount - anchor + 1;
-
-    return CustomScrollView(
-      key: ValueKey((_surahNumber, anchor, settings.readerMode)),
-      center: _centerKey,
-      anchor: anchor == 0 ? 0 : .06,
-      slivers: [
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(22, 34, 22, 0),
-          sliver: SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                if (index == 0) return header();
-                return verse(index);
-              },
-              childCount: beforeCount,
-            ),
-          ),
         ),
-        SliverPadding(
-          key: _centerKey,
-          padding: EdgeInsets.fromLTRB(
-            22,
-            anchor == 0 ? 34 : 18,
-            22,
-            bottomPadding,
-          ),
-          sliver: SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                if (anchor == 0) {
-                  if (index == 0) return header();
-                  return verse(index);
-                }
-                return verse(anchor + index);
-              },
-              childCount: centerCount,
-            ),
-          ),
-        ),
-      ],
+      ),
     );
+  }
+
+  void _saveApproximateVisiblePosition() {
+    if (!mounted || _chunkKeys.isEmpty) return;
+    final targetY = MediaQuery.paddingOf(context).top + 90;
+    int? bestStart;
+    var bestDistance = double.infinity;
+
+    for (final entry in _chunkKeys.entries) {
+      final renderObject = entry.value.currentContext?.findRenderObject();
+      if (renderObject is! RenderBox || !renderObject.attached) continue;
+      final y = renderObject.localToGlobal(Offset.zero).dy;
+      final distance = (y - targetY).abs();
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestStart = entry.key;
+      }
+    }
+
+    if (bestStart != null) {
+      AppSettingsScope.of(context).saveReadingPosition(
+        surah: _surahNumber,
+        ayah: bestStart,
+      );
+    }
   }
 
   Widget _segment(String label, VoidCallback onTap) => InkWell(
@@ -348,32 +385,21 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
 
   Widget _surahHeader(SurahInfo surah, AppSettings settings) {
     final scheme = Theme.of(context).colorScheme;
+    final arabicMode = settings.readerMode == ReaderDisplayMode.arabic;
     final hasSeparateBasmala = surah.number != 1 && surah.number != 9;
-    final showArabicHeader = settings.readerMode != ReaderDisplayMode.translation;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Column(
         children: [
           Text(
-            surah.nameTr,
+            arabicMode ? surah.nameAr : surah.nameTr,
+            textDirection: arabicMode ? TextDirection.rtl : TextDirection.ltr,
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontFamily: 'serif',
-                  fontSize: 32,
+                  fontSize: 31,
                 ),
           ),
-          if (showArabicHeader) ...[
-            const SizedBox(height: 4),
-            Text(
-              surah.nameAr,
-              textDirection: TextDirection.rtl,
-              style: TextStyle(
-                fontFamily: 'serif',
-                fontSize: 22,
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
-          ],
           const SizedBox(height: 6),
           Text(
             '${surah.verseCount} ayet',
@@ -382,20 +408,20 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
               fontWeight: FontWeight.w600,
             ),
           ),
-          if (hasSeparateBasmala && showArabicHeader) ...[
-            const SizedBox(height: 28),
+          if (arabicMode && hasSeparateBasmala) ...[
+            const SizedBox(height: 24),
             Text(
               quran.basmala,
               textDirection: TextDirection.rtl,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'serif',
-                fontSize: 25,
-                height: 1.9,
+                fontSize: settings.readerTextSize,
+                height: settings.arabicLineHeight,
               ),
             ),
           ],
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
         ],
       ),
     );
@@ -414,7 +440,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
               ListTile(
                 leading: const Icon(Icons.text_fields_rounded),
                 title: const Text('Yazı tipi ve okuma görünümü'),
-                subtitle: const Text('Yazı boyutu ve satır aralığı'),
+                subtitle: const Text('Ortak metin boyutu ve satır aralığı'),
                 onTap: () {
                   Navigator.pop(sheetContext);
                   _showReadingAppearance();
@@ -423,7 +449,9 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
               ListTile(
                 leading: const Icon(Icons.translate_rounded),
                 title: const Text('Okuma metni'),
-                subtitle: Text('${_activeVersionCode(AppSettingsScope.of(context))} · çevrimdışı'),
+                subtitle: Text(
+                  '${_activeVersionCode(AppSettingsScope.of(context))} · çevrimdışı',
+                ),
                 onTap: () {
                   Navigator.pop(sheetContext);
                   _showTranslations();
@@ -448,7 +476,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       isScrollControlled: true,
       showDragHandle: true,
       builder: (sheetContext) => FractionallySizedBox(
-        heightFactor: .72,
+        heightFactor: .58,
         child: SafeArea(
           child: StatefulBuilder(
             builder: (context, setSheetState) => ListView(
@@ -460,38 +488,27 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                 ),
                 const SizedBox(height: 18),
                 _FontSizeControl(
-                  title: 'Arapça',
-                  value: settings.arabicFontSize.round(),
-                  preview: 'بِسْمِ اللَّهِ',
+                  title: 'Metin boyutu',
+                  value: settings.readerTextSize.round(),
+                  preview: settings.readerMode == ReaderDisplayMode.arabic
+                      ? 'بِسْمِ اللَّهِ'
+                      : 'Kuran meali',
                   onDecrease: () {
-                    settings.setArabicFontSize(settings.arabicFontSize - 2);
+                    settings.setReaderTextSize(settings.readerTextSize - 1.5);
                     HapticFeedback.selectionClick();
                     setSheetState(() {});
                   },
                   onIncrease: () {
-                    settings.setArabicFontSize(settings.arabicFontSize + 2);
-                    HapticFeedback.selectionClick();
-                    setSheetState(() {});
-                  },
-                ),
-                const SizedBox(height: 10),
-                _FontSizeControl(
-                  title: 'Meal',
-                  value: settings.translationFontSize.round(),
-                  preview: 'Türkçe meal',
-                  onDecrease: () {
-                    settings.setTranslationFontSize(settings.translationFontSize - 1.5);
-                    HapticFeedback.selectionClick();
-                    setSheetState(() {});
-                  },
-                  onIncrease: () {
-                    settings.setTranslationFontSize(settings.translationFontSize + 1.5);
+                    settings.setReaderTextSize(settings.readerTextSize + 1.5);
                     HapticFeedback.selectionClick();
                     setSheetState(() {});
                   },
                 ),
                 const SizedBox(height: 20),
-                const Text('Satır aralığı', style: TextStyle(fontWeight: FontWeight.w900)),
+                const Text(
+                  'Satır aralığı',
+                  style: TextStyle(fontWeight: FontWeight.w900),
+                ),
                 const SizedBox(height: 10),
                 Wrap(
                   spacing: 8,
@@ -512,9 +529,9 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                       ),
                   ],
                 ),
-                const SizedBox(height: 22),
+                const SizedBox(height: 20),
                 Text(
-                  'Ana okuyucuda tek metin gösterilir. Farklı mealleri veya Arapçayı yan yana görmek için ayet seçip Karşılaştır’ı kullanın.',
+                  'Boyut ayarı seçili metinden bağımsızdır. RWD’den Arapçaya geçseniz de aynı okuma boyutu korunur.',
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                     height: 1.45,
@@ -599,12 +616,14 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                             : ListView.separated(
                                 padding: const EdgeInsets.fromLTRB(14, 4, 14, 24),
                                 itemCount: results.length,
-                                separatorBuilder: (_, __) => const SizedBox(height: 6),
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(height: 6),
                                 itemBuilder: (context, index) {
                                   final result = results[index];
                                   return _SearchResultTile(
                                     result: result,
-                                    onTap: () => Navigator.pop(sheetContext, result),
+                                    onTap: () =>
+                                        Navigator.pop(sheetContext, result),
                                   );
                                 },
                               ),
@@ -636,43 +655,57 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       if (seen.add(key)) results.add(result);
     }
 
-    final numeric = RegExp(r'^(\d{1,3})\s*[:/.\- ]\s*(\d{1,3})$').firstMatch(query);
+    final numeric =
+        RegExp(r'^(\d{1,3})\s*[:/.\- ]\s*(\d{1,3})$').firstMatch(query);
     if (numeric != null) {
       final surahNumber = int.tryParse(numeric.group(1)!);
       final ayah = int.tryParse(numeric.group(2)!);
-      if (surahNumber != null && ayah != null && surahNumber >= 1 && surahNumber <= 114) {
+      if (surahNumber != null &&
+          ayah != null &&
+          surahNumber >= 1 &&
+          surahNumber <= 114) {
         final surah = surahByNumber(surahNumber);
         if (ayah >= 1 && ayah <= surah.verseCount) {
-          addResult(_SearchResult(
-            surah: surahNumber,
-            ayah: ayah,
-            title: '${surah.nameTr} $surahNumber:$ayah',
-            subtitle: translations['$surahNumber:$ayah'] ?? '',
-          ));
+          addResult(
+            _SearchResult(
+              surah: surahNumber,
+              ayah: ayah,
+              title: '${surah.nameTr} $surahNumber:$ayah',
+              subtitle: translations['$surahNumber:$ayah'] ?? '',
+            ),
+          );
         }
       }
     }
 
     for (final surah in surahCatalog) {
       final normalizedName = _normalizeSearch(surah.nameTr);
-      if (normalizedName.contains(query) || _normalizeSearch(surah.nameAr).contains(query)) {
-        addResult(_SearchResult(
-          surah: surah.number,
-          ayah: 1,
-          title: '${surah.nameTr} · ${surah.verseCount} ayet',
-          subtitle: surah.nameAr,
-          isSurah: true,
-        ));
+      if (normalizedName.contains(query) ||
+          _normalizeSearch(surah.nameAr).contains(query)) {
+        addResult(
+          _SearchResult(
+            surah: surah.number,
+            ayah: 1,
+            title: '${surah.nameTr} · ${surah.verseCount} ayet',
+            subtitle: surah.nameAr,
+            isSurah: true,
+          ),
+        );
       }
       if (query.startsWith('$normalizedName ')) {
-        final possibleAyah = int.tryParse(query.substring(normalizedName.length).trim());
-        if (possibleAyah != null && possibleAyah >= 1 && possibleAyah <= surah.verseCount) {
-          addResult(_SearchResult(
-            surah: surah.number,
-            ayah: possibleAyah,
-            title: '${surah.nameTr} ${surah.number}:$possibleAyah',
-            subtitle: translations['${surah.number}:$possibleAyah'] ?? '',
-          ));
+        final possibleAyah =
+            int.tryParse(query.substring(normalizedName.length).trim());
+        if (possibleAyah != null &&
+            possibleAyah >= 1 &&
+            possibleAyah <= surah.verseCount) {
+          addResult(
+            _SearchResult(
+              surah: surah.number,
+              ayah: possibleAyah,
+              title: '${surah.nameTr} ${surah.number}:$possibleAyah',
+              subtitle: translations['${surah.number}:$possibleAyah'] ?? '',
+            ),
+          );
         }
       }
     }
@@ -685,16 +718,21 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
         if (parts.length != 2) continue;
         final surahNumber = int.tryParse(parts[0]);
         final ayah = int.tryParse(parts[1]);
-        if (surahNumber == null || ayah == null || surahNumber < 1 || surahNumber > 114) {
+        if (surahNumber == null ||
+            ayah == null ||
+            surahNumber < 1 ||
+            surahNumber > 114) {
           continue;
         }
         final surah = surahByNumber(surahNumber);
-        addResult(_SearchResult(
-          surah: surahNumber,
-          ayah: ayah,
-          title: '${surah.nameTr} $surahNumber:$ayah',
-          subtitle: entry.value,
-        ));
+        addResult(
+          _SearchResult(
+            surah: surahNumber,
+            ayah: ayah,
+            title: '${surah.nameTr} $surahNumber:$ayah',
+            subtitle: entry.value,
+          ),
+        );
       }
     }
 
@@ -786,7 +824,8 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                         return _SurahRow(
                           surah: surah,
                           selected: surah.number == _surahNumber,
-                          onTap: () => Navigator.pop(sheetContext, surah.number),
+                          onTap: () =>
+                              Navigator.pop(sheetContext, surah.number),
                         );
                       },
                     ),
@@ -825,7 +864,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                'Ana okuyucuda tek metin seçin. Karşılaştırma ayrı ekranda açılır.',
+                'Okuyucuda aynı anda tek metin gösterilir.',
                 style: TextStyle(color: scheme.onSurfaceVariant),
               ),
               const SizedBox(height: 16),
@@ -834,7 +873,10 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                 title: 'Türkçe Tercüme',
                 subtitle: '${candidate.publisher} · çevrimdışı',
                 selected: settings.readerMode == ReaderDisplayMode.translation,
-                onTap: () => Navigator.pop(sheetContext, ReaderDisplayMode.translation),
+                onTap: () => Navigator.pop(
+                  sheetContext,
+                  ReaderDisplayMode.translation,
+                ),
               ),
               const SizedBox(height: 8),
               _VersionChoice(
@@ -842,7 +884,10 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                 title: 'Arapça · Orijinal Kuran metni',
                 subtitle: 'Tanzil.net · çevrimdışı',
                 selected: settings.readerMode == ReaderDisplayMode.arabic,
-                onTap: () => Navigator.pop(sheetContext, ReaderDisplayMode.arabic),
+                onTap: () => Navigator.pop(
+                  sheetContext,
+                  ReaderDisplayMode.arabic,
+                ),
               ),
               const SizedBox(height: 12),
               Text(
@@ -912,9 +957,15 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     if (picked == 'clear') {
       await settings.setHighlightForSelection(_surahNumber, selected, null);
     } else if (picked is VerseHighlightColor) {
-      await settings.setHighlightForSelection(_surahNumber, selected, picked);
+      await settings.setHighlightForSelection(
+        _surahNumber,
+        selected,
+        picked,
+      );
     }
+    if (!mounted) return;
     HapticFeedback.lightImpact();
+    _clearSelection();
   }
 
   Future<void> _bookmarkSelection() async {
@@ -932,6 +983,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
         ),
       ),
     );
+    _clearSelection();
   }
 
   Future<void> _copySelection() async {
@@ -939,34 +991,24 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     if (selected.isEmpty) return;
     final settings = AppSettingsScope.of(context);
     final translations = await _turkishTranslation;
+    if (!mounted) return;
 
-    final arabic = selected
-        .map((ayah) => quran.getVerse(_surahNumber, ayah))
-        .join('\n');
-    final meal = selected
-        .map((ayah) => translations['$_surahNumber:$ayah'])
-        .whereType<String>()
-        .join('\n');
-
-    final body = switch (settings.readerMode) {
-      ReaderDisplayMode.arabic => arabic,
-      ReaderDisplayMode.translation => meal,
-      ReaderDisplayMode.arabicAndTranslation => '$arabic\n\n$meal',
-    };
-    final text = '$body\n\n${_selectionReference()} · ${_activeVersionCode(settings)}';
+    final body = settings.readerMode == ReaderDisplayMode.arabic
+        ? selected.map((ayah) => quran.getVerse(_surahNumber, ayah)).join(' ')
+        : selected
+            .map((ayah) => translations['$_surahNumber:$ayah'])
+            .whereType<String>()
+            .join(' ');
+    final text =
+        '$body\n\n${_selectionReference()} · ${_activeVersionCode(settings)}';
 
     await Clipboard.setData(ClipboardData(text: text));
     if (!mounted) return;
     HapticFeedback.lightImpact();
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          selected.length == 1
-              ? 'Ayet kopyalandı'
-              : '${selected.length} ayet kopyalandı',
-        ),
-      ),
+      const SnackBar(content: Text('Seçili ayet kopyalandı')),
     );
+    _clearSelection();
   }
 
   Future<void> _showCompareSheet() async {
@@ -975,8 +1017,8 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     final translations = await _turkishTranslation;
     if (!mounted) return;
     final settings = AppSettingsScope.of(context);
-    final currentIsArabic = settings.readerMode == ReaderDisplayMode.arabic;
-    var showOther = false;
+    final currentCode = _activeVersionCode(settings);
+    final shownCodes = <String>[currentCode];
 
     await showModalBottomSheet<void>(
       context: context,
@@ -987,20 +1029,84 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
         heightFactor: .9,
         child: StatefulBuilder(
           builder: (context, setSheetState) {
-            final rwdText = selected
-                .map((ayah) => translations['$_surahNumber:$ayah'])
-                .whereType<String>()
-                .join(' ');
-            final arabicText = selected
-                .map((ayah) => quran.getVerse(_surahNumber, ayah))
-                .join(' ');
+            String textFor(String code) {
+              if (code == 'AR') {
+                return selected
+                    .map((ayah) => quran.getVerse(_surahNumber, ayah))
+                    .join(' ');
+              }
+              return selected
+                  .map((ayah) => translations['$_surahNumber:$ayah'])
+                  .whereType<String>()
+                  .join(' ');
+            }
 
-            Widget versionBlock({
-              required String code,
-              required String title,
-              required String text,
-              required bool arabic,
-            }) {
+            String titleFor(String code) => code == 'AR'
+                ? 'Arapça · Orijinal Kuran metni'
+                : 'Türkçe Tercüme';
+
+            Future<void> addVersion() async {
+              final available = <_CompareVersion>[
+                if (!shownCodes.contains(translationCatalog.first.code))
+                  _CompareVersion(
+                    code: translationCatalog.first.code,
+                    title: 'Türkçe Tercüme',
+                  ),
+                if (!shownCodes.contains('AR'))
+                  const _CompareVersion(
+                    code: 'AR',
+                    title: 'Arapça · Orijinal Kuran metni',
+                  ),
+              ];
+              if (available.isEmpty) return;
+              final picked = await showModalBottomSheet<_CompareVersion>(
+                context: sheetContext,
+                showDragHandle: true,
+                builder: (pickerContext) => SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 0, 18, 24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Metin ekle',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        for (final version in available)
+                          ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: SizedBox(
+                              width: 44,
+                              child: Text(
+                                version.code,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                            title: Text(version.title),
+                            trailing: const Icon(Icons.add_rounded),
+                            onTap: () =>
+                                Navigator.pop(pickerContext, version),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+              if (picked != null) {
+                HapticFeedback.selectionClick();
+                setSheetState(() => shownCodes.add(picked.code));
+              }
+            }
+
+            Widget versionBlock(String code) {
+              final arabic = code == 'AR';
               return Padding(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
                 child: Column(
@@ -1010,16 +1116,21 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                       children: [
                         Text(
                           code,
-                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                         const Spacer(),
                         Flexible(
                           child: Text(
-                            title,
+                            titleFor(code),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
                             ),
                           ),
                         ),
@@ -1027,13 +1138,16 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                     ),
                     const SizedBox(height: 18),
                     Text(
-                      text,
-                      textDirection: arabic ? TextDirection.rtl : TextDirection.ltr,
+                      textFor(code),
+                      textDirection:
+                          arabic ? TextDirection.rtl : TextDirection.ltr,
                       textAlign: arabic ? TextAlign.right : TextAlign.left,
                       style: TextStyle(
-                        fontFamily: arabic ? 'serif' : null,
-                        fontSize: arabic ? 27 : 23,
-                        height: arabic ? 1.9 : 1.55,
+                        fontFamily: 'serif',
+                        fontSize: settings.readerTextSize,
+                        height: arabic
+                            ? settings.arabicLineHeight
+                            : settings.translationLineHeight,
                       ),
                     ),
                   ],
@@ -1055,13 +1169,18 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                         child: Column(
                           children: [
                             const Text(
-                              'Versiyonları Karşılaştır',
-                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                              'Metinleri Karşılaştır',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                             Text(
                               _selectionReference(),
                               style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -1073,40 +1192,10 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                 ),
                 const Divider(height: 1),
                 Expanded(
-                  child: ListView(
-                    children: [
-                      if (currentIsArabic)
-                        versionBlock(
-                          code: 'AR',
-                          title: 'Arapça · Orijinal Kuran metni',
-                          text: arabicText,
-                          arabic: true,
-                        )
-                      else
-                        versionBlock(
-                          code: translationCatalog.first.code,
-                          title: 'Türkçe Tercüme',
-                          text: rwdText,
-                          arabic: false,
-                        ),
-                      if (showOther) ...[
-                        const Divider(height: 1),
-                        if (currentIsArabic)
-                          versionBlock(
-                            code: translationCatalog.first.code,
-                            title: 'Türkçe Tercüme',
-                            text: rwdText,
-                            arabic: false,
-                          )
-                        else
-                          versionBlock(
-                            code: 'AR',
-                            title: 'Arapça · Orijinal Kuran metni',
-                            text: arabicText,
-                            arabic: true,
-                          ),
-                      ],
-                    ],
+                  child: ListView.separated(
+                    itemCount: shownCodes.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (_, index) => versionBlock(shownCodes[index]),
                   ),
                 ),
                 const Divider(height: 1),
@@ -1117,14 +1206,9 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                     child: SizedBox(
                       width: double.infinity,
                       child: TextButton.icon(
-                        onPressed: showOther
-                            ? null
-                            : () {
-                                HapticFeedback.selectionClick();
-                                setSheetState(() => showOther = true);
-                              },
+                        onPressed: shownCodes.length >= 2 ? null : addVersion,
                         icon: const Icon(Icons.add_rounded, size: 30),
-                        label: Text(showOther ? 'Ek versiyon gösteriliyor' : 'Versiyon Ekle'),
+                        label: const Text('Metin Ekle'),
                       ),
                     ),
                   ),
@@ -1135,24 +1219,44 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
         ),
       ),
     );
+
+    if (mounted) _clearSelection();
   }
 
-  Future<void> _editSelectionNote() async {
+  Future<void> _openNoteForAyah(int ayah) async {
+    final settings = AppSettingsScope.of(context);
+    final key = settings.noteKeyForAyah(_surahNumber, ayah);
+    if (key == null) return;
+    final ayahs = settings.selectionAyahs(key, _surahNumber);
+    if (ayahs == null || ayahs.isEmpty) return;
+    setState(() {
+      _selectedAyahs
+        ..clear()
+        ..addAll(ayahs);
+    });
+    HapticFeedback.selectionClick();
+    await _editSelectionNote(sourceOverride: settings.noteSourceForKey(key));
+  }
+
+  Future<void> _editSelectionNote({String? sourceOverride}) async {
     final settings = AppSettingsScope.of(context);
     final selected = _selection;
     if (selected.isEmpty) return;
     final translations = await _turkishTranslation;
+    if (!mounted) return;
+
+    final sourceCode = sourceOverride ?? _activeVersionCode(settings);
+    final arabicSource = sourceCode == 'AR';
+    final selectedText = arabicSource
+        ? selected.map((ayah) => quran.getVerse(_surahNumber, ayah)).join(' ')
+        : selected
+            .map((ayah) => translations['$_surahNumber:$ayah'])
+            .whereType<String>()
+            .join(' ');
 
     final controller = TextEditingController(
       text: settings.noteForSelection(_surahNumber, selected) ?? '',
     );
-    final arabic = selected
-        .map((ayah) => quran.getVerse(_surahNumber, ayah))
-        .join('\n');
-    final meal = selected
-        .map((ayah) => translations['$_surahNumber:$ayah'])
-        .whereType<String>()
-        .join('\n');
 
     final value = await showModalBottomSheet<String>(
       context: context,
@@ -1162,7 +1266,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       builder: (sheetContext) {
         final scheme = Theme.of(sheetContext).colorScheme;
         return FractionallySizedBox(
-          heightFactor: .94,
+          heightFactor: .92,
           child: Padding(
             padding: EdgeInsets.fromLTRB(
               20,
@@ -1182,23 +1286,27 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                       child: Text(
                         'Not',
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
                     FilledButton(
-                      onPressed: () => Navigator.pop(sheetContext, controller.text),
+                      onPressed: () =>
+                          Navigator.pop(sheetContext, controller.text),
                       child: const Text('Kaydet'),
                     ),
                   ],
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: 24),
                 TextField(
                   controller: controller,
                   autofocus: true,
                   minLines: 4,
-                  maxLines: 8,
+                  maxLines: 7,
                   decoration: InputDecoration(
-                    hintText: 'Ne söylemek istersiniz?',
+                    hintText: 'Notunuzu yazın',
                     filled: true,
                     fillColor: scheme.surfaceContainer,
                     border: OutlineInputBorder(
@@ -1207,15 +1315,18 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 22),
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    '${_selectionReference()} · ${_activeVersionCode(settings)}',
-                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+                    '${_selectionReference()} · $sourceCode',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 18,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 Expanded(
                   child: SingleChildScrollView(
                     child: Container(
@@ -1225,34 +1336,32 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                         color: scheme.surfaceContainer,
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          if (settings.readerMode != ReaderDisplayMode.translation)
-                            Text(
-                              arabic,
-                              textDirection: TextDirection.rtl,
-                              textAlign: TextAlign.right,
-                              style: const TextStyle(
-                                fontFamily: 'serif',
-                                fontSize: 24,
-                                height: 1.9,
-                              ),
-                            ),
-                          if (settings.readerMode != ReaderDisplayMode.arabic && meal.isNotEmpty)
-                            Text(
-                              meal,
-                              style: const TextStyle(fontSize: 17, height: 1.55),
-                            ),
-                        ],
+                      child: Text(
+                        selectedText,
+                        textDirection: arabicSource
+                            ? TextDirection.rtl
+                            : TextDirection.ltr,
+                        textAlign:
+                            arabicSource ? TextAlign.right : TextAlign.left,
+                        style: TextStyle(
+                          fontFamily: 'serif',
+                          fontSize: math.min(settings.readerTextSize, 27),
+                          height: arabicSource
+                              ? settings.arabicLineHeight
+                              : settings.translationLineHeight,
+                        ),
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 12),
                 Row(
                   children: [
-                    Icon(Icons.lock_outline_rounded, size: 18, color: scheme.onSurfaceVariant),
+                    Icon(
+                      Icons.lock_outline_rounded,
+                      size: 18,
+                      color: scheme.onSurfaceVariant,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -1271,134 +1380,201 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
 
     controller.dispose();
     if (value != null) {
-      await settings.setNoteForSelection(_surahNumber, selected, value);
-      if (mounted) HapticFeedback.lightImpact();
+      await settings.setNoteForSelection(
+        _surahNumber,
+        selected,
+        value,
+        sourceCode: sourceCode,
+      );
+      if (!mounted) return;
+      HapticFeedback.lightImpact();
+      _clearSelection();
     }
   }
 }
 
-class _Verse extends StatelessWidget {
-  const _Verse({
+class _VerseChunk extends StatefulWidget {
+  const _VerseChunk({
     required this.surahNumber,
-    required this.ayahNumber,
-    required this.arabic,
-    required this.translation,
+    required this.startAyah,
+    required this.endAyah,
+    required this.translations,
     required this.mode,
-    required this.arabicFontSize,
-    required this.translationFontSize,
-    required this.arabicLineHeight,
-    required this.translationLineHeight,
-    required this.bookmarked,
-    required this.hasNote,
-    required this.highlight,
-    required this.selected,
-    required this.onTap,
+    required this.textSize,
+    required this.lineHeight,
+    required this.selectedAyahs,
+    required this.settings,
+    required this.onAyahTap,
+    required this.onNoteTap,
+    super.key,
   });
 
   final int surahNumber;
-  final int ayahNumber;
-  final String arabic;
-  final String? translation;
+  final int startAyah;
+  final int endAyah;
+  final Map<String, String> translations;
   final ReaderDisplayMode mode;
-  final double arabicFontSize;
-  final double translationFontSize;
-  final double arabicLineHeight;
-  final double translationLineHeight;
-  final bool bookmarked;
-  final bool hasNote;
-  final VerseHighlightColor? highlight;
-  final bool selected;
-  final VoidCallback onTap;
+  final double textSize;
+  final double lineHeight;
+  final Set<int> selectedAyahs;
+  final AppSettings settings;
+  final ValueChanged<int> onAyahTap;
+  final ValueChanged<int> onNoteTap;
+
+  @override
+  State<_VerseChunk> createState() => _VerseChunkState();
+}
+
+class _VerseChunkState extends State<_VerseChunk> {
+  final Map<int, TapGestureRecognizer> _recognizers =
+      <int, TapGestureRecognizer>{};
+
+  @override
+  void initState() {
+    super.initState();
+    _syncRecognizers();
+  }
+
+  @override
+  void didUpdateWidget(covariant _VerseChunk oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncRecognizers();
+  }
+
+  void _syncRecognizers() {
+    final needed = <int>{
+      for (var ayah = widget.startAyah; ayah <= widget.endAyah; ayah++) ayah,
+    };
+    for (final ayah in _recognizers.keys.toList()) {
+      if (!needed.contains(ayah)) {
+        _recognizers.remove(ayah)?.dispose();
+      }
+    }
+    for (final ayah in needed) {
+      final recognizer = _recognizers.putIfAbsent(
+        ayah,
+        () => TapGestureRecognizer(),
+      );
+      recognizer.onTap = () => widget.onAyahTap(ayah);
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final recognizer in _recognizers.values) {
+      recognizer.dispose();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final highlightColor = highlight == null
-        ? Colors.transparent
-        : _highlightMaterialColor(highlight!).withValues(alpha: .30);
-    final showArabic = mode != ReaderDisplayMode.translation;
-    final showTranslation = mode != ReaderDisplayMode.arabic;
+    final arabicMode = widget.mode == ReaderDisplayMode.arabic;
+    final spans = <InlineSpan>[];
 
-    TextSpan numberSpan({required bool arabicDirection}) => TextSpan(
-          text: arabicDirection ? '  $ayahNumber' : '$ayahNumber  ',
-          style: TextStyle(
-            color: scheme.onSurfaceVariant,
-            fontSize: arabicDirection ? 13 : 12,
-            fontWeight: FontWeight.w700,
+    for (var ayah = widget.startAyah; ayah <= widget.endAyah; ayah++) {
+      final selected = widget.selectedAyahs.contains(ayah);
+      final highlight = widget.settings.highlightFor(widget.surahNumber, ayah);
+      final highlightedColor = highlight == null
+          ? null
+          : _highlightMaterialColor(highlight).withValues(alpha: .92);
+      final foreground = highlightedColor == null
+          ? scheme.onSurface
+          : ThemeData.estimateBrightnessForColor(highlightedColor) ==
+                  Brightness.dark
+              ? Colors.white
+              : Colors.black;
+      final noteKey = widget.settings.noteKeyForAyah(widget.surahNumber, ayah);
+      final bookmarked = widget.settings.isBookmarked(widget.surahNumber, ayah);
+      final text = arabicMode
+          ? quran.getVerse(widget.surahNumber, ayah)
+          : widget.translations['${widget.surahNumber}:$ayah'] ??
+              'Meal yükleniyor…';
+
+      final numberStyle = TextStyle(
+        color: highlightedColor == null
+            ? scheme.onSurfaceVariant
+            : foreground.withValues(alpha: .78),
+        fontSize: math.max(11, widget.textSize * .52),
+        fontWeight: FontWeight.w700,
+        backgroundColor: highlightedColor,
+      );
+      final verseStyle = TextStyle(
+        color: foreground,
+        fontFamily: 'serif',
+        fontSize: widget.textSize,
+        height: widget.lineHeight,
+        backgroundColor: highlightedColor,
+        decoration: selected ? TextDecoration.underline : TextDecoration.none,
+        decorationColor: scheme.onSurface.withValues(alpha: .88),
+        decorationStyle: TextDecorationStyle.dotted,
+        decorationThickness: 1.6,
+      );
+
+      if (arabicMode) {
+        spans.add(
+          TextSpan(
+            text: text,
+            style: verseStyle,
+            recognizer: _recognizers[ayah],
           ),
         );
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 160),
-      margin: const EdgeInsets.symmetric(vertical: 1),
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
-      decoration: BoxDecoration(
-        color: highlightColor,
-        border: Border(
-          bottom: BorderSide(
-            color: selected ? scheme.primary : Colors.transparent,
-            width: selected ? 2.2 : 0,
+        spans.add(TextSpan(text: '  $ayah', style: numberStyle));
+      } else {
+        spans.add(TextSpan(text: '$ayah  ', style: numberStyle));
+        spans.add(
+          TextSpan(
+            text: text,
+            style: verseStyle,
+            recognizer: _recognizers[ayah],
           ),
-        ),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (showArabic)
-              Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(
-                      text: arabic,
-                      style: TextStyle(
-                        fontFamily: 'serif',
-                        fontSize: arabicFontSize,
-                        height: arabicLineHeight,
-                        color: scheme.onSurface,
-                      ),
-                    ),
-                    numberSpan(arabicDirection: true),
-                  ],
+        );
+      }
+
+      if (noteKey != null) {
+        spans.add(
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => widget.onNoteTap(ayah),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
+                child: Icon(
+                  Icons.comment_outlined,
+                  size: 16,
+                  color: scheme.onSurfaceVariant,
                 ),
-                textDirection: TextDirection.rtl,
-                textAlign: TextAlign.right,
               ),
-            if (showArabic && showTranslation) const SizedBox(height: 10),
-            if (showTranslation)
-              Text.rich(
-                TextSpan(
-                  children: [
-                    numberSpan(arabicDirection: false),
-                    TextSpan(
-                      text: translation ?? 'Meal yükleniyor…',
-                      style: TextStyle(
-                        fontSize: translationFontSize,
-                        height: translationLineHeight,
-                        color: scheme.onSurface.withValues(alpha: .94),
-                        fontFamily: 'serif',
-                      ),
-                    ),
-                  ],
-                ),
-                textAlign: TextAlign.left,
+            ),
+          ),
+        );
+      }
+      if (bookmarked) {
+        spans.add(
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3),
+              child: Icon(
+                Icons.bookmark_rounded,
+                size: 15,
+                color: scheme.onSurfaceVariant,
               ),
-            if (bookmarked || hasNote) ...[
-              const SizedBox(height: 3),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  if (bookmarked)
-                    Icon(Icons.bookmark_rounded, size: 15, color: scheme.onSurfaceVariant),
-                  if (bookmarked && hasNote) const SizedBox(width: 5),
-                  if (hasNote)
-                    Icon(Icons.comment_outlined, size: 15, color: scheme.onSurfaceVariant),
-                ],
-              ),
-            ],
-          ],
-        ),
+            ),
+          ),
+        );
+      }
+      spans.add(const TextSpan(text: '  '));
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 1),
+      child: Text.rich(
+        TextSpan(children: spans),
+        textDirection: arabicMode ? TextDirection.rtl : TextDirection.ltr,
+        textAlign: arabicMode ? TextAlign.right : TextAlign.left,
       ),
     );
   }
@@ -1429,45 +1605,51 @@ class _SelectionTray extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Material(
-      elevation: 12,
-      borderRadius: BorderRadius.circular(26),
+      elevation: 14,
+      borderRadius: BorderRadius.circular(24),
       color: scheme.surfaceContainerHigh,
       clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(10, 6, 10, 9),
+        padding: const EdgeInsets.fromLTRB(8, 4, 8, 7),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              children: [
-                IconButton(
-                  visualDensity: VisualDensity.compact,
-                  onPressed: onClose,
-                  icon: const Icon(Icons.close_rounded),
-                  tooltip: 'Seçimi kapat',
-                ),
-                Expanded(
-                  child: Text(
-                    reference,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w900),
+            SizedBox(
+              height: 38,
+              child: Row(
+                children: [
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    onPressed: onClose,
+                    icon: const Icon(Icons.close_rounded, size: 22),
+                    tooltip: 'Seçimi kapat',
                   ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: scheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(14),
+                  Expanded(
+                    child: Text(
+                      reference,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
                   ),
-                  child: Text(
-                    '$count',
-                    style: TextStyle(color: scheme.primary, fontWeight: FontWeight.w900),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: scheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                    child: Text(
+                      '$count',
+                      style: TextStyle(
+                        color: scheme.primary,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-            const SizedBox(height: 2),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
@@ -1538,21 +1720,24 @@ class _SelectionActionState extends State<_SelectionAction> {
         scale: _pressed ? .94 : 1,
         duration: const Duration(milliseconds: 90),
         child: Container(
-          constraints: const BoxConstraints(minWidth: 68),
-          margin: const EdgeInsets.only(right: 6),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          constraints: const BoxConstraints(minWidth: 64),
+          margin: const EdgeInsets.only(right: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
           decoration: BoxDecoration(
             color: scheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(15),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(widget.icon, size: 21),
-              const SizedBox(height: 3),
+              Icon(widget.icon, size: 20),
+              const SizedBox(height: 2),
               Text(
                 widget.label,
-                style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ],
           ),
@@ -1560,6 +1745,13 @@ class _SelectionActionState extends State<_SelectionAction> {
       ),
     );
   }
+}
+
+class _CompareVersion {
+  const _CompareVersion({required this.code, required this.title});
+
+  final String code;
+  final String title;
 }
 
 class _VersionChoice extends StatelessWidget {
@@ -1594,16 +1786,25 @@ class _VersionChoice extends StatelessWidget {
                 width: 50,
                 child: Text(
                   code,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+                    Text(
+                      title,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
                     const SizedBox(height: 2),
-                    Text(subtitle, style: TextStyle(color: scheme.onSurfaceVariant)),
+                    Text(
+                      subtitle,
+                      style: TextStyle(color: scheme.onSurfaceVariant),
+                    ),
                   ],
                 ),
               ),
@@ -1632,8 +1833,8 @@ class _HighlightDot extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(5),
           child: Container(
-            width: 46,
-            height: 46,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: _highlightMaterialColor(color),
@@ -1644,11 +1845,11 @@ class _HighlightDot extends StatelessWidget {
 }
 
 Color _highlightMaterialColor(VerseHighlightColor color) => switch (color) {
-      VerseHighlightColor.yellow => const Color(0xFFFFD84D),
-      VerseHighlightColor.green => const Color(0xFF65D996),
-      VerseHighlightColor.blue => const Color(0xFF68B7F5),
-      VerseHighlightColor.orange => const Color(0xFFFFB86A),
-      VerseHighlightColor.pink => const Color(0xFFF08BCB),
+      VerseHighlightColor.yellow => const Color(0xFFFFEB00),
+      VerseHighlightColor.green => const Color(0xFF45E879),
+      VerseHighlightColor.blue => const Color(0xFF18C4E8),
+      VerseHighlightColor.orange => const Color(0xFFFFB45E),
+      VerseHighlightColor.pink => const Color(0xFFE88AC6),
     };
 
 class _FontSizeControl extends StatelessWidget {
@@ -1683,7 +1884,10 @@ class _FontSizeControl extends StatelessWidget {
               children: [
                 Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
                 const SizedBox(height: 2),
-                Text(preview, style: TextStyle(color: scheme.onSurfaceVariant)),
+                Text(
+                  preview,
+                  style: TextStyle(color: scheme.onSurfaceVariant),
+                ),
               ],
             ),
           ),
@@ -1694,7 +1898,10 @@ class _FontSizeControl extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Text('$value', style: const TextStyle(fontWeight: FontWeight.w900)),
+            child: Text(
+              '$value',
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
           ),
           IconButton.filledTonal(
             onPressed: onIncrease,
@@ -1753,6 +1960,7 @@ class _SurahRow extends StatelessWidget {
 
 class _TranslationError extends StatelessWidget {
   const _TranslationError({required this.onRetry});
+
   final VoidCallback onRetry;
 
   @override
@@ -1774,6 +1982,10 @@ class _TranslationError extends StatelessWidget {
               'Türkçe meal paketi açılamadı. Arapça metin kullanılabilir.',
               style: TextStyle(color: scheme.onErrorContainer),
             ),
+          ),
+          IconButton(
+            onPressed: onRetry,
+            icon: Icon(Icons.refresh_rounded, color: scheme.onErrorContainer),
           ),
         ],
       ),
@@ -1801,9 +2013,12 @@ class _SearchHint extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Örnek: “Bakara”, “2:255” veya “sabır”. Arama cihazdaki offline meal üzerinde yapılır.',
+              'Örnek: “Bakara”, “2:255” veya “sabır”. Arama cihazdaki çevrimdışı meal üzerinde yapılır.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: scheme.onSurfaceVariant, height: 1.45),
+              style: TextStyle(
+                color: scheme.onSurfaceVariant,
+                height: 1.45,
+              ),
             ),
           ],
         ),
@@ -1844,10 +2059,15 @@ class _SearchResultTile extends StatelessWidget {
         onTap: onTap,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         leading: Icon(
-          result.isSurah ? Icons.menu_book_rounded : Icons.format_quote_rounded,
+          result.isSurah
+              ? Icons.menu_book_rounded
+              : Icons.format_quote_rounded,
           color: scheme.primary,
         ),
-        title: Text(result.title, style: const TextStyle(fontWeight: FontWeight.w800)),
+        title: Text(
+          result.title,
+          style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
         subtitle: result.subtitle.isEmpty
             ? null
             : Text(
