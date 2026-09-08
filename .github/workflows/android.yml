@@ -123,6 +123,7 @@ jobs:
           test/app_localizations_test.dart
           test/translation_repository_test.dart
           test/app_settings_source_test.dart
+          test/translation_catalog_test.dart
 
       - name: Build ARM64 test APK
         run: flutter build apk --release --target-platform android-arm64 --build-number=${{ github.run_number }}
