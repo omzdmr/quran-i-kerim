@@ -1,5 +1,6 @@
 const arabicOriginalSourceId = 'arabic_original';
 const bundledTurkishTranslationId = 'turkish_rwwad';
+const englishTranslationId = 'english_rwwad';
 
 class TranslationInfo {
   const TranslationInfo({
@@ -35,8 +36,7 @@ class TranslationInfo {
   /// The catalog entry has been verified and may be shown to users.
   final bool available;
 
-  /// A verified offline pack exists in our distribution pipeline.
-  /// Candidate translations stay false until checksum/build validation exists.
+  /// A verified direct-download path exists and the app may install the pack.
   final bool downloadable;
 }
 
@@ -55,7 +55,7 @@ const translationCatalog = <TranslationInfo>[
     downloadable: false,
   ),
   TranslationInfo(
-    id: 'english_rwwad',
+    id: englishTranslationId,
     code: 'RWD-EN',
     languageCode: 'en',
     name: 'English Translation',
@@ -65,7 +65,7 @@ const translationCatalog = <TranslationInfo>[
     version: '1.0.19',
     bundled: false,
     available: true,
-    downloadable: false,
+    downloadable: true,
   ),
   TranslationInfo(
     id: 'azeri_musayev',
