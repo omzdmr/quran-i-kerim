@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:quran/quran.dart' as quran;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/surah_catalog.dart';
 import '../../data/translation_catalog.dart';
@@ -18,7 +19,10 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  static const _communitySeenCountKey = 'community_seen_activity_count_v1';
+
   int _tab = 0;
+  int _communitySeenCount = 0;
 
   static const _dailyVerseRefs = <(int, int)>[
     (94, 5),
@@ -34,6 +38,37 @@ class _HomeScreenState extends State<HomeScreen> {
     (29, 69),
     (14, 7),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCommunitySeenCount();
+  }
+
+  Future<void> _loadCommunitySeenCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      _communitySeenCount = prefs.getInt(_communitySeenCountKey) ?? 0;
+    });
+  }
+
+  int _activityCount(AppSettings settings) => settings.bookmarkKeys.length +
+      settings.noteEntries.length +
+      settings.highlightEntries.length;
+
+  Future<void> _selectTab(int index, AppSettings settings) async {
+    if (_tab != index) {
+      HapticFeedback.selectionClick();
+      setState(() => _tab = index);
+    }
+    if (index != 1) return;
+    final current = _activityCount(settings);
+    if (_communitySeenCount == current) return;
+    setState(() => _communitySeenCount = current);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_communitySeenCountKey, current);
+  }
 
   (int, int) get _todayVerse {
     final now = DateTime.now();
@@ -54,6 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final settings = AppSettingsScope.of(context);
     final lastSurah = surahByNumber(settings.lastSurah);
     final l10n = context.l10n;
+    final hasUnseenActivity = _activityCount(settings) > _communitySeenCount;
 
     return SafeArea(
       child: Column(
@@ -62,9 +98,14 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.fromLTRB(24, 22, 24, 4),
             child: Row(
               children: [
-                _tabButton(l10n.text('today'), 0),
+                _tabButton(l10n.text('today'), 0, settings),
                 const SizedBox(width: 28),
-                _tabButton(l10n.text('community'), 1),
+                _tabButton(
+                  l10n.text('community'),
+                  1,
+                  settings,
+                  showDot: hasUnseenActivity,
+                ),
               ],
             ),
           ),
@@ -122,28 +163,57 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ],
                   )
-                : const _CommunityPlaceholder(),
+                : const _CommunityFeed(),
           ),
         ],
       ),
     );
   }
 
-  Widget _tabButton(String text, int index) {
+  Widget _tabButton(
+    String text,
+    int index,
+    AppSettings settings, {
+    bool showDot = false,
+  }) {
     final scheme = Theme.of(context).colorScheme;
     final selected = _tab == index;
     return GestureDetector(
-      onTap: () => setState(() => _tab = index),
+      onTap: () => _selectTab(index, settings),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            text,
-            style: TextStyle(
-              fontSize: 25,
-              fontWeight: FontWeight.w900,
-              color: selected ? scheme.onSurface : scheme.onSurfaceVariant,
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                text,
+                style: TextStyle(
+                  fontSize: 25,
+                  fontWeight: FontWeight.w900,
+                  color: selected ? scheme.onSurface : scheme.onSurfaceVariant,
+                ),
+              ),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                margin: const EdgeInsets.only(left: 7, top: 2),
+                width: showDot ? 8 : 0,
+                height: showDot ? 8 : 0,
+                decoration: BoxDecoration(
+                  color: scheme.primary,
+                  shape: BoxShape.circle,
+                  boxShadow: showDot
+                      ? [
+                          BoxShadow(
+                            color: scheme.primary.withValues(alpha: .55),
+                            blurRadius: 8,
+                          ),
+                        ]
+                      : null,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 9),
           AnimatedContainer(
@@ -161,71 +231,146 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _VerseCard extends StatelessWidget {
+class _VerseCard extends StatefulWidget {
   const _VerseCard({required this.reference});
 
   final (int, int) reference;
 
+  @override
+  State<_VerseCard> createState() => _VerseCardState();
+}
+
+class _VerseCardState extends State<_VerseCard> {
+  bool _expanded = false;
+
+  void _toggleExpanded() {
+    HapticFeedback.selectionClick();
+    setState(() => _expanded = !_expanded);
+  }
+
   void _openReader() {
     HapticFeedback.selectionClick();
-    AppNavigation.instance.openReader(surah: reference.$1, ayah: reference.$2);
+    AppNavigation.instance.openReader(
+      surah: widget.reference.$1,
+      ayah: widget.reference.$2,
+    );
   }
 
   Future<String?> _selectedTranslationVerse(AppSettings settings) async {
     if (settings.readerUsesArabic) return null;
     final verses = await TranslationRepository.instance
         .loadSourceVerses(settings.selectedQuranSourceId);
-    return verses['${reference.$1}:${reference.$2}'];
+    return verses['${widget.reference.$1}:${widget.reference.$2}'];
+  }
+
+  String _homeText(String languageCode, String key) {
+    const values = <String, Map<String, String>>{
+      'tr': {
+        'expand': 'Ayeti genişlet',
+        'collapse': 'Kısalt',
+        'readSurah': 'Surenin tamamını oku',
+      },
+      'en': {
+        'expand': 'Expand verse',
+        'collapse': 'Show less',
+        'readSurah': 'Read the full surah',
+      },
+      'ar': {
+        'expand': 'عرض الآية كاملة',
+        'collapse': 'عرض أقل',
+        'readSurah': 'قراءة السورة كاملة',
+      },
+      'az': {
+        'expand': 'Ayəni genişləndir',
+        'collapse': 'Qısalt',
+        'readSurah': 'Surəni tam oxu',
+      },
+      'ru': {
+        'expand': 'Развернуть аят',
+        'collapse': 'Свернуть',
+        'readSurah': 'Читать суру полностью',
+      },
+    };
+    return values[languageCode]?[key] ?? values['en']![key]!;
   }
 
   @override
   Widget build(BuildContext context) {
+    final reference = widget.reference;
     final surah = surahByNumber(reference.$1);
     final settings = AppSettingsScope.of(context);
     final translation = translationById(settings.selectedQuranSourceId);
     final sourceCode = settings.readerUsesArabic ? 'AR' : translation?.code ?? 'RWD';
     final l10n = context.l10n;
+    final languageCode = l10n.locale.languageCode;
 
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 300),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: _openReader,
-          borderRadius: BorderRadius.circular(28),
-          child: Ink(
-            padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(28),
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF315348), Color(0xFF182B25)],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: .12),
-                  blurRadius: 24,
-                  offset: const Offset(0, 10),
-                ),
-              ],
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _toggleExpanded,
+        borderRadius: BorderRadius.circular(28),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF315348), Color(0xFF182B25)],
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(l10n.text('dailyVerse'), style: const TextStyle(color: Colors.white70)),
-                const SizedBox(height: 6),
-                Text(
-                  '${surah.nameTr} ${reference.$1}:${reference.$2} · $sourceCode',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: .12),
+                blurRadius: 24,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.text('dailyVerse'),
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '${surah.nameTr} ${reference.$1}:${reference.$2} · $sourceCode',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 26),
-                Text(
+                  AnimatedRotation(
+                    duration: const Duration(milliseconds: 180),
+                    turns: _expanded ? .5 : 0,
+                    child: const Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: Colors.white70,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                child: Text(
                   quran.getVerse(reference.$1, reference.$2),
+                  maxLines: _expanded ? null : 4,
+                  overflow: _expanded ? TextOverflow.visible : TextOverflow.ellipsis,
                   textDirection: TextDirection.rtl,
                   textAlign: TextAlign.right,
                   style: const TextStyle(
@@ -235,44 +380,87 @@ class _VerseCard extends StatelessWidget {
                     height: 1.8,
                   ),
                 ),
-                if (!settings.readerUsesArabic) ...[
-                  const SizedBox(height: 18),
-                  FutureBuilder<String?>(
-                    future: _selectedTranslationVerse(settings),
-                    builder: (context, snapshot) {
-                      if (snapshot.hasError) {
-                        return Text(
-                          l10n.text('translationUnavailable'),
-                          style: const TextStyle(color: Colors.white70, height: 1.5),
-                        );
-                      }
-                      return AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 180),
-                        child: Text(
-                          snapshot.data ?? l10n.text('translationLoading'),
-                          key: ValueKey('${settings.selectedQuranSourceId}:${snapshot.data}'),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 17,
-                            height: 1.5,
-                          ),
-                        ),
+              ),
+              if (!settings.readerUsesArabic) ...[
+                const SizedBox(height: 18),
+                FutureBuilder<String?>(
+                  future: _selectedTranslationVerse(settings),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return Text(
+                        l10n.text('translationUnavailable'),
+                        style: const TextStyle(color: Colors.white70, height: 1.5),
                       );
-                    },
-                  ),
-                ],
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _Stat(Icons.bookmark_border_rounded, l10n.text('save')),
-                    _Stat(Icons.headphones_outlined, l10n.text('listen')),
-                    _Stat(Icons.ios_share_outlined, l10n.text('share')),
-                    _Stat(Icons.more_horiz, l10n.text('more')),
-                  ],
+                    }
+                    return AnimatedSize(
+                      duration: const Duration(milliseconds: 220),
+                      curve: Curves.easeOutCubic,
+                      child: Text(
+                        snapshot.data ?? l10n.text('translationLoading'),
+                        key: ValueKey('${settings.selectedQuranSourceId}:${snapshot.data}'),
+                        maxLines: _expanded ? null : 3,
+                        overflow:
+                            _expanded ? TextOverflow.visible : TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 17,
+                          height: 1.5,
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ],
-            ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Icon(
+                    _expanded
+                        ? Icons.unfold_less_rounded
+                        : Icons.unfold_more_rounded,
+                    color: Colors.white70,
+                    size: 19,
+                  ),
+                  const SizedBox(width: 7),
+                  Text(
+                    _homeText(
+                      languageCode,
+                      _expanded ? 'collapse' : 'expand',
+                    ),
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+              if (_expanded) ...[
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: _openReader,
+                    icon: const Icon(Icons.menu_book_rounded),
+                    label: Text(_homeText(languageCode, 'readSurah')),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: const Color(0xFF183027),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 22),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _Stat(Icons.bookmark_border_rounded, l10n.text('save')),
+                  _Stat(Icons.headphones_outlined, l10n.text('listen')),
+                  _Stat(Icons.ios_share_outlined, l10n.text('share')),
+                  _Stat(Icons.more_horiz, l10n.text('more')),
+                ],
+              ),
+            ],
           ),
         ),
       ),
@@ -414,39 +602,256 @@ class _InfoCard extends StatelessWidget {
   }
 }
 
-class _CommunityPlaceholder extends StatelessWidget {
-  const _CommunityPlaceholder();
+class _CommunityFeed extends StatelessWidget {
+  const _CommunityFeed();
+
+  String _text(String languageCode, String key) {
+    const values = <String, Map<String, String>>{
+      'tr': {
+        'title': 'Senin etkinliklerin',
+        'body': 'Kaydettiğin, vurguladığın ve not aldığın ayetler burada görünür. Arkadaş sistemi geldiğinde bu akış arkadaş etkinliklerini de gösterebilir.',
+        'empty': 'Henüz bir etkinlik yok. Bir ayet kaydettiğinde, vurguladığında veya not eklediğinde burada görünecek.',
+        'bookmark': 'Bir ayeti kaydettin',
+        'highlight': 'Bir ayeti vurguladın',
+        'note': 'Bir ayete not ekledin',
+      },
+      'en': {
+        'title': 'Your activity',
+        'body': 'Verses you save, highlight or annotate appear here. When friends arrive, this feed can also include their activity.',
+        'empty': 'No activity yet. Save, highlight or add a note to a verse and it will appear here.',
+        'bookmark': 'You saved a verse',
+        'highlight': 'You highlighted a verse',
+        'note': 'You added a note to a verse',
+      },
+      'ar': {
+        'title': 'نشاطك',
+        'body': 'تظهر هنا الآيات التي تحفظها أو تميزها أو تضيف إليها ملاحظات. وعند إضافة الأصدقاء يمكن أن يعرض هذا القسم نشاطهم أيضاً.',
+        'empty': 'لا يوجد نشاط بعد. احفظ آية أو ميزها أو أضف ملاحظة لتظهر هنا.',
+        'bookmark': 'حفظت آية',
+        'highlight': 'ميزت آية',
+        'note': 'أضفت ملاحظة إلى آية',
+      },
+      'az': {
+        'title': 'Sənin fəaliyyətin',
+        'body': 'Yadda saxladığın, vurğuladığın və qeyd əlavə etdiyin ayələr burada görünür. Dost sistemi gələndə bu axın onların fəaliyyətini də göstərə bilər.',
+        'empty': 'Hələ fəaliyyət yoxdur. Ayəni yadda saxla, vurğula və ya qeyd əlavə et.',
+        'bookmark': 'Bir ayəni yadda saxladın',
+        'highlight': 'Bir ayəni vurğuladın',
+        'note': 'Bir ayəyə qeyd əlavə etdin',
+      },
+      'ru': {
+        'title': 'Ваша активность',
+        'body': 'Здесь появляются сохранённые и выделенные аяты и заметки. После появления друзей лента сможет показывать и их активность.',
+        'empty': 'Пока активности нет. Сохраните или выделите аят либо добавьте заметку.',
+        'bookmark': 'Вы сохранили аят',
+        'highlight': 'Вы выделили аят',
+        'note': 'Вы добавили заметку к аяту',
+      },
+    };
+    return values[languageCode]?[key] ?? values['en']![key]!;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final settings = AppSettingsScope.of(context);
     final scheme = Theme.of(context).colorScheme;
-    final l10n = context.l10n;
+    final languageCode = context.l10n.locale.languageCode;
+    final items = <_ActivityItem>[
+      for (final key in settings.bookmarkKeys)
+        _ActivityItem(
+          kind: 'bookmark',
+          selectionKey: key,
+          timestamp: settings.archiveTimestamp('bookmark', key),
+        ),
+      for (final key in settings.highlightEntries.keys)
+        _ActivityItem(
+          kind: 'highlight',
+          selectionKey: key,
+          timestamp: settings.archiveTimestamp('highlight', key),
+        ),
+      for (final entry in settings.noteEntries.entries)
+        _ActivityItem(
+          kind: 'note',
+          selectionKey: entry.key,
+          timestamp: settings.archiveTimestamp('note', entry.key),
+          note: entry.value,
+        ),
+    ]..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 72, 20, 120),
+      padding: const EdgeInsets.fromLTRB(20, 28, 20, 120),
       children: [
         Container(
-          padding: const EdgeInsets.all(28),
+          padding: const EdgeInsets.all(22),
           decoration: BoxDecoration(
             color: scheme.surfaceContainer,
-            borderRadius: BorderRadius.circular(30),
+            borderRadius: BorderRadius.circular(26),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(l10n.text('readTogether'), style: Theme.of(context).textTheme.headlineMedium),
-              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Icon(Icons.people_alt_outlined, color: scheme.primary),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _text(languageCode, 'title'),
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w900,
+                          ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
               Text(
-                l10n.text('communitySoon'),
+                _text(languageCode, 'body'),
                 style: TextStyle(
                   color: scheme.onSurfaceVariant,
-                  fontSize: 17,
                   height: 1.45,
                 ),
               ),
             ],
           ),
         ),
+        const SizedBox(height: 16),
+        if (items.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Text(
+              _text(languageCode, 'empty'),
+              style: TextStyle(
+                color: scheme.onSurfaceVariant,
+                height: 1.5,
+              ),
+            ),
+          )
+        else
+          for (final item in items.take(30)) ...[
+            _ActivityCard(
+              item: item,
+              title: _text(languageCode, item.kind),
+            ),
+            const SizedBox(height: 10),
+          ],
       ],
+    );
+  }
+}
+
+class _ActivityItem {
+  const _ActivityItem({
+    required this.kind,
+    required this.selectionKey,
+    required this.timestamp,
+    this.note,
+  });
+
+  final String kind;
+  final String selectionKey;
+  final int timestamp;
+  final String? note;
+}
+
+class _ActivityCard extends StatelessWidget {
+  const _ActivityCard({required this.item, required this.title});
+
+  final _ActivityItem item;
+  final String title;
+
+  (int, int)? _target() {
+    final separator = item.selectionKey.indexOf(':');
+    if (separator <= 0) return null;
+    final surah = int.tryParse(item.selectionKey.substring(0, separator));
+    if (surah == null || surah < 1 || surah > 114) return null;
+    final ayahPart = item.selectionKey.substring(separator + 1);
+    final firstPart = ayahPart.split(RegExp(r'[-,]')).first;
+    final ayah = int.tryParse(firstPart);
+    if (ayah == null || ayah < 1) return null;
+    return (surah, ayah);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final target = _target();
+    final icon = switch (item.kind) {
+      'highlight' => Icons.format_color_fill_rounded,
+      'note' => Icons.sticky_note_2_outlined,
+      _ => Icons.bookmark_added_outlined,
+    };
+    final reference = target == null
+        ? item.selectionKey
+        : '${surahByNumber(target.$1).nameTr} ${item.selectionKey}';
+
+    return Material(
+      color: scheme.surfaceContainer,
+      borderRadius: BorderRadius.circular(22),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: target == null
+            ? null
+            : () {
+                HapticFeedback.selectionClick();
+                AppNavigation.instance.openReader(
+                  surah: target.$1,
+                  ayah: target.$2,
+                );
+              },
+        child: Padding(
+          padding: const EdgeInsets.all(17),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: scheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: scheme.primary, size: 21),
+              ),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
+                    const SizedBox(height: 4),
+                    Text(
+                      reference,
+                      style: TextStyle(
+                        color: scheme.primary,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    if (item.note?.trim().isNotEmpty == true) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        item.note!,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: scheme.onSurfaceVariant,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 6),
+              const Icon(Icons.chevron_right_rounded),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
