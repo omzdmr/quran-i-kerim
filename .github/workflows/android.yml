@@ -37,11 +37,62 @@ jobs:
           java-version: '17'
           cache: gradle
 
-      - name: Restore test signing key
+      - name: Restore stable test signing key
         uses: actions/cache@v4
         with:
-          path: ~/.android/debug.keystore
-          key: quran-i-kerim-test-signing-v1
+          path: .ci/test-signing.jks
+          key: quran-i-kerim-arm64-test-signing-v2
+
+      - name: Create stable test signing key if needed
+        run: |
+          mkdir -p .ci
+          if [ ! -f .ci/test-signing.jks ]; then
+            keytool -genkeypair \
+              -keystore .ci/test-signing.jks \
+              -storepass android \
+              -alias quran_test \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Quran Test,O=omzdmr,C=TR"
+          fi
+          keytool -list -v \
+            -keystore .ci/test-signing.jks \
+            -storepass android \
+            -alias quran_test | grep -E "SHA256:|Owner:|Valid from:"
+
+      - name: Configure stable test signing
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('android/app/build.gradle.kts')
+          text = path.read_text(encoding='utf-8')
+
+          marker = '    buildTypes {'
+          signing = '''    signingConfigs {
+              create("testRelease") {
+                  storeFile = rootProject.file("../.ci/test-signing.jks")
+                  storePassword = "android"
+                  keyAlias = "quran_test"
+                  keyPassword = "android"
+              }
+          }
+
+          '''
+          if marker not in text:
+              raise SystemExit('buildTypes marker not found')
+          text = text.replace(marker, signing + marker, 1)
+          text = text.replace(
+              'signingConfig = signingConfigs.getByName("debug")',
+              'signingConfig = signingConfigs.getByName("testRelease")',
+              1,
+          )
+          if 'getByName("testRelease")' not in text:
+              raise SystemExit('release signing config was not patched')
+          path.write_text(text, encoding='utf-8')
+          PY
 
       - name: Set Android app label
         run: |
