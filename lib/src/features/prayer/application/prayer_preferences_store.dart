@@ -51,10 +51,29 @@ class PrayerDeviceLocationSnapshot {
   final String regionCode;
 }
 
+class PrayerManualLocationSnapshot {
+  const PrayerManualLocationSnapshot({
+    required this.sourceId,
+    required this.label,
+    required this.country,
+    required this.location,
+    required this.defaultMethod,
+    required this.regionCode,
+  });
+
+  final String sourceId;
+  final String label;
+  final String country;
+  final PrayerLocation location;
+  final PrayerCalculationMethod defaultMethod;
+  final String regionCode;
+}
+
 class PrayerPreferencesStore {
   PrayerPreferencesStore._();
 
   static const deviceLocationId = '__device_location__';
+  static const manualLocationId = '__manual_location__';
   static const cityKey = 'prayer_city_id';
   static const _methodKey = 'prayer_method_override';
   static const _asrKey = 'prayer_asr_method';
@@ -73,6 +92,14 @@ class PrayerPreferencesStore {
   static const _deviceTimezoneKey = 'prayer_device_timezone';
   static const _deviceMethodKey = 'prayer_device_method';
   static const _deviceRegionKey = 'prayer_device_region';
+  static const _manualSourceIdKey = 'prayer_manual_source_id';
+  static const _manualLabelKey = 'prayer_manual_label';
+  static const _manualCountryKey = 'prayer_manual_country';
+  static const _manualLatitudeKey = 'prayer_manual_latitude';
+  static const _manualLongitudeKey = 'prayer_manual_longitude';
+  static const _manualTimezoneKey = 'prayer_manual_timezone';
+  static const _manualMethodKey = 'prayer_manual_method';
+  static const _manualRegionKey = 'prayer_manual_region';
 
   static Future<PrayerSettingsSnapshot> load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -82,12 +109,11 @@ class PrayerPreferencesStore {
         PrayerCalculationMethod.values,
         prefs.getString(_methodKey),
       ),
-      asrMethod: _enumByName(
-            PrayerAsrMethod.values,
-            prefs.getString(_asrKey),
-          ) ??
+      asrMethod:
+          _enumByName(PrayerAsrMethod.values, prefs.getString(_asrKey)) ??
           PrayerAsrMethod.standard,
-      highLatitudeMethod: _enumByName(
+      highLatitudeMethod:
+          _enumByName(
             PrayerHighLatitudeMethod.values,
             prefs.getString(_highLatitudeKey),
           ) ??
@@ -154,6 +180,57 @@ class PrayerPreferencesStore {
       ),
       defaultMethod: method,
       regionCode: prefs.getString(_deviceRegionKey) ?? 'world',
+    );
+  }
+
+  static Future<void> saveManualLocation(
+    PrayerManualLocationSnapshot value,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_manualSourceIdKey, value.sourceId);
+    await prefs.setString(_manualLabelKey, value.label);
+    await prefs.setString(_manualCountryKey, value.country);
+    await prefs.setDouble(_manualLatitudeKey, value.location.latitude);
+    await prefs.setDouble(_manualLongitudeKey, value.location.longitude);
+    await prefs.setString(_manualTimezoneKey, value.location.timeZoneId);
+    await prefs.setString(_manualMethodKey, value.defaultMethod.name);
+    await prefs.setString(_manualRegionKey, value.regionCode);
+    await prefs.setString(cityKey, manualLocationId);
+  }
+
+  static Future<PrayerManualLocationSnapshot?> loadManualLocation() async {
+    final prefs = await SharedPreferences.getInstance();
+    final sourceId = prefs.getString(_manualSourceIdKey);
+    final label = prefs.getString(_manualLabelKey);
+    final country = prefs.getString(_manualCountryKey);
+    final latitude = prefs.getDouble(_manualLatitudeKey);
+    final longitude = prefs.getDouble(_manualLongitudeKey);
+    final timezone = prefs.getString(_manualTimezoneKey);
+    final method = _enumByName(
+      PrayerCalculationMethod.values,
+      prefs.getString(_manualMethodKey),
+    );
+    if (sourceId == null ||
+        label == null ||
+        country == null ||
+        latitude == null ||
+        longitude == null ||
+        timezone == null ||
+        method == null) {
+      return null;
+    }
+    return PrayerManualLocationSnapshot(
+      sourceId: sourceId,
+      label: label,
+      country: country,
+      location: PrayerLocation(
+        latitude: latitude,
+        longitude: longitude,
+        timeZoneId: timezone,
+        label: label,
+      ),
+      defaultMethod: method,
+      regionCode: prefs.getString(_manualRegionKey) ?? 'world',
     );
   }
 
