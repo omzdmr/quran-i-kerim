@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quran_i_kerim/src/data/translation_catalog.dart';
 import 'package:quran_i_kerim/src/settings/app_settings.dart';
