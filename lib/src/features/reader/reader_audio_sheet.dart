@@ -576,6 +576,93 @@ class _ReaderAudioSheetState extends State<ReaderAudioSheet> {
     );
   }
 
+  Future<void> _showNarratorPicker(_AudioCopy copy) async {
+    if (widget.availableSources.length <= 1) return;
+    final currentId = widget.controller.config?.id;
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        final scheme = Theme.of(sheetContext).colorScheme;
+        return SafeArea(
+          top: false,
+          child: FractionallySizedBox(
+            heightFactor: .72,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          copy.chooseNarrator,
+                          style: Theme.of(sheetContext).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w900),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(sheetContext),
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 24),
+                    itemCount: widget.availableSources.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 6),
+                    itemBuilder: (context, index) {
+                      final source = widget.availableSources[index];
+                      final selectedSource = source.id == currentId;
+                      final title = source.style == null
+                          ? source.title
+                          : '${source.title} · ${source.style}';
+                      return ListTile(
+                        selected: selectedSource,
+                        selectedTileColor: scheme.primaryContainer.withValues(
+                          alpha: .42,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        leading: CircleAvatar(
+                          backgroundColor: selectedSource
+                              ? scheme.primary
+                              : scheme.surfaceContainerHighest,
+                          foregroundColor: selectedSource
+                              ? scheme.onPrimary
+                              : scheme.onSurfaceVariant,
+                          child: const Icon(Icons.record_voice_over_rounded),
+                        ),
+                        title: Text(
+                          title,
+                          style: const TextStyle(fontWeight: FontWeight.w900),
+                        ),
+                        subtitle: Text(source.attribution),
+                        trailing: selectedSource
+                            ? Icon(
+                                Icons.check_circle_rounded,
+                                color: scheme.primary,
+                              )
+                            : null,
+                        onTap: () => Navigator.pop(sheetContext, source.id),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (!mounted || selected == null || selected == currentId) return;
+    await widget.onSourceSelected(selected);
+  }
+
   @override
   Widget build(BuildContext context) {
     final copy = _AudioCopy(Localizations.localeOf(context).languageCode);
@@ -610,68 +697,28 @@ class _ReaderAudioSheetState extends State<ReaderAudioSheet> {
                             ),
                           ),
                           const SizedBox(height: 3),
-                          if (widget.availableSources.length <= 1)
-                            Text(
-                              '${controller.config?.code ?? ''} · ${controller.config?.title ?? ''}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(color: scheme.onSurfaceVariant),
-                            )
-                          else
-                            PopupMenuButton<String>(
-                              initialValue: controller.config?.id,
-                              onSelected: (value) =>
-                                  unawaited(widget.onSourceSelected(value)),
-                              itemBuilder: (_) => [
-                                for (final source in widget.availableSources)
-                                  PopupMenuItem<String>(
-                                    value: source.id,
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          source.style == null
-                                              ? source.title
-                                              : '${source.title} · ${source.style}',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w800,
-                                          ),
-                                        ),
-                                        Text(
-                                          source.attribution,
-                                          style: TextStyle(
-                                            color: scheme.onSurfaceVariant,
-                                            fontSize: 11,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                              ],
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      '${controller.config?.code ?? ''} · ${controller.config?.title ?? ''}',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: scheme.onSurfaceVariant,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 3),
-                                  Icon(
-                                    Icons.expand_more_rounded,
-                                    size: 18,
-                                    color: scheme.onSurfaceVariant,
-                                  ),
-                                ],
+                          Text(
+                            '${controller.config?.code ?? ''} · ${controller.config?.title ?? ''}',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: scheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          if (widget.availableSources.length > 1) ...[
+                            const SizedBox(height: 10),
+                            Align(
+                              alignment: AlignmentDirectional.centerStart,
+                              child: OutlinedButton.icon(
+                                onPressed: () => _showNarratorPicker(copy),
+                                icon: const Icon(
+                                  Icons.record_voice_over_rounded,
+                                ),
+                                label: Text(copy.switchNarrator),
                               ),
                             ),
+                          ],
                         ],
                       ),
                     ),
@@ -841,28 +888,62 @@ class _ReaderAudioSheetState extends State<ReaderAudioSheet> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  crossAxisAlignment: WrapCrossAlignment.center,
+                Row(
                   children: [
                     PopupMenuButton<double>(
+                      tooltip: copy.playbackSpeed,
+                      initialValue: controller.rate,
                       onSelected: controller.setRate,
                       itemBuilder: (_) => const [
+                        PopupMenuItem(value: .5, child: Text('0.5x')),
                         PopupMenuItem(value: .75, child: Text('0.75x')),
                         PopupMenuItem(value: 1.0, child: Text('1x')),
                         PopupMenuItem(value: 1.25, child: Text('1.25x')),
                         PopupMenuItem(value: 1.5, child: Text('1.5x')),
                         PopupMenuItem(value: 2.0, child: Text('2x')),
                       ],
-                      child: Chip(
-                        avatar: const Icon(Icons.speed_rounded, size: 17),
-                        label: Text(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        child: Text(
                           '${controller.rate.toStringAsFixed(controller.rate % 1 == 0 ? 0 : 2)}x',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                       ),
                     ),
+                    const Spacer(),
+                    PopupMenuButton<AudioAfterSurahBehavior>(
+                      tooltip: copy.playbackBehavior,
+                      initialValue: AppSettingsScope.of(
+                        context,
+                      ).audioAfterSurahBehavior,
+                      onSelected: (value) async {
+                        final settings = AppSettingsScope.of(context);
+                        await settings.setAudioAfterSurahBehavior(value);
+                        controller.setContinueAfterSurah(
+                          value == AudioAfterSurahBehavior.continueNext,
+                        );
+                      },
+                      itemBuilder: (_) => [
+                        PopupMenuItem(
+                          value: AudioAfterSurahBehavior.continueNext,
+                          child: Text(copy.continueNextSurah),
+                        ),
+                        PopupMenuItem(
+                          value: AudioAfterSurahBehavior.stop,
+                          child: Text(copy.stopAtSurahEnd),
+                        ),
+                      ],
+                      icon: const Icon(Icons.queue_music_rounded, size: 29),
+                    ),
+                    const SizedBox(width: 6),
                     PopupMenuButton<String>(
+                      tooltip: copy.timer,
                       onSelected: (value) {
                         if (value == 'end') {
                           controller.setSleepAtSurahEnd();
@@ -886,71 +967,60 @@ class _ReaderAudioSheetState extends State<ReaderAudioSheet> {
                         ),
                         PopupMenuItem(value: 'off', child: Text(copy.off)),
                       ],
-                      child: Chip(
-                        avatar: const Icon(Icons.bedtime_outlined, size: 17),
-                        label: Text(
-                          controller.sleepAtSurahEnd
-                              ? copy.endOfSurah
-                              : controller.sleepMinutes == null
-                              ? copy.timer
-                              : '${controller.sleepMinutes} ${copy.minutes}',
+                      child: SizedBox(
+                        width: 48,
+                        height: 48,
+                        child: Icon(
+                          Icons.schedule_rounded,
+                          size: 31,
+                          color:
+                              controller.sleepAtSurahEnd ||
+                                  controller.sleepMinutes != null
+                              ? scheme.primary
+                              : null,
                         ),
-                      ),
-                    ),
-                    PopupMenuButton<AudioAfterSurahBehavior>(
-                      initialValue: AppSettingsScope.of(
-                        context,
-                      ).audioAfterSurahBehavior,
-                      onSelected: (value) async {
-                        final settings = AppSettingsScope.of(context);
-                        await settings.setAudioAfterSurahBehavior(value);
-                        controller.setContinueAfterSurah(
-                          value == AudioAfterSurahBehavior.continueNext,
-                        );
-                      },
-                      itemBuilder: (_) => [
-                        PopupMenuItem(
-                          value: AudioAfterSurahBehavior.continueNext,
-                          child: Text(copy.continueNextSurah),
-                        ),
-                        PopupMenuItem(
-                          value: AudioAfterSurahBehavior.stop,
-                          child: Text(copy.stopAtSurahEnd),
-                        ),
-                      ],
-                      child: Chip(
-                        avatar: const Icon(Icons.queue_music_rounded, size: 17),
-                        label: Text(
-                          AppSettingsScope.of(
-                                    context,
-                                  ).audioAfterSurahBehavior ==
-                                  AudioAfterSurahBehavior.continueNext
-                              ? copy.continueNext
-                              : copy.stop,
-                        ),
-                      ),
-                    ),
-                    TextButton.icon(
-                      onPressed: () {
-                        setState(
-                          () => _quickControlsVisible = !_quickControlsVisible,
-                        );
-                        widget.onQuickControlsVisibilityChanged(
-                          _quickControlsVisible,
-                        );
-                      },
-                      icon: Icon(
-                        _quickControlsVisible
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined,
-                      ),
-                      label: Text(
-                        _quickControlsVisible
-                            ? copy.hideButtons
-                            : copy.showButtons,
                       ),
                     ),
                   ],
+                ),
+                if (controller.sleepAtSurahEnd ||
+                    controller.sleepMinutes != null) ...[
+                  const SizedBox(height: 2),
+                  Align(
+                    alignment: AlignmentDirectional.centerEnd,
+                    child: Padding(
+                      padding: const EdgeInsetsDirectional.only(end: 4),
+                      child: Text(
+                        controller.sleepAtSurahEnd
+                            ? copy.endOfSurah
+                            : '${controller.sleepMinutes} ${copy.minutes}',
+                        style: TextStyle(
+                          color: scheme.primary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 4),
+                TextButton.icon(
+                  onPressed: () {
+                    setState(
+                      () => _quickControlsVisible = !_quickControlsVisible,
+                    );
+                    widget.onQuickControlsVisibilityChanged(
+                      _quickControlsVisible,
+                    );
+                  },
+                  icon: Icon(
+                    _quickControlsVisible
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                  ),
+                  label: Text(
+                    _quickControlsVisible ? copy.hideButtons : copy.showButtons,
+                  ),
                 ),
                 if (controller.error != null) ...[
                   const SizedBox(height: 8),
@@ -1222,6 +1292,34 @@ class _AudioCopy {
           'Standart · $bitrate kbps',
           'Стандарт · $bitrate kbps',
         );
+  String get switchNarrator => _pick(
+    'Okuyucuyu değiştir',
+    'Switch narrator',
+    'تغيير القارئ',
+    'Oxucunu dəyiş',
+    'Сменить чтеца',
+  );
+  String get chooseNarrator => _pick(
+    'Okuyucu seç',
+    'Choose narrator',
+    'اختر القارئ',
+    'Oxucu seç',
+    'Выбрать чтеца',
+  );
+  String get playbackSpeed => _pick(
+    'Oynatma hızı',
+    'Playback speed',
+    'سرعة التشغيل',
+    'Oxutma sürəti',
+    'Скорость воспроизведения',
+  );
+  String get playbackBehavior => _pick(
+    'Sure sonu davranışı',
+    'End-of-surah behavior',
+    'سلوك نهاية السورة',
+    'Surə sonu davranışı',
+    'Поведение в конце суры',
+  );
   String get timer =>
       _pick('Zamanlayıcı', 'Timer', 'المؤقت', 'Taymer', 'Таймер');
   String get minutes => _pick('dk', 'min', 'د', 'dəq', 'мин');

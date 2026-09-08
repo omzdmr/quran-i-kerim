@@ -182,9 +182,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Icons.download_done_rounded,
             l10n.downloads,
             l10n.downloadsDescription,
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const DownloadsScreen()),
-            ),
+            onTap: () {
+              HapticFeedback.selectionClick();
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const DownloadsScreen(),
+                ),
+              );
+            },
           ),
           _SettingsTile(
             Icons.language_rounded,
