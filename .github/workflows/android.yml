@@ -106,6 +106,43 @@ jobs:
           path.write_text(text, encoding='utf-8')
           PY
 
+      - name: Configure Android background audio
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('android/app/src/main/AndroidManifest.xml')
+          text = path.read_text(encoding='utf-8')
+          text = text.replace(
+              '<manifest xmlns:android="http://schemas.android.com/apk/res/android">',
+              '<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">',
+              1,
+          )
+          permissions = '''\n    <uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.WAKE_LOCK"/>\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>\n'''
+          marker = '<application'
+          if marker not in text:
+              raise SystemExit('application marker not found in AndroidManifest.xml')
+          text = text.replace(marker, permissions + '    ' + marker, 1)
+          text = text.replace(
+              'android:name=".MainActivity"',
+              'android:name="com.ryanheise.audioservice.AudioServiceActivity"',
+              1,
+          )
+          services = '''\n        <service\n            android:name="com.ryanheise.audioservice.AudioService"\n            android:foregroundServiceType="mediaPlayback"\n            android:exported="true"\n            tools:ignore="Instantiatable">\n            <intent-filter>\n                <action android:name="android.media.browse.MediaBrowserService" />\n            </intent-filter>\n        </service>\n        <receiver\n            android:name="com.ryanheise.audioservice.MediaButtonReceiver"\n            android:exported="true"\n            tools:ignore="Instantiatable">\n            <intent-filter>\n                <action android:name="android.intent.action.MEDIA_BUTTON" />\n            </intent-filter>\n        </receiver>\n'''
+          if '</application>' not in text:
+              raise SystemExit('application closing tag not found')
+          text = text.replace('</application>', services + '    </application>', 1)
+          required = [
+              'AudioServiceActivity',
+              'AudioService',
+              'MediaButtonReceiver',
+              'FOREGROUND_SERVICE_MEDIA_PLAYBACK',
+          ]
+          if not all(value in text for value in required):
+              raise SystemExit('background audio manifest patch incomplete')
+          path.write_text(text, encoding='utf-8')
+          PY
+
       - name: Fetch and validate bundled content
         run: python3 tool/fetch_content.py
 
