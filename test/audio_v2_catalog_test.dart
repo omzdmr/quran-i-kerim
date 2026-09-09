@@ -33,6 +33,22 @@ void main() {
     expect(translation?.hasAudio, isTrue);
   });
 
+  test('direct CDN catalog does not keep obsolete Arabic aliases', () {
+    expect(quranAudioById('arabic_recitation_abdulbasit_mujawwad'), isNull);
+    expect(quranAudioById('arabic_recitation_abdul_samad')?.providerKey, 'ar.abdulsamad');
+    expect(quranAudioById('arabic_recitation_ibrahim_akhdar')?.providerKey, 'ar.ibrahimakhbar');
+    expect(quranAudioById('arabic_recitation_parhizgar')?.providerKey, 'ar.parhizgar');
+  });
+
+  test('Kuliev Russian audio is tied to Kuliev Russian text', () {
+    final audio = quranAudioById('russian_kuliev_audio');
+    final translation = translationById('russian_kuliev');
+    expect(audio?.sourceId, translation?.id);
+    expect(audio?.providerKey, 'ru.kuliev-audio');
+    expect(translation?.sourceKey, 'ru.kuliev');
+    expect(translation?.hasAudio, isTrue);
+  });
+
   test('selected bitrate changes URL and persistent storage identity', () {
     final config = readerAudioConfigFor(
       arabicOriginalSourceId,
