@@ -39,6 +39,7 @@ jobs:
         run: |
           sed -i "/final title = language == 'tr'/d" tool/apply_reader_v2_layer1.py
           sed -i "s/share_plus: \^11\.1\.0/share_plus: ^13.3.0/" tool/apply_reader_v2_layer1.py
+          sed -i "/        '\.github\/workflows\/android\.yml',/d" tool/apply_reader_v2_layer1.py
 
       - name: Apply and validate Reader v2 slices
         run: python3 tool/apply_reader_v2_layer1.py
