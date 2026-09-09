@@ -2,7 +2,7 @@ name: Android APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, feature/audio-v21 ]
   workflow_dispatch:
 
 permissions:
@@ -113,8 +113,8 @@ jobs:
       - name: Analyze app code
         run: flutter analyze lib --no-fatal-infos
 
-      - name: Run prayer tests
-        run: flutter test test/prayer_calculator_test.dart
+      - name: Run all tests
+        run: flutter test
 
       - name: Build ARM64 test APK
         run: flutter build apk --release --target-platform android-arm64 --build-number=${{ github.run_number }}
