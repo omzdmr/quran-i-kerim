@@ -10,6 +10,8 @@ import '../../data/translation_repository.dart';
 import '../../settings/app_settings.dart';
 import 'offline_audio_manager.dart';
 import 'reader_audio_cache.dart';
+import 'reader_media_session.dart';
+import 'reader_sleep_timer.dart';
 
 class ReaderAudioSourceConfig {
   const ReaderAudioSourceConfig({
@@ -89,18 +91,30 @@ ReaderAudioSourceConfig? readerAudioConfigFor(
 
 class ReaderAudioController extends ChangeNotifier {
   ReaderAudioController() {
+    ReaderMediaSession.instance?.attach(
+      onPlay: () async {
+        if (!_playing) await toggle();
+      },
+      onPause: () async {
+        if (_playing) await _player.pause();
+      },
+      onPrevious: previous,
+      onNext: next,
+      onSeek: seek,
+      onStop: stop,
+    );
     _subscriptions.addAll([
       _player.onPositionChanged.listen((value) {
         _position = value;
-        notifyListeners();
+        _notify();
       }),
       _player.onDurationChanged.listen((value) {
         _duration = value;
-        notifyListeners();
+        _notify();
       }),
       _player.onPlayerStateChanged.listen((value) {
         _playing = value == PlayerState.playing;
-        notifyListeners();
+        _notify();
       }),
       _player.onPlayerComplete.listen((_) => _onComplete()),
     ]);
@@ -170,7 +184,7 @@ class ReaderAudioController extends ChangeNotifier {
       _position = Duration.zero;
       _duration = Duration.zero;
       _loadedCacheKey = null;
-      notifyListeners();
+      _notify();
     }
 
     unawaited(prefetchFrom(_ayah));
@@ -223,7 +237,7 @@ class ReaderAudioController extends ChangeNotifier {
     } catch (_) {
       _playing = false;
       _error = 'audio';
-      notifyListeners();
+      _notify();
     }
   }
 
@@ -253,7 +267,7 @@ class ReaderAudioController extends ChangeNotifier {
     _position = Duration.zero;
     _duration = Duration.zero;
     _loadedCacheKey = null;
-    notifyListeners();
+    _notify();
     unawaited(prefetchFrom(_ayah));
     if (wasPlaying) await _playCurrent();
   }
@@ -278,7 +292,7 @@ class ReaderAudioController extends ChangeNotifier {
         unawaited(stop());
       });
     }
-    notifyListeners();
+    _notify();
   }
 
   void setSleepAtSurahEnd() {
@@ -286,13 +300,13 @@ class ReaderAudioController extends ChangeNotifier {
     _sleepTimer = null;
     _sleepMinutes = null;
     _sleepAtSurahEnd = true;
-    notifyListeners();
+    _notify();
   }
 
   Future<void> setRate(double value) async {
     _rate = value.clamp(.5, 2.0).toDouble();
     if (_playing) await _player.setPlaybackRate(_rate);
-    notifyListeners();
+    _notify();
   }
 
   Future<void> stop() async {
@@ -303,7 +317,8 @@ class ReaderAudioController extends ChangeNotifier {
     _duration = Duration.zero;
     _loadedCacheKey = null;
     _loading = false;
-    notifyListeners();
+    _notify();
+    ReaderMediaSession.instance?.clear();
   }
 
   String _cacheKeyForCurrent() {
@@ -323,7 +338,7 @@ class ReaderAudioController extends ChangeNotifier {
     );
     _loading = true;
     _error = null;
-    notifyListeners();
+    _notify();
     try {
       final offline = await OfflineAudioManager.instance.offlineFile(
         storageKey: config.cacheId,
@@ -348,12 +363,12 @@ class ReaderAudioController extends ChangeNotifier {
         _playing = false;
         _loadedCacheKey = null;
         _error = 'audio';
-        notifyListeners();
+        _notify();
       }
     } finally {
       if (generation == _generation) {
         _loading = false;
-        notifyListeners();
+        _notify();
       }
     }
   }
@@ -365,7 +380,7 @@ class ReaderAudioController extends ChangeNotifier {
         _sleepMinutes = null;
         _playing = false;
         _position = _duration;
-        notifyListeners();
+        _notify();
         return;
       }
       if (_continueAfterSurah && _onRequestNextSurah != null) {
@@ -374,7 +389,7 @@ class ReaderAudioController extends ChangeNotifier {
       }
       _playing = false;
       _position = _duration;
-      notifyListeners();
+      _notify();
       return;
     }
     _ayah++;
@@ -382,8 +397,27 @@ class ReaderAudioController extends ChangeNotifier {
     _position = Duration.zero;
     _duration = Duration.zero;
     _playing = false;
-    notifyListeners();
+    _notify();
     await _playCurrent();
+  }
+
+  void _notify() {
+    final config = _config;
+    final session = ReaderMediaSession.instance;
+    if (config != null && session != null) {
+      session.publish(
+        surah: _surah,
+        ayah: _ayah,
+        verseCount: _verseCount,
+        sourceTitle: config.title,
+        position: _position,
+        duration: _duration,
+        playing: _playing,
+        loading: _loading,
+        speed: _rate,
+      );
+    }
+    notifyListeners();
   }
 
   @override
@@ -392,6 +426,7 @@ class ReaderAudioController extends ChangeNotifier {
       subscription.cancel();
     }
     _sleepTimer?.cancel();
+    ReaderMediaSession.instance?.detach();
     _player.dispose();
     super.dispose();
   }
@@ -574,6 +609,79 @@ class _ReaderAudioSheetState extends State<ReaderAudioSheet> {
             config.urlForVerse(widget.controller.surahNumber, ayah),
       ),
     );
+  }
+
+  Future<void> _showCustomTimerDialog(_AudioCopy copy) async {
+    final hoursController = TextEditingController(text: '0');
+    final minutesController = TextEditingController(text: '30');
+    String? validationError;
+    final timer = await showDialog<ReaderSleepTimerValue>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(copy.customTimer),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: hoursController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(labelText: copy.hours),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: minutesController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(labelText: copy.minutesLong),
+                    ),
+                  ),
+                ],
+              ),
+              if (validationError != null) ...[
+                const SizedBox(height: 10),
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text(
+                    validationError!,
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(copy.cancel),
+            ),
+            FilledButton(
+              onPressed: () {
+                final hours = int.tryParse(hoursController.text.trim()) ?? 0;
+                final minutes = int.tryParse(minutesController.text.trim()) ?? 0;
+                try {
+                  Navigator.pop(
+                    dialogContext,
+                    ReaderSleepTimerValue.custom(hours: hours, minutes: minutes),
+                  );
+                } on ArgumentError {
+                  setDialogState(() => validationError = copy.invalidTimer);
+                }
+              },
+              child: Text(copy.setTimer),
+            ),
+          ],
+        ),
+      ),
+    );
+    hoursController.dispose();
+    minutesController.dispose();
+    if (!mounted || timer == null) return;
+    widget.controller.setSleepTimer(timer.duration);
   }
 
   Future<void> _showNarratorPicker(_AudioCopy copy) async {
@@ -945,7 +1053,9 @@ class _ReaderAudioSheetState extends State<ReaderAudioSheet> {
                     PopupMenuButton<String>(
                       tooltip: copy.timer,
                       onSelected: (value) {
-                        if (value == 'end') {
+                        if (value == 'custom') {
+                          unawaited(_showCustomTimerDialog(copy));
+                        } else if (value == 'end') {
                           controller.setSleepAtSurahEnd();
                         } else if (value == 'off') {
                           controller.setSleepTimer(null);
@@ -961,6 +1071,10 @@ class _ReaderAudioSheetState extends State<ReaderAudioSheet> {
                             value: '$minutes',
                             child: Text('$minutes ${copy.minutes}'),
                           ),
+                        PopupMenuItem(
+                          value: 'custom',
+                          child: Text(copy.customTimer),
+                        ),
                         PopupMenuItem(
                           value: 'end',
                           child: Text(copy.endOfSurah),
@@ -993,7 +1107,10 @@ class _ReaderAudioSheetState extends State<ReaderAudioSheet> {
                       child: Text(
                         controller.sleepAtSurahEnd
                             ? copy.endOfSurah
-                            : '${controller.sleepMinutes} ${copy.minutes}',
+                            : _formatSleepTimer(
+                                controller.sleepMinutes!,
+                                copy,
+                              ),
                         style: TextStyle(
                           color: scheme.primary,
                           fontSize: 11,
@@ -1183,6 +1300,14 @@ String _formatDuration(Duration value) {
   return '$minutes:$seconds';
 }
 
+String _formatSleepTimer(int totalMinutes, _AudioCopy copy) {
+  final hours = totalMinutes ~/ 60;
+  final minutes = totalMinutes % 60;
+  if (hours == 0) return '$minutes ${copy.minutes}';
+  if (minutes == 0) return '$hours ${copy.hoursShort}';
+  return '$hours ${copy.hoursShort} $minutes ${copy.minutes}';
+}
+
 class _AudioCopy {
   const _AudioCopy(this.languageCode);
   final String languageCode;
@@ -1322,6 +1447,31 @@ class _AudioCopy {
   );
   String get timer =>
       _pick('Zamanlayıcı', 'Timer', 'المؤقت', 'Taymer', 'Таймер');
+  String get customTimer => _pick(
+    'Özel süre…',
+    'Custom duration…',
+    'مدة مخصصة…',
+    'Xüsusi müddət…',
+    'Свое время…',
+  );
+  String get hours => _pick('Saat', 'Hours', 'ساعات', 'Saat', 'Часы');
+  String get hoursShort => _pick('sa', 'h', 'س', 's', 'ч');
+  String get minutesLong =>
+      _pick('Dakika', 'Minutes', 'دقائق', 'Dəqiqə', 'Минуты');
+  String get setTimer => _pick(
+    'Zamanlayıcıyı başlat',
+    'Start timer',
+    'بدء المؤقت',
+    'Taymeri başlat',
+    'Запустить таймер',
+  );
+  String get invalidTimer => _pick(
+    '1 dakika ile 24 saat arasında bir süre girin.',
+    'Enter a duration between 1 minute and 24 hours.',
+    'أدخل مدة بين دقيقة واحدة و24 ساعة.',
+    '1 dəqiqə ilə 24 saat arasında müddət daxil edin.',
+    'Введите время от 1 минуты до 24 часов.',
+  );
   String get minutes => _pick('dk', 'min', 'د', 'dəq', 'мин');
   String get endOfSurah => _pick(
     'Sure bitince',

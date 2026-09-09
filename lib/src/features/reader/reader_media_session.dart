@@ -1,8 +1,8 @@
 import 'package:audio_service/audio_service.dart';
 
 /// Bridges the reader's existing audio engine to Android/iOS system media
-/// controls. The actual audio files are still owned by ReaderAudioController,
-/// preserving the local-first cache/offline architecture.
+/// controls. Audio files remain owned by ReaderAudioController, preserving the
+/// local-first cache/offline architecture.
 class ReaderMediaSession extends BaseAudioHandler {
   ReaderMediaSession._();
 
@@ -14,6 +14,7 @@ class ReaderMediaSession extends BaseAudioHandler {
   Future<void> Function()? _onNext;
   Future<void> Function(Duration position)? _onSeek;
   Future<void> Function()? _onStop;
+  String? _lastMediaKey;
 
   static Future<void> initialize() async {
     if (instance != null) return;
@@ -48,13 +49,8 @@ class ReaderMediaSession extends BaseAudioHandler {
     _onStop = onStop;
   }
 
-  void detach() {
-    _onPlay = null;
-    _onPause = null;
-    _onPrevious = null;
-    _onNext = null;
-    _onSeek = null;
-    _onStop = null;
+  void clear() {
+    _lastMediaKey = null;
     mediaItem.add(null);
     playbackState.add(
       playbackState.value.copyWith(
@@ -63,6 +59,16 @@ class ReaderMediaSession extends BaseAudioHandler {
         processingState: AudioProcessingState.idle,
       ),
     );
+  }
+
+  void detach() {
+    _onPlay = null;
+    _onPause = null;
+    _onPrevious = null;
+    _onNext = null;
+    _onSeek = null;
+    _onStop = null;
+    clear();
   }
 
   void publish({
@@ -76,15 +82,23 @@ class ReaderMediaSession extends BaseAudioHandler {
     required bool loading,
     required double speed,
   }) {
-    mediaItem.add(
-      MediaItem(
-        id: 'quran:$surah:$ayah',
-        album: sourceTitle,
-        title: 'Kur’an $surah:$ayah',
-        artist: '$sourceTitle · Ayet $ayah/$verseCount',
-        duration: duration > Duration.zero ? duration : null,
-      ),
-    );
+    final mediaKey = '$surah:$ayah:$sourceTitle';
+    if (_lastMediaKey != mediaKey) {
+      _lastMediaKey = mediaKey;
+      mediaItem.add(
+        MediaItem(
+          id: 'quran:$surah:$ayah',
+          album: sourceTitle,
+          title: 'Kur’an $surah:$ayah',
+          artist: '$sourceTitle · Ayet $ayah/$verseCount',
+          duration: duration > Duration.zero ? duration : null,
+        ),
+      );
+    } else if (duration > Duration.zero && mediaItem.value?.duration != duration) {
+      final current = mediaItem.value;
+      if (current != null) mediaItem.add(current.copyWith(duration: duration));
+    }
+
     playbackState.add(
       PlaybackState(
         controls: <MediaControl>[
@@ -122,6 +136,7 @@ class ReaderMediaSession extends BaseAudioHandler {
   @override
   Future<void> stop() async {
     await _onStop?.call();
+    clear();
     await super.stop();
   }
 }
