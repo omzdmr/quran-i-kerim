@@ -98,6 +98,9 @@ jobs:
               'android.permission.POST_NOTIFICATIONS',
               'android.permission.RECEIVE_BOOT_COMPLETED',
               'android.permission.SCHEDULE_EXACT_ALARM',
+              'android.permission.WAKE_LOCK',
+              'android.permission.FOREGROUND_SERVICE',
+              'android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK',
           ]
           for name in permissions:
               permission = f'<uses-permission android:name="{name}" />'
@@ -121,7 +124,35 @@ jobs:
           '''
           if 'ScheduledNotificationReceiver' not in text:
               text = text.replace('</application>', receivers + '\n    </application>', 1)
+
+          audio_service = '''
+              <service
+                  android:name="com.ryanheise.audioservice.AudioService"
+                  android:foregroundServiceType="mediaPlayback"
+                  android:exported="true">
+                  <intent-filter>
+                      <action android:name="android.media.browse.MediaBrowserService" />
+                  </intent-filter>
+              </service>
+              <receiver
+                  android:name="com.ryanheise.audioservice.MediaButtonReceiver"
+                  android:exported="true">
+                  <intent-filter>
+                      <action android:name="android.intent.action.MEDIA_BUTTON" />
+                  </intent-filter>
+              </receiver>
+          '''
+          if 'com.ryanheise.audioservice.AudioService' not in text:
+              text = text.replace('</application>', audio_service + '\n    </application>', 1)
           path.write_text(text, encoding='utf-8')
+
+          activity = Path('android/app/src/main/kotlin/com/omzdmr/quran_i_kerim/MainActivity.kt')
+          activity.write_text(
+              'package com.omzdmr.quran_i_kerim\n\n'
+              'import com.ryanheise.audioservice.AudioServiceActivity\n\n'
+              'class MainActivity : AudioServiceActivity()\n',
+              encoding='utf-8',
+          )
           PY
 
       - name: Configure Android notification desugaring
@@ -165,6 +196,8 @@ jobs:
           test/app_settings_source_test.dart
           test/translation_catalog_test.dart
           test/surah_localization_test.dart
+          test/reader_sleep_timer_test.dart
+          test/audio_v2_catalog_test.dart
 
       - name: Build ARM64 test APK
         run: |
