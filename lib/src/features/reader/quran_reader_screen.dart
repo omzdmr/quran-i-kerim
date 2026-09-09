@@ -17,6 +17,7 @@ import '../../navigation/app_navigation.dart';
 import '../../settings/app_settings.dart';
 import '../settings/quran_translation_catalog_screen.dart';
 import 'reader_audio_sheet.dart';
+import 'reader_navigation.dart';
 import 'reader_note_sheet.dart';
 import 'reader_reading_history.dart';
 
@@ -736,7 +737,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                             Expanded(
                               child: _segment(
                                 '${_surahName(surah)} ${surah.number}',
-                                _showSurahs,
+                                _showReaderNavigator,
                               ),
                             ),
                             Container(
@@ -1367,6 +1368,45 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       }
     }
 
+
+    final pageMatch = RegExp(r'^(?:sayfa|page|p)\s*(\d{1,3})$').firstMatch(query);
+    if (pageMatch != null) {
+      final page = int.tryParse(pageMatch.group(1)!);
+      if (page != null) {
+        final target = firstVerseForPage(page);
+        if (target != null) {
+          final surah = surahByNumber(target.surah);
+          addResult(
+            _SearchResult(
+              surah: target.surah,
+              ayah: target.ayah,
+              title: '${_surahName(surah)} ${target.surah}:${target.ayah}',
+              subtitle: 'Sayfa $page · Page $page',
+            ),
+          );
+        }
+      }
+    }
+
+    final juzMatch = RegExp(r'^(?:cüz|cuz|juz)\s*(\d{1,2})$').firstMatch(query);
+    if (juzMatch != null) {
+      final juz = int.tryParse(juzMatch.group(1)!);
+      if (juz != null) {
+        final target = firstVerseForJuz(juz);
+        if (target != null) {
+          final surah = surahByNumber(target.surah);
+          addResult(
+            _SearchResult(
+              surah: target.surah,
+              ayah: target.ayah,
+              title: '${_surahName(surah)} ${target.surah}:${target.ayah}',
+              subtitle: 'Cüz $juz · Juz $juz',
+            ),
+          );
+        }
+      }
+    }
+
     for (final surah in surahCatalog) {
       final normalizedAliases = surahSearchAliases(
         surah.number,
@@ -1455,6 +1495,105 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
 
   String _normalizeSearch(String value) =>
       value.trim().replaceAll('İ', 'i').replaceAll('I', 'ı').toLowerCase();
+
+
+  Future<int?> _promptReaderNumber({
+    required String title,
+    required int max,
+  }) async {
+    final controller = TextEditingController();
+    final value = await showDialog<int>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(title),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          decoration: InputDecoration(hintText: '1-$max'),
+          onSubmitted: (_) {
+            final parsed = int.tryParse(controller.text);
+            if (parsed != null && parsed >= 1 && parsed <= max) {
+              Navigator.pop(dialogContext, parsed);
+            }
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(MaterialLocalizations.of(context).cancelButtonLabel),
+          ),
+          FilledButton(
+            onPressed: () {
+              final parsed = int.tryParse(controller.text);
+              if (parsed != null && parsed >= 1 && parsed <= max) {
+                Navigator.pop(dialogContext, parsed);
+              }
+            },
+            child: const Text('Git'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    return value;
+  }
+
+  Future<void> _showReaderNavigator() async {
+    final tr = Localizations.localeOf(context).languageCode == 'tr';
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.menu_book_rounded),
+                title: Text(tr ? 'Sure' : 'Surah'),
+                subtitle: Text(tr ? '114 sure arasından seç' : 'Choose from 114 surahs'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => Navigator.pop(sheetContext, 'surah'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.view_agenda_outlined),
+                title: Text(tr ? 'Cüz' : 'Juz'),
+                subtitle: Text(tr ? '1-30 arasında cüze git' : 'Go to juz 1-30'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => Navigator.pop(sheetContext, 'juz'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.description_outlined),
+                title: Text(tr ? 'Sayfa' : 'Page'),
+                subtitle: Text(tr ? '1-604 arasında sayfaya git' : 'Go to page 1-604'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => Navigator.pop(sheetContext, 'page'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (!mounted || choice == null) return;
+    if (choice == 'surah') {
+      await _showSurahs();
+      return;
+    }
+    if (choice == 'juz') {
+      final value = await _promptReaderNumber(title: tr ? 'Cüze git' : 'Go to juz', max: 30);
+      if (!mounted || value == null) return;
+      final target = firstVerseForJuz(value);
+      if (target != null) _jumpTo(target.surah, target.ayah);
+      return;
+    }
+    final value = await _promptReaderNumber(title: tr ? 'Sayfaya git' : 'Go to page', max: 604);
+    if (!mounted || value == null) return;
+    final target = firstVerseForPage(value);
+    if (target != null) _jumpTo(target.surah, target.ayah);
+  }
 
   Future<void> _showSurahs() async {
     final l10n = context.l10n;
