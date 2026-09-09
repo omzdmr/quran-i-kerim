@@ -23,7 +23,7 @@ class ReaderMediaSession extends BaseAudioHandler {
         instance = handler;
         return handler;
       },
-      config: const AudioServiceConfig(
+      config: AudioServiceConfig(
         androidNotificationChannelId: 'com.omzdmr.quran_i_kerim.audio',
         androidNotificationChannelName: 'Kur’an sesi',
         androidNotificationOngoing: true,
