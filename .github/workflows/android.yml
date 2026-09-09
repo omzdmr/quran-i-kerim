@@ -28,7 +28,9 @@ jobs:
         run: flutter --version
 
       - name: Generate Android scaffold
-        run: flutter create --platforms=android --org com.omzdmr --project-name quran_i_kerim .
+        run: |
+          flutter create --platforms=android --org com.omzdmr --project-name quran_i_kerim .
+          rm -f test/widget_test.dart
 
       - name: Setup Java
         uses: actions/setup-java@v5
