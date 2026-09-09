@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:quran/quran.dart' as quran;
+import 'package:share_plus/share_plus.dart';
 
 import '../../data/quran_audio_catalog.dart';
 import '../../data/quran_verse_metadata.dart';
@@ -644,15 +645,33 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                 child: AnimatedOpacity(
                   opacity: _selectedAyahs.isEmpty ? 0 : 1,
                   duration: const Duration(milliseconds: 150),
-                  child: _SelectionTray(
-                    onHighlight: _applyHighlight,
-                    onBookmark: _bookmarkSelection,
-                    onNote: _editSelectionNote,
-                    onListen: audioConfig == null
-                        ? null
-                        : () => _listenSelection(audioConfig),
-                    onCopy: _copySelection,
-                    onCompare: _showCompareSheet,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _SelectionTray(
+                          onHighlight: _applyHighlight,
+                          onBookmark: _bookmarkSelection,
+                          onNote: _editSelectionNote,
+                          onListen: audioConfig == null
+                              ? null
+                              : () => _listenSelection(audioConfig),
+                          onCopy: _copySelection,
+                          onCompare: _showCompareSheet,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Material(
+                        color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                        borderRadius: BorderRadius.circular(22),
+                        child: IconButton(
+                          onPressed: _shareSelection,
+                          icon: const Icon(Icons.share_outlined),
+                          tooltip: Localizations.localeOf(context).languageCode == 'tr'
+                              ? 'Paylaş'
+                              : 'Share',
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -1786,6 +1805,40 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       SnackBar(content: Text(context.l10n.text('selectionCopied'))),
     );
     _clearSelection();
+  }
+
+
+  Future<void> _shareSelection() async {
+    final selected = _selection;
+    if (selected.isEmpty) return;
+    final settings = AppSettingsScope.of(context);
+    Map<String, String> translations = const <String, String>{};
+    if (!settings.readerUsesArabic) {
+      translations = await TranslationRepository.instance.loadSourceVerses(
+        settings.selectedQuranSourceId,
+      );
+    }
+    if (!mounted) return;
+    final body = settings.readerUsesArabic
+        ? selected.map((ayah) => quran.getVerse(_surahNumber, ayah)).join(' ')
+        : selected
+              .map((ayah) => translations['$_surahNumber:$ayah'])
+              .whereType<String>()
+              .join(' ');
+    final reference = _selectionReference();
+    final text = '$body\n\n$reference · ${_activeVersionCode(settings)}';
+    final box = context.findRenderObject() as RenderBox?;
+    await SharePlus.instance.share(
+      ShareParams(
+        text: text,
+        subject: reference,
+        title: reference,
+        sharePositionOrigin: box == null
+            ? null
+            : box.localToGlobal(Offset.zero) & box.size,
+      ),
+    );
+    if (mounted) _clearSelection();
   }
 
   Future<void> _showCompareSheet() async {
