@@ -12,6 +12,8 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   adhan_dart: ^2.0.1
+  audio_service: ^0.18.19
+  just_audio: ^0.10.6
   quran: ^1.4.1
   shared_preferences: ^2.5.3
   timezone: ^0.11.0
