@@ -30,12 +30,19 @@ class QuranAudioFileCache {
     required int surah,
     required int ayah,
   }) async {
-    final file = _fileFor(
-      sourceIdentifier: sourceIdentifier,
-      surah: surah,
-      ayah: ayah,
+    final directory = Directory(
+      '${_rootDirectory.path}/${_safeSegment(sourceIdentifier)}/$surah',
     );
-    return await file.exists() ? file.uri : null;
+    if (!await directory.exists()) return null;
+
+    await for (final entity in directory.list()) {
+      if (entity is! File) continue;
+      final name = entity.path.split(Platform.pathSeparator).last;
+      if (name.startsWith('$ayah.') && !name.endsWith('.part') && await entity.length() > 0) {
+        return entity.uri;
+      }
+    }
+    return null;
   }
 
   Future<Uri> getOrDownload({
@@ -44,16 +51,19 @@ class QuranAudioFileCache {
     required int surah,
     required int ayah,
   }) async {
+    final existing = await cachedUri(
+      sourceIdentifier: sourceIdentifier,
+      surah: surah,
+      ayah: ayah,
+    );
+    if (existing != null) return existing;
+
     final target = _fileFor(
       sourceIdentifier: sourceIdentifier,
       surah: surah,
       ayah: ayah,
       extension: _extensionFrom(remoteUri),
     );
-    if (await target.exists() && await target.length() > 0) {
-      return target.uri;
-    }
-
     await target.parent.create(recursive: true);
     final temporary = File('${target.path}.part');
     if (await temporary.exists()) {
@@ -72,11 +82,7 @@ class QuranAudioFileCache {
       }
 
       final sink = temporary.openWrite();
-      try {
-        await response.pipe(sink);
-      } finally {
-        await sink.close();
-      }
+      await response.pipe(sink);
 
       if (!await temporary.exists() || await temporary.length() == 0) {
         throw const FileSystemException('Downloaded audio file is empty.');
