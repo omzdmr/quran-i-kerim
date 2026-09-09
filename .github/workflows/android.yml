@@ -158,6 +158,31 @@ jobs:
       - name: Build ARM64 test APK
         run: flutter build apk --release --target-platform android-arm64 --build-number=${{ github.run_number }}
 
+      - name: Verify ARM64 APK package and signature
+        run: |
+          set -euo pipefail
+          APK="build/app/outputs/flutter-apk/app-release.apk"
+          test -s "$APK"
+
+          BUILD_TOOLS="$(find "$ANDROID_SDK_ROOT/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          test -x "$BUILD_TOOLS/apksigner"
+          test -x "$BUILD_TOOLS/aapt"
+
+          "$BUILD_TOOLS/apksigner" verify --verbose --print-certs "$APK"
+
+          BADGING="$($BUILD_TOOLS/aapt dump badging "$APK")"
+          echo "$BADGING" | head -n 8
+          echo "$BADGING" | grep -q "package: name='com.omzdmr.quran_i_kerim'"
+
+          unzip -l "$APK" | grep -q 'lib/arm64-v8a/libapp.so'
+          if unzip -l "$APK" | grep -Eq 'lib/(armeabi-v7a|x86|x86_64)/libapp.so'; then
+            echo 'Unexpected non-ARM64 Flutter app library found in ARM64 APK.' >&2
+            exit 1
+          fi
+
+          stat -c 'APK size: %s bytes' "$APK"
+          sha256sum "$APK"
+
       - name: Upload ARM64 APK
         uses: actions/upload-artifact@v4
         with:
