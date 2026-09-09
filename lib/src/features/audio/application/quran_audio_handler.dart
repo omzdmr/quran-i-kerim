@@ -4,6 +4,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../domain/quran_audio_track.dart';
+import 'audio_sleep_timer.dart';
 
 /// Background-capable Quran player used by system media controls.
 ///
@@ -12,6 +13,13 @@ import '../domain/quran_audio_track.dart';
 /// at the active ayah.
 class QuranAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   QuranAudioHandler({AudioPlayer? player}) : _player = player ?? AudioPlayer() {
+    _sleepTimer = AudioSleepTimer(
+      onExpired: () {
+        // Expiry must stop audible playback even when the app is backgrounded.
+        // Keep the loaded queue/current ayah so the user can resume later.
+        unawaited(pause());
+      },
+    );
     _subscriptions.add(
       _player.playbackEventStream.listen((_) => _broadcastPlaybackState()),
     );
@@ -29,8 +37,31 @@ class QuranAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler 
   }
 
   final AudioPlayer _player;
+  late final AudioSleepTimer _sleepTimer;
   final List<StreamSubscription<dynamic>> _subscriptions =
       <StreamSubscription<dynamic>>[];
+
+  bool get isSleepTimerActive => _sleepTimer.isActive;
+
+  Duration get sleepTimerRemaining => _sleepTimer.remaining;
+
+  DateTime? get sleepTimerDeadline => _sleepTimer.deadline;
+
+  void startSleepTimerForMinutes(int minutes) {
+    _sleepTimer.startForMinutes(minutes);
+  }
+
+  void startSleepTimerForHours(int hours) {
+    _sleepTimer.startForHours(hours);
+  }
+
+  void startSleepTimer(Duration duration) {
+    _sleepTimer.start(duration);
+  }
+
+  void cancelSleepTimer() {
+    _sleepTimer.cancel();
+  }
 
   Future<void> loadTracks(
     List<QuranAudioTrack> tracks, {
@@ -91,11 +122,13 @@ class QuranAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler 
 
   @override
   Future<void> stop() async {
+    _sleepTimer.cancel();
     await _player.stop();
     await super.stop();
   }
 
   Future<void> disposePlayer() async {
+    _sleepTimer.dispose();
     for (final subscription in _subscriptions) {
       await subscription.cancel();
     }
