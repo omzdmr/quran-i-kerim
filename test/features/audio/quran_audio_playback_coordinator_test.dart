@@ -4,7 +4,7 @@ import 'package:quran_i_kerim/src/features/audio/domain/quran_audio_source.dart'
 import 'package:quran_i_kerim/src/features/audio/domain/quran_audio_track.dart';
 
 void main() {
-  const source = QuranAudioSource(
+  final source = QuranAudioSource(
     identifier: 'tr.test',
     languageCode: 'tr',
     name: 'İnsan Sesi',

@@ -3,7 +3,7 @@ import 'package:quran_i_kerim/src/features/audio/data/alquran_cloud_ayah_audio_r
 import 'package:quran_i_kerim/src/features/audio/domain/quran_audio_source.dart';
 
 void main() {
-  const source = QuranAudioSource(
+  final source = QuranAudioSource(
     identifier: 'ar.alafasy',
     languageCode: 'ar',
     name: 'Alafasy',
