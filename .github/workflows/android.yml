@@ -186,18 +186,7 @@ jobs:
         run: flutter analyze lib --no-fatal-infos
 
       - name: Run tests
-        run: >-
-          flutter test
-          test/prayer_calculator_test.dart
-          test/prayer_region_resolver_test.dart
-          test/hijri_date_test.dart
-          test/app_localizations_test.dart
-          test/translation_repository_test.dart
-          test/app_settings_source_test.dart
-          test/translation_catalog_test.dart
-          test/surah_localization_test.dart
-          test/reader_sleep_timer_test.dart
-          test/audio_v2_catalog_test.dart
+        run: flutter test
 
       - name: Build ARM64 test APK
         run: |
