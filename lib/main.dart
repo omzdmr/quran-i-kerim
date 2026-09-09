@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'src/app.dart';
 import 'src/data/translation_catalog.dart';
 import 'src/features/prayer/application/prayer_notification_service.dart';
+import 'src/features/reader/reader_media_session.dart';
 import 'src/settings/app_settings.dart';
 
 Future<void> main() async {
@@ -26,6 +27,8 @@ Future<void> main() async {
     await settings.setSelectedQuranSource(sourceId);
     await prefs.setBool(initializedKey, true);
   }
+
+  await ReaderMediaSession.initialize();
 
   runApp(QuranModernApp(settings: settings));
   unawaited(
