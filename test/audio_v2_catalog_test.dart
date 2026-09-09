@@ -10,6 +10,29 @@ void main() {
     expect(quranAudioBitrates(audio!), <int>[64, 128]);
   });
 
+  test('current Islamic Network reciter keys and qualities are exposed', () {
+    final sudais = quranAudioById('arabic_recitation_sudais');
+    final shuraim = quranAudioById('arabic_recitation_shuraim');
+    final basfar = quranAudioById('arabic_recitation_abdullah_basfar');
+
+    expect(sudais?.providerKey, 'ar.abdurrahmaansudais');
+    expect(quranAudioBitrates(sudais!), <int>[64, 192]);
+    expect(shuraim?.providerKey, 'ar.saoodshuraym');
+    expect(quranAudioBitrates(shuraim!), <int>[64]);
+    expect(quranAudioBitrates(basfar!), <int>[32, 64, 192]);
+  });
+
+  test('Tamil human audio is tied to its exact QuranEnc text source', () {
+    final audio = quranAudioById('tamil_omar_brief_audio');
+    final translation = translationById('tamil_omar_brief');
+
+    expect(audio, isNotNull);
+    expect(audio?.provider, QuranAudioProvider.quranEnc);
+    expect(audio?.providerKey, 'tamil_omar_brief');
+    expect(audio?.sourceId, translation?.id);
+    expect(translation?.hasAudio, isTrue);
+  });
+
   test('selected bitrate changes URL and persistent storage identity', () {
     final config = readerAudioConfigFor(
       arabicOriginalSourceId,
