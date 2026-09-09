@@ -18,6 +18,7 @@ import '../../settings/app_settings.dart';
 import '../settings/quran_translation_catalog_screen.dart';
 import 'reader_audio_sheet.dart';
 import 'reader_note_sheet.dart';
+import 'reader_reading_history.dart';
 
 class QuranReaderScreen extends StatefulWidget {
   const QuranReaderScreen({super.key});
@@ -144,9 +145,13 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     });
     AppNavigation.instance.setReaderSelectionActive(false);
     if (save) {
-      AppSettingsScope.of(
-        context,
-      ).saveReadingPosition(surah: surah.number, ayah: safeAyah);
+      final settings = AppSettingsScope.of(context);
+      settings.saveReadingPosition(surah: surah.number, ayah: safeAyah);
+      ReaderReadingHistoryRepository.instance.record(
+        surah: surah.number,
+        ayah: safeAyah,
+        sourceId: settings.selectedQuranSourceId,
+      );
     }
     HapticFeedback.selectionClick();
     _scheduleScrollToAyah(safeAyah);
@@ -163,9 +168,13 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       _selectedAyahs.clear();
     });
     AppNavigation.instance.setReaderSelectionActive(false);
-    AppSettingsScope.of(
-      context,
-    ).saveReadingPosition(surah: surah.number, ayah: 1);
+    final settings = AppSettingsScope.of(context);
+    settings.saveReadingPosition(surah: surah.number, ayah: 1);
+    ReaderReadingHistoryRepository.instance.record(
+      surah: surah.number,
+      ayah: 1,
+      sourceId: settings.selectedQuranSourceId,
+    );
     HapticFeedback.selectionClick();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) _scrollController.jumpTo(0);
@@ -948,6 +957,11 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     }
     final settings = AppSettingsScope.of(context);
     settings.saveReadingPosition(surah: _surahNumber, ayah: ayah);
+    ReaderReadingHistoryRepository.instance.record(
+      surah: _surahNumber,
+      ayah: ayah,
+      sourceId: settings.selectedQuranSourceId,
+    );
   }
 
   Widget _segment(String label, VoidCallback onTap) => InkWell(
@@ -1011,6 +1025,52 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     );
   }
 
+
+  Future<void> _showReadingHistory() async {
+    final entries = await ReaderReadingHistoryRepository.instance.load();
+    if (!mounted) return;
+    final language = Localizations.localeOf(context).languageCode;
+    final empty = language == 'tr'
+        ? 'Henüz okuma geçmişi yok.'
+        : 'No reading history yet.';
+    final picked = await showModalBottomSheet<ReaderHistoryEntry>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => FractionallySizedBox(
+        heightFactor: .72,
+        child: SafeArea(
+          child: entries.isEmpty
+              ? Center(child: Text(empty))
+              : ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
+                  itemCount: entries.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final entry = entries[index];
+                    final surah = surahByNumber(entry.surah);
+                    final metadata = quranVerseMetadata(entry.surah, entry.ayah);
+                    return ListTile(
+                      leading: CircleAvatar(child: Text('${entry.surah}')),
+                      title: Text('${_surahName(surah)} ${entry.surah}:${entry.ayah}'),
+                      subtitle: Text(
+                        language == 'tr'
+                            ? 'Cüz ${metadata.juz} · Sayfa ${metadata.page}'
+                            : 'Juz ${metadata.juz} · Page ${metadata.page}',
+                      ),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () => Navigator.pop(sheetContext, entry),
+                    );
+                  },
+                ),
+        ),
+      ),
+    );
+    if (picked != null && mounted) {
+      _jumpTo(picked.surah, picked.ayah);
+    }
+  }
+
   void _showReaderMenu() {
     final l10n = context.l10n;
     showModalBottomSheet<void>(
@@ -1040,6 +1100,24 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                 onTap: () {
                   Navigator.pop(sheetContext);
                   _showTranslations();
+                },
+              ),
+
+              ListTile(
+                leading: const Icon(Icons.history_rounded),
+                title: Text(
+                  Localizations.localeOf(context).languageCode == 'tr'
+                      ? 'Son okunanlar'
+                      : 'Reading history',
+                ),
+                subtitle: Text(
+                  Localizations.localeOf(context).languageCode == 'tr'
+                      ? 'Son okuduğun ayetlere dön'
+                      : 'Return to recently read verses',
+                ),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _showReadingHistory();
                 },
               ),
               ListTile(
