@@ -130,7 +130,7 @@ class PassagePreviewScreen extends StatelessWidget {
     if (parsed == null) {
       return Scaffold(
         appBar: AppBar(),
-        body: const Center(child: Text('Invalid passage')),
+        body: Center(child: Text(context.l10n.invalidPassage)),
       );
     }
 

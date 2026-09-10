@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import 'strings/feature_strings.dart';
+import 'strings/passage_preview_strings.dart';
 import 'strings/prayer_notification_strings.dart';
 import 'strings/strings_ar.dart';
 import 'strings/strings_az.dart';
@@ -40,8 +41,11 @@ class AppLocalizations {
 
   String? _featureValue(String key) =>
       featureStrings[locale.languageCode]?[key] ??
+      passagePreviewStrings[locale.languageCode]?[key] ??
       featureStrings['en']?[key] ??
-      featureStrings['tr']?[key];
+      passagePreviewStrings['en']?[key] ??
+      featureStrings['tr']?[key] ??
+      passagePreviewStrings['tr']?[key];
 
   String _value(String key) =>
       _map[key] ??
@@ -135,6 +139,7 @@ class AppLocalizations {
   String get save => _value('save');
   String get prayerTimes => _value('prayerTimes');
   String get translationLoading => _value('translationLoading');
+  String get invalidPassage => _value('invalidPassage');
 }
 
 class _AppLocalizationsDelegate

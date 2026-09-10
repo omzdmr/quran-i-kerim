@@ -43,6 +43,7 @@ void main() {
       'readerAppearance',
       'quranSearchTitle',
       'compareTexts',
+      'invalidPassage',
       'prayerSettings',
       'chooseCity',
       'worldCitySearchInfo',
@@ -65,6 +66,8 @@ void main() {
         expect(value, isNotEmpty, reason: '${locale.languageCode}: $key');
         expect(value, isNot(key), reason: '${locale.languageCode}: $key');
       }
+      expect(l10n.invalidPassage, isNotEmpty);
+      expect(l10n.invalidPassage, isNot('invalidPassage'));
     }
   });
 }
