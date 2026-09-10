@@ -135,7 +135,9 @@ class _QuranTranslationCatalogScreenState
                 : selectedInfo?.name ?? selectedId,
             subtitle: selectedId == arabicOriginalSourceId
                 ? 'Tanzil.net · ${copy.offline}'
-                : '${selectedInfo?.publisher ?? ''} · ${selectedInfo?.source ?? ''}',
+                : selectedInfo == null
+                ? ''
+                : '${selectedInfo.publisher} · ${selectedInfo.source} · v${selectedInfo.version}',
             hasAudio: hasQuranAudioForSource(selectedId),
             currentLabel: copy.current,
           ),
@@ -288,6 +290,8 @@ class _TranslationDiscoveryScreenState
       item.code,
       item.languageCode,
       item.source,
+      item.description ?? '',
+      item.lastUpdated ?? '',
       copy.languageName(item.languageCode),
       copy.nativeLanguageName(item.languageCode),
     ].map(_normalize).join(' ');
@@ -663,7 +667,7 @@ class _InstalledSource {
         sourceId: info.id,
         code: info.code,
         title: info.name,
-        subtitle: '${info.publisher} · ${info.source}',
+        subtitle: '${info.publisher} · ${info.source} · v${info.version}',
         hasAudio: hasQuranAudioForSource(info.id),
         info: info,
       );
@@ -778,6 +782,11 @@ class _DiscoveryTranslationRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final copy = _TranslationUiCopy.of(context);
+    final providerDescription = info.description?.trim();
+    final attribution =
+        providerDescription != null && providerDescription.isNotEmpty
+        ? providerDescription
+        : info.publisher;
     return Material(
       color: scheme.surfaceContainer,
       borderRadius: BorderRadius.circular(20),
@@ -805,8 +814,8 @@ class _DiscoveryTranslationRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      info.publisher,
-                      maxLines: 1,
+                      attribution,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: scheme.onSurfaceVariant),
                     ),
