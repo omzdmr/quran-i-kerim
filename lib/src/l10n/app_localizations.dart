@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'strings/feature_strings.dart';
 import 'strings/passage_preview_strings.dart';
 import 'strings/prayer_notification_strings.dart';
+import 'strings/reader_navigation_strings.dart';
 import 'strings/strings_ar.dart';
 import 'strings/strings_az.dart';
 import 'strings/strings_en.dart';
@@ -42,10 +43,13 @@ class AppLocalizations {
   String? _featureValue(String key) =>
       featureStrings[locale.languageCode]?[key] ??
       passagePreviewStrings[locale.languageCode]?[key] ??
+      readerNavigationStrings[locale.languageCode]?[key] ??
       featureStrings['en']?[key] ??
       passagePreviewStrings['en']?[key] ??
+      readerNavigationStrings['en']?[key] ??
       featureStrings['tr']?[key] ??
-      passagePreviewStrings['tr']?[key];
+      passagePreviewStrings['tr']?[key] ??
+      readerNavigationStrings['tr']?[key];
 
   String _value(String key) =>
       _map[key] ??
