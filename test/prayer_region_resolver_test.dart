@@ -29,4 +29,26 @@ void main() {
       PrayerCalculationMethod.muslimWorldLeague,
     );
   });
+
+  test('Sinai stays Egyptian inside the former Hejaz overlap', () {
+    final sharmElSheikh = resolvePrayerRegion(27.9158, 34.3299);
+    final marsaAlam = resolvePrayerRegion(25.0676, 34.8790);
+
+    expect(sharmElSheikh.regionCode, 'egypt');
+    expect(sharmElSheikh.method, PrayerCalculationMethod.egyptian);
+    expect(marsaAlam.regionCode, 'egypt');
+    expect(marsaAlam.method, PrayerCalculationMethod.egyptian);
+  });
+
+  test('Saudi cities are not swallowed by the Egypt outline', () {
+    for (final location in <(double, double)>[
+      (21.3891, 39.8579), // Makkah
+      (24.4672, 39.6111), // Madinah
+      (28.3838, 36.5662), // Tabuk
+    ]) {
+      final resolved = resolvePrayerRegion(location.$1, location.$2);
+      expect(resolved.regionCode, 'hejaz');
+      expect(resolved.method, PrayerCalculationMethod.ummAlQura);
+    }
+  });
 }
