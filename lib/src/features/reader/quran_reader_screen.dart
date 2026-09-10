@@ -12,6 +12,7 @@ import '../../data/quran_verse_metadata.dart';
 import '../../data/surah_catalog.dart';
 import '../../data/surah_localization.dart';
 import '../../data/translation_catalog.dart';
+import '../../data/translation_pack.dart';
 import '../../data/translation_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../navigation/app_navigation.dart';
@@ -47,7 +48,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   final GlobalKey<_ContinuousVerseTextState> _textKey =
       GlobalKey<_ContinuousVerseTextState>();
   String? _cachedSourceId;
-  Future<Map<String, String>>? _cachedTranslationFuture;
+  Future<TranslationPack?>? _cachedTranslationFuture;
 
   @override
   void initState() {
@@ -110,15 +111,15 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     });
   }
 
-  Future<Map<String, String>> _translationFuture(AppSettings settings) {
+  Future<TranslationPack?> _translationFuture(AppSettings settings) {
     if (settings.readerUsesArabic) {
-      return Future<Map<String, String>>.value(const <String, String>{});
+      return Future<TranslationPack?>.value(null);
     }
     if (_cachedSourceId != settings.selectedQuranSourceId ||
         _cachedTranslationFuture == null) {
       _cachedSourceId = settings.selectedQuranSourceId;
       _cachedTranslationFuture = TranslationRepository.instance
-          .loadSourceVerses(settings.selectedQuranSourceId);
+          .loadSourcePack(settings.selectedQuranSourceId);
     }
     return _cachedTranslationFuture!;
   }
@@ -518,14 +519,17 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       child: Stack(
         children: [
           Positioned.fill(
-            child: FutureBuilder<Map<String, String>>(
+            child: FutureBuilder<TranslationPack?>(
               future: _translationFuture(settings),
               builder: (context, snapshot) {
-                final translations = snapshot.data ?? const <String, String>{};
+                final pack = snapshot.data;
+                final translations = pack?.verses ?? const <String, String>{};
+                final footnotes = pack?.footnotes ?? const <String, String>{};
                 return _readerScrollView(
                   surah: surah,
                   settings: settings,
                   translations: translations,
+                  footnotes: footnotes,
                   translationError: snapshot.hasError,
                 );
               },
@@ -807,6 +811,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     required SurahInfo surah,
     required AppSettings settings,
     required Map<String, String> translations,
+    required Map<String, String> footnotes,
     required bool translationError,
   }) {
     return NotificationListener<ScrollNotification>(
@@ -872,6 +877,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                 surahNumber: _surahNumber,
                 verseCount: surah.verseCount,
                 translations: translations,
+                footnotes: footnotes,
                 mode: settings.readerMode,
                 textSize: settings.readerTextSize,
                 lineHeight: settings.readerUsesArabic
@@ -886,6 +892,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                 settings: settings,
                 onAyahTap: _toggleAyahSelection,
                 onNoteTap: _openNoteForAyah,
+                onFootnoteTap: _showFootnoteForAyah,
               ),
             ],
           ),
@@ -1045,7 +1052,6 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     );
   }
 
-
   Future<void> _showReadingHistory() async {
     final entries = await ReaderReadingHistoryRepository.instance.load();
     if (!mounted) return;
@@ -1122,7 +1128,6 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                   _showTranslations();
                 },
               ),
-
               ListTile(
                 leading: const Icon(Icons.history_rounded),
                 title: Text(
@@ -1387,7 +1392,6 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       }
     }
 
-
     final pageMatch = RegExp(r'^(?:sayfa|page|p)\s*(\d{1,3})$').firstMatch(query);
     if (pageMatch != null) {
       final page = int.tryParse(pageMatch.group(1)!);
@@ -1514,7 +1518,6 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
 
   String _normalizeSearch(String value) =>
       value.trim().replaceAll('İ', 'i').replaceAll('I', 'ı').toLowerCase();
-
 
   Future<int?> _promptReaderNumber({
     required String title,
@@ -1807,7 +1810,6 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     _clearSelection();
   }
 
-
   Future<void> _shareSelection() async {
     final selected = _selection;
     if (selected.isEmpty) return;
@@ -2077,6 +2079,97 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     if (mounted) _clearSelection();
   }
 
+  Future<void> _showFootnoteForAyah(int ayah) async {
+    final settings = AppSettingsScope.of(context);
+    if (settings.readerUsesArabic) return;
+    final info = translationById(settings.selectedQuranSourceId);
+    if (info == null) return;
+
+    TranslationPack pack;
+    try {
+      pack = await TranslationRepository.instance.loadSourcePack(info.id);
+    } catch (_) {
+      return;
+    }
+    final footnote = pack.footnote(_surahNumber, ayah)?.trim();
+    if (footnote == null || footnote.isEmpty || !mounted) return;
+
+    final uiLanguage = Localizations.localeOf(context).languageCode;
+    final title = uiLanguage == 'tr' ? 'Dipnot' : 'Footnote';
+    final sourceLabel = uiLanguage == 'tr' ? 'Kaynak' : 'Source';
+    final reference =
+        '${_surahName(surahByNumber(_surahNumber))} $_surahNumber:$ayah';
+    final rtl = const <String>{'ar', 'fa', 'ur', 'ps', 'ku', 'prs', 'ug'}
+        .contains(pack.languageCode.toLowerCase());
+
+    HapticFeedback.selectionClick();
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        final scheme = Theme.of(sheetContext).colorScheme;
+        return FractionallySizedBox(
+          heightFactor: .68,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(22, 4, 22, 28),
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.chat_bubble_outline_rounded, color: scheme.primary),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      '$title · $reference',
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainer,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  footnote,
+                  textDirection: rtl ? TextDirection.rtl : TextDirection.ltr,
+                  textAlign: rtl ? TextAlign.right : TextAlign.left,
+                  style: const TextStyle(fontSize: 16, height: 1.55),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                sourceLabel,
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                info.name,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                '${info.publisher} · ${pack.source} · v${pack.version}',
+                style: TextStyle(color: scheme.onSurfaceVariant, height: 1.35),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _openNoteForAyah(int ayah) async {
     final settings = AppSettingsScope.of(context);
     final key = settings.noteKeyForAyah(_surahNumber, ayah);
@@ -2286,6 +2379,7 @@ class _ContinuousVerseText extends StatefulWidget {
     required this.surahNumber,
     required this.verseCount,
     required this.translations,
+    required this.footnotes,
     required this.mode,
     required this.textSize,
     required this.lineHeight,
@@ -2294,12 +2388,14 @@ class _ContinuousVerseText extends StatefulWidget {
     required this.settings,
     required this.onAyahTap,
     required this.onNoteTap,
+    required this.onFootnoteTap,
     super.key,
   });
 
   final int surahNumber;
   final int verseCount;
   final Map<String, String> translations;
+  final Map<String, String> footnotes;
   final ReaderDisplayMode mode;
   final double textSize;
   final double lineHeight;
@@ -2308,6 +2404,7 @@ class _ContinuousVerseText extends StatefulWidget {
   final AppSettings settings;
   final ValueChanged<int> onAyahTap;
   final ValueChanged<int> onNoteTap;
+  final ValueChanged<int> onFootnoteTap;
 
   @override
   State<_ContinuousVerseText> createState() => _ContinuousVerseTextState();
@@ -2411,6 +2508,7 @@ class _ContinuousVerseTextState extends State<_ContinuousVerseText> {
           : Colors.black;
       final noteKey = widget.settings.noteKeyForAyah(widget.surahNumber, ayah);
       final bookmarked = widget.settings.isBookmarked(widget.surahNumber, ayah);
+      final footnote = widget.footnotes['${widget.surahNumber}:$ayah'];
       final text = arabicMode
           ? quran.getVerse(widget.surahNumber, ayah)
           : widget.translations['${widget.surahNumber}:$ayah'] ??
@@ -2468,6 +2566,31 @@ class _ContinuousVerseTextState extends State<_ContinuousVerseText> {
         plainOffset += text.length;
       }
 
+      if (!arabicMode && footnote != null && footnote.trim().isNotEmpty) {
+        spans.add(
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Tooltip(
+              message: Localizations.localeOf(context).languageCode == 'tr'
+                  ? 'Dipnot'
+                  : 'Footnote',
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => widget.onFootnoteTap(ayah),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Icon(
+                    Icons.chat_bubble_outline_rounded,
+                    size: 17,
+                    color: scheme.primary,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        plainOffset += 1;
+      }
       if (noteKey != null) {
         spans.add(
           WidgetSpan(
