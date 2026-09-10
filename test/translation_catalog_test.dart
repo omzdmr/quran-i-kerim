@@ -56,19 +56,47 @@ void main() {
       expect(english!.providerKey, 'english_rwwad');
       expect(vakfi, isNotNull);
       expect(vakfi!.providerKey, 'tr.vakfi-audio');
-      expect(
-        primaryQuranAudioForSource('azeri_musayev')?.providerKey,
-        'azeri_musayev',
-      );
       expect(hasQuranAudioForSource(bundledTurkishTranslationId), isFalse);
       expect(
         quranAudioCatalog
             .where((item) => item.kind == QuranAudioKind.translation)
             .length,
-        greaterThanOrEqualTo(12),
+        greaterThanOrEqualTo(13),
       );
     },
   );
+
+  test('QuranEnc audio catalog matches currently published API keys', () {
+    final keys = quranAudioCatalog
+        .where(
+          (item) =>
+              item.kind == QuranAudioKind.translation &&
+              item.provider == QuranAudioProvider.quranEnc,
+        )
+        .map((item) => item.providerKey)
+        .toSet();
+
+    expect(
+      keys,
+      equals(<String>{
+        'english_rwwad',
+        'french_rashid',
+        'portuguese_nasr',
+        'dutch_center',
+        'tagalog_rwwad',
+        'chinese_suliman',
+        'vietnamese_rwwad',
+        'persian_ih',
+        'assamese_rafeeq',
+        'sinhalese_mahir',
+        'somali_yacob',
+      }),
+    );
+    expect(primaryQuranAudioForSource('azeri_musayev'), isNull);
+    expect(primaryQuranAudioForSource('tamil_omar_brief'), isNull);
+    expect(translationById('azeri_musayev')?.hasAudio, isFalse);
+    expect(translationById('tamil_omar_brief')?.hasAudio, isFalse);
+  });
 
   test('Turkish catalog exposes multiple human translations', () {
     final turkish = translationCatalog
@@ -136,17 +164,17 @@ void main() {
   });
 
   test('curated QuranEnc source receives upstream metadata safely', () {
-    final before = translationById('azeri_musayev');
+    final before = translationById('tagalog_rwwad');
     expect(before, isNotNull);
 
     const upstream = TranslationInfo(
-      id: 'azeri_musayev',
-      code: 'QENC-AZ',
-      languageCode: 'az',
-      name: 'Upstream Azerbaijani title',
+      id: 'tagalog_rwwad',
+      code: 'QENC-TL',
+      languageCode: 'tl',
+      name: 'Upstream Tagalog title',
       publisher: 'Do not replace curated publisher',
       source: 'QuranEnc.com',
-      sourceKey: 'azeri_musayev',
+      sourceKey: 'tagalog_rwwad',
       version: '9.9.9',
       bundled: false,
       available: true,
@@ -156,11 +184,11 @@ void main() {
     );
 
     registerDiscoveredTranslations(const <TranslationInfo>[upstream]);
-    final merged = translationById('azeri_musayev');
+    final merged = translationById('tagalog_rwwad');
     expect(merged, isNotNull);
-    expect(merged!.name, 'Upstream Azerbaijani title');
+    expect(merged!.name, 'Upstream Tagalog title');
     expect(merged.version, '9.9.9');
-    expect(merged.code, 'MUS-AZ');
+    expect(merged.code, 'RWD-TL');
     expect(merged.publisher, before!.publisher);
     expect(merged.sourceKey, before.sourceKey);
     expect(merged.hasAudio, isTrue);
