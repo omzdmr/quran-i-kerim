@@ -23,6 +23,8 @@ class TranslationInfo {
     this.assetPath,
     this.hasAudio = false,
     this.provider = TranslationProvider.quranEnc,
+    this.description,
+    this.lastUpdated,
   });
 
   final String id;
@@ -39,6 +41,14 @@ class TranslationInfo {
   final bool downloadable;
   final bool hasAudio;
   final TranslationProvider provider;
+
+  /// Provider-supplied catalogue description. QuranEnc localizes this field;
+  /// keep it verbatim rather than trying to infer a publisher from free text.
+  final String? description;
+
+  /// Provider-supplied update marker/timestamp kept verbatim for attribution
+  /// and future stale-version checks.
+  final String? lastUpdated;
 
   /// Applies upstream catalogue identity without discarding app-specific
   /// metadata such as a stable UI code, publisher attribution or audio binding.
@@ -61,6 +71,8 @@ class TranslationInfo {
       assetPath: assetPath,
       hasAudio: hasAudio,
       provider: provider,
+      description: discovered.description,
+      lastUpdated: discovered.lastUpdated,
     );
   }
 }
