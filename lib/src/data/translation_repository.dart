@@ -100,7 +100,6 @@ class TranslationRepository {
     final info = translationById(sourceId);
     if (info == null) return false;
     if (info.bundled) return true;
-    await _deleteStalePart(info.id);
     final file = await _downloadFile(info.id);
     if (!await file.exists()) return false;
     try {
@@ -131,14 +130,25 @@ class TranslationRepository {
     final info = translationById(sourceId);
     if (info == null || info.bundled) return;
     final file = await _downloadFile(sourceId);
-    final part = File('${file.path}.part');
-    if (await file.exists()) await file.delete();
-    if (await part.exists()) await part.delete();
+    for (final path in <String>[
+      file.path,
+      '${file.path}.part',
+      '${file.path}.tmp',
+      '${file.path}.bak',
+    ]) {
+      final candidate = File(path);
+      if (await candidate.exists()) await candidate.delete();
+    }
     _downloadedPackFutures.remove(sourceId);
   }
 
   /// Loads the last successful QuranEnc catalogue snapshot without network.
+  ///
+  /// This is also the startup recovery point for interrupted translation or
+  /// catalogue writes. Old `.tmp`/`.part` files are disposable; a `.bak` is
+  /// restored only when the committed file is missing.
   Future<void> loadCachedCatalog() async {
+    await _recoverInterruptedWrites();
     final file = await _catalogCacheFile();
     if (!await file.exists()) return;
     try {
@@ -185,10 +195,14 @@ class TranslationRepository {
       final file = await _catalogCacheFile();
       final part = File('${file.path}.part');
       if (await part.exists()) await part.delete();
-      await part.writeAsString(jsonEncode(payload), flush: true);
-      jsonDecode(await part.readAsString());
-      if (await file.exists()) await file.delete();
-      await part.rename(file.path);
+      try {
+        await part.writeAsString(jsonEncode(payload), flush: true);
+        jsonDecode(await part.readAsString());
+        await _commitPartFile(file, part);
+      } catch (_) {
+        if (await part.exists()) await part.delete();
+        rethrow;
+      }
       return count;
     } finally {
       client.close(force: true);
@@ -259,7 +273,7 @@ class TranslationRepository {
     if (!info.downloadable) {
       throw StateError('Translation is not enabled for download: ${info.id}');
     }
-    await _deleteStalePart(info.id);
+    await _deleteStaleTemps(info.id);
     if (info.provider == TranslationProvider.islamicNetwork) {
       await _downloadIslamicNetworkTranslation(info, onProgress: onProgress);
       return;
@@ -479,8 +493,7 @@ class TranslationRepository {
         fallbackVersion: info.version,
         fallbackSource: info.source,
       );
-      if (await file.exists()) await file.delete();
-      await part.rename(file.path);
+      await _commitPartFile(file, part);
       _downloadedPackFutures.remove(info.id);
     } catch (_) {
       if (await part.exists()) await part.delete();
@@ -596,28 +609,99 @@ class TranslationRepository {
     ];
   }
 
-  Future<File> _downloadFile(String sourceId) async {
+  Future<Directory> _translationDirectory() async {
     final root = await getApplicationSupportDirectory();
     final directory = Directory('${root.path}/translations');
     if (!await directory.exists()) {
       await directory.create(recursive: true);
     }
+    return directory;
+  }
+
+  Future<File> _downloadFile(String sourceId) async {
+    final directory = await _translationDirectory();
     return File('${directory.path}/$sourceId.json.gz');
   }
 
   Future<File> _catalogCacheFile() async {
-    final root = await getApplicationSupportDirectory();
-    final directory = Directory('${root.path}/translations');
-    if (!await directory.exists()) {
-      await directory.create(recursive: true);
-    }
+    final directory = await _translationDirectory();
     return File('${directory.path}/quranenc_catalog_v1.json');
   }
 
-  Future<void> _deleteStalePart(String sourceId) async {
+  Future<void> _deleteStaleTemps(String sourceId) async {
     final file = await _downloadFile(sourceId);
-    final part = File('${file.path}.part');
-    if (await part.exists()) await part.delete();
+    for (final suffix in const <String>['.part', '.tmp']) {
+      final temp = File('${file.path}$suffix');
+      if (await temp.exists()) await temp.delete();
+    }
+  }
+
+  Future<void> _recoverInterruptedWrites() async {
+    final directory = await _translationDirectory();
+    final entries = await directory.list(followLinks: false).toList();
+
+    // Old builds used .tmp; current builds use .part. Neither is a committed
+    // offline pack, so both are always safe to discard on a fresh launch.
+    for (final entity in entries) {
+      if (entity is! File) continue;
+      if (entity.path.endsWith('.part') || entity.path.endsWith('.tmp')) {
+        try {
+          await entity.delete();
+        } on FileSystemException {
+          // Best-effort cleanup. A locked file can be retried next launch.
+        }
+      }
+    }
+
+    // If the process died between old -> .bak and .part -> committed, restore
+    // the old committed file. If a committed target exists, the new write won
+    // and the backup is now stale.
+    final afterTempCleanup = await directory.list(followLinks: false).toList();
+    for (final entity in afterTempCleanup) {
+      if (entity is! File || !entity.path.endsWith('.bak')) continue;
+      final target = File(
+        entity.path.substring(0, entity.path.length - '.bak'.length),
+      );
+      try {
+        if (await target.exists()) {
+          await entity.delete();
+        } else {
+          await entity.rename(target.path);
+        }
+      } on FileSystemException {
+        // Preserve the backup rather than risking data loss.
+      }
+    }
+  }
+
+  Future<void> _commitPartFile(File target, File part) async {
+    final backup = File('${target.path}.bak');
+
+    // Recover an earlier interrupted replacement before starting a new one.
+    if (await backup.exists()) {
+      if (await target.exists()) {
+        await backup.delete();
+      } else {
+        await backup.rename(target.path);
+      }
+    }
+
+    final hadCommittedFile = await target.exists();
+    if (hadCommittedFile) {
+      await target.rename(backup.path);
+    }
+
+    try {
+      await part.rename(target.path);
+      if (await backup.exists()) await backup.delete();
+    } catch (_) {
+      // Never sacrifice the last known-good offline copy for a failed rename.
+      if (!await target.exists() && await backup.exists()) {
+        await backup.rename(target.path);
+      }
+      if (await part.exists()) await part.delete();
+      rethrow;
+    }
   }
 
   Future<TranslationPack> _loadAssetPack(
