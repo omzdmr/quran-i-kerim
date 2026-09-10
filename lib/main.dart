@@ -6,12 +6,19 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'src/app.dart';
 import 'src/data/translation_catalog.dart';
+import 'src/data/translation_repository.dart';
 import 'src/features/prayer/application/prayer_notification_service.dart';
 import 'src/features/reader/reader_media_session.dart';
 import 'src/settings/app_settings.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Restore the last successful QuranEnc catalogue snapshot before settings are
+  // resolved. No network is required for this path, and dynamically discovered
+  // sources remain usable after an app restart.
+  await TranslationRepository.instance.loadCachedCatalog();
+
   final settings = AppSettings();
   await settings.load();
 
@@ -31,6 +38,15 @@ Future<void> main() async {
   await ReaderMediaSession.initialize();
 
   runApp(QuranModernApp(settings: settings));
+
+  // Catalogue refresh is deliberately best-effort and infrequent (once per
+  // week). It never blocks launch or Quran reading, and it costs one small
+  // metadata request instead of a backend of our own.
+  unawaited(
+    TranslationRepository.instance.refreshCatalogIfStale(
+      localization: PlatformDispatcher.instance.locale.languageCode,
+    ),
+  );
   unawaited(
     PrayerNotificationService.initialize().then(
       (_) => PrayerNotificationService.refreshFromSaved(),
