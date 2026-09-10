@@ -9,6 +9,14 @@ import 'package:path_provider/path_provider.dart';
 import 'translation_catalog.dart';
 import 'translation_pack.dart';
 
+/// Raised when the user explicitly cancels an in-flight translation download.
+class TranslationDownloadCancelledException implements Exception {
+  const TranslationDownloadCancelledException();
+
+  @override
+  String toString() => 'Translation download cancelled.';
+}
+
 /// Local-first translation loader and installer.
 ///
 /// Small defaults stay bundled. QuranEnc catalogue metadata is cached locally
@@ -30,6 +38,8 @@ class TranslationRepository {
   final Map<String, Future<TranslationPack>> _downloadedPackFutures =
       <String, Future<TranslationPack>>{};
   final Map<String, Future<void>> _activeDownloads = <String, Future<void>>{};
+  final Map<String, HttpClient> _downloadClients = <String, HttpClient>{};
+  final Set<String> _cancelledDownloads = <String>{};
 
   Future<TranslationPack> loadBundledTurkishPack() =>
       loadBundledPack(translationById(bundledTurkishTranslationId)!);
@@ -129,6 +139,7 @@ class TranslationRepository {
     if (sourceId == arabicOriginalSourceId) return;
     final info = translationById(sourceId);
     if (info == null || info.bundled) return;
+    await cancelTranslationDownload(sourceId);
     final file = await _downloadFile(sourceId);
     for (final path in <String>[
       file.path,
@@ -257,9 +268,31 @@ class TranslationRepository {
   }) {
     final active = _activeDownloads[info.id];
     if (active != null) return active;
+    _cancelledDownloads.remove(info.id);
     final future = _downloadTranslationInternal(info, onProgress: onProgress);
     _activeDownloads[info.id] = future;
-    return future.whenComplete(() => _activeDownloads.remove(info.id));
+    return future.whenComplete(() {
+      _activeDownloads.remove(info.id);
+      _cancelledDownloads.remove(info.id);
+    });
+  }
+
+  /// Stops network work for [sourceId] and discards only uncommitted temp data.
+  /// An already-installed, validated offline pack is deliberately untouched.
+  Future<void> cancelTranslationDownload(String sourceId) async {
+    if (!_activeDownloads.containsKey(sourceId)) return;
+    _cancelledDownloads.add(sourceId);
+    _downloadClients.remove(sourceId)?.close(force: true);
+    await _deleteStaleTemps(sourceId);
+  }
+
+  bool _isDownloadCancelled(String sourceId) =>
+      _cancelledDownloads.contains(sourceId);
+
+  void _throwIfDownloadCancelled(String sourceId) {
+    if (_isDownloadCancelled(sourceId)) {
+      throw const TranslationDownloadCancelledException();
+    }
   }
 
   Future<void> _downloadTranslationInternal(
@@ -274,6 +307,7 @@ class TranslationRepository {
       throw StateError('Translation is not enabled for download: ${info.id}');
     }
     await _deleteStaleTemps(info.id);
+    _throwIfDownloadCancelled(info.id);
     if (info.provider == TranslationProvider.islamicNetwork) {
       await _downloadIslamicNetworkTranslation(info, onProgress: onProgress);
       return;
@@ -282,6 +316,7 @@ class TranslationRepository {
     final client = HttpClient()
       ..connectionTimeout = const Duration(seconds: 25)
       ..idleTimeout = const Duration(seconds: 30);
+    _downloadClients[info.id] = client;
     try {
       onProgress?.call(.01);
       final catalogUri = Uri.https(
@@ -289,7 +324,12 @@ class TranslationRepository {
         '/api/v1/translations/list/${info.languageCode}/',
         const <String, String>{'localization': 'en'},
       );
-      final catalogPayload = await _getJson(client, catalogUri);
+      final catalogPayload = await _getJson(
+        client,
+        catalogUri,
+        cancelled: () => _isDownloadCancelled(info.id),
+      );
+      _throwIfDownloadCancelled(info.id);
       final catalog = _resultList(catalogPayload, context: 'translations/list');
       Map<String, dynamic>? upstream;
       for (final raw in catalog) {
@@ -311,11 +351,13 @@ class TranslationRepository {
       // concurrent surahs is fast enough and avoids 429 cascades.
       const concurrency = 3;
       for (var start = 1; start <= 114; start += concurrency) {
+        _throwIfDownloadCancelled(info.id);
         final end = math.min(start + concurrency - 1, 114);
         final chunks = await Future.wait([
           for (var surah = start; surah <= end; surah++)
             _fetchSurah(client, info, surah),
         ]);
+        _throwIfDownloadCancelled(info.id);
         for (final chunk in chunks) {
           for (final raw in chunk) {
             final surah = int.tryParse('${raw['sura']}');
@@ -348,6 +390,7 @@ class TranslationRepository {
         );
       }
 
+      _throwIfDownloadCancelled(info.id);
       final package = <String, dynamic>{
         'schema_version': 1,
         'source': info.source,
@@ -368,9 +411,16 @@ class TranslationRepository {
         'items': items,
       };
       await _installValidatedPack(info, package);
+      _throwIfDownloadCancelled(info.id);
       onProgress?.call(1);
     } finally {
+      if (identical(_downloadClients[info.id], client)) {
+        _downloadClients.remove(info.id);
+      }
       client.close(force: true);
+      if (_isDownloadCancelled(info.id)) {
+        await _deleteStaleTemps(info.id);
+      }
     }
   }
 
@@ -381,12 +431,15 @@ class TranslationRepository {
     final client = HttpClient()
       ..connectionTimeout = const Duration(seconds: 25)
       ..idleTimeout = const Duration(seconds: 30);
+    _downloadClients[info.id] = client;
     try {
       onProgress?.call(.03);
       final payload = await _getJson(
         client,
         islamicNetworkTranslationPackageUri(info),
+        cancelled: () => _isDownloadCancelled(info.id),
       );
+      _throwIfDownloadCancelled(info.id);
       onProgress?.call(.82);
       if (payload is! Map || payload['data'] is! Map) {
         throw const FormatException(
@@ -402,6 +455,7 @@ class TranslationRepository {
       final items = <Map<String, dynamic>>[];
       final seen = <String>{};
       for (final rawSurah in surahs) {
+        _throwIfDownloadCancelled(info.id);
         if (rawSurah is! Map) continue;
         final surah = int.tryParse('${rawSurah['number']}');
         final ayahs = rawSurah['ayahs'];
@@ -441,6 +495,7 @@ class TranslationRepository {
           'Downloaded translation looks incomplete: ${items.length} verses.',
         );
       }
+      _throwIfDownloadCancelled(info.id);
       onProgress?.call(.92);
       final edition = data['edition'];
       final package = <String, dynamic>{
@@ -459,9 +514,16 @@ class TranslationRepository {
         'items': items,
       };
       await _installValidatedPack(info, package);
+      _throwIfDownloadCancelled(info.id);
       onProgress?.call(1);
     } finally {
+      if (identical(_downloadClients[info.id], client)) {
+        _downloadClients.remove(info.id);
+      }
       client.close(force: true);
+      if (_isDownloadCancelled(info.id)) {
+        await _deleteStaleTemps(info.id);
+      }
     }
   }
 
@@ -469,9 +531,11 @@ class TranslationRepository {
     TranslationInfo info,
     Map<String, dynamic> package,
   ) async {
+    _throwIfDownloadCancelled(info.id);
     final compressed = Uint8List.fromList(
       gzip.encode(utf8.encode(jsonEncode(package))),
     );
+    _throwIfDownloadCancelled(info.id);
     decodeGzipPack(
       compressed,
       fallbackTranslationId: info.id,
@@ -484,7 +548,9 @@ class TranslationRepository {
     final part = File('${file.path}.part');
     if (await part.exists()) await part.delete();
     try {
+      _throwIfDownloadCancelled(info.id);
       await part.writeAsBytes(compressed, flush: true);
+      _throwIfDownloadCancelled(info.id);
       // Verify bytes after filesystem write, not only the in-memory buffer.
       decodeGzipPack(
         await part.readAsBytes(),
@@ -493,6 +559,7 @@ class TranslationRepository {
         fallbackVersion: info.version,
         fallbackSource: info.source,
       );
+      _throwIfDownloadCancelled(info.id);
       await _commitPartFile(file, part);
       _downloadedPackFutures.remove(info.id);
     } catch (_) {
@@ -506,17 +573,30 @@ class TranslationRepository {
     TranslationInfo info,
     int surah,
   ) async {
+    _throwIfDownloadCancelled(info.id);
     final uri = Uri.https(
       _quranEncHost,
       '/api/v1/translation/sura/${info.sourceKey}/$surah',
     );
-    final payload = await _getJson(client, uri);
+    final payload = await _getJson(
+      client,
+      uri,
+      cancelled: () => _isDownloadCancelled(info.id),
+    );
+    _throwIfDownloadCancelled(info.id);
     return _resultList(payload, context: 'sura $surah');
   }
 
-  Future<dynamic> _getJson(HttpClient client, Uri uri) async {
+  Future<dynamic> _getJson(
+    HttpClient client,
+    Uri uri, {
+    bool Function()? cancelled,
+  }) async {
     Object? lastError;
     for (var attempt = 0; attempt < 5; attempt++) {
+      if (cancelled?.call() ?? false) {
+        throw const TranslationDownloadCancelledException();
+      }
       try {
         final request = await client.getUrl(uri);
         request.headers
@@ -524,6 +604,10 @@ class TranslationRepository {
           ..set(HttpHeaders.acceptHeader, 'application/json')
           ..set(HttpHeaders.acceptEncodingHeader, 'gzip');
         final response = await request.close();
+        if (cancelled?.call() ?? false) {
+          await response.drain<void>();
+          throw const TranslationDownloadCancelledException();
+        }
         final retryable = response.statusCode == HttpStatus.tooManyRequests ||
             response.statusCode >= 500;
         if (retryable && attempt < 4) {
@@ -549,15 +633,31 @@ class TranslationRepository {
           <int>[],
           (buffer, data) => buffer..addAll(data),
         );
+        if (cancelled?.call() ?? false) {
+          throw const TranslationDownloadCancelledException();
+        }
         return jsonDecode(utf8.decode(bytes));
+      } on TranslationDownloadCancelledException {
+        rethrow;
       } on SocketException catch (error) {
+        if (cancelled?.call() ?? false) {
+          throw const TranslationDownloadCancelledException();
+        }
         lastError = error;
       } on HttpException catch (error) {
+        if (cancelled?.call() ?? false) {
+          throw const TranslationDownloadCancelledException();
+        }
         lastError = error;
         if (!error.message.contains('HTTP 5') &&
             !error.message.contains('HTTP 429')) {
           rethrow;
         }
+      } catch (_) {
+        if (cancelled?.call() ?? false) {
+          throw const TranslationDownloadCancelledException();
+        }
+        rethrow;
       }
       if (attempt < 4) {
         await Future<void>.delayed(
@@ -693,7 +793,6 @@ class TranslationRepository {
 
     try {
       await part.rename(target.path);
-      if (await backup.exists()) await backup.delete();
     } catch (_) {
       // Never sacrifice the last known-good offline copy for a failed rename.
       if (!await target.exists() && await backup.exists()) {
@@ -701,6 +800,17 @@ class TranslationRepository {
       }
       if (await part.exists()) await part.delete();
       rethrow;
+    }
+
+    // The new target is committed at this point. Backup cleanup is best effort:
+    // failing to delete stale backup must not turn a successful install into a
+    // fake download failure. Startup recovery will remove it on the next run.
+    if (await backup.exists()) {
+      try {
+        await backup.delete();
+      } on FileSystemException {
+        // Keep it. _recoverInterruptedWrites() handles it safely next startup.
+      }
     }
   }
 
