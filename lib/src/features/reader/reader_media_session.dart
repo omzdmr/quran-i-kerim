@@ -29,6 +29,7 @@ class ReaderMediaSession extends BaseAudioHandler {
       config: AudioServiceConfig(
         androidNotificationChannelId: 'com.omzdmr.quran_i_kerim.audio',
         androidNotificationChannelName: 'Kur’an sesi',
+        androidNotificationIcon: 'drawable/ic_stat_quran',
         androidNotificationOngoing: true,
         androidStopForegroundOnPause: false,
         notificationColor: const Color(0xFF0B3D2E),
