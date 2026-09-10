@@ -83,42 +83,6 @@ class PassagePreviewScreen extends StatelessWidget {
     return true;
   }
 
-  String _uiText(String languageCode, String key) {
-    const values = <String, Map<String, String>>{
-      'tr': {
-        'title': 'Ayet görünümü',
-        'read': 'Surenin tamamını oku',
-        'source': 'Metin kaynağı',
-        'unavailable': 'Bu metin şu anda cihazda kullanılamıyor.',
-      },
-      'en': {
-        'title': 'Passage',
-        'read': 'Read the full surah',
-        'source': 'Text source',
-        'unavailable': 'This text is not available on this device right now.',
-      },
-      'ar': {
-        'title': 'المقطع',
-        'read': 'قراءة السورة كاملة',
-        'source': 'مصدر النص',
-        'unavailable': 'هذا النص غير متاح على الجهاز حالياً.',
-      },
-      'az': {
-        'title': 'Ayə görünüşü',
-        'read': 'Surəni tam oxu',
-        'source': 'Mətn mənbəyi',
-        'unavailable': 'Bu mətn hazırda cihazda mövcud deyil.',
-      },
-      'ru': {
-        'title': 'Отрывок',
-        'read': 'Читать суру полностью',
-        'source': 'Источник текста',
-        'unavailable': 'Этот текст сейчас недоступен на устройстве.',
-      },
-    };
-    return values[languageCode]?[key] ?? values['en']![key]!;
-  }
-
   Future<Map<String, String>> _loadTranslation(String sourceId) async {
     if (sourceId == arabicOriginalSourceId) return const <String, String>{};
     return TranslationRepository.instance.loadSourceVerses(sourceId);
@@ -135,7 +99,6 @@ class PassagePreviewScreen extends StatelessWidget {
     }
 
     final settings = AppSettingsScope.of(context);
-    final languageCode = context.l10n.locale.languageCode;
     final sourceId = _sourceId(settings);
     final sourceInfo = translationById(sourceId);
     final reference = _reference(context, parsed.$1, parsed.$2);
@@ -143,7 +106,7 @@ class PassagePreviewScreen extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: Text(_uiText(languageCode, 'title'))),
+      appBar: AppBar(title: Text(context.l10n.passageTitle)),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 38),
@@ -181,7 +144,7 @@ class PassagePreviewScreen extends StatelessWidget {
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   return Text(
-                    _uiText(languageCode, 'unavailable'),
+                    context.l10n.passageUnavailable,
                     style: TextStyle(color: scheme.onSurfaceVariant),
                   );
                 }
@@ -240,7 +203,7 @@ class PassagePreviewScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
                 child: Text(
-                  _uiText(languageCode, 'read'),
+                  context.l10n.passageReadFullSurah,
                   style: const TextStyle(fontWeight: FontWeight.w900),
                 ),
               ),
@@ -249,7 +212,7 @@ class PassagePreviewScreen extends StatelessWidget {
             Divider(color: scheme.outlineVariant),
             const SizedBox(height: 18),
             Text(
-              _uiText(languageCode, 'source'),
+              context.l10n.passageTextSource,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: scheme.onSurfaceVariant,

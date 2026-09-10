@@ -140,6 +140,10 @@ class AppLocalizations {
   String get prayerTimes => _value('prayerTimes');
   String get translationLoading => _value('translationLoading');
   String get invalidPassage => _value('invalidPassage');
+  String get passageTitle => _value('passageTitle');
+  String get passageReadFullSurah => _value('passageReadFullSurah');
+  String get passageTextSource => _value('passageTextSource');
+  String get passageUnavailable => _value('passageUnavailable');
 }
 
 class _AppLocalizationsDelegate

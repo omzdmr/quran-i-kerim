@@ -44,6 +44,10 @@ void main() {
       'quranSearchTitle',
       'compareTexts',
       'invalidPassage',
+      'passageTitle',
+      'passageReadFullSurah',
+      'passageTextSource',
+      'passageUnavailable',
       'prayerSettings',
       'chooseCity',
       'worldCitySearchInfo',
@@ -68,6 +72,10 @@ void main() {
       }
       expect(l10n.invalidPassage, isNotEmpty);
       expect(l10n.invalidPassage, isNot('invalidPassage'));
+      expect(l10n.passageTitle, isNotEmpty);
+      expect(l10n.passageReadFullSurah, isNotEmpty);
+      expect(l10n.passageTextSource, isNotEmpty);
+      expect(l10n.passageUnavailable, isNotEmpty);
     }
   });
 }
