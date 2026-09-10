@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
@@ -10,9 +11,8 @@ import 'translation_pack.dart';
 
 /// Local-first translation loader and installer.
 ///
-/// A small default translation can be bundled for selected app languages.
-/// Extra translations are fetched from QuranEnc only when the user explicitly
-/// asks for them, validated, gzip-compressed, and stored in app-private storage.
+/// Small defaults stay bundled. QuranEnc catalogue metadata is cached locally
+/// and translation bodies are downloaded only after an explicit user choice.
 Uri islamicNetworkTranslationPackageUri(TranslationInfo info) =>
     Uri.https('api.alquran.cloud', '/v1/quran/${info.sourceKey}');
 
@@ -22,12 +22,14 @@ class TranslationRepository {
   static final TranslationRepository instance = TranslationRepository._();
 
   static const String _quranEncHost = 'quranenc.com';
-  static const String _userAgent = 'quran-i-kerim/0.4 translation-downloader';
+  static const String _userAgent = 'quran-i-kerim/0.5 translation-downloader';
+  static const Duration _catalogMaxAge = Duration(days: 7);
 
   final Map<String, Future<TranslationPack>> _bundledPackFutures =
       <String, Future<TranslationPack>>{};
   final Map<String, Future<TranslationPack>> _downloadedPackFutures =
       <String, Future<TranslationPack>>{};
+  final Map<String, Future<void>> _activeDownloads = <String, Future<void>>{};
 
   Future<TranslationPack> loadBundledTurkishPack() =>
       loadBundledPack(translationById(bundledTurkishTranslationId)!);
@@ -54,15 +56,20 @@ class TranslationRepository {
     );
   }
 
-  /// Returns verses for a selected translation source. Arabic original has no
-  /// translation map and is handled by the Quran text package in the reader.
-  Future<Map<String, String>> loadSourceVerses(String sourceId) async {
-    if (sourceId == arabicOriginalSourceId) return const <String, String>{};
+  Future<TranslationPack> loadSourcePack(String sourceId) async {
+    if (sourceId == arabicOriginalSourceId) {
+      throw StateError('Arabic original is not a translation pack.');
+    }
     final info = translationById(sourceId);
     if (info == null) {
       throw StateError('Unknown translation source: $sourceId');
     }
-    return (await loadInstalledPack(info)).verses;
+    return loadInstalledPack(info);
+  }
+
+  Future<Map<String, String>> loadSourceVerses(String sourceId) async {
+    if (sourceId == arabicOriginalSourceId) return const <String, String>{};
+    return (await loadSourcePack(sourceId)).verses;
   }
 
   Future<TranslationPack> loadInstalledPack(TranslationInfo info) async {
@@ -72,14 +79,19 @@ class TranslationRepository {
       if (!await file.exists()) {
         throw StateError('Translation is not installed: ${info.id}');
       }
-      final bytes = await file.readAsBytes();
-      return decodeGzipPack(
-        bytes,
-        fallbackTranslationId: info.id,
-        fallbackLanguageCode: info.languageCode,
-        fallbackVersion: info.version,
-        fallbackSource: info.source,
-      );
+      try {
+        return decodeGzipPack(
+          await file.readAsBytes(),
+          fallbackTranslationId: info.id,
+          fallbackLanguageCode: info.languageCode,
+          fallbackVersion: info.version,
+          fallbackSource: info.source,
+        );
+      } catch (_) {
+        _downloadedPackFutures.remove(info.id);
+        if (await file.exists()) await file.delete();
+        rethrow;
+      }
     });
   }
 
@@ -88,8 +100,23 @@ class TranslationRepository {
     final info = translationById(sourceId);
     if (info == null) return false;
     if (info.bundled) return true;
+    await _deleteStalePart(info.id);
     final file = await _downloadFile(info.id);
-    return file.exists();
+    if (!await file.exists()) return false;
+    try {
+      decodeGzipPack(
+        await file.readAsBytes(),
+        fallbackTranslationId: info.id,
+        fallbackLanguageCode: info.languageCode,
+        fallbackVersion: info.version,
+        fallbackSource: info.source,
+      );
+      return true;
+    } catch (_) {
+      if (await file.exists()) await file.delete();
+      _downloadedPackFutures.remove(info.id);
+      return false;
+    }
   }
 
   Future<int> installedTranslationBytes(String sourceId) async {
@@ -104,13 +131,124 @@ class TranslationRepository {
     final info = translationById(sourceId);
     if (info == null || info.bundled) return;
     final file = await _downloadFile(sourceId);
+    final part = File('${file.path}.part');
     if (await file.exists()) await file.delete();
+    if (await part.exists()) await part.delete();
     _downloadedPackFutures.remove(sourceId);
   }
 
-  /// Downloads an official QuranEnc translation and preserves upstream items,
-  /// including transcript/footnote fields, inside our local pack.
+  /// Loads the last successful QuranEnc catalogue snapshot without network.
+  Future<void> loadCachedCatalog() async {
+    final file = await _catalogCacheFile();
+    if (!await file.exists()) return;
+    try {
+      final decoded = jsonDecode(await file.readAsString());
+      _registerCatalogPayload(decoded);
+    } catch (_) {
+      if (await file.exists()) await file.delete();
+    }
+  }
+
+  /// One tiny catalogue refresh per week; failures leave the cached/static
+  /// catalogue untouched so reading never depends on connectivity.
+  Future<void> refreshCatalogIfStale({String localization = 'en'}) async {
+    final file = await _catalogCacheFile();
+    if (await file.exists()) {
+      final age = DateTime.now().difference(await file.lastModified());
+      if (age >= Duration.zero && age < _catalogMaxAge) return;
+    }
+    try {
+      await refreshQuranEncCatalog(localization: localization);
+    } catch (_) {
+      // Catalogue discovery is best-effort. Existing offline sources remain.
+    }
+  }
+
+  Future<int> refreshQuranEncCatalog({String localization = 'en'}) async {
+    final client = HttpClient()
+      ..connectionTimeout = const Duration(seconds: 15)
+      ..idleTimeout = const Duration(seconds: 20);
+    try {
+      final safeLocale = RegExp(r'^[A-Za-z]{2,3}$').hasMatch(localization)
+          ? localization.toLowerCase()
+          : 'en';
+      final uri = Uri.https(
+        _quranEncHost,
+        '/api/v1/translations/list',
+        <String, String>{'localization': safeLocale},
+      );
+      final payload = await _getJson(client, uri);
+      final count = _registerCatalogPayload(payload);
+      if (count == 0) {
+        throw const FormatException('QuranEnc catalogue is empty.');
+      }
+      final file = await _catalogCacheFile();
+      final part = File('${file.path}.part');
+      if (await part.exists()) await part.delete();
+      await part.writeAsString(jsonEncode(payload), flush: true);
+      jsonDecode(await part.readAsString());
+      if (await file.exists()) await file.delete();
+      await part.rename(file.path);
+      return count;
+    } finally {
+      client.close(force: true);
+    }
+  }
+
+  int _registerCatalogPayload(dynamic payload) {
+    final rows = _resultList(payload, context: 'translations/list');
+    final discovered = <TranslationInfo>[];
+    for (final raw in rows) {
+      final key = '${raw['key'] ?? ''}'.trim();
+      final language = '${raw['language_iso_code'] ?? ''}'.trim().toLowerCase();
+      final title = '${raw['title'] ?? ''}'.trim();
+      if (key.isEmpty || language.isEmpty || title.isEmpty) continue;
+      if (_looksLikeTafsir(key, title)) continue;
+      final version = '${raw['version'] ?? 'latest'}'.trim();
+      discovered.add(
+        TranslationInfo(
+          id: key,
+          code: 'QENC-${language.toUpperCase()}',
+          languageCode: language,
+          name: title,
+          publisher: 'QuranEnc.com',
+          source: 'QuranEnc.com',
+          sourceKey: key,
+          version: version.isEmpty ? 'latest' : version,
+          bundled: false,
+          available: true,
+          downloadable: true,
+        ),
+      );
+    }
+    registerDiscoveredTranslations(discovered);
+    return discovered.length;
+  }
+
+  bool _looksLikeTafsir(String key, String title) {
+    final value = '$key $title'.toLowerCase();
+    return value.contains('tafsir') ||
+        value.contains('tafseer') ||
+        value.contains('mokhtasar') ||
+        value.contains('mukhtasar') ||
+        value.contains('interpreting the noble quran') ||
+        value.contains('meanings of words');
+  }
+
+  /// Downloads one translation. Parallel taps for the same source share the
+  /// same future, preventing two writers from corrupting one .part file.
   Future<void> downloadTranslation(
+    TranslationInfo info, {
+    ValueChanged<double>? onProgress,
+  }) {
+    final active = _activeDownloads[info.id];
+    if (active != null) return active;
+    final future = _downloadTranslationInternal(info, onProgress: onProgress);
+    _activeDownloads[info.id] = future;
+    return future.whenComplete(() => _activeDownloads.remove(info.id));
+  }
+
+  Future<void> _downloadTranslationInternal(
     TranslationInfo info, {
     ValueChanged<double>? onProgress,
   }) async {
@@ -121,13 +259,15 @@ class TranslationRepository {
     if (!info.downloadable) {
       throw StateError('Translation is not enabled for download: ${info.id}');
     }
+    await _deleteStalePart(info.id);
     if (info.provider == TranslationProvider.islamicNetwork) {
       await _downloadIslamicNetworkTranslation(info, onProgress: onProgress);
       return;
     }
 
     final client = HttpClient()
-      ..connectionTimeout = const Duration(seconds: 25);
+      ..connectionTimeout = const Duration(seconds: 25)
+      ..idleTimeout = const Duration(seconds: 30);
     try {
       onProgress?.call(.01);
       final catalogUri = Uri.https(
@@ -150,18 +290,12 @@ class TranslationRepository {
         );
       }
       final upstreamVersion = '${upstream['version'] ?? ''}'.trim();
-      if (info.version != 'latest' &&
-          upstreamVersion.isNotEmpty &&
-          upstreamVersion != info.version) {
-        throw StateError(
-          'Translation version changed from ${info.version} to $upstreamVersion. '
-          'The catalog must be reviewed before installing it.',
-        );
-      }
 
       final items = <Map<String, dynamic>>[];
       final seen = <String>{};
-      const concurrency = 6;
+      // QuranEnc is a public service, not our personal load tester. Three
+      // concurrent surahs is fast enough and avoids 429 cascades.
+      const concurrency = 3;
       for (var start = 1; start <= 114; start += concurrency) {
         final end = math.min(start + concurrency - 1, 114);
         final chunks = await Future.wait([
@@ -219,26 +353,7 @@ class TranslationRepository {
         },
         'items': items,
       };
-
-      final encoded = utf8.encode(jsonEncode(package));
-      final compressed = Uint8List.fromList(gzip.encode(encoded));
-
-      // Decode before replacing an existing pack. A network hiccup should not
-      // turn a good offline copy into a corrupted one.
-      decodeGzipPack(
-        compressed,
-        fallbackTranslationId: info.id,
-        fallbackLanguageCode: info.languageCode,
-        fallbackVersion: info.version,
-        fallbackSource: info.source,
-      );
-
-      final file = await _downloadFile(info.id);
-      final temp = File('${file.path}.tmp');
-      await temp.writeAsBytes(compressed, flush: true);
-      if (await file.exists()) await file.delete();
-      await temp.rename(file.path);
-      _downloadedPackFutures.remove(info.id);
+      await _installValidatedPack(info, package);
       onProgress?.call(1);
     } finally {
       client.close(force: true);
@@ -329,24 +444,47 @@ class TranslationRepository {
         },
         'items': items,
       };
-      final encoded = utf8.encode(jsonEncode(package));
-      final compressed = Uint8List.fromList(gzip.encode(encoded));
+      await _installValidatedPack(info, package);
+      onProgress?.call(1);
+    } finally {
+      client.close(force: true);
+    }
+  }
+
+  Future<void> _installValidatedPack(
+    TranslationInfo info,
+    Map<String, dynamic> package,
+  ) async {
+    final compressed = Uint8List.fromList(
+      gzip.encode(utf8.encode(jsonEncode(package))),
+    );
+    decodeGzipPack(
+      compressed,
+      fallbackTranslationId: info.id,
+      fallbackLanguageCode: info.languageCode,
+      fallbackVersion: info.version,
+      fallbackSource: info.source,
+    );
+
+    final file = await _downloadFile(info.id);
+    final part = File('${file.path}.part');
+    if (await part.exists()) await part.delete();
+    try {
+      await part.writeAsBytes(compressed, flush: true);
+      // Verify bytes after filesystem write, not only the in-memory buffer.
       decodeGzipPack(
-        compressed,
+        await part.readAsBytes(),
         fallbackTranslationId: info.id,
         fallbackLanguageCode: info.languageCode,
         fallbackVersion: info.version,
         fallbackSource: info.source,
       );
-      final file = await _downloadFile(info.id);
-      final temp = File('${file.path}.tmp');
-      await temp.writeAsBytes(compressed, flush: true);
       if (await file.exists()) await file.delete();
-      await temp.rename(file.path);
+      await part.rename(file.path);
       _downloadedPackFutures.remove(info.id);
-      onProgress?.call(1);
-    } finally {
-      client.close(force: true);
+    } catch (_) {
+      if (await part.exists()) await part.delete();
+      rethrow;
     }
   }
 
@@ -364,38 +502,58 @@ class TranslationRepository {
   }
 
   Future<dynamic> _getJson(HttpClient client, Uri uri) async {
-    for (var attempt = 0; attempt < 3; attempt++) {
-      final request = await client.getUrl(uri);
-      request.headers
-        ..set(HttpHeaders.userAgentHeader, _userAgent)
-        ..set(HttpHeaders.acceptHeader, 'application/json')
-        ..set(HttpHeaders.acceptEncodingHeader, 'gzip');
-      final response = await request.close();
-      if (response.statusCode == HttpStatus.tooManyRequests && attempt < 2) {
-        final retryAfter = int.tryParse(
-          response.headers.value(HttpHeaders.retryAfterHeader) ?? '',
+    Object? lastError;
+    for (var attempt = 0; attempt < 5; attempt++) {
+      try {
+        final request = await client.getUrl(uri);
+        request.headers
+          ..set(HttpHeaders.userAgentHeader, _userAgent)
+          ..set(HttpHeaders.acceptHeader, 'application/json')
+          ..set(HttpHeaders.acceptEncodingHeader, 'gzip');
+        final response = await request.close();
+        final retryable = response.statusCode == HttpStatus.tooManyRequests ||
+            response.statusCode >= 500;
+        if (retryable && attempt < 4) {
+          final retryAfter = int.tryParse(
+            response.headers.value(HttpHeaders.retryAfterHeader) ?? '',
+          );
+          await response.drain<void>();
+          await Future<void>.delayed(
+            Duration(
+              seconds: (retryAfter ?? math.min(2 << attempt, 12)).clamp(1, 15),
+            ),
+          );
+          continue;
+        }
+        if (response.statusCode != HttpStatus.ok) {
+          await response.drain<void>();
+          throw HttpException(
+            '${uri.host} returned HTTP ${response.statusCode}.',
+            uri: uri,
+          );
+        }
+        final bytes = await response.fold<List<int>>(
+          <int>[],
+          (buffer, data) => buffer..addAll(data),
         );
-        await response.drain<void>();
+        return jsonDecode(utf8.decode(bytes));
+      } on SocketException catch (error) {
+        lastError = error;
+      } on HttpException catch (error) {
+        lastError = error;
+        if (!error.message.contains('HTTP 5') &&
+            !error.message.contains('HTTP 429')) {
+          rethrow;
+        }
+      }
+      if (attempt < 4) {
         await Future<void>.delayed(
-          Duration(seconds: (retryAfter ?? (attempt + 1) * 2).clamp(1, 8)),
-        );
-        continue;
-      }
-      if (response.statusCode != HttpStatus.ok) {
-        await response.drain<void>();
-        throw HttpException(
-          '${uri.host} returned HTTP ${response.statusCode}.',
-          uri: uri,
+          Duration(seconds: math.min(2 << attempt, 12)),
         );
       }
-      final bytes = await response.fold<List<int>>(
-        <int>[],
-        (buffer, data) => buffer..addAll(data),
-      );
-      return jsonDecode(utf8.decode(bytes));
     }
     throw HttpException(
-      '${uri.host} temporarily rate limited the request.',
+      '${uri.host} temporarily failed after retries: ${lastError ?? 'unknown'}',
       uri: uri,
     );
   }
@@ -406,7 +564,12 @@ class TranslationRepository {
   }) {
     dynamic raw = payload;
     if (raw is Map) {
-      for (final key in const ['result', 'data', 'translations', 'items']) {
+      for (final key in const [
+        'result',
+        'data',
+        'translations',
+        'items',
+      ]) {
         final candidate = raw[key];
         if (candidate is List) {
           raw = candidate;
@@ -440,6 +603,21 @@ class TranslationRepository {
       await directory.create(recursive: true);
     }
     return File('${directory.path}/$sourceId.json.gz');
+  }
+
+  Future<File> _catalogCacheFile() async {
+    final root = await getApplicationSupportDirectory();
+    final directory = Directory('${root.path}/translations');
+    if (!await directory.exists()) {
+      await directory.create(recursive: true);
+    }
+    return File('${directory.path}/quranenc_catalog_v1.json');
+  }
+
+  Future<void> _deleteStalePart(String sourceId) async {
+    final file = await _downloadFile(sourceId);
+    final part = File('${file.path}.part');
+    if (await part.exists()) await part.delete();
   }
 
   Future<TranslationPack> _loadAssetPack(
@@ -532,7 +710,7 @@ class TranslationRepository {
       verses[key] = translation;
 
       final footnote = raw['footnotes'];
-      if (footnote is String && footnote.isNotEmpty) {
+      if (footnote is String && footnote.trim().isNotEmpty) {
         footnotes[key] = footnote;
       }
     }
