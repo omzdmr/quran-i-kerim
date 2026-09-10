@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import 'strings/feature_strings.dart';
+import 'strings/prayer_notification_strings.dart';
 import 'strings/strings_ar.dart';
 import 'strings/strings_az.dart';
 import 'strings/strings_en.dart';
@@ -49,7 +50,30 @@ class AppLocalizations {
       trStrings[key] ??
       key;
 
+  String _prayerNotificationValue(String key) =>
+      prayerNotificationStrings[locale.languageCode]?[key] ??
+      prayerNotificationStrings['en']?[key] ??
+      prayerNotificationStrings['tr']?[key] ??
+      key;
+
   String text(String key) => _value(key);
+
+  String prayerNotificationTitle(String prayerId) =>
+      _prayerNotificationValue('title').replaceAll(
+        '{prayer}',
+        _value(prayerId),
+      );
+
+  String prayerNotificationBody(String prayerId) =>
+      _prayerNotificationValue('body').replaceAll(
+        '{prayer}',
+        _value(prayerId),
+      );
+
+  String get prayerNotificationChannel =>
+      _prayerNotificationValue('channel');
+  String get prayerNotificationChannelDescription =>
+      _prayerNotificationValue('channelDescription');
 
   String get appTitle => _value('appTitle');
   String get navHome => _value('navHome');

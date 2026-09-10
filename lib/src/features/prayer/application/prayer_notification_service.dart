@@ -1,10 +1,11 @@
 import 'dart:io';
-import 'dart:ui';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
+import '../../../l10n/app_locale_resolver.dart';
+import '../../../l10n/app_localizations.dart';
 import '../domain/prayer_city_catalog.dart';
 import '../domain/prayer_models.dart';
 import 'prayer_calculator.dart';
@@ -110,9 +111,7 @@ class PrayerNotificationService {
     final now = tz.TZDateTime.now(zone);
     final calculator = PrayerCalculator();
     final preferences = settings.preferencesFor(defaultMethod);
-    final copy = _PrayerNotificationCopy(
-      PlatformDispatcher.instance.locale.languageCode,
-    );
+    final copy = AppLocalizations(await AppLocaleResolver.currentLocale());
 
     var scheduleMode = AndroidScheduleMode.inexactAllowWhileIdle;
     if (Platform.isAndroid) {
@@ -124,16 +123,19 @@ class PrayerNotificationService {
       if (canExact) scheduleMode = AndroidScheduleMode.exactAllowWhileIdle;
     }
 
-    const notificationDetails = NotificationDetails(
+    final notificationDetails = NotificationDetails(
       android: AndroidNotificationDetails(
         'prayer_times',
-        'Prayer times',
-        channelDescription: 'Prayer time reminders',
+        copy.prayerNotificationChannel,
+        channelDescription: copy.prayerNotificationChannelDescription,
         importance: Importance.high,
         priority: Priority.high,
         category: AndroidNotificationCategory.reminder,
       ),
-      iOS: DarwinNotificationDetails(presentAlert: true, presentSound: true),
+      iOS: const DarwinNotificationDetails(
+        presentAlert: true,
+        presentSound: true,
+      ),
     );
 
     // 12 days x 5 prayers = 60 requests, staying below iOS's common pending
@@ -161,8 +163,8 @@ class PrayerNotificationService {
         }
         await _plugin.zonedSchedule(
           id: 700000 + dayOffset * 10 + prayerIndex,
-          title: copy.title(row.id),
-          body: copy.body(row.id),
+          title: copy.prayerNotificationTitle(row.id),
+          body: copy.prayerNotificationBody(row.id),
           scheduledDate: scheduledDate,
           notificationDetails: notificationDetails,
           androidScheduleMode: scheduleMode,
@@ -176,67 +178,4 @@ class PrayerNotificationService {
     await initialize();
     await _plugin.cancelAllPendingNotifications();
   }
-}
-
-class _PrayerNotificationCopy {
-  const _PrayerNotificationCopy(this.languageCode);
-
-  final String languageCode;
-
-  String _prayer(String id) {
-    final values = switch (languageCode) {
-      'tr' => const {
-        'fajr': 'İmsak',
-        'dhuhr': 'Öğle',
-        'asr': 'İkindi',
-        'maghrib': 'Akşam',
-        'isha': 'Yatsı',
-      },
-      'ar' => const {
-        'fajr': 'الفجر',
-        'dhuhr': 'الظهر',
-        'asr': 'العصر',
-        'maghrib': 'المغرب',
-        'isha': 'العشاء',
-      },
-      'az' => const {
-        'fajr': 'Sübh',
-        'dhuhr': 'Zöhr',
-        'asr': 'Əsr',
-        'maghrib': 'Məğrib',
-        'isha': 'İşa',
-      },
-      'ru' => const {
-        'fajr': 'Фаджр',
-        'dhuhr': 'Зухр',
-        'asr': 'Аср',
-        'maghrib': 'Магриб',
-        'isha': 'Иша',
-      },
-      _ => const {
-        'fajr': 'Fajr',
-        'dhuhr': 'Dhuhr',
-        'asr': 'Asr',
-        'maghrib': 'Maghrib',
-        'isha': 'Isha',
-      },
-    };
-    return values[id] ?? id;
-  }
-
-  String title(String id) => switch (languageCode) {
-    'tr' => '${_prayer(id)} vakti',
-    'ar' => 'وقت ${_prayer(id)}',
-    'az' => '${_prayer(id)} vaxtı',
-    'ru' => 'Время: ${_prayer(id)}',
-    _ => '${_prayer(id)} time',
-  };
-
-  String body(String id) => switch (languageCode) {
-    'tr' => '${_prayer(id)} vakti girdi.',
-    'ar' => 'حان الآن وقت ${_prayer(id)}.',
-    'az' => '${_prayer(id)} vaxtı daxil oldu.',
-    'ru' => 'Наступило время молитвы ${_prayer(id)}.',
-    _ => 'It is time for ${_prayer(id)}.',
-  };
 }
