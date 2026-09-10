@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -234,12 +236,27 @@ class _TranslationDiscoveryScreenState
   void initState() {
     super.initState();
     _refreshInstalled();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _refreshCatalog());
   }
 
   @override
   void dispose() {
+    for (final sourceId in _progress.keys.toList(growable: false)) {
+      unawaited(
+        TranslationRepository.instance.cancelTranslationDownload(sourceId),
+      );
+    }
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _refreshCatalog() async {
+    final language = Localizations.localeOf(context).languageCode;
+    await TranslationRepository.instance.refreshCatalogIfStale(
+      localization: language,
+    );
+    if (!mounted) return;
+    await _refreshInstalled();
   }
 
   Future<void> _refreshInstalled() async {
@@ -346,6 +363,13 @@ class _TranslationDiscoveryScreenState
     return result;
   }
 
+  Future<void> _cancelDownload(TranslationInfo info) async {
+    HapticFeedback.selectionClick();
+    await TranslationRepository.instance.cancelTranslationDownload(info.id);
+    if (!mounted) return;
+    setState(() => _progress.remove(info.id));
+  }
+
   Future<void> _pick(TranslationInfo info) async {
     final copy = _TranslationUiCopy.of(context);
     if (_installed.contains(info.id) || info.bundled) {
@@ -376,7 +400,10 @@ class _TranslationDiscoveryScreenState
       });
       HapticFeedback.lightImpact();
       Navigator.pop(context, info.id);
-    } catch (error) {
+    } on TranslationDownloadCancelledException {
+      if (!mounted) return;
+      setState(() => _progress.remove(info.id));
+    } catch (_) {
       if (!mounted) return;
       setState(() => _progress.remove(info.id));
       ScaffoldMessenger.of(
@@ -520,6 +547,9 @@ class _TranslationDiscoveryScreenState
                                   item.bundled || _installed.contains(item.id),
                               progress: _progress[item.id],
                               onTap: () => _pick(item),
+                              onCancel: _progress.containsKey(item.id)
+                                  ? () => _cancelDownload(item)
+                                  : null,
                             ),
                           ),
                       ],
@@ -735,12 +765,14 @@ class _DiscoveryTranslationRow extends StatelessWidget {
     required this.installed,
     required this.progress,
     required this.onTap,
+    required this.onCancel,
   });
 
   final TranslationInfo info;
   final bool installed;
   final double? progress;
   final VoidCallback onTap;
+  final VoidCallback? onCancel;
 
   @override
   Widget build(BuildContext context) {
@@ -797,9 +829,23 @@ class _DiscoveryTranslationRow extends StatelessWidget {
                 ),
               if (progress != null)
                 SizedBox(
-                  width: 32,
-                  height: 32,
-                  child: CircularProgressIndicator(value: progress),
+                  width: 44,
+                  height: 44,
+                  child: IconButton(
+                    onPressed: onCancel,
+                    tooltip: copy.cancel,
+                    icon: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: 32,
+                          height: 32,
+                          child: CircularProgressIndicator(value: progress),
+                        ),
+                        const Icon(Icons.close_rounded, size: 17),
+                      ],
+                    ),
+                  ),
                 )
               else if (installed)
                 Icon(Icons.cloud_done_outlined, color: scheme.primary)
