@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
-import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
@@ -230,6 +229,8 @@ class TranslationRepository {
       if (key.isEmpty || language.isEmpty || title.isEmpty) continue;
       if (_looksLikeTafsir(key, title)) continue;
       final version = '${raw['version'] ?? 'latest'}'.trim();
+      final description = '${raw['description'] ?? ''}'.trim();
+      final lastUpdated = '${raw['last_update'] ?? ''}'.trim();
       discovered.add(
         TranslationInfo(
           id: key,
@@ -243,6 +244,8 @@ class TranslationRepository {
           bundled: false,
           available: true,
           downloadable: true,
+          description: description.isEmpty ? null : description,
+          lastUpdated: lastUpdated.isEmpty ? null : lastUpdated,
         ),
       );
     }
