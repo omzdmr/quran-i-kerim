@@ -9,6 +9,9 @@ import 'package:quran/quran.dart' as quran;
 import '../../data/surah_catalog.dart';
 import '../../data/translation_catalog.dart';
 import '../../data/translation_repository.dart';
+import '../audio/application/quran_audio_reader_bridge.dart';
+import '../audio/application/quran_audio_service.dart';
+import '../audio/domain/quran_audio_source.dart';
 import '../../navigation/app_navigation.dart';
 import '../../settings/app_settings.dart';
 
@@ -186,6 +189,122 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
           ? 'AR'
           : translationCatalog.first.code;
 
+  Future<void> _listenSelection() async {
+    final selected = _selection;
+    if (selected.isEmpty) return;
+
+    final settings = AppSettingsScope.of(context);
+    final translation = settings.readerMode == ReaderDisplayMode.translation;
+    final bridge = QuranAudioReaderBridge(
+      QuranAudioService.instance.selectionController,
+    );
+
+    try {
+      final alternatives = await bridge.alternatives(
+        translation: translation,
+        translationLanguageCode: 'tr',
+      );
+      if (!mounted) return;
+
+      if (alternatives.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              translation
+                  ? 'Bu meal dili için doğrulanmış insan ses kaydı bulunamadı.'
+                  : 'Doğrulanmış insan sesli Kuran kaydı bulunamadı.',
+            ),
+          ),
+        );
+        return;
+      }
+
+      final source = alternatives.length == 1
+          ? alternatives.single
+          : await _pickAudioSource(alternatives, translation: translation);
+      if (source == null || !mounted) return;
+
+      final surah = surahByNumber(_surahNumber);
+      await bridge.playSelection(
+        surah: _surahNumber,
+        surahName: surah.nameTr,
+        ayahs: selected,
+        translation: translation,
+        translationLanguageCode: 'tr',
+        preferredIdentifier: source.identifier,
+      );
+      if (!mounted) return;
+
+      HapticFeedback.lightImpact();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${source.displayName} ile oynatılıyor')),
+      );
+      _clearSelection();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ses kaydı şu anda açılamadı.')),
+      );
+    }
+  }
+
+  Future<QuranAudioSource?> _pickAudioSource(
+    List<QuranAudioSource> alternatives, {
+    required bool translation,
+  }) {
+    return showModalBottomSheet<QuranAudioSource>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                translation ? 'Meal sesini seç' : 'Okuyucuyu seç',
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Yalnız doğrulanmış insan kayıtları gösterilir.',
+                style: TextStyle(
+                  color: Theme.of(sheetContext).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: alternatives.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final source = alternatives[index];
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.record_voice_over_rounded),
+                      title: Text(
+                        source.displayName,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      subtitle: Text(source.providerName),
+                      trailing: const Icon(Icons.play_arrow_rounded),
+                      onTap: () => Navigator.pop(sheetContext, source),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -327,6 +446,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                   opacity: _selectedAyahs.isEmpty ? 0 : 1,
                   duration: const Duration(milliseconds: 150),
                   child: _SelectionTray(
+                    onListen: _listenSelection,
                     onHighlight: _applyHighlight,
                     onBookmark: _bookmarkSelection,
                     onNote: _editSelectionNote,
@@ -1607,6 +1727,7 @@ class _ContinuousVerseTextState extends State<_ContinuousVerseText> {
 
 class _SelectionTray extends StatelessWidget {
   const _SelectionTray({
+    required this.onListen,
     required this.onHighlight,
     required this.onBookmark,
     required this.onNote,
@@ -1614,6 +1735,7 @@ class _SelectionTray extends StatelessWidget {
     required this.onCompare,
   });
 
+  final VoidCallback onListen;
   final ValueChanged<VerseHighlightColor?> onHighlight;
   final VoidCallback onBookmark;
   final VoidCallback onNote;
@@ -1650,6 +1772,11 @@ class _SelectionTray extends StatelessWidget {
                 height: 36,
                 margin: const EdgeInsets.symmetric(horizontal: 5),
                 color: scheme.outlineVariant,
+              ),
+              _SelectionAction(
+                icon: Icons.play_arrow_rounded,
+                label: 'Dinle',
+                onTap: onListen,
               ),
               _SelectionAction(
                 icon: Icons.bookmark_border_rounded,
