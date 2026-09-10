@@ -9,6 +9,9 @@ void main() {
     expect(localizedSurahName(33, 'en').toLowerCase(), contains('ahzab'));
     expect(localizedSurahName(1, 'ar'), 'الفاتحة');
     expect(localizedSurahName(74, 'ru'), isNotEmpty);
+    expect(localizedSurahName(2, 'fa'), 'بقره');
+    expect(localizedSurahName(33, 'fa'), 'احزاب');
+    expect(localizedSurahName(114, 'fa'), 'ناس');
   });
 
   test('quran metadata exposes local juz page and sajdah data', () {
@@ -28,5 +31,6 @@ void main() {
     expect(aliases.any((value) => value.contains('ahzab')), isTrue);
     expect(surahSearchAliases(33, 'az'), contains('Əhzab'));
     expect(surahSearchAliases(33, 'tr'), contains('Ahzâb'));
+    expect(surahSearchAliases(33, 'fa'), contains('احزاب'));
   });
 }
