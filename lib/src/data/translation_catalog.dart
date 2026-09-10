@@ -275,7 +275,6 @@ final List<TranslationInfo> translationCatalog = <TranslationInfo>[
     bundled: false,
     available: true,
     downloadable: true,
-    hasAudio: true,
   ),
   const TranslationInfo(
     id: 'sinhalese_mahir',
@@ -317,7 +316,6 @@ final List<TranslationInfo> translationCatalog = <TranslationInfo>[
     bundled: false,
     available: true,
     downloadable: true,
-    hasAudio: true,
   ),
   const TranslationInfo(
     id: 'russian_kuliev',
