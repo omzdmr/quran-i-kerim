@@ -30,6 +30,12 @@ jobs:
       - name: Generate Android scaffold
         run: flutter create --platforms=android --org com.omzdmr --project-name quran_i_kerim .
 
+      - name: Remove generated scaffold test
+        run: |
+          if ! git ls-files --error-unmatch test/widget_test.dart >/dev/null 2>&1; then
+            rm -f test/widget_test.dart
+          fi
+
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
