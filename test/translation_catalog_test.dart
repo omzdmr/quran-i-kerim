@@ -3,6 +3,16 @@ import 'package:quran_i_kerim/src/data/quran_audio_catalog.dart';
 import 'package:quran_i_kerim/src/data/translation_catalog.dart';
 
 void main() {
+  setUp(() {
+    // Runtime discovery mutates the in-memory catalogue. Reset to the immutable
+    // curated baseline so every test starts from the same local-first state.
+    registerDiscoveredTranslations(const <TranslationInfo>[]);
+  });
+
+  tearDown(() {
+    registerDiscoveredTranslations(const <TranslationInfo>[]);
+  });
+
   test(
     'English Rowwad translation is bundled as the English device default',
     () {
@@ -77,5 +87,94 @@ void main() {
       translationById(turkishVakfiTranslationId)?.provider,
       TranslationProvider.islamicNetwork,
     );
+  });
+
+  test('new discovery snapshot removes stale upstream-only translations', () {
+    const stale = TranslationInfo(
+      id: 'test_removed_upstream',
+      code: 'QENC-ZZ',
+      languageCode: 'zz',
+      name: 'Temporary upstream translation',
+      publisher: 'QuranEnc.com',
+      source: 'QuranEnc.com',
+      sourceKey: 'test_removed_upstream',
+      version: '1.0.0',
+      bundled: false,
+      available: true,
+      downloadable: true,
+    );
+    const current = TranslationInfo(
+      id: 'test_current_upstream',
+      code: 'QENC-YY',
+      languageCode: 'yy',
+      name: 'Current upstream translation',
+      publisher: 'QuranEnc.com',
+      source: 'QuranEnc.com',
+      sourceKey: 'test_current_upstream',
+      version: '2.0.0',
+      bundled: false,
+      available: true,
+      downloadable: true,
+    );
+
+    registerDiscoveredTranslations(const <TranslationInfo>[stale, current]);
+    expect(translationById(stale.id), isNotNull);
+    expect(translationById(current.id), isNotNull);
+
+    registerDiscoveredTranslations(const <TranslationInfo>[current]);
+    expect(translationById(stale.id), isNull);
+    expect(translationById(current.id)?.version, '2.0.0');
+  });
+
+  test('curated QuranEnc source receives upstream title and version safely', () {
+    final before = translationById('azeri_musayev');
+    expect(before, isNotNull);
+
+    const upstream = TranslationInfo(
+      id: 'azeri_musayev',
+      code: 'QENC-AZ',
+      languageCode: 'az',
+      name: 'Upstream Azerbaijani title',
+      publisher: 'Do not replace curated publisher',
+      source: 'QuranEnc.com',
+      sourceKey: 'azeri_musayev',
+      version: '9.9.9',
+      bundled: false,
+      available: true,
+      downloadable: true,
+    );
+
+    registerDiscoveredTranslations(const <TranslationInfo>[upstream]);
+    final merged = translationById('azeri_musayev');
+    expect(merged, isNotNull);
+    expect(merged!.name, 'Upstream Azerbaijani title');
+    expect(merged.version, '9.9.9');
+    expect(merged.code, 'MUS-AZ');
+    expect(merged.publisher, before!.publisher);
+    expect(merged.sourceKey, before.sourceKey);
+    expect(merged.hasAudio, isTrue);
+  });
+
+  test('bundled translation keeps the version of its packaged bytes', () {
+    const upstream = TranslationInfo(
+      id: englishTranslationId,
+      code: 'QENC-EN',
+      languageCode: 'en',
+      name: 'New upstream English title',
+      publisher: 'QuranEnc.com',
+      source: 'QuranEnc.com',
+      sourceKey: 'english_rwwad',
+      version: '99.0.0',
+      bundled: false,
+      available: true,
+      downloadable: true,
+    );
+
+    registerDiscoveredTranslations(const <TranslationInfo>[upstream]);
+    final english = translationById(englishTranslationId);
+    expect(english, isNotNull);
+    expect(english!.version, '1.0.19');
+    expect(english.name, 'English Translation');
+    expect(english.bundled, isTrue);
   });
 }
