@@ -1,0 +1,204 @@
+name: Apply Reader Audio UI Once
+
+on:
+  push:
+    branches: [ feature/audio-v21 ]
+    paths:
+      - .github/workflows/apply-reader-audio-ui-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: feature/audio-v21
+
+      - name: Wire Reader listen action to Audio v2.1
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('lib/src/features/reader/quran_reader_screen.dart')
+          text = path.read_text(encoding='utf-8')
+
+          replacements = [
+              (
+                  "import '../../data/translation_repository.dart';\nimport '../../navigation/app_navigation.dart';",
+                  "import '../../data/translation_repository.dart';\nimport '../audio/application/quran_audio_reader_bridge.dart';\nimport '../audio/application/quran_audio_service.dart';\nimport '../audio/domain/quran_audio_source.dart';\nimport '../../navigation/app_navigation.dart';",
+              ),
+              (
+                  "  String _activeVersionCode(AppSettings settings) =>\n      settings.readerMode == ReaderDisplayMode.arabic\n          ? 'AR'\n          : translationCatalog.first.code;\n\n  @override",
+                  """  String _activeVersionCode(AppSettings settings) =>
+      settings.readerMode == ReaderDisplayMode.arabic
+          ? 'AR'
+          : translationCatalog.first.code;
+
+  Future<void> _listenSelection() async {
+    final selected = _selection;
+    if (selected.isEmpty) return;
+
+    final settings = AppSettingsScope.of(context);
+    final translation = settings.readerMode == ReaderDisplayMode.translation;
+    final bridge = QuranAudioReaderBridge(
+      QuranAudioService.instance.selectionController,
+    );
+
+    try {
+      final alternatives = await bridge.alternatives(
+        translation: translation,
+        translationLanguageCode: 'tr',
+      );
+      if (!mounted) return;
+
+      if (alternatives.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              translation
+                  ? 'Bu meal dili için doğrulanmış insan ses kaydı bulunamadı.'
+                  : 'Doğrulanmış insan sesli Kuran kaydı bulunamadı.',
+            ),
+          ),
+        );
+        return;
+      }
+
+      final source = alternatives.length == 1
+          ? alternatives.single
+          : await _pickAudioSource(alternatives, translation: translation);
+      if (source == null || !mounted) return;
+
+      final surah = surahByNumber(_surahNumber);
+      await bridge.playSelection(
+        surah: _surahNumber,
+        surahName: surah.nameTr,
+        ayahs: selected,
+        translation: translation,
+        translationLanguageCode: 'tr',
+        preferredIdentifier: source.identifier,
+      );
+      if (!mounted) return;
+
+      HapticFeedback.lightImpact();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${source.displayName} ile oynatılıyor')),
+      );
+      _clearSelection();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ses kaydı şu anda açılamadı.'),
+        ),
+      );
+    }
+  }
+
+  Future<QuranAudioSource?> _pickAudioSource(
+    List<QuranAudioSource> alternatives, {
+    required bool translation,
+  }) {
+    return showModalBottomSheet<QuranAudioSource>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                translation ? 'Meal sesini seç' : 'Okuyucuyu seç',
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Yalnız doğrulanmış insan kayıtları gösterilir.',
+                style: TextStyle(
+                  color: Theme.of(sheetContext).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: alternatives.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final source = alternatives[index];
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.record_voice_over_rounded),
+                      title: Text(
+                        source.displayName,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      subtitle: Text(source.providerName),
+                      trailing: const Icon(Icons.play_arrow_rounded),
+                      onTap: () => Navigator.pop(sheetContext, source),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override""",
+              ),
+              (
+                  "                  child: _SelectionTray(\n                    onHighlight: _applyHighlight,",
+                  "                  child: _SelectionTray(\n                    onListen: _listenSelection,\n                    onHighlight: _applyHighlight,",
+              ),
+              (
+                  "  const _SelectionTray({\n    required this.onHighlight,",
+                  "  const _SelectionTray({\n    required this.onListen,\n    required this.onHighlight,",
+              ),
+              (
+                  "  final ValueChanged<VerseHighlightColor?> onHighlight;",
+                  "  final VoidCallback onListen;\n  final ValueChanged<VerseHighlightColor?> onHighlight;",
+              ),
+              (
+                  "              _SelectionAction(\n                icon: Icons.bookmark_border_rounded,\n                label: 'Kaydet',",
+                  "              _SelectionAction(\n                icon: Icons.play_arrow_rounded,\n                label: 'Dinle',\n                onTap: onListen,\n              ),\n              _SelectionAction(\n                icon: Icons.bookmark_border_rounded,\n                label: 'Kaydet',",
+              ),
+          ]
+
+          for old, new in replacements:
+              if old not in text:
+                  raise SystemExit(f'Patch marker not found: {old[:120]!r}')
+              text = text.replace(old, new, 1)
+
+          required = [
+              'QuranAudioReaderBridge',
+              'QuranAudioService.instance.selectionController',
+              "label: 'Dinle'",
+              'Yalnız doğrulanmış insan kayıtları gösterilir.',
+              'preferredIdentifier: source.identifier',
+          ]
+          if not all(value in text for value in required):
+              raise SystemExit('Reader audio UI patch incomplete')
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Commit product change and remove one-shot workflow
+        run: |
+          git config user.name "omzdmr"
+          git config user.email "154471764+omzdmr@users.noreply.github.com"
+          git rm .github/workflows/apply-reader-audio-ui-once.yml
+          git add lib/src/features/reader/quran_reader_screen.dart
+          git commit -m "Wire Reader listen action to human audio"
+          git push origin HEAD:feature/audio-v21
