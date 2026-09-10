@@ -102,6 +102,8 @@ void main() {
       bundled: false,
       available: true,
       downloadable: true,
+      description: 'Old localized description',
+      lastUpdated: '1700000000',
     );
     const current = TranslationInfo(
       id: 'test_current_upstream',
@@ -115,6 +117,8 @@ void main() {
       bundled: false,
       available: true,
       downloadable: true,
+      description: 'Current localized description',
+      lastUpdated: '1800000000',
     );
 
     registerDiscoveredTranslations(const <TranslationInfo>[stale, current]);
@@ -124,9 +128,14 @@ void main() {
     registerDiscoveredTranslations(const <TranslationInfo>[current]);
     expect(translationById(stale.id), isNull);
     expect(translationById(current.id)?.version, '2.0.0');
+    expect(
+      translationById(current.id)?.description,
+      'Current localized description',
+    );
+    expect(translationById(current.id)?.lastUpdated, '1800000000');
   });
 
-  test('curated QuranEnc source receives upstream title and version safely', () {
+  test('curated QuranEnc source receives upstream metadata safely', () {
     final before = translationById('azeri_musayev');
     expect(before, isNotNull);
 
@@ -142,6 +151,8 @@ void main() {
       bundled: false,
       available: true,
       downloadable: true,
+      description: 'Localized upstream description',
+      lastUpdated: '1900000000',
     );
 
     registerDiscoveredTranslations(const <TranslationInfo>[upstream]);
@@ -153,6 +164,8 @@ void main() {
     expect(merged.publisher, before!.publisher);
     expect(merged.sourceKey, before.sourceKey);
     expect(merged.hasAudio, isTrue);
+    expect(merged.description, 'Localized upstream description');
+    expect(merged.lastUpdated, '1900000000');
   });
 
   test('bundled translation keeps the version of its packaged bytes', () {
@@ -168,6 +181,8 @@ void main() {
       bundled: false,
       available: true,
       downloadable: true,
+      description: 'New upstream description',
+      lastUpdated: '2000000000',
     );
 
     registerDiscoveredTranslations(const <TranslationInfo>[upstream]);
@@ -176,5 +191,7 @@ void main() {
     expect(english!.version, '1.0.19');
     expect(english.name, 'English Translation');
     expect(english.bundled, isTrue);
+    expect(english.description, isNull);
+    expect(english.lastUpdated, isNull);
   });
 }
