@@ -67,7 +67,9 @@ class AppTheme {
       colorScheme: scheme,
       scaffoldBackgroundColor: scaffoldBackground,
       fontFamilyFallback: const ['SF Pro Display', 'Arial', 'sans-serif'],
-      splashFactory: InkSparkle.splashFactory,
+      // Keep taps calm but perceptible. InkRipple gives users immediate press
+      // feedback without the decorative sparkle animation used by InkSparkle.
+      splashFactory: InkRipple.splashFactory,
       appBarTheme: AppBarTheme(
         backgroundColor: scaffoldBackground,
         foregroundColor: scheme.onSurface,
