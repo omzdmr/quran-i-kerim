@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:audio_service/audio_service.dart';
 
 /// Bridges the reader's existing audio engine to Android/iOS system media
@@ -24,11 +26,12 @@ class ReaderMediaSession extends BaseAudioHandler {
         instance = handler;
         return handler;
       },
-      config: AudioServiceConfig(
+      config: const AudioServiceConfig(
         androidNotificationChannelId: 'com.omzdmr.quran_i_kerim.audio',
         androidNotificationChannelName: 'Kur’an sesi',
         androidNotificationOngoing: true,
         androidStopForegroundOnPause: false,
+        notificationColor: Color(0xFF0B3D2E),
       ),
     );
   }
