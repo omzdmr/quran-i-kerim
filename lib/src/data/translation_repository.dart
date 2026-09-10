@@ -227,7 +227,6 @@ class TranslationRepository {
       final language = '${raw['language_iso_code'] ?? ''}'.trim().toLowerCase();
       final title = '${raw['title'] ?? ''}'.trim();
       if (key.isEmpty || language.isEmpty || title.isEmpty) continue;
-      if (_looksLikeTafsir(key, title)) continue;
       final version = '${raw['version'] ?? 'latest'}'.trim();
       final description = '${raw['description'] ?? ''}'.trim();
       final lastUpdated = '${raw['last_update'] ?? ''}'.trim();
@@ -251,16 +250,6 @@ class TranslationRepository {
     }
     registerDiscoveredTranslations(discovered);
     return discovered.length;
-  }
-
-  bool _looksLikeTafsir(String key, String title) {
-    final value = '$key $title'.toLowerCase();
-    return value.contains('tafsir') ||
-        value.contains('tafseer') ||
-        value.contains('mokhtasar') ||
-        value.contains('mukhtasar') ||
-        value.contains('interpreting the noble quran') ||
-        value.contains('meanings of words');
   }
 
   /// Downloads one translation. Parallel taps for the same source share the
