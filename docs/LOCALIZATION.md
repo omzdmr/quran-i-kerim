@@ -1,20 +1,35 @@
 # Çoklu dil mimarisi
 
-Uygulama ilk sürümde Türkçe odaklıdır ancak dil sistemi baştan çoklu dil destekleyecek şekilde kurulmuştur.
+Uygulama arayüzü baştan çoklu dil destekleyecek şekilde tasarlanmıştır. Arayüz dili ile Kur’an/meal kaynağı birbirinden bağımsız tutulur.
 
-## Kurallar
+## Desteklenen arayüz dilleri
 
-- Uygulama dili ile meal dili birbirinden bağımsızdır.
-- `AppSettings.locale == null` cihaz dilini takip eder.
-- Kullanıcı isterse uygulama dilini elle seçebilir.
-- Yeni bir arayüz dili eklemek uygulama mimarisini değiştirmemelidir.
-- Yeni kullanıcıya görünen metinler doğrudan widget içine yazılmamalı; `AppLocalizations` üzerinden gelmelidir.
-- Türkçe, eksik çeviri anahtarlarında güvenli geri dönüş dilidir.
-- Arapça Kuran metni uygulama dilinden bağımsız ve her zaman çevrimdışı kalır.
-- Meal kataloğu `languageCode` ile ayrı yönetilir. Bir arayüz dilinin eklenmesi o dilde meal bulunmasını zorunlu kılmaz.
+Şu anda beş arayüz dili desteklenir:
 
-## Şu an
+- `tr` — Türkçe
+- `en` — English
+- `ar` — العربية
+- `az` — Azərbaycanca
+- `ru` — Русский
 
-Desteklenen arayüz dili: `tr`
+`AppLocalizations.supportedLocales` bu listenin uygulamadaki kaynak doğruluğudur.
 
-Tema ve dil için iki ayrı “cihazı takip et” tercihi vardır. İleride örneğin `ru`, `az` veya `en` eklendiğinde yeni dil haritası ve `supportedLocales` girdisi eklemek yeterli olacak; navigasyon veya ayarlar mimarisi yeniden yazılmayacaktır.
+## Dil seçimi ve fallback
+
+- Kullanıcı uygulama dilini elle seçtiyse desteklenen bu seçim cihaz dilinden üstündür.
+- `AppSettings.locale == null` veya kayıtlı değer `system` ise cihazın tercih edilen dilleri sırayla kontrol edilir.
+- Cihaz dillerinden hiçbiri desteklenmiyorsa arayüz dili `en` olarak çözülür.
+- Kullanıcıya görünen yeni metinler doğrudan widget/servis içine yazılmamalı; `AppLocalizations` veya merkezi feature string katmanı üzerinden gelmelidir.
+- Feature string katmanında eksik bir anahtar için İngilizce, ardından Türkçe güvenli anahtar fallback’i kullanılabilir; yeni özelliklerde TR/EN/AR/AZ/RU key parity’si korunmalıdır.
+
+## Kur’an ve meal dili
+
+- Uygulama dili ile seçili Kur’an/meal kaynağı birbirinden bağımsızdır.
+- Arapça Kur’an temel metni uygulama dilinden bağımsız ve çevrimdışı kullanılabilir kalır.
+- Meal kataloğu `languageCode` ile ayrı yönetilir. Bir arayüz dilinin desteklenmesi o dildeki meal paketinin APK içine gömülmesini zorunlu kılmaz.
+- İndirilebilir mealler katalogda görülebilir ve aranabilir; ayet metni içinde arama yalnız cihazda kurulu/seçili paket üzerinde yerel yapılır.
+- Otomatik dil başlangıç seçimi, kullanıcının daha önce elle seçtiği meal kaynağını ezmemelidir.
+
+## Uygulama kuralı
+
+Yeni ekran veya servis eklenirken dört nokta ayrıca kontrol edilir: hardcoded kullanıcı metni, yerel/tekrarlı çeviri haritası, cihaz dilinin doğrudan okunması ve seçili uygulama/meal dili yerine varsayım yapılması. Dil davranışı mümkün olduğunca merkezi resolver ve localization katmanından türetilir.
