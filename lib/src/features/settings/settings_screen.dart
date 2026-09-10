@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
 import '../../l10n/app_localizations.dart';
 import '../../settings/app_settings.dart';
+import '../audio/application/audio_sleep_timer_input.dart';
+import '../audio/application/quran_audio_service.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -86,6 +90,30 @@ class SettingsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 28),
           Text(
+            'Sesli okuma',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainer,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: ListTile(
+              leading: const Icon(Icons.bedtime_outlined),
+              title: const Text(
+                'Uyku zamanlayıcısı',
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
+              subtitle: const Text('Dakika veya saat olarak özel süre belirle'),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () => _showSleepTimer(context),
+            ),
+          ),
+          const SizedBox(height: 28),
+          Text(
             l10n.reading,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w900,
@@ -110,6 +138,125 @@ class SettingsScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _showSleepTimer(BuildContext context) async {
+    final handler = QuranAudioService.instance.handler;
+    final controller = TextEditingController(text: '30');
+    var unit = AudioSleepTimerUnit.minutes;
+    String? errorText;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          final active = handler.isSleepTimerActive;
+          final remaining = handler.sleepTimerRemaining;
+          return SafeArea(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                20,
+                0,
+                20,
+                MediaQuery.viewInsetsOf(sheetContext).bottom + 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Uyku zamanlayıcısı',
+                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    active
+                        ? 'Aktif · yaklaşık ${formatAudioSleepTimerRemaining(remaining)} kaldı'
+                        : 'Süre dolunca ses arka planda veya ekran kilitliyken de duraklatılır.',
+                    style: TextStyle(
+                      color: Theme.of(sheetContext).colorScheme.onSurfaceVariant,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  TextField(
+                    controller: controller,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: InputDecoration(
+                      labelText: 'Süre',
+                      hintText: unit == AudioSleepTimerUnit.minutes ? '30' : '1',
+                      errorText: errorText,
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SegmentedButton<AudioSleepTimerUnit>(
+                    segments: const [
+                      ButtonSegment(
+                        value: AudioSleepTimerUnit.minutes,
+                        label: Text('Dakika'),
+                        icon: Icon(Icons.timer_outlined),
+                      ),
+                      ButtonSegment(
+                        value: AudioSleepTimerUnit.hours,
+                        label: Text('Saat'),
+                        icon: Icon(Icons.schedule_rounded),
+                      ),
+                    ],
+                    selected: {unit},
+                    onSelectionChanged: (selection) {
+                      setSheetState(() {
+                        unit = selection.single;
+                        errorText = null;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 18),
+                  FilledButton.icon(
+                    onPressed: () {
+                      final duration = parseAudioSleepTimerDuration(
+                        controller.text,
+                        unit,
+                      );
+                      if (duration == null) {
+                        setSheetState(() {
+                          errorText = unit == AudioSleepTimerUnit.minutes
+                              ? '1-1440 dakika arasında bir değer girin.'
+                              : '1-24 saat arasında bir değer girin.';
+                        });
+                        return;
+                      }
+                      handler.startSleepTimer(duration);
+                      HapticFeedback.selectionClick();
+                      setSheetState(() => errorText = null);
+                    },
+                    icon: const Icon(Icons.bedtime_rounded),
+                    label: Text(active ? 'Süreyi değiştir' : 'Zamanlayıcıyı başlat'),
+                  ),
+                  if (active) ...[
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      onPressed: () {
+                        handler.cancelSleepTimer();
+                        HapticFeedback.selectionClick();
+                        setSheetState(() {});
+                      },
+                      icon: const Icon(Icons.close_rounded),
+                      label: const Text('Zamanlayıcıyı kapat'),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+
+    controller.dispose();
   }
 }
 
