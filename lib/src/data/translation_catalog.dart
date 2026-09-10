@@ -41,8 +41,11 @@ class TranslationInfo {
   final TranslationProvider provider;
 }
 
-const translationCatalog = <TranslationInfo>[
-  TranslationInfo(
+/// Curated offline defaults plus QuranEnc translations discovered from its
+/// public catalogue. Runtime discoveries are cached by TranslationRepository,
+/// so opening the translation picker never requires a server owned by us.
+final List<TranslationInfo> translationCatalog = <TranslationInfo>[
+  const TranslationInfo(
     id: bundledTurkishTranslationId,
     code: 'RWD',
     languageCode: 'tr',
@@ -56,7 +59,7 @@ const translationCatalog = <TranslationInfo>[
     available: true,
     downloadable: false,
   ),
-  TranslationInfo(
+  const TranslationInfo(
     id: turkishShabanTranslationId,
     code: 'ŞP-TR',
     languageCode: 'tr',
@@ -69,7 +72,7 @@ const translationCatalog = <TranslationInfo>[
     available: true,
     downloadable: true,
   ),
-  TranslationInfo(
+  const TranslationInfo(
     id: turkishAliOzekTranslationId,
     code: 'AÖ-TR',
     languageCode: 'tr',
@@ -82,7 +85,7 @@ const translationCatalog = <TranslationInfo>[
     available: true,
     downloadable: true,
   ),
-  TranslationInfo(
+  const TranslationInfo(
     id: turkishVakfiTranslationId,
     code: 'VAKFI-TR',
     languageCode: 'tr',
@@ -97,7 +100,7 @@ const translationCatalog = <TranslationInfo>[
     hasAudio: true,
     provider: TranslationProvider.islamicNetwork,
   ),
-  TranslationInfo(
+  const TranslationInfo(
     id: englishTranslationId,
     code: 'RWD-EN',
     languageCode: 'en',
@@ -112,7 +115,7 @@ const translationCatalog = <TranslationInfo>[
     downloadable: false,
     hasAudio: true,
   ),
-  TranslationInfo(
+  const TranslationInfo(
     id: 'french_rashid',
     code: 'RSH-FR',
     languageCode: 'fr',
@@ -126,7 +129,7 @@ const translationCatalog = <TranslationInfo>[
     downloadable: true,
     hasAudio: true,
   ),
-  TranslationInfo(
+  const TranslationInfo(
     id: 'portuguese_nasr',
     code: 'NASR-PT',
     languageCode: 'pt',
@@ -140,7 +143,7 @@ const translationCatalog = <TranslationInfo>[
     downloadable: true,
     hasAudio: true,
   ),
-  TranslationInfo(
+  const TranslationInfo(
     id: 'dutch_center',
     code: 'CTR-NL',
     languageCode: 'nl',
@@ -154,7 +157,7 @@ const translationCatalog = <TranslationInfo>[
     downloadable: true,
     hasAudio: true,
   ),
-  TranslationInfo(
+  const TranslationInfo(
     id: 'tagalog_rwwad',
     code: 'RWD-TL',
     languageCode: 'tl',
@@ -168,7 +171,7 @@ const translationCatalog = <TranslationInfo>[
     downloadable: true,
     hasAudio: true,
   ),
-  TranslationInfo(
+  const TranslationInfo(
     id: 'chinese_suliman',
     code: 'SLM-ZH',
     languageCode: 'zh',
@@ -182,7 +185,7 @@ const translationCatalog = <TranslationInfo>[
     downloadable: true,
     hasAudio: true,
   ),
-  TranslationInfo(
+  const TranslationInfo(
     id: 'vietnamese_rwwad',
     code: 'RWD-VI',
     languageCode: 'vi',
@@ -196,7 +199,7 @@ const translationCatalog = <TranslationInfo>[
     downloadable: true,
     hasAudio: true,
   ),
-  TranslationInfo(
+  const TranslationInfo(
     id: 'persian_ih',
     code: 'IH-FA',
     languageCode: 'fa',
@@ -210,7 +213,7 @@ const translationCatalog = <TranslationInfo>[
     downloadable: true,
     hasAudio: true,
   ),
-  TranslationInfo(
+  const TranslationInfo(
     id: 'assamese_rafeeq',
     code: 'RAF-AS',
     languageCode: 'as',
@@ -224,7 +227,7 @@ const translationCatalog = <TranslationInfo>[
     downloadable: true,
     hasAudio: true,
   ),
-  TranslationInfo(
+  const TranslationInfo(
     id: 'tamil_omar_brief',
     code: 'OMR-TA',
     languageCode: 'ta',
@@ -238,7 +241,7 @@ const translationCatalog = <TranslationInfo>[
     downloadable: true,
     hasAudio: true,
   ),
-  TranslationInfo(
+  const TranslationInfo(
     id: 'sinhalese_mahir',
     code: 'MHR-SI',
     languageCode: 'si',
@@ -252,7 +255,7 @@ const translationCatalog = <TranslationInfo>[
     downloadable: true,
     hasAudio: true,
   ),
-  TranslationInfo(
+  const TranslationInfo(
     id: 'somali_yacob',
     code: 'YCB-SO',
     languageCode: 'so',
@@ -266,7 +269,7 @@ const translationCatalog = <TranslationInfo>[
     downloadable: true,
     hasAudio: true,
   ),
-  TranslationInfo(
+  const TranslationInfo(
     id: 'azeri_musayev',
     code: 'MUS-AZ',
     languageCode: 'az',
@@ -280,7 +283,7 @@ const translationCatalog = <TranslationInfo>[
     downloadable: true,
     hasAudio: true,
   ),
-  TranslationInfo(
+  const TranslationInfo(
     id: 'russian_kuliev',
     code: 'KUL-RU',
     languageCode: 'ru',
@@ -295,7 +298,7 @@ const translationCatalog = <TranslationInfo>[
     hasAudio: true,
     provider: TranslationProvider.islamicNetwork,
   ),
-  TranslationInfo(
+  const TranslationInfo(
     id: 'russian_rwwad',
     code: 'RWD-RU',
     languageCode: 'ru',
@@ -309,6 +312,25 @@ const translationCatalog = <TranslationInfo>[
     downloadable: true,
   ),
 ];
+
+final Set<String> _curatedTranslationIds = translationCatalog
+    .map((item) => item.id)
+    .toSet();
+
+/// Adds translations discovered from QuranEnc without replacing curated entries
+/// that carry app-specific audio/source metadata.
+void registerDiscoveredTranslations(Iterable<TranslationInfo> discovered) {
+  final byId = <String, TranslationInfo>{
+    for (final item in translationCatalog) item.id: item,
+  };
+  for (final item in discovered) {
+    if (_curatedTranslationIds.contains(item.id)) continue;
+    byId[item.id] = item;
+  }
+  translationCatalog
+    ..clear()
+    ..addAll(byId.values);
+}
 
 TranslationInfo? translationById(String id) {
   for (final translation in translationCatalog) {
