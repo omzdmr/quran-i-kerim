@@ -39,6 +39,30 @@ class TranslationInfo {
   final bool downloadable;
   final bool hasAudio;
   final TranslationProvider provider;
+
+  /// Applies upstream catalogue identity without discarding app-specific
+  /// metadata such as a stable UI code, publisher attribution or audio binding.
+  /// Bundled packs deliberately keep their packaged version until the bundled
+  /// bytes themselves are updated.
+  TranslationInfo mergeQuranEncCatalogMetadata(TranslationInfo discovered) {
+    if (bundled || provider != TranslationProvider.quranEnc) return this;
+    return TranslationInfo(
+      id: id,
+      code: code,
+      languageCode: languageCode,
+      name: discovered.name.trim().isEmpty ? name : discovered.name,
+      publisher: publisher,
+      source: source,
+      sourceKey: sourceKey,
+      version: discovered.version.trim().isEmpty ? version : discovered.version,
+      bundled: bundled,
+      available: available,
+      downloadable: downloadable,
+      assetPath: assetPath,
+      hasAudio: hasAudio,
+      provider: provider,
+    );
+  }
 }
 
 /// Curated offline defaults plus QuranEnc translations discovered from its
@@ -313,18 +337,30 @@ final List<TranslationInfo> translationCatalog = <TranslationInfo>[
   ),
 ];
 
-final Set<String> _curatedTranslationIds = translationCatalog
+/// Immutable baseline used to rebuild runtime discovery results. This avoids
+/// accumulating translations that disappeared from a newer upstream snapshot.
+final List<TranslationInfo> _curatedTranslationCatalog =
+    List<TranslationInfo>.unmodifiable(translationCatalog);
+
+final Set<String> _curatedTranslationIds = _curatedTranslationCatalog
     .map((item) => item.id)
     .toSet();
 
-/// Adds translations discovered from QuranEnc without replacing curated entries
-/// that carry app-specific audio/source metadata.
+/// Replaces the previous QuranEnc discovery snapshot while retaining curated
+/// app metadata. For a curated, downloadable QuranEnc source, current upstream
+/// title/version metadata is merged without changing its audio/source binding.
 void registerDiscoveredTranslations(Iterable<TranslationInfo> discovered) {
   final byId = <String, TranslationInfo>{
-    for (final item in translationCatalog) item.id: item,
+    for (final item in _curatedTranslationCatalog) item.id: item,
   };
   for (final item in discovered) {
-    if (_curatedTranslationIds.contains(item.id)) continue;
+    if (_curatedTranslationIds.contains(item.id)) {
+      final curated = byId[item.id];
+      if (curated != null) {
+        byId[item.id] = curated.mergeQuranEncCatalogMetadata(item);
+      }
+      continue;
+    }
     byId[item.id] = item;
   }
   translationCatalog
