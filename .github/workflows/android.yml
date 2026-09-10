@@ -161,6 +161,27 @@ jobs:
           )
           PY
 
+      - name: Configure media notification resources
+        run: |
+          mkdir -p android/app/src/main/res/drawable android/app/src/main/res/raw
+          cat > android/app/src/main/res/drawable/ic_stat_quran.xml <<'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="24dp"
+              android:height="24dp"
+              android:viewportWidth="24"
+              android:viewportHeight="24">
+              <path
+                  android:fillColor="#FFFFFFFF"
+                  android:pathData="M3,4.5C3,3.67 3.67,3 4.5,3H10C11.1,3 12,3.9 12,5V20C12,18.9 11.1,18 10,18H3V4.5ZM21,4.5C21,3.67 20.33,3 19.5,3H14C12.9,3 12,3.9 12,5V20C12,18.9 12.9,18 14,18H21V4.5Z" />
+          </vector>
+          XML
+          cat > android/app/src/main/res/raw/keep.xml <<'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources xmlns:tools="http://schemas.android.com/tools"
+              tools:keep="@drawable/ic_stat_quran" />
+          XML
+
       - name: Configure Android notification desugaring
         run: |
           python3 - <<'PY'
