@@ -15,6 +15,10 @@ class AppTheme {
       onSurface: Color(0xFF1B1C1A),
       onSurfaceVariant: Color(0xFF696C67),
       surfaceContainer: Color(0xFFF0EFEA),
+      // Reader quick-player and selection controls use this surface. Keep it
+      // explicit so Flutter's default Material palette cannot drift away from
+      // the app palette on framework upgrades.
+      surfaceContainerHigh: Color(0xFFEFEDE8),
       surfaceContainerHighest: Color(0xFFE7E6E0),
       outline: Color(0xFFC6C8C2),
     );
@@ -38,6 +42,7 @@ class AppTheme {
       onSurface: Color(0xFFF5F5F2),
       onSurfaceVariant: Color(0xFFB8BAB5),
       surfaceContainer: Color(0xFF211F1F),
+      surfaceContainerHigh: Color(0xFF262424),
       surfaceContainerHighest: Color(0xFF2A2929),
       outline: Color(0xFF454545),
     );
