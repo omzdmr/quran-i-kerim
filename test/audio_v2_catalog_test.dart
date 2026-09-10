@@ -22,15 +22,13 @@ void main() {
     expect(quranAudioBitrates(basfar!), <int>[32, 64, 192]);
   });
 
-  test('Tamil human audio is tied to its exact QuranEnc text source', () {
+  test('unverified Tamil audio is not exposed as a selectable source', () {
     final audio = quranAudioById('tamil_omar_brief_audio');
     final translation = translationById('tamil_omar_brief');
 
-    expect(audio, isNotNull);
-    expect(audio?.provider, QuranAudioProvider.quranEnc);
-    expect(audio?.providerKey, 'tamil_omar_brief');
-    expect(audio?.sourceId, translation?.id);
-    expect(translation?.hasAudio, isTrue);
+    expect(audio, isNull);
+    expect(translation, isNotNull);
+    expect(translation?.hasAudio, isFalse);
   });
 
   test('direct CDN catalog does not keep obsolete Arabic aliases', () {
