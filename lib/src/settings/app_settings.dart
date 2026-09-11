@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/translation_catalog.dart';
+import 'reading_streak.dart';
 
 enum ReaderDisplayMode { arabic, arabicAndTranslation, translation }
 
@@ -112,16 +113,10 @@ class AppSettings extends ChangeNotifier {
   UnmodifiableSetView<String> get readingDays =>
       UnmodifiableSetView(_readingDays);
 
-  int get readingStreak {
-    if (_readingDays.isEmpty) return 0;
-    var cursor = DateTime.now();
-    var streak = 0;
-    while (_readingDays.contains(_dayKey(cursor))) {
-      streak++;
-      cursor = cursor.subtract(const Duration(days: 1));
-    }
-    return streak;
-  }
+  int get readingStreak => calculateReadingStreak(
+    _readingDays,
+    now: DateTime.now(),
+  );
 
   int get readingDaysThisYear {
     final prefix = '${DateTime.now().year}-';
