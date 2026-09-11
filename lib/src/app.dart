@@ -22,7 +22,7 @@ class QuranModernApp extends StatelessWidget {
           child: MaterialApp(
             debugShowCheckedModeBanner: false,
             onGenerateTitle: (context) =>
-                GeneratedAppLocalizations.of(context).appTitle,
+                GeneratedAppLocalizations.of(context)!.appTitle,
             theme: AppTheme.light,
             darkTheme: AppTheme.dark,
             themeMode: settings.themeMode,
