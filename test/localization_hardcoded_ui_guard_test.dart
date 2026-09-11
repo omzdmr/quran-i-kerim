@@ -14,6 +14,9 @@ void main() {
     'lib/src/features/reader/passage_preview_screen.dart': {
       'Tanzil.net · CC BY 3.0',
     },
+    'lib/src/features/reader/reader_note_sheet.dart': {
+      r'$reference · $sourceCode',
+    },
   };
 
   final directTextLiteral = RegExp(
