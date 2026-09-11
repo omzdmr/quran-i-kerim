@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'l10n/app_localizations.dart';
+import 'l10n/generated/generated_app_localizations.dart';
 import 'settings/app_settings.dart';
 import 'shell/app_shell.dart';
 import 'theme/app_theme.dart';
@@ -20,7 +21,8 @@ class QuranModernApp extends StatelessWidget {
           settings: settings,
           child: MaterialApp(
             debugShowCheckedModeBanner: false,
-            onGenerateTitle: (context) => context.l10n.appTitle,
+            onGenerateTitle: (context) =>
+                GeneratedAppLocalizations.of(context).appTitle,
             theme: AppTheme.light,
             darkTheme: AppTheme.dark,
             themeMode: settings.themeMode,
@@ -38,6 +40,7 @@ class QuranModernApp extends StatelessWidget {
               return const Locale('en');
             },
             localizationsDelegates: const [
+              GeneratedAppLocalizations.delegate,
               AppLocalizations.delegate,
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
