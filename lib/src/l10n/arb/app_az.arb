@@ -1,4 +1,6 @@
 {
   "@@locale": "az",
-  "appTitle": "Qurani-Kərim"
+  "appTitle": "Qurani-Kərim",
+  "homePrayerHourShort": "s",
+  "homePrayerMinuteShort": "dəq"
 }

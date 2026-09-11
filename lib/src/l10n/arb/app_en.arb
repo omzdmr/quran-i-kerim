@@ -3,5 +3,13 @@
   "appTitle": "Quran",
   "@appTitle": {
     "description": "Application title"
+  },
+  "homePrayerHourShort": "h",
+  "@homePrayerHourShort": {
+    "description": "Short hour unit shown in the home prayer countdown"
+  },
+  "homePrayerMinuteShort": "m",
+  "@homePrayerMinuteShort": {
+    "description": "Short minute unit shown in the home prayer countdown"
   }
 }

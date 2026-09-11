@@ -1,4 +1,6 @@
 {
   "@@locale": "ru",
-  "appTitle": "Коран"
+  "appTitle": "Коран",
+  "homePrayerHourShort": "ч",
+  "homePrayerMinuteShort": "мин"
 }

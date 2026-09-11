@@ -1,4 +1,6 @@
 {
   "@@locale": "ar",
-  "appTitle": "القرآن الكريم"
+  "appTitle": "القرآن الكريم",
+  "homePrayerHourShort": "س",
+  "homePrayerMinuteShort": "د"
 }

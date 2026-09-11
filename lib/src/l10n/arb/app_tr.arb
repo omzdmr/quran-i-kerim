@@ -1,4 +1,6 @@
 {
   "@@locale": "tr",
-  "appTitle": "Kur’an-ı Kerim"
+  "appTitle": "Kur’an-ı Kerim",
+  "homePrayerHourShort": "sa",
+  "homePrayerMinuteShort": "dk"
 }

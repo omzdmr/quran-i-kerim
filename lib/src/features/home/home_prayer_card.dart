@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 import '../../l10n/app_localizations.dart';
+import '../../l10n/generated/generated_app_localizations.dart';
 import '../prayer/application/prayer_calculator.dart';
 import '../prayer/application/prayer_preferences_store.dart';
 import '../prayer/domain/prayer_city_catalog.dart';
@@ -85,6 +86,7 @@ class _HomePrayerCardState extends State<HomePrayerCard> {
     }
 
     final l10n = context.l10n;
+    final generatedL10n = GeneratedAppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final zone = tz.getLocation(city.location.timeZoneId);
     final now = tz.TZDateTime.now(zone);
@@ -129,7 +131,7 @@ class _HomePrayerCardState extends State<HomePrayerCard> {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      '${_clock(next.time)} · ${_remaining(remaining, l10n)} ${l10n.text('remaining')}',
+                      '${_clock(next.time)} · ${_remaining(remaining, generatedL10n)} ${l10n.text('remaining')}',
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w900,
@@ -155,7 +157,7 @@ class _HomePrayerCardState extends State<HomePrayerCard> {
 String _clock(DateTime time) =>
     '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
 
-String _remaining(Duration raw, AppLocalizations l10n) {
+String _remaining(Duration raw, GeneratedAppLocalizations l10n) {
   final duration = raw.isNegative ? Duration.zero : raw;
   final hours = duration.inHours;
   final minutes = duration.inMinutes.remainder(60);
