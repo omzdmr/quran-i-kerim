@@ -11,6 +11,22 @@ import '../domain/prayer_models.dart';
 import 'prayer_city_picker.dart';
 import 'prayer_screen.dart';
 
+class QiblaLocationRequestGate {
+  bool _inFlight = false;
+
+  bool get inFlight => _inFlight;
+
+  bool tryAcquire() {
+    if (_inFlight) return false;
+    _inFlight = true;
+    return true;
+  }
+
+  void release() {
+    _inFlight = false;
+  }
+}
+
 class QiblaLauncherScreen extends StatefulWidget {
   const QiblaLauncherScreen({super.key});
 
@@ -20,6 +36,8 @@ class QiblaLauncherScreen extends StatefulWidget {
 
 class _QiblaLauncherScreenState extends State<QiblaLauncherScreen> {
   final PrayerCalculator _calculator = PrayerCalculator();
+  final QiblaLocationRequestGate _locationRequestGate =
+      QiblaLocationRequestGate();
   PrayerCity? _city;
   PrayerLocationFailure? _failure;
   bool _loading = true;
@@ -31,7 +49,7 @@ class _QiblaLauncherScreenState extends State<QiblaLauncherScreen> {
   }
 
   Future<void> _useCurrentLocation() async {
-    if (_loading && _city != null) return;
+    if (!_locationRequestGate.tryAcquire()) return;
     setState(() {
       _loading = true;
       _failure = null;
@@ -62,6 +80,8 @@ class _QiblaLauncherScreenState extends State<QiblaLauncherScreen> {
         _failure = PrayerLocationFailure.unavailable;
         _loading = false;
       });
+    } finally {
+      _locationRequestGate.release();
     }
   }
 
