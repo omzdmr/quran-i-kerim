@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import 'strings/feature_strings.dart';
+import 'strings/home_prayer_strings.dart';
 import 'strings/home_verse_strings.dart';
 import 'strings/passage_preview_strings.dart';
 import 'strings/prayer_notification_strings.dart';
@@ -46,6 +47,7 @@ class AppLocalizations {
 
   String? _featureValue(String key) =>
       featureStrings[locale.languageCode]?[key] ??
+      homePrayerStrings[locale.languageCode]?[key] ??
       homeVerseStrings[locale.languageCode]?[key] ??
       passagePreviewStrings[locale.languageCode]?[key] ??
       readerAudioTransportStrings[locale.languageCode]?[key] ??
@@ -53,6 +55,7 @@ class AppLocalizations {
       readerNavigationStrings[locale.languageCode]?[key] ??
       readerNoteStrings[locale.languageCode]?[key] ??
       featureStrings['en']?[key] ??
+      homePrayerStrings['en']?[key] ??
       homeVerseStrings['en']?[key] ??
       passagePreviewStrings['en']?[key] ??
       readerAudioTransportStrings['en']?[key] ??
@@ -60,6 +63,7 @@ class AppLocalizations {
       readerNavigationStrings['en']?[key] ??
       readerNoteStrings['en']?[key] ??
       featureStrings['tr']?[key] ??
+      homePrayerStrings['tr']?[key] ??
       homeVerseStrings['tr']?[key] ??
       passagePreviewStrings['tr']?[key] ??
       readerAudioTransportStrings['tr']?[key] ??
@@ -164,6 +168,8 @@ class AppLocalizations {
   String get passageReadFullSurah => _value('passageReadFullSurah');
   String get passageTextSource => _value('passageTextSource');
   String get passageUnavailable => _value('passageUnavailable');
+  String get homePrayerHourShort => _value('homePrayerHourShort');
+  String get homePrayerMinuteShort => _value('homePrayerMinuteShort');
   String get homeVerseExpand => _value('homeVerseExpand');
   String get homeVerseCollapse => _value('homeVerseCollapse');
   String get homeVerseReadSurah => _value('homeVerseReadSurah');
