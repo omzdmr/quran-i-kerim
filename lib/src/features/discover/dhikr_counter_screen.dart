@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../l10n/app_localizations.dart';
+import 'dhikr_daily_rollover.dart';
 
 class DhikrCounterScreen extends StatefulWidget {
   const DhikrCounterScreen({super.key});
@@ -72,6 +73,7 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
     for (final entry in _builtIns) entry.id: 33,
   };
   Map<String, int> _dailyCounts = <String, int>{};
+  String? _dailyDateKeyInMemory;
   List<_DhikrEntry> _customEntries = <_DhikrEntry>[];
   String? _lastIncrementedId;
 
@@ -99,6 +101,19 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
   String _todayKey() {
     final now = DateTime.now();
     return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  }
+
+  void _rolloverDailyIfNeeded() {
+    final today = _todayKey();
+    if (_dailyDateKeyInMemory == today) return;
+    final snapshot = normalizeDhikrDailySnapshot(
+      storedDateKey: _dailyDateKeyInMemory,
+      todayDateKey: today,
+      counts: _dailyCounts,
+    );
+    _dailyDateKeyInMemory = snapshot.dateKey;
+    _dailyCounts = snapshot.counts;
+    _lastIncrementedId = null;
   }
 
   String _displayLabel(_DhikrEntry entry, [String? languageCode]) {
@@ -245,11 +260,13 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
       _counts = counts;
       _targets = targets;
       _dailyCounts = daily;
+      _dailyDateKeyInMemory = today;
       _selectedId = selected!;
     });
   }
 
   Future<void> _persist() async {
+    _rolloverDailyIfNeeded();
     final prefs = await SharedPreferences.getInstance();
     await Future.wait([
       prefs.setString(_selectedKey, _selectedId),
@@ -263,7 +280,7 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
         ]),
       ),
       prefs.setString(_dailyCountsKey, jsonEncode(_dailyCounts)),
-      prefs.setString(_dailyDateKey, _todayKey()),
+      prefs.setString(_dailyDateKey, _dailyDateKeyInMemory ?? _todayKey()),
     ]);
   }
 
@@ -278,6 +295,7 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
   }
 
   Future<void> _increment() async {
+    _rolloverDailyIfNeeded();
     final entry = _selectedEntry;
     final next = _count + 1;
     final target = _target;
@@ -296,6 +314,7 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
   }
 
   Future<void> _undo() async {
+    _rolloverDailyIfNeeded();
     if (_lastIncrementedId != _selectedId || _count <= 0) return;
     final entry = _selectedEntry;
     setState(() {
@@ -456,6 +475,7 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
   Future<void> _removeSelectedCustom() async {
     final entry = _selectedEntry;
     if (!entry.custom) return;
+    _rolloverDailyIfNeeded();
     setState(() {
       _customEntries = _customEntries
           .where((item) => item.id != entry.id)
