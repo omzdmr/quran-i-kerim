@@ -2,14 +2,18 @@ import 'dart:ui';
 
 import 'package:audio_service/audio_service.dart';
 
+import '../../l10n/app_locale_resolver.dart';
+import '../../l10n/app_localizations.dart';
+
 /// Bridges the reader's existing audio engine to Android/iOS system media
 /// controls. Audio files remain owned by ReaderAudioController, preserving the
 /// local-first cache/offline architecture.
 class ReaderMediaSession extends BaseAudioHandler {
-  ReaderMediaSession._();
+  ReaderMediaSession._(this._copy);
 
   static ReaderMediaSession? instance;
 
+  final AppLocalizations _copy;
   Future<void> Function()? _onPlay;
   Future<void> Function()? _onPause;
   Future<void> Function()? _onPrevious;
@@ -20,15 +24,17 @@ class ReaderMediaSession extends BaseAudioHandler {
 
   static Future<void> initialize() async {
     if (instance != null) return;
+    final locale = await AppLocaleResolver.currentLocale();
+    final copy = AppLocalizations(locale);
     await AudioService.init(
       builder: () {
-        final handler = ReaderMediaSession._();
+        final handler = ReaderMediaSession._(copy);
         instance = handler;
         return handler;
       },
       config: AudioServiceConfig(
         androidNotificationChannelId: 'com.omzdmr.quran_i_kerim.audio',
-        androidNotificationChannelName: 'Kur’an sesi',
+        androidNotificationChannelName: copy.readerMediaChannel,
         androidNotificationIcon: 'drawable/ic_stat_quran',
         androidNotificationOngoing: true,
         androidStopForegroundOnPause: false,
@@ -93,8 +99,8 @@ class ReaderMediaSession extends BaseAudioHandler {
         MediaItem(
           id: 'quran:$surah:$ayah',
           album: sourceTitle,
-          title: 'Kur’an $surah:$ayah',
-          artist: '$sourceTitle · Ayet $ayah/$verseCount',
+          title: _copy.readerMediaTitle(surah, ayah),
+          artist: _copy.readerMediaArtist(sourceTitle, ayah, verseCount),
           duration: duration > Duration.zero ? duration : null,
         ),
       );
