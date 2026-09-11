@@ -3,4 +3,3 @@ template-arb-file: app_en.arb
 output-localization-file: generated_app_localizations.dart
 output-class: GeneratedAppLocalizations
 output-dir: lib/src/l10n/generated
-synthetic-package: false
