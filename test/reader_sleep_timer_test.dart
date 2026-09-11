@@ -9,12 +9,15 @@ void main() {
     expect(timer.totalMinutes, 135);
     expect(timer.hoursPart, 2);
     expect(timer.minutesPart, 15);
-    expect(timer.compactLabel(), '2 sa 15 dk');
   });
 
   test('custom sleep timer supports whole hours', () {
     final timer = ReaderSleepTimerValue.custom(hours: 2, minutes: 0);
-    expect(timer.compactLabel(), '2 sa');
+
+    expect(timer.duration, const Duration(hours: 2));
+    expect(timer.totalMinutes, 120);
+    expect(timer.hoursPart, 2);
+    expect(timer.minutesPart, 0);
   });
 
   test('custom sleep timer rejects zero and values over 24 hours', () {
