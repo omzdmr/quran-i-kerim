@@ -21,11 +21,11 @@ void main() {
   };
 
   final directTextLiteral = RegExp(
-    r'''\bText\(\s*(['"])([^'"\n]+)\1''',
+    r'''\bText\(\s*(['"])(?!\$)([^'"\n]+)\1''',
     multiLine: true,
   );
   final directTooltipLiteral = RegExp(
-    r'''\btooltip\s*:\s*(['"])([^'"\n]+)\1''',
+    r'''\btooltip\s*:\s*(['"])(?!\$)([^'"\n]+)\1''',
     multiLine: true,
   );
 
