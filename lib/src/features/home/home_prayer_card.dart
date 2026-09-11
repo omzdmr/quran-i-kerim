@@ -129,7 +129,7 @@ class _HomePrayerCardState extends State<HomePrayerCard> {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      '${_clock(next.time)} · ${_remaining(remaining, l10n.locale.languageCode)} ${l10n.text('remaining')}',
+                      '${_clock(next.time)} · ${_remaining(remaining, l10n)} ${l10n.text('remaining')}',
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w900,
@@ -155,17 +155,10 @@ class _HomePrayerCardState extends State<HomePrayerCard> {
 String _clock(DateTime time) =>
     '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
 
-String _remaining(Duration raw, String languageCode) {
+String _remaining(Duration raw, AppLocalizations l10n) {
   final duration = raw.isNegative ? Duration.zero : raw;
   final hours = duration.inHours;
   final minutes = duration.inMinutes.remainder(60);
-  final (hourUnit, minuteUnit) = switch (languageCode) {
-    'tr' => ('sa', 'dk'),
-    'az' => ('s', 'dəq'),
-    'ru' => ('ч', 'мин'),
-    'ar' => ('س', 'د'),
-    _ => ('h', 'm'),
-  };
-  if (hours <= 0) return '$minutes $minuteUnit';
-  return '$hours $hourUnit ${minutes.toString().padLeft(2, '0')} $minuteUnit';
+  if (hours <= 0) return '$minutes ${l10n.homePrayerMinuteShort}';
+  return '$hours ${l10n.homePrayerHourShort} ${minutes.toString().padLeft(2, '0')} ${l10n.homePrayerMinuteShort}';
 }
