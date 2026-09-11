@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 Future<void> showReaderPersonalNotePreview({
   required BuildContext context,
   required String reference,
@@ -8,7 +10,7 @@ Future<void> showReaderPersonalNotePreview({
   required Future<void> Function() onEdit,
   required VoidCallback onOpenArchive,
 }) async {
-  final copy = _NoteCopy(Localizations.localeOf(context).languageCode);
+  final l10n = context.l10n;
   await showModalBottomSheet<void>(
     context: context,
     showDragHandle: true,
@@ -27,7 +29,7 @@ Future<void> showReaderPersonalNotePreview({
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    copy.personalNote,
+                    l10n.readerPersonalNote,
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w900,
@@ -67,7 +69,7 @@ Future<void> showReaderPersonalNotePreview({
                       onOpenArchive();
                     },
                     icon: const Icon(Icons.person_outline_rounded),
-                    label: Text(copy.openArchive),
+                    label: Text(l10n.readerOpenArchive),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -78,7 +80,7 @@ Future<void> showReaderPersonalNotePreview({
                       await onEdit();
                     },
                     icon: const Icon(Icons.edit_note_rounded),
-                    label: Text(copy.edit),
+                    label: Text(l10n.readerEditNote),
                   ),
                 ),
               ],
@@ -88,35 +90,4 @@ Future<void> showReaderPersonalNotePreview({
       );
     },
   );
-}
-
-class _NoteCopy {
-  const _NoteCopy(this.languageCode);
-  final String languageCode;
-
-  String get personalNote => _pick(
-    'Kişisel Not',
-    'Personal Note',
-    'ملاحظة شخصية',
-    'Şəxsi qeyd',
-    'Личная заметка',
-  );
-  String get edit =>
-      _pick('Düzenle', 'Edit', 'تعديل', 'Redaktə et', 'Изменить');
-  String get openArchive => _pick(
-    "Siz'de Aç",
-    'Open in You',
-    'فتح في ملفك',
-    'Siz bölməsində aç',
-    'Открыть в разделе «Вы»',
-  );
-
-  String _pick(String tr, String en, String ar, String az, String ru) =>
-      switch (languageCode) {
-        'tr' => tr,
-        'ar' => ar,
-        'az' => az,
-        'ru' => ru,
-        _ => en,
-      };
 }

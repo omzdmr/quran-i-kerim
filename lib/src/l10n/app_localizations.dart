@@ -5,6 +5,7 @@ import 'strings/feature_strings.dart';
 import 'strings/passage_preview_strings.dart';
 import 'strings/prayer_notification_strings.dart';
 import 'strings/reader_navigation_strings.dart';
+import 'strings/reader_note_strings.dart';
 import 'strings/strings_ar.dart';
 import 'strings/strings_az.dart';
 import 'strings/strings_en.dart';
@@ -44,12 +45,15 @@ class AppLocalizations {
       featureStrings[locale.languageCode]?[key] ??
       passagePreviewStrings[locale.languageCode]?[key] ??
       readerNavigationStrings[locale.languageCode]?[key] ??
+      readerNoteStrings[locale.languageCode]?[key] ??
       featureStrings['en']?[key] ??
       passagePreviewStrings['en']?[key] ??
       readerNavigationStrings['en']?[key] ??
+      readerNoteStrings['en']?[key] ??
       featureStrings['tr']?[key] ??
       passagePreviewStrings['tr']?[key] ??
-      readerNavigationStrings['tr']?[key];
+      readerNavigationStrings['tr']?[key] ??
+      readerNoteStrings['tr']?[key];
 
   String _value(String key) =>
       _map[key] ??
@@ -148,6 +152,9 @@ class AppLocalizations {
   String get passageReadFullSurah => _value('passageReadFullSurah');
   String get passageTextSource => _value('passageTextSource');
   String get passageUnavailable => _value('passageUnavailable');
+  String get readerPersonalNote => _value('readerPersonalNote');
+  String get readerEditNote => _value('readerEditNote');
+  String get readerOpenArchive => _value('readerOpenArchive');
 }
 
 class _AppLocalizationsDelegate
