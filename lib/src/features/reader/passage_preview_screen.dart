@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:quran/quran.dart' as quran;
 
-import '../../data/surah_catalog.dart';
+import '../../data/surah_localization.dart';
 import '../../data/translation_catalog.dart';
 import '../../data/translation_repository.dart';
 import '../../l10n/app_localizations.dart';
@@ -64,10 +64,10 @@ class PassagePreviewScreen extends StatelessWidget {
   }
 
   String _reference(BuildContext context, int surah, List<int> ayahs) {
-    final info = surahByNumber(surah);
-    final name = Localizations.localeOf(context).languageCode == 'ar'
-        ? info.nameAr
-        : info.nameTr;
+    final name = localizedSurahName(
+      surah,
+      context.l10n.locale.languageCode,
+    );
     final part = ayahs.length == 1
         ? '${ayahs.single}'
         : _contiguous(ayahs)
