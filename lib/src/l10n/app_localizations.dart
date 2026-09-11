@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'strings/feature_strings.dart';
 import 'strings/passage_preview_strings.dart';
 import 'strings/prayer_notification_strings.dart';
+import 'strings/reader_media_strings.dart';
 import 'strings/reader_navigation_strings.dart';
 import 'strings/reader_note_strings.dart';
 import 'strings/strings_ar.dart';
@@ -44,14 +45,17 @@ class AppLocalizations {
   String? _featureValue(String key) =>
       featureStrings[locale.languageCode]?[key] ??
       passagePreviewStrings[locale.languageCode]?[key] ??
+      readerMediaStrings[locale.languageCode]?[key] ??
       readerNavigationStrings[locale.languageCode]?[key] ??
       readerNoteStrings[locale.languageCode]?[key] ??
       featureStrings['en']?[key] ??
       passagePreviewStrings['en']?[key] ??
+      readerMediaStrings['en']?[key] ??
       readerNavigationStrings['en']?[key] ??
       readerNoteStrings['en']?[key] ??
       featureStrings['tr']?[key] ??
       passagePreviewStrings['tr']?[key] ??
+      readerMediaStrings['tr']?[key] ??
       readerNavigationStrings['tr']?[key] ??
       readerNoteStrings['tr']?[key];
 
@@ -155,6 +159,17 @@ class AppLocalizations {
   String get readerPersonalNote => _value('readerPersonalNote');
   String get readerEditNote => _value('readerEditNote');
   String get readerOpenArchive => _value('readerOpenArchive');
+  String get readerMediaChannel => _value('readerMediaChannel');
+
+  String readerMediaTitle(int surah, int ayah) => _value('readerMediaTitle')
+      .replaceAll('{surah}', '$surah')
+      .replaceAll('{ayah}', '$ayah');
+
+  String readerMediaArtist(String source, int ayah, int verseCount) =>
+      _value('readerMediaArtist')
+          .replaceAll('{source}', source)
+          .replaceAll('{ayah}', '$ayah')
+          .replaceAll('{verseCount}', '$verseCount');
 }
 
 class _AppLocalizationsDelegate
