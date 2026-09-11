@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'strings/feature_strings.dart';
 import 'strings/passage_preview_strings.dart';
 import 'strings/prayer_notification_strings.dart';
+import 'strings/reader_audio_transport_strings.dart';
 import 'strings/reader_media_strings.dart';
 import 'strings/reader_navigation_strings.dart';
 import 'strings/reader_note_strings.dart';
@@ -45,16 +46,19 @@ class AppLocalizations {
   String? _featureValue(String key) =>
       featureStrings[locale.languageCode]?[key] ??
       passagePreviewStrings[locale.languageCode]?[key] ??
+      readerAudioTransportStrings[locale.languageCode]?[key] ??
       readerMediaStrings[locale.languageCode]?[key] ??
       readerNavigationStrings[locale.languageCode]?[key] ??
       readerNoteStrings[locale.languageCode]?[key] ??
       featureStrings['en']?[key] ??
       passagePreviewStrings['en']?[key] ??
+      readerAudioTransportStrings['en']?[key] ??
       readerMediaStrings['en']?[key] ??
       readerNavigationStrings['en']?[key] ??
       readerNoteStrings['en']?[key] ??
       featureStrings['tr']?[key] ??
       passagePreviewStrings['tr']?[key] ??
+      readerAudioTransportStrings['tr']?[key] ??
       readerMediaStrings['tr']?[key] ??
       readerNavigationStrings['tr']?[key] ??
       readerNoteStrings['tr']?[key];
@@ -159,6 +163,10 @@ class AppLocalizations {
   String get readerPersonalNote => _value('readerPersonalNote');
   String get readerEditNote => _value('readerEditNote');
   String get readerOpenArchive => _value('readerOpenArchive');
+  String get readerAudioPlay => _value('readerAudioPlay');
+  String get readerAudioPause => _value('readerAudioPause');
+  String get readerAudioPreviousVerse => _value('readerAudioPreviousVerse');
+  String get readerAudioNextVerse => _value('readerAudioNextVerse');
   String get readerMediaChannel => _value('readerMediaChannel');
 
   String readerMediaTitle(int surah, int ayah) => _value('readerMediaTitle')
