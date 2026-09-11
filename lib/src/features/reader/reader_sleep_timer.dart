@@ -34,21 +34,4 @@ class ReaderSleepTimerValue {
   int get hoursPart => (duration?.inMinutes ?? 0) ~/ 60;
 
   int get minutesPart => (duration?.inMinutes ?? 0) % 60;
-
-  String compactLabel({
-    String hourSuffix = 'sa',
-    String minuteSuffix = 'dk',
-    String endOfSurahLabel = 'Sure bitince',
-    String offLabel = 'Kapalı',
-  }) {
-    if (endOfSurah) return endOfSurahLabel;
-    final value = duration;
-    if (value == null) return offLabel;
-    final total = value.inMinutes;
-    final hours = total ~/ 60;
-    final minutes = total % 60;
-    if (hours == 0) return '$minutes $minuteSuffix';
-    if (minutes == 0) return '$hours $hourSuffix';
-    return '$hours $hourSuffix $minutes $minuteSuffix';
-  }
 }
