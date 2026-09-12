@@ -139,7 +139,7 @@ class _HomePrayerCardState extends State<HomePrayerCard> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${city.label} · ${l10n.prayerTimes}',
+                      '${city.label} · ${generatedL10n.prayerTimes}',
                       style: TextStyle(color: scheme.onSurfaceVariant),
                     ),
                   ],
