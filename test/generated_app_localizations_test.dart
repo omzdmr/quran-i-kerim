@@ -37,4 +37,21 @@ void main() {
       expect(copy.homePrayerMinuteShort, entry.value.minute, reason: '${entry.key} minute');
     }
   });
+
+  test('generated prayer times label preserves all supported locale values', () async {
+    const expected = <String, String>{
+      'tr': 'Namaz Vakitleri',
+      'en': 'Prayer Times',
+      'ar': 'مواقيت الصلاة',
+      'az': 'Namaz vaxtları',
+      'ru': 'Время намаза',
+    };
+
+    for (final entry in expected.entries) {
+      final copy = await GeneratedAppLocalizations.delegate.load(
+        Locale(entry.key),
+      );
+      expect(copy.prayerTimes, entry.value, reason: entry.key);
+    }
+  });
 }
