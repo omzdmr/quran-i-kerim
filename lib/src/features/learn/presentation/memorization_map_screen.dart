@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../l10n/generated/generated_app_localizations.dart';
-import '../../../navigation/app_navigation.dart';
 import '../application/memorization_page_catalog.dart';
 import '../application/memorization_progress_store.dart';
+import 'memorization_study_screen.dart';
 
 class MemorizationMapScreen extends StatefulWidget {
   const MemorizationMapScreen({super.key});
@@ -36,11 +36,14 @@ class _MemorizationMapScreenState extends State<MemorizationMapScreen> {
     setState(() => _snapshot = snapshot);
   }
 
-  void _openPage(int page) {
-    final info = memorizationPageInfo(page);
-    if (info == null) return;
-    Navigator.of(context).popUntil((route) => route.isFirst);
-    AppNavigation.instance.openReader(surah: info.surah, ayah: info.ayah);
+  Future<void> _openPage(int page) async {
+    if (memorizationPageInfo(page) == null) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => MemorizationStudyScreen(page: page),
+      ),
+    );
+    await _load();
   }
 
   @override
@@ -168,8 +171,8 @@ class _JuzSection extends StatelessWidget {
                   color: selected ? scheme.primary : scheme.surfaceContainerHigh,
                   borderRadius: BorderRadius.circular(14),
                   child: InkWell(
-                    onTap: () => onToggle(info.page),
-                    onLongPress: () => onOpen(info.page),
+                    onTap: () => onOpen(info.page),
+                    onLongPress: () => onToggle(info.page),
                     borderRadius: BorderRadius.circular(14),
                     child: Stack(
                       alignment: Alignment.center,
