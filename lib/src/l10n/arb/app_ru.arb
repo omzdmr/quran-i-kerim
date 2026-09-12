@@ -2,5 +2,6 @@
   "@@locale": "ru",
   "appTitle": "Коран",
   "homePrayerHourShort": "ч",
-  "homePrayerMinuteShort": "мин"
+  "homePrayerMinuteShort": "мин",
+  "prayerTimes": "Время намаза"
 }
