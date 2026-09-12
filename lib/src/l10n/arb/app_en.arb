@@ -1,29 +1,17 @@
 {
   "@@locale": "en",
   "appTitle": "Quran",
-  "@appTitle": {
-    "description": "Application title"
-  },
+  "@appTitle": {"description": "Application title"},
   "homePrayerHourShort": "h",
-  "@homePrayerHourShort": {
-    "description": "Short hour unit shown in the home prayer countdown"
-  },
+  "@homePrayerHourShort": {"description": "Short hour unit shown in the home prayer countdown"},
   "homePrayerMinuteShort": "m",
-  "@homePrayerMinuteShort": {
-    "description": "Short minute unit shown in the home prayer countdown"
-  },
+  "@homePrayerMinuteShort": {"description": "Short minute unit shown in the home prayer countdown"},
   "prayerTimes": "Prayer Times",
-  "@prayerTimes": {
-    "description": "Prayer times surface label"
-  },
+  "@prayerTimes": {"description": "Prayer times surface label"},
   "nextPrayer": "Next",
-  "@nextPrayer": {
-    "description": "Label shown before the next prayer name on the home prayer card"
-  },
+  "@nextPrayer": {"description": "Label shown before the next prayer name on the home prayer card"},
   "remaining": "remaining",
-  "@remaining": {
-    "description": "Label shown after the home prayer countdown duration"
-  },
+  "@remaining": {"description": "Label shown after the home prayer countdown duration"},
   "quranTabRead": "Read",
   "quranTabLearn": "Learn",
   "quranTabProgress": "Progress",
@@ -35,10 +23,39 @@
   "quranLearnMemorizeBody": "Organize repetition without voice scoring or AI verification.",
   "quranLearnArticles": "Articles",
   "quranLearnArticlesBody": "Limited, sourced reading that supports your Quran study.",
+  "quranLearnFlowTitle": "Step-by-step lesson flow",
+  "quranLearnFlowBody": "Lessons are built as small, sourced, trackable steps instead of one long block of text.",
+  "quranLearnFlowVerse": "Verse and context",
+  "quranLearnFlowMeaning": "Translation and meaning",
+  "quranLearnFlowSource": "Sourced explanation",
+  "quranLearnFlowReview": "Quick review and mini quiz",
+  "quranLearnLessonsEmpty": "No sample religious text is shown before verified lesson content is available. The lesson structure is ready; content will be published only with reliable sources.",
+  "quranLearnArticlesEmptyTitle": "Sourced reading",
+  "quranLearnArticlesEmptyBody": "Articles will be added only with verified sources and clear provenance; content will not be invented to fill the screen.",
   "quranProgressStreak": "Reading streak",
   "quranProgressDaysThisYear": "Reading days this year",
   "quranProgressLastRead": "Last read",
   "quranProgressSaved": "Saved",
   "quranProgressNotes": "Notes",
-  "quranProgressHighlights": "Highlights"
+  "quranProgressHighlights": "Highlights",
+  "quranProgressReading": "Reading",
+  "quranProgressKhatm": "Khatm",
+  "quranProgressWeek": "Last 7 days",
+  "quranProgressCurrentPage": "Page",
+  "quranProgressPages": "pages",
+  "quranProgressKhatmTitle": "Khatm progress",
+  "quranProgressKhatmBody": "Track your reading progress from the Mushaf page where you last stopped.",
+  "quranProgressContinue": "Continue reading",
+  "memorizeTitle": "Memorize",
+  "memorizeWelcomeBody": "Move page by page, keep your review days and resume point locally on your device.",
+  "memorizeProgress": "Memorized pages",
+  "memorizePages": "pages",
+  "memorizeStreak": "Review streak",
+  "memorizeNextPage": "Next page",
+  "memorizeOpenMap": "Open memorization map",
+  "memorizeOpenNext": "Open",
+  "memorizeMapTitle": "Memorization Map",
+  "memorizeMapHint": "Tap a page to change its memorized status; long-press a page to open it in the Quran.",
+  "memorizeJuz": "Juz",
+  "memorizeCompleted": "completed"
 }
