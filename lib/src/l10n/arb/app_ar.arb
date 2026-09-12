@@ -49,7 +49,14 @@
   "memorizeOpenMap": "فتح خريطة الحفظ",
   "memorizeOpenNext": "فتح",
   "memorizeMapTitle": "خريطة الحفظ",
-  "memorizeMapHint": "اضغط على الصفحة لتغيير حالة الحفظ، واضغط مطولًا لفتحها في القرآن.",
+  "memorizeMapHint": "اضغط على الصفحة لبدء المراجعة، واضغط مطولًا لتغيير حالة الحفظ بسرعة.",
   "memorizeJuz": "الجزء",
-  "memorizeCompleted": "مكتمل"
+  "memorizeCompleted": "مكتمل",
+  "memorizeTodayProgram": "برنامج اليوم",
+  "memorizeCurrentPlace": "موضع المتابعة",
+  "memorizeTodayReview": "مراجعة اليوم",
+  "memorizeReview": "مراجعة",
+  "memorizeRevealVerse": "اضغط لإظهار الآية",
+  "memorizeMarkPage": "تحديد الصفحة كمحفوظة",
+  "memorizePageCompleted": "محفوظة"
 }
