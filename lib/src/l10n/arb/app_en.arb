@@ -55,7 +55,14 @@
   "memorizeOpenMap": "Open memorization map",
   "memorizeOpenNext": "Open",
   "memorizeMapTitle": "Memorization Map",
-  "memorizeMapHint": "Tap a page to change its memorized status; long-press a page to open it in the Quran.",
+  "memorizeMapHint": "Tap a page to study it; long-press to quickly change its memorized status.",
   "memorizeJuz": "Juz",
-  "memorizeCompleted": "completed"
+  "memorizeCompleted": "completed",
+  "memorizeTodayProgram": "Today's plan",
+  "memorizeCurrentPlace": "Resume point",
+  "memorizeTodayReview": "Today's review",
+  "memorizeReview": "Review",
+  "memorizeRevealVerse": "Tap to reveal",
+  "memorizeMarkPage": "Mark page as memorized",
+  "memorizePageCompleted": "Memorized"
 }
