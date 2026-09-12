@@ -43,7 +43,6 @@ void main() {
       'readerAppearance',
       'quranSearchTitle',
       'compareTexts',
-      'invalidPassage',
       'passageTitle',
       'passageReadFullSurah',
       'passageTextSource',
