@@ -7,7 +7,7 @@ import '../features/discover/discover_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/plans/plans_screen.dart';
 import '../features/profile/profile_screen.dart';
-import '../features/reader/quran_reader_screen.dart';
+import '../features/quran/quran_area_screen.dart';
 import '../l10n/app_localizations.dart';
 import '../navigation/app_navigation.dart';
 
@@ -25,7 +25,7 @@ class _AppShellState extends State<AppShell> {
 
   static const _screens = [
     HomeScreen(),
-    QuranReaderScreen(),
+    QuranAreaScreen(),
     PlansScreen(),
     DiscoverScreen(),
     ProfileScreen(),
