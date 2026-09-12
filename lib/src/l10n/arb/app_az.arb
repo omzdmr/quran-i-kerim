@@ -49,7 +49,14 @@
   "memorizeOpenMap": "Əzbər xəritəsini aç",
   "memorizeOpenNext": "Aç",
   "memorizeMapTitle": "Əzbər Xəritəsi",
-  "memorizeMapHint": "Əzbər vəziyyətini dəyişmək üçün səhifəyə toxun; Quranda açmaq üçün basıb saxla.",
+  "memorizeMapHint": "Çalışmaq üçün səhifəyə toxun; əzbər vəziyyətini tez dəyişmək üçün basıb saxla.",
   "memorizeJuz": "Cüz",
-  "memorizeCompleted": "tamamlandı"
+  "memorizeCompleted": "tamamlandı",
+  "memorizeTodayProgram": "Bugünkü proqram",
+  "memorizeCurrentPlace": "Qaldığın yer",
+  "memorizeTodayReview": "Bugünkü təkrar",
+  "memorizeReview": "Təkrar et",
+  "memorizeRevealVerse": "Göstərmək üçün toxun",
+  "memorizeMarkPage": "Səhifəni əzbərlənmiş kimi işarələ",
+  "memorizePageCompleted": "Əzbərləndi"
 }
