@@ -11,5 +11,9 @@
   "homePrayerMinuteShort": "m",
   "@homePrayerMinuteShort": {
     "description": "Short minute unit shown in the home prayer countdown"
+  },
+  "prayerTimes": "Prayer Times",
+  "@prayerTimes": {
+    "description": "Prayer times surface label"
   }
 }
