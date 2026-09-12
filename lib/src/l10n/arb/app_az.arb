@@ -5,5 +5,22 @@
   "homePrayerMinuteShort": "dəq",
   "prayerTimes": "Namaz vaxtları",
   "nextPrayer": "Növbəti",
-  "remaining": "qalıb"
+  "remaining": "qalıb",
+  "quranTabRead": "Oxu",
+  "quranTabLearn": "Öyrən",
+  "quranTabProgress": "İrəliləyişim",
+  "quranLearnTitle": "Məna və kontekstlə öyrən",
+  "quranLearnBody": "Mənbəli dərslər və qısa təkrarlarla anlayışını addım-addım inkişaf etdir.",
+  "quranLearnLessons": "Dərslər",
+  "quranLearnLessonsBody": "Ayə yönümlü, mənbəli və qısa yoxlamalı dərslər.",
+  "quranLearnMemorize": "Əzbərlə",
+  "quranLearnMemorizeBody": "Səs qiymətləndirilməsi və ya süni intellekt yoxlaması olmadan təkrarlarını təşkil et.",
+  "quranLearnArticles": "Məqalələr",
+  "quranLearnArticlesBody": "Quran öyrənməni dəstəkləyən məhdud və mənbəli oxular.",
+  "quranProgressStreak": "Oxuma seriyası",
+  "quranProgressDaysThisYear": "Bu il oxunan günlər",
+  "quranProgressLastRead": "Son oxunan",
+  "quranProgressSaved": "Yadda saxlanılanlar",
+  "quranProgressNotes": "Qeydlər",
+  "quranProgressHighlights": "Vurğular"
 }

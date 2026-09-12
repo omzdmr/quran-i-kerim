@@ -23,5 +23,22 @@
   "remaining": "remaining",
   "@remaining": {
     "description": "Label shown after the home prayer countdown duration"
-  }
+  },
+  "quranTabRead": "Read",
+  "quranTabLearn": "Learn",
+  "quranTabProgress": "Progress",
+  "quranLearnTitle": "Learn with context",
+  "quranLearnBody": "Build understanding step by step with sourced lessons and short reviews.",
+  "quranLearnLessons": "Lessons",
+  "quranLearnLessonsBody": "Verse-focused lessons with sources and short reviews.",
+  "quranLearnMemorize": "Memorize",
+  "quranLearnMemorizeBody": "Organize repetition without voice scoring or AI verification.",
+  "quranLearnArticles": "Articles",
+  "quranLearnArticlesBody": "Limited, sourced reading that supports your Quran study.",
+  "quranProgressStreak": "Reading streak",
+  "quranProgressDaysThisYear": "Reading days this year",
+  "quranProgressLastRead": "Last read",
+  "quranProgressSaved": "Saved",
+  "quranProgressNotes": "Notes",
+  "quranProgressHighlights": "Highlights"
 }

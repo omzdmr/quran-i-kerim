@@ -5,5 +5,22 @@
   "homePrayerMinuteShort": "мин",
   "prayerTimes": "Время намаза",
   "nextPrayer": "Следующий",
-  "remaining": "осталось"
+  "remaining": "осталось",
+  "quranTabRead": "Читать",
+  "quranTabLearn": "Изучать",
+  "quranTabProgress": "Прогресс",
+  "quranLearnTitle": "Изучать в контексте",
+  "quranLearnBody": "Развивайте понимание шаг за шагом с уроками по источникам и коротким повторением.",
+  "quranLearnLessons": "Уроки",
+  "quranLearnLessonsBody": "Уроки по аятам с источниками и короткой проверкой.",
+  "quranLearnMemorize": "Заучивание",
+  "quranLearnMemorizeBody": "Организуйте повторение без оценки голоса и проверки ИИ.",
+  "quranLearnArticles": "Статьи",
+  "quranLearnArticlesBody": "Небольшие материалы с источниками для изучения Корана.",
+  "quranProgressStreak": "Серия чтения",
+  "quranProgressDaysThisYear": "Дни чтения в этом году",
+  "quranProgressLastRead": "Последнее чтение",
+  "quranProgressSaved": "Сохранённое",
+  "quranProgressNotes": "Заметки",
+  "quranProgressHighlights": "Выделения"
 }

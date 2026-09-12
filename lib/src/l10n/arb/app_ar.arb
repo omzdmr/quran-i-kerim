@@ -5,5 +5,22 @@
   "homePrayerMinuteShort": "د",
   "prayerTimes": "مواقيت الصلاة",
   "nextPrayer": "التالي",
-  "remaining": "متبقي"
+  "remaining": "متبقي",
+  "quranTabRead": "اقرأ",
+  "quranTabLearn": "تعلّم",
+  "quranTabProgress": "التقدّم",
+  "quranLearnTitle": "تعلّم بفهم وسياق",
+  "quranLearnBody": "نمِّ فهمك خطوة بخطوة من خلال دروس موثقة ومراجعات قصيرة.",
+  "quranLearnLessons": "الدروس",
+  "quranLearnLessonsBody": "دروس تركز على الآيات مع مصادر ومراجعات قصيرة.",
+  "quranLearnMemorize": "الحفظ",
+  "quranLearnMemorizeBody": "نظّم المراجعة دون تقييم صوتي أو تحقق بالذكاء الاصطناعي.",
+  "quranLearnArticles": "المقالات",
+  "quranLearnArticlesBody": "قراءات محدودة وموثقة تدعم دراستك للقرآن.",
+  "quranProgressStreak": "سلسلة القراءة",
+  "quranProgressDaysThisYear": "أيام القراءة هذا العام",
+  "quranProgressLastRead": "آخر قراءة",
+  "quranProgressSaved": "المحفوظات",
+  "quranProgressNotes": "الملاحظات",
+  "quranProgressHighlights": "التظليل"
 }

@@ -5,5 +5,22 @@
   "homePrayerMinuteShort": "dk",
   "prayerTimes": "Namaz Vakitleri",
   "nextPrayer": "Sıradaki",
-  "remaining": "kaldı"
+  "remaining": "kaldı",
+  "quranTabRead": "Oku",
+  "quranTabLearn": "Öğren",
+  "quranTabProgress": "İlerlemem",
+  "quranLearnTitle": "Bağlamıyla öğren",
+  "quranLearnBody": "Kaynaklı dersler ve kısa tekrarlarla anlayışını adım adım geliştir.",
+  "quranLearnLessons": "Dersler",
+  "quranLearnLessonsBody": "Ayet odaklı, kaynaklı ve kısa değerlendirmeli dersler.",
+  "quranLearnMemorize": "Ezberle",
+  "quranLearnMemorizeBody": "Ses puanlaması veya yapay zekâ doğrulaması olmadan tekrarlarını düzenle.",
+  "quranLearnArticles": "Makaleler",
+  "quranLearnArticlesBody": "Kur’an çalışmanı destekleyen sınırlı ve kaynaklı okumalar.",
+  "quranProgressStreak": "Okuma serisi",
+  "quranProgressDaysThisYear": "Bu yıl okunan gün",
+  "quranProgressLastRead": "Son okunan",
+  "quranProgressSaved": "Kaydedilenler",
+  "quranProgressNotes": "Notlar",
+  "quranProgressHighlights": "Vurgular"
 }
