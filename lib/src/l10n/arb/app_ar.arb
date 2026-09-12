@@ -2,5 +2,6 @@
   "@@locale": "ar",
   "appTitle": "القرآن الكريم",
   "homePrayerHourShort": "س",
-  "homePrayerMinuteShort": "د"
+  "homePrayerMinuteShort": "د",
+  "prayerTimes": "مواقيت الصلاة"
 }
