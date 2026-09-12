@@ -3,5 +3,6 @@
   "appTitle": "Qurani-Kərim",
   "homePrayerHourShort": "s",
   "homePrayerMinuteShort": "dəq",
-  "prayerTimes": "Namaz vaxtları"
+  "prayerTimes": "Namaz vaxtları",
+  "nextPrayer": "Növbəti"
 }

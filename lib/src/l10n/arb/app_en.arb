@@ -15,5 +15,9 @@
   "prayerTimes": "Prayer Times",
   "@prayerTimes": {
     "description": "Prayer times surface label"
+  },
+  "nextPrayer": "Next",
+  "@nextPrayer": {
+    "description": "Label shown before the next prayer name on the home prayer card"
   }
 }

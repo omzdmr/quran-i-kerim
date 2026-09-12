@@ -123,7 +123,7 @@ class _HomePrayerCardState extends State<HomePrayerCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${l10n.text('nextPrayer')} · ${l10n.text(next.key)}',
+                      '${generatedL10n.nextPrayer} · ${l10n.text(next.key)}',
                       style: TextStyle(
                         color: scheme.primary,
                         fontWeight: FontWeight.w900,

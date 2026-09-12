@@ -3,5 +3,6 @@
   "appTitle": "Коран",
   "homePrayerHourShort": "ч",
   "homePrayerMinuteShort": "мин",
-  "prayerTimes": "Время намаза"
+  "prayerTimes": "Время намаза",
+  "nextPrayer": "Следующий"
 }

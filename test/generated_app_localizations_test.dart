@@ -54,4 +54,21 @@ void main() {
       expect(copy.prayerTimes, entry.value, reason: entry.key);
     }
   });
+
+  test('generated next prayer label preserves all supported locale values', () async {
+    const expected = <String, String>{
+      'tr': 'Sıradaki',
+      'en': 'Next',
+      'ar': 'التالي',
+      'az': 'Növbəti',
+      'ru': 'Следующий',
+    };
+
+    for (final entry in expected.entries) {
+      final copy = await GeneratedAppLocalizations.delegate.load(
+        Locale(entry.key),
+      );
+      expect(copy.nextPrayer, entry.value, reason: entry.key);
+    }
+  });
 }

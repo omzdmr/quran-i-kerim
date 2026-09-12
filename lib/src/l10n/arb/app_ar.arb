@@ -3,5 +3,6 @@
   "appTitle": "القرآن الكريم",
   "homePrayerHourShort": "س",
   "homePrayerMinuteShort": "د",
-  "prayerTimes": "مواقيت الصلاة"
+  "prayerTimes": "مواقيت الصلاة",
+  "nextPrayer": "التالي"
 }
