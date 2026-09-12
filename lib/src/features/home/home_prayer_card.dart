@@ -131,7 +131,7 @@ class _HomePrayerCardState extends State<HomePrayerCard> {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      '${_clock(next.time)} · ${_remaining(remaining, generatedL10n)} ${l10n.text('remaining')}',
+                      '${_clock(next.time)} · ${_remaining(remaining, generatedL10n)} ${generatedL10n.remaining}',
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w900,

@@ -19,5 +19,9 @@
   "nextPrayer": "Next",
   "@nextPrayer": {
     "description": "Label shown before the next prayer name on the home prayer card"
+  },
+  "remaining": "remaining",
+  "@remaining": {
+    "description": "Label shown after the home prayer countdown duration"
   }
 }

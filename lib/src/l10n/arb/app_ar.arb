@@ -4,5 +4,6 @@
   "homePrayerHourShort": "س",
   "homePrayerMinuteShort": "د",
   "prayerTimes": "مواقيت الصلاة",
-  "nextPrayer": "التالي"
+  "nextPrayer": "التالي",
+  "remaining": "متبقي"
 }

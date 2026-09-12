@@ -4,5 +4,6 @@
   "homePrayerHourShort": "sa",
   "homePrayerMinuteShort": "dk",
   "prayerTimes": "Namaz Vakitleri",
-  "nextPrayer": "Sıradaki"
+  "nextPrayer": "Sıradaki",
+  "remaining": "kaldı"
 }

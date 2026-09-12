@@ -4,5 +4,6 @@
   "homePrayerHourShort": "ч",
   "homePrayerMinuteShort": "мин",
   "prayerTimes": "Время намаза",
-  "nextPrayer": "Следующий"
+  "nextPrayer": "Следующий",
+  "remaining": "осталось"
 }

@@ -71,4 +71,21 @@ void main() {
       expect(copy.nextPrayer, entry.value, reason: entry.key);
     }
   });
+
+  test('generated remaining label preserves all supported locale values', () async {
+    const expected = <String, String>{
+      'tr': 'kaldı',
+      'en': 'remaining',
+      'ar': 'متبقي',
+      'az': 'qalıb',
+      'ru': 'осталось',
+    };
+
+    for (final entry in expected.entries) {
+      final copy = await GeneratedAppLocalizations.delegate.load(
+        Locale(entry.key),
+      );
+      expect(copy.remaining, entry.value, reason: entry.key);
+    }
+  });
 }

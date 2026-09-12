@@ -4,5 +4,6 @@
   "homePrayerHourShort": "s",
   "homePrayerMinuteShort": "dəq",
   "prayerTimes": "Namaz vaxtları",
-  "nextPrayer": "Növbəti"
+  "nextPrayer": "Növbəti",
+  "remaining": "qalıb"
 }
