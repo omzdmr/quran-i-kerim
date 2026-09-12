@@ -107,7 +107,7 @@ class _MemorizationStudyScreenState extends State<MemorizationStudyScreen> {
             if (!_revealed.remove(key)) _revealed.add(key);
           });
         },
-        memorizeLabel: l10n.quranLearnMemorize,
+        revealLabel: l10n.memorizeRevealVerse,
       ),
       bottomBar: Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
@@ -118,7 +118,9 @@ class _MemorizationStudyScreenState extends State<MemorizationStudyScreen> {
                 ? Icons.check_circle_rounded
                 : Icons.check_circle_outline_rounded,
           ),
-          label: Text(l10n.memorizeCompleted),
+          label: Text(
+            _completed ? l10n.memorizePageCompleted : l10n.memorizeMarkPage,
+          ),
           style: FilledButton.styleFrom(
             minimumSize: const Size.fromHeight(52),
           ),
@@ -134,14 +136,14 @@ class _MemorizationPageBody extends StatelessWidget {
     required this.mode,
     required this.revealed,
     required this.onToggleReveal,
-    required this.memorizeLabel,
+    required this.revealLabel,
   });
 
   final List<_MemorizationVerse> verses;
   final MemorizationStudyMode mode;
   final Set<String> revealed;
   final ValueChanged<String> onToggleReveal;
-  final String memorizeLabel;
+  final String revealLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -225,7 +227,7 @@ class _MemorizationPageBody extends StatelessWidget {
                               ),
                               const SizedBox(height: 9),
                               Text(
-                                memorizeLabel,
+                                revealLabel,
                                 style: TextStyle(
                                   color: scheme.onSurfaceVariant,
                                   fontWeight: FontWeight.w800,
