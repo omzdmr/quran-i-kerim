@@ -49,7 +49,14 @@
   "memorizeOpenMap": "Открыть карту заучивания",
   "memorizeOpenNext": "Открыть",
   "memorizeMapTitle": "Карта заучивания",
-  "memorizeMapHint": "Нажмите страницу, чтобы изменить статус заучивания; удерживайте, чтобы открыть её в Коране.",
+  "memorizeMapHint": "Нажмите страницу, чтобы начать занятие; удерживайте, чтобы быстро изменить статус заучивания.",
   "memorizeJuz": "Джуз",
-  "memorizeCompleted": "завершено"
+  "memorizeCompleted": "завершено",
+  "memorizeTodayProgram": "План на сегодня",
+  "memorizeCurrentPlace": "Место продолжения",
+  "memorizeTodayReview": "Повторение сегодня",
+  "memorizeReview": "Повторить",
+  "memorizeRevealVerse": "Нажмите, чтобы показать",
+  "memorizeMarkPage": "Отметить страницу как выученную",
+  "memorizePageCompleted": "Выучено"
 }
