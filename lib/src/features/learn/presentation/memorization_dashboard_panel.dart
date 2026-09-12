@@ -67,7 +67,6 @@ class MemorizationDashboardPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final total = data.totalPages <= 0 ? 1 : data.totalPages;
     final progress = (data.completedPages / total).clamp(0.0, 1.0).toDouble();
     final todayTarget = data.todayTarget <= 0 ? 1 : data.todayTarget;
