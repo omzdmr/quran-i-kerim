@@ -59,14 +59,28 @@ Saatlik teknik görev: yalnız kaynak/lisansı doğrulanmış makale kataloğunu
 - Ezber Haritasına belirgin geçiş.
 - Toplam sayfa sayısı veri olarak gelir; 603/604 gibi referans değeri UI içine gömülmez.
 
-Saatlik teknik görev: mevcut MemorizationProgressStore ve gerçek Mushaf page catalog verisini bu panele bağlamalı; tekrar kuyruğunu local-first üretmelidir.
+Panel artık `MemorizationOverview` içinde gerçek local memorization state ile kullanılmaktadır. Tekrar kuyruğu henüz teknik katman tarafından doldurulmadığı için görsel kabuk bunu uydurmaz.
+
+### Ezber çalışma ekranı
+`lib/src/features/learn/presentation/memorization_study_scaffold.dart`
+`lib/src/features/learn/presentation/memorization_study_screen.dart`
+
+- Referanstaki Mushaf çalışma yüzeyinden türetilen `Oku / Ezberle` geçişi.
+- Krem Mushaf yüzeyi, üstte sure adı ve cüz/sayfa/ayet aralığı meta şeridi.
+- Oku modunda sayfadaki ayetler açık şekilde gösterilir.
+- Ezberle modunda ayetler gizlenir ve kullanıcı ayet kartına dokunarak tek tek açabilir.
+- Alt bölümden sayfa ezberlendi olarak işaretlenebilir; local ezber haritası anında güncellenir.
+- Ezber Haritasında sayfaya normal dokunma çalışma ekranını açar, uzun basma hızlı durum değiştirir.
+- Ayrı bir audio bar görsel bileşeni hazırdır; oynatma motoru bağlanmadan sahte oynatma durumu gösterilmez.
+
+Saatlik teknik görev: mevcut ses controller’ını, gerçek tekrar kuyruğunu ve ileride gerekli çalışma davranışlarını bu yüzeye bağlayabilir. `Oku / Ezberle` hiyerarşisini, Mushaf ağırlıklı görünümü veya harita etkileşim modelini yeniden tasarlamamalıdır.
 
 ## Mevcut ekranda zaten uygulanmış referans fikirleri
 
 - Kur’an alanı: Oku / Öğren / İlerlemem ve Kur’an’a dokununca varsayılan Oku.
 - Öğren: Dersler / Ezberle / Makaleler iç organizasyonu.
 - İlerlemem: Okuma/Hatim, son okunan, 7 günlük halkalar, kaydedilen/not/vurgu özeti.
-- Ezber: sayfa bazlı local progress ve Ezber Haritası.
+- Ezber: referans-türetilmiş dashboard, sayfa bazlı local progress, Ezber Haritası ve canlı Oku/Ezberle çalışma ekranı.
 
 ## Teknik katmanın değiştirmemesi gereken görsel kararlar
 
