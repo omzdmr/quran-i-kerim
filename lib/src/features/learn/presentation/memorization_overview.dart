@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../l10n/generated/generated_app_localizations.dart';
-import '../../../navigation/app_navigation.dart';
-import '../application/memorization_page_catalog.dart';
 import '../application/memorization_progress_store.dart';
+import 'memorization_dashboard_panel.dart';
 import 'memorization_map_screen.dart';
+import 'memorization_study_screen.dart';
 
 class MemorizationOverview extends StatefulWidget {
   const MemorizationOverview({super.key});
@@ -29,15 +29,18 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
     setState(() => _snapshot = snapshot);
   }
 
-  void _openPage(int page) {
-    final info = memorizationPageInfo(page);
-    if (info == null) return;
-    AppNavigation.instance.openReader(surah: info.surah, ayah: info.ayah);
+  Future<void> _openPage(int page) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => MemorizationStudyScreen(page: page),
+      ),
+    );
+    await _load();
   }
 
   Future<void> _openMap() async {
     await Navigator.of(context).push<void>(
-      MaterialPageRoute(builder: (_) => const MemorizationMapScreen()),
+      MaterialPageRoute<void>(builder: (_) => const MemorizationMapScreen()),
     );
     await _load();
   }
@@ -45,7 +48,6 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
   @override
   Widget build(BuildContext context) {
     final l10n = GeneratedAppLocalizations.of(context)!;
-    final scheme = Theme.of(context).colorScheme;
     final snapshot = _snapshot;
 
     if (snapshot == null) {
@@ -56,7 +58,11 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
     }
 
     final nextPage = snapshot.nextPage;
-    final progress = snapshot.memorizedCount / 604;
+    final today = DateTime.now();
+    final month = today.month.toString().padLeft(2, '0');
+    final day = today.day.toString().padLeft(2, '0');
+    final todayKey = '${today.year}-$month-$day';
+    final practicedToday = snapshot.practiceDays.contains(todayKey);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -89,146 +95,38 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
                 l10n.memorizeWelcomeBody,
                 style: const TextStyle(color: Colors.white70, height: 1.45),
               ),
-              const SizedBox(height: 20),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(999),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 9,
-                  backgroundColor: Colors.white24,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '${snapshot.memorizedCount} / 604 ${l10n.memorizePages}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
             ],
           ),
         ),
         const SizedBox(height: 14),
-        Row(
-          children: [
-            Expanded(
-              child: _MetricCard(
-                icon: Icons.check_circle_outline_rounded,
-                value: '${snapshot.memorizedCount}',
-                label: l10n.memorizeProgress,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _MetricCard(
-                icon: Icons.local_fire_department_outlined,
-                value: '${snapshot.practiceStreak}',
-                label: l10n.memorizeStreak,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
-        if (nextPage != null)
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: scheme.surfaceContainer,
-              borderRadius: BorderRadius.circular(22),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    color: scheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Icon(Icons.menu_book_rounded, color: scheme.primary),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.memorizeNextPage,
-                        style: TextStyle(
-                          color: scheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        '$nextPage',
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                FilledButton.tonal(
-                  onPressed: () => _openPage(nextPage),
-                  child: Text(l10n.memorizeOpenNext),
-                ),
-              ],
-            ),
+        MemorizationDashboardPanel(
+          data: MemorizationDashboardData(
+            completedPages: snapshot.memorizedCount,
+            totalPages: 604,
+            streakDays: snapshot.practiceStreak,
+            reviewPages: 0,
+            todayCompleted: practicedToday ? 1 : 0,
+            todayTarget: 1,
+            nextReference: nextPage == null
+                ? null
+                : '${l10n.quranProgressCurrentPage} $nextPage',
           ),
-        const SizedBox(height: 12),
-        OutlinedButton.icon(
-          onPressed: _openMap,
-          icon: const Icon(Icons.grid_view_rounded),
-          label: Text(l10n.memorizeOpenMap),
+          labels: MemorizationDashboardLabels(
+            todayProgram: l10n.memorizeTodayProgram,
+            currentPlace: l10n.memorizeCurrentPlace,
+            progress: l10n.memorizeProgress,
+            streak: l10n.memorizeStreak,
+            todayReview: l10n.memorizeTodayReview,
+            next: l10n.memorizeNextPage,
+            openMap: l10n.memorizeOpenMap,
+            continueLabel: l10n.memorizeOpenNext,
+            reviewLabel: l10n.memorizeReview,
+          ),
+          onOpenMap: _openMap,
+          onContinue: nextPage == null ? null : () => _openPage(nextPage),
+          onReview: null,
         ),
       ],
-    );
-  }
-}
-
-class _MetricCard extends StatelessWidget {
-  const _MetricCard({
-    required this.icon,
-    required this.value,
-    required this.label,
-  });
-
-  final IconData icon;
-  final String value;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(17),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: scheme.primary),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            label,
-            style: TextStyle(
-              color: scheme.onSurfaceVariant,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
