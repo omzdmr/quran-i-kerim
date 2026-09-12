@@ -2,5 +2,6 @@
   "@@locale": "tr",
   "appTitle": "Kur’an-ı Kerim",
   "homePrayerHourShort": "sa",
-  "homePrayerMinuteShort": "dk"
+  "homePrayerMinuteShort": "dk",
+  "prayerTimes": "Namaz Vakitleri"
 }
