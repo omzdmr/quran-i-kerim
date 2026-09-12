@@ -15,4 +15,13 @@ void main() {
       isNot(contains('Localizations.localeOf(context).languageCode')),
     );
   });
+
+  test('passage preview never falls back to bundled Turkish source', () {
+    final source = File(
+      'lib/src/features/reader/passage_preview_screen.dart',
+    ).readAsStringSync();
+
+    expect(source, isNot(contains('return bundledTurkishTranslationId;')));
+    expect(source, contains('return settings.selectedQuranSourceId;'));
+  });
 }

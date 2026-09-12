@@ -55,7 +55,7 @@ class PassagePreviewScreen extends StatelessWidget {
     for (final info in translationCatalog) {
       if (info.code == code) return info.id;
     }
-    return bundledTurkishTranslationId;
+    return settings.selectedQuranSourceId;
   }
 
   String _sourceLabel(String sourceId) {
