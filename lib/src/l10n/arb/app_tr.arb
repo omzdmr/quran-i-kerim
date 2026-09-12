@@ -49,7 +49,14 @@
   "memorizeOpenMap": "Ezber haritasını aç",
   "memorizeOpenNext": "Aç",
   "memorizeMapTitle": "Ezber Haritası",
-  "memorizeMapHint": "Sayfaya dokunarak ezber durumunu değiştir; Kur’an’da açmak için sayfaya basılı tut.",
+  "memorizeMapHint": "Çalışmak için sayfaya dokun; ezber durumunu hızlıca değiştirmek için basılı tut.",
   "memorizeJuz": "Cüz",
-  "memorizeCompleted": "tamamlandı"
+  "memorizeCompleted": "tamamlandı",
+  "memorizeTodayProgram": "Bugünün programı",
+  "memorizeCurrentPlace": "Kaldığın yer",
+  "memorizeTodayReview": "Bugünkü tekrar",
+  "memorizeReview": "Tekrar et",
+  "memorizeRevealVerse": "Açmak için dokun",
+  "memorizeMarkPage": "Sayfayı ezberlendi olarak işaretle",
+  "memorizePageCompleted": "Ezberlendi"
 }
