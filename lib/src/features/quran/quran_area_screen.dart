@@ -145,7 +145,7 @@ class _SectionSwitcher extends StatelessWidget {
                       color: selected
                           ? scheme.primary
                           : scheme.onSurfaceVariant,
-                      fontWeight: selected ? FontWeight.w800 : FontWeight.w650,
+                      fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                     ),
                   ),
                 ),
@@ -305,7 +305,7 @@ class _LearnCard extends StatelessWidget {
                   title,
                   style: const TextStyle(
                     fontSize: 18,
-                    fontWeight: FontWeight.w850,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -350,8 +350,11 @@ class _ProgressOverview extends StatelessWidget {
           ),
           child: Row(
             children: [
-              const Icon(Icons.local_fire_department_outlined,
-                  color: Colors.white, size: 38),
+              const Icon(
+                Icons.local_fire_department_outlined,
+                color: Colors.white,
+                size: 38,
+              ),
               const SizedBox(width: 18),
               Expanded(
                 child: Column(
@@ -475,7 +478,7 @@ class _ProgressCard extends StatelessWidget {
                   label,
                   style: TextStyle(
                     color: scheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w650,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 5),
@@ -483,7 +486,7 @@ class _ProgressCard extends StatelessWidget {
                   value,
                   style: const TextStyle(
                     fontSize: 19,
-                    fontWeight: FontWeight.w850,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ],
@@ -522,7 +525,7 @@ class _MetricTile extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             '$value',
-            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w850),
+            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 3),
           Text(
