@@ -2,5 +2,6 @@
   "@@locale": "az",
   "appTitle": "Qurani-Kərim",
   "homePrayerHourShort": "s",
-  "homePrayerMinuteShort": "dəq"
+  "homePrayerMinuteShort": "dəq",
+  "prayerTimes": "Namaz vaxtları"
 }
