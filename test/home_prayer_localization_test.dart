@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quran_i_kerim/src/l10n/app_localizations.dart';
@@ -31,5 +33,14 @@ void main() {
       expect(l10n.homePrayerHourShort, entry.value.$1);
       expect(l10n.homePrayerMinuteShort, entry.value.$2);
     }
+  });
+
+  test('home prayer remaining label uses generated localization', () {
+    final source = File(
+      'lib/src/features/home/home_prayer_card.dart',
+    ).readAsStringSync();
+
+    expect(source, contains('generatedL10n.remaining'));
+    expect(source, isNot(contains("l10n.text('remaining')")));
   });
 }
