@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   const guardedFiles = <String>[
+    'lib/src/features/home/home_screen.dart',
     'lib/src/features/home/home_prayer_card.dart',
     'lib/src/features/reader/passage_preview_screen.dart',
     'lib/src/features/reader/reader_note_sheet.dart',
