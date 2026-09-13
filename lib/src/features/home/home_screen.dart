@@ -276,37 +276,6 @@ class _VerseCardState extends State<_VerseCard> {
   String _surahNameForLanguage(int surahNumber, String languageCode) =>
       localizedSurahName(surahNumber, languageCode);
 
-  String _homeText(String languageCode, String key) {
-    const values = <String, Map<String, String>>{
-      'tr': {
-        'expand': 'Ayeti genişlet',
-        'collapse': 'Kısalt',
-        'readSurah': 'Surenin tamamını oku',
-      },
-      'en': {
-        'expand': 'Expand verse',
-        'collapse': 'Show less',
-        'readSurah': 'Read the full surah',
-      },
-      'ar': {
-        'expand': 'عرض الآية كاملة',
-        'collapse': 'عرض أقل',
-        'readSurah': 'قراءة السورة كاملة',
-      },
-      'az': {
-        'expand': 'Ayəni genişləndir',
-        'collapse': 'Qısalt',
-        'readSurah': 'Surəni tam oxu',
-      },
-      'ru': {
-        'expand': 'Развернуть аят',
-        'collapse': 'Свернуть',
-        'readSurah': 'Читать суру полностью',
-      },
-    };
-    return values[languageCode]?[key] ?? values['en']![key]!;
-  }
-
   @override
   Widget build(BuildContext context) {
     final reference = widget.reference;
@@ -449,7 +418,7 @@ class _VerseCardState extends State<_VerseCard> {
                   ),
                   const SizedBox(width: 7),
                   Text(
-                    _homeText(languageCode, _expanded ? 'collapse' : 'expand'),
+                    _expanded ? l10n.homeVerseCollapse : l10n.homeVerseExpand,
                     style: const TextStyle(
                       color: Colors.white70,
                       fontWeight: FontWeight.w700,
@@ -464,7 +433,7 @@ class _VerseCardState extends State<_VerseCard> {
                   child: FilledButton.icon(
                     onPressed: _openReader,
                     icon: const Icon(Icons.menu_book_rounded),
-                    label: Text(_homeText(languageCode, 'readSurah')),
+                    label: Text(l10n.homeVerseReadSurah),
                     style: FilledButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: const Color(0xFF183027),
