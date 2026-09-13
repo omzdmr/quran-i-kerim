@@ -10,9 +10,16 @@ import '../application/memorization_progress_store.dart';
 import 'memorization_study_scaffold.dart';
 
 class MemorizationStudyScreen extends StatefulWidget {
-  const MemorizationStudyScreen({required this.page, super.key});
+  const MemorizationStudyScreen({
+    required this.page,
+    super.key,
+    this.showCompletionAction = true,
+    this.initialMode = MemorizationStudyMode.read,
+  });
 
   final int page;
+  final bool showCompletionAction;
+  final MemorizationStudyMode initialMode;
 
   @override
   State<MemorizationStudyScreen> createState() => _MemorizationStudyScreenState();
@@ -21,7 +28,7 @@ class MemorizationStudyScreen extends StatefulWidget {
 class _MemorizationStudyScreenState extends State<MemorizationStudyScreen> {
   static const _store = MemorizationProgressStore();
 
-  MemorizationStudyMode _mode = MemorizationStudyMode.read;
+  late MemorizationStudyMode _mode;
   final Set<String> _revealed = <String>{};
   late final List<_MemorizationVerse> _verses;
   bool _completed = false;
@@ -29,6 +36,7 @@ class _MemorizationStudyScreenState extends State<MemorizationStudyScreen> {
   @override
   void initState() {
     super.initState();
+    _mode = widget.initialMode;
     _verses = _versesForPage();
     _loadCompletion();
   }
@@ -109,23 +117,27 @@ class _MemorizationStudyScreenState extends State<MemorizationStudyScreen> {
         },
         revealLabel: l10n.memorizeRevealVerse,
       ),
-      bottomBar: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
-        child: FilledButton.icon(
-          onPressed: _toggleCompleted,
-          icon: Icon(
-            _completed
-                ? Icons.check_circle_rounded
-                : Icons.check_circle_outline_rounded,
-          ),
-          label: Text(
-            _completed ? l10n.memorizePageCompleted : l10n.memorizeMarkPage,
-          ),
-          style: FilledButton.styleFrom(
-            minimumSize: const Size.fromHeight(52),
-          ),
-        ),
-      ),
+      bottomBar: widget.showCompletionAction
+          ? Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+              child: FilledButton.icon(
+                onPressed: _toggleCompleted,
+                icon: Icon(
+                  _completed
+                      ? Icons.check_circle_rounded
+                      : Icons.check_circle_outline_rounded,
+                ),
+                label: Text(
+                  _completed
+                      ? l10n.memorizePageCompleted
+                      : l10n.memorizeMarkPage,
+                ),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(52),
+                ),
+              ),
+            )
+          : null,
     );
   }
 }

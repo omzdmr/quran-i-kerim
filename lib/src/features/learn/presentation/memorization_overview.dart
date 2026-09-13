@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../l10n/generated/generated_app_localizations.dart';
-import '../../../navigation/app_navigation.dart';
 import '../application/memorization_juz_review.dart';
-import '../application/memorization_page_catalog.dart';
 import '../application/memorization_plan_store.dart';
 import '../application/memorization_progress_store.dart';
 import '../application/memorization_recall_history_store.dart';
@@ -14,7 +12,9 @@ import '../application/memorization_weekly_review.dart';
 import 'memorization_juz_review_screen.dart';
 import 'memorization_map_screen.dart';
 import 'memorization_recall_test_screen.dart';
+import 'memorization_study_screen.dart';
 import 'memorization_target_screen.dart';
+import 'memorization_today_session_screen.dart';
 import 'memorization_weak_verses_screen.dart';
 import 'memorization_weekly_review_screen.dart';
 
@@ -66,10 +66,22 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
     });
   }
 
-  void _openPage(int page) {
-    final info = memorizationPageInfo(page);
-    if (info == null) return;
-    AppNavigation.instance.openReader(surah: info.surah, ayah: info.ayah);
+  Future<void> _openPage(int page) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => MemorizationStudyScreen(page: page)),
+    );
+    await _load();
+  }
+
+  Future<void> _openTodaySession() async {
+    final todayPlan = _todayPlan;
+    if (todayPlan == null || todayPlan.studyPages.isEmpty) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => MemorizationTodaySessionScreen(plan: todayPlan),
+      ),
+    );
+    await _load();
   }
 
   Future<void> _openMap() async {
@@ -217,6 +229,9 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
         ),
         const SizedBox(height: 14),
         _StartGuideCard(
+          onTap: todayPlan == null || todayPlan.studyPages.isEmpty
+              ? null
+              : _openTodaySession,
           steps: [
             _StartGuideStep(
               icon: Icons.today_outlined,
@@ -359,90 +374,104 @@ class _StartGuideStep {
 }
 
 class _StartGuideCard extends StatelessWidget {
-  const _StartGuideCard({required this.steps});
+  const _StartGuideCard({required this.steps, this.onTap});
 
   final List<_StartGuideStep> steps;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainer,
+    return Material(
+      color: scheme.surfaceContainer,
+      borderRadius: BorderRadius.circular(24),
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: .55)),
-      ),
-      child: Column(
-        children: [
-          for (var index = 0; index < steps.length; index++) ...[
-            Row(
-              children: [
-                Container(
-                  width: 30,
-                  height: 30,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: scheme.primaryContainer,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Text(
-                    '${index + 1}',
-                    style: TextStyle(
-                      color: scheme.primary,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: scheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(13),
-                  ),
-                  child: Icon(steps[index].icon, color: scheme.primary, size: 21),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    steps[index].label,
-                    style: const TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                ),
-                if (steps[index].badge != null) ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: scheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      steps[index].badge!,
-                      style: TextStyle(
-                        color: scheme.primary,
-                        fontWeight: FontWeight.w900,
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: scheme.outlineVariant.withValues(alpha: .55),
+            ),
+          ),
+          child: Column(
+            children: [
+              for (var index = 0; index < steps.length; index++) ...[
+                Row(
+                  children: [
+                    Container(
+                      width: 30,
+                      height: 30,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: scheme.primaryContainer,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        '${index + 1}',
+                        style: TextStyle(
+                          color: scheme.primary,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ],
-            ),
-            if (index != steps.length - 1)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Divider(
-                  height: 1,
-                  color: scheme.outlineVariant.withValues(alpha: .55),
+                    const SizedBox(width: 12),
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: scheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(13),
+                      ),
+                      child: Icon(
+                        steps[index].icon,
+                        color: scheme.primary,
+                        size: 21,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        steps[index].label,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                    if (steps[index].badge != null) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: scheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          steps[index].badge!,
+                          style: TextStyle(
+                            color: scheme.primary,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-              ),
-          ],
-        ],
+                if (index != steps.length - 1)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Divider(
+                      height: 1,
+                      color: scheme.outlineVariant.withValues(alpha: .55),
+                    ),
+                  ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
