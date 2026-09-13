@@ -5,7 +5,7 @@ import 'package:quran/quran.dart' as quran;
 import '../../data/surah_localization.dart';
 import '../../data/translation_catalog.dart';
 import '../../data/translation_repository.dart';
-import '../../l10n/app_localizations.dart';
+import '../../l10n/generated/generated_app_localizations.dart';
 import '../../navigation/app_navigation.dart';
 import '../../settings/app_settings.dart';
 
@@ -64,10 +64,8 @@ class PassagePreviewScreen extends StatelessWidget {
   }
 
   String _reference(BuildContext context, int surah, List<int> ayahs) {
-    final name = localizedSurahName(
-      surah,
-      context.l10n.locale.languageCode,
-    );
+    final localeName = GeneratedAppLocalizations.of(context)!.localeName;
+    final name = localizedSurahName(surah, localeName);
     final part = ayahs.length == 1
         ? '${ayahs.single}'
         : _contiguous(ayahs)
@@ -90,11 +88,12 @@ class PassagePreviewScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = GeneratedAppLocalizations.of(context)!;
     final parsed = _parseSelection();
     if (parsed == null) {
       return Scaffold(
         appBar: AppBar(),
-        body: Center(child: Text(context.l10n.invalidPassage)),
+        body: Center(child: Text(l10n.invalidPassage)),
       );
     }
 
@@ -106,7 +105,7 @@ class PassagePreviewScreen extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: Text(context.l10n.passageTitle)),
+      appBar: AppBar(title: Text(l10n.passageTitle)),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 38),
@@ -144,7 +143,7 @@ class PassagePreviewScreen extends StatelessWidget {
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   return Text(
-                    context.l10n.passageUnavailable,
+                    l10n.passageUnavailable,
                     style: TextStyle(color: scheme.onSurfaceVariant),
                   );
                 }
@@ -203,7 +202,7 @@ class PassagePreviewScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
                 child: Text(
-                  context.l10n.passageReadFullSurah,
+                  l10n.passageReadFullSurah,
                   style: const TextStyle(fontWeight: FontWeight.w900),
                 ),
               ),
@@ -212,7 +211,7 @@ class PassagePreviewScreen extends StatelessWidget {
             Divider(color: scheme.outlineVariant),
             const SizedBox(height: 18),
             Text(
-              context.l10n.passageTextSource,
+              l10n.passageTextSource,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: scheme.onSurfaceVariant,

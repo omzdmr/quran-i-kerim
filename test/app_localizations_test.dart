@@ -29,7 +29,7 @@ void main() {
     expect(l10n.appTitle, contains('القرآن'));
   });
 
-  test('primary feature copy exists in every locale', () {
+  test('primary legacy feature copy exists in every locale', () {
     const keys = <String>[
       'today',
       'dailyVerse',
@@ -65,12 +65,6 @@ void main() {
         expect(value, isNotEmpty, reason: '${locale.languageCode}: $key');
         expect(value, isNot(key), reason: '${locale.languageCode}: $key');
       }
-      expect(l10n.invalidPassage, isNotEmpty);
-      expect(l10n.invalidPassage, isNot('invalidPassage'));
-      expect(l10n.passageTitle, isNotEmpty);
-      expect(l10n.passageReadFullSurah, isNotEmpty);
-      expect(l10n.passageTextSource, isNotEmpty);
-      expect(l10n.passageUnavailable, isNotEmpty);
     }
   });
 }

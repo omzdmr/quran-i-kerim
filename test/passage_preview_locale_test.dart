@@ -8,8 +8,7 @@ void main() {
       'lib/src/features/reader/passage_preview_screen.dart',
     ).readAsStringSync();
 
-    expect(source, contains('localizedSurahName('));
-    expect(source, contains('context.l10n.locale.languageCode'));
+    expect(source, contains('GeneratedAppLocalizations.of(context)!.localeName'));
     expect(
       source,
       isNot(contains('Localizations.localeOf(context).languageCode')),
@@ -25,7 +24,7 @@ void main() {
     expect(source, contains('return settings.selectedQuranSourceId;'));
   });
 
-  test('passage preview stays on centralized localization', () {
+  test('passage preview stays on generated ARB localization', () {
     final legacy = File(
       'lib/src/l10n/strings/passage_preview_strings.dart',
     );
@@ -34,10 +33,12 @@ void main() {
     ).readAsStringSync();
 
     expect(legacy.existsSync(), isFalse);
-    expect(source, contains('context.l10n.invalidPassage'));
-    expect(source, contains('context.l10n.passageTitle'));
-    expect(source, contains('context.l10n.passageReadFullSurah'));
-    expect(source, contains('context.l10n.passageTextSource'));
-    expect(source, contains('context.l10n.passageUnavailable'));
+    expect(source, contains('GeneratedAppLocalizations.of(context)!'));
+    expect(source, contains('l10n.invalidPassage'));
+    expect(source, contains('l10n.passageTitle'));
+    expect(source, contains('l10n.passageReadFullSurah'));
+    expect(source, contains('l10n.passageTextSource'));
+    expect(source, contains('l10n.passageUnavailable'));
+    expect(source, isNot(contains('context.l10n.')));
   });
 }
