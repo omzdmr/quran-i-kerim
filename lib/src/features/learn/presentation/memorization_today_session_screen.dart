@@ -66,14 +66,16 @@ class _MemorizationTodaySessionScreenState
 
     final snapshot = await _store.load();
     if (!mounted) return;
-    if (snapshot.containsPage(item.page)) _advance();
+    if (snapshot.containsPage(item.page)) {
+      setState(() => _awaitingAssessment = true);
+    }
   }
 
   Future<void> _recordAssessment(
     MemorizationSelfAssessment assessment,
   ) async {
     final item = _currentItem;
-    if (item == null || !item.isReview || _saving) return;
+    if (item == null || !_awaitingAssessment || _saving) return;
 
     setState(() => _saving = true);
     if (assessment == MemorizationSelfAssessment.independent) {
@@ -84,10 +86,17 @@ class _MemorizationTodaySessionScreenState
       HapticFeedback.mediumImpact();
     }
 
-    await _store.recordReview(
-      item.page,
-      selfAssessment: assessment,
-    );
+    if (item.isReview) {
+      await _store.recordReview(
+        item.page,
+        selfAssessment: assessment,
+      );
+    } else {
+      await _store.recordSelfAssessment(
+        item.page,
+        selfAssessment: assessment,
+      );
+    }
     if (!mounted) return;
     setState(() => _saving = false);
     _advance();
@@ -202,7 +211,7 @@ class _MemorizationTodaySessionScreenState
                     ),
                   ),
                   const SizedBox(height: 18),
-                  if (_awaitingAssessment && item.isReview) ...[
+                  if (_awaitingAssessment) ...[
                     FilledButton.tonalIcon(
                       onPressed: _saving
                           ? null

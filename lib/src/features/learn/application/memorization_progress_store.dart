@@ -212,6 +212,31 @@ class MemorizationProgressStore {
     );
   }
 
+  Future<MemorizationProgressSnapshot> recordSelfAssessment(
+    int page, {
+    required MemorizationSelfAssessment selfAssessment,
+    DateTime? now,
+  }) async {
+    final current = await load();
+    if (page < 1 || page > 604 || !current.memorizedPages.contains(page)) {
+      return current;
+    }
+
+    final effectiveNow = now ?? DateTime.now();
+    final days = <String>{...current.practiceDays}..add(_dayKey(effectiveNow));
+    final pageProgress = <int, MemorizationPageProgress>{
+      ...current.pageProgress,
+    };
+    final existing = pageProgress[page] ?? const MemorizationPageProgress();
+    pageProgress[page] = existing.copyWith(selfAssessment: selfAssessment);
+
+    return _save(
+      pages: current.memorizedPages,
+      days: days,
+      pageProgress: pageProgress,
+    );
+  }
+
   Future<MemorizationProgressSnapshot> _save({
     required Set<int> pages,
     required Set<String> days,

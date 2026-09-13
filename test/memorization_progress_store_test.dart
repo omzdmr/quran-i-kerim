@@ -34,6 +34,26 @@ void main() {
     expect(restored.progressForPage(12)?.selfAssessment, isNull);
   });
 
+  test('new memorization assessment does not mark the page reviewed', () async {
+    const store = MemorizationProgressStore();
+    final memorizedAt = DateTime(2026, 9, 13, 8, 30);
+    final assessedAt = DateTime(2026, 9, 13, 9, 15);
+
+    await store.togglePage(12, now: memorizedAt);
+    await store.recordSelfAssessment(
+      12,
+      selfAssessment: MemorizationSelfAssessment.assisted,
+      now: assessedAt,
+    );
+    final restored = await store.load();
+    final progress = restored.progressForPage(12);
+
+    expect(progress?.memorizedAt, memorizedAt);
+    expect(progress?.lastReviewedAt, isNull);
+    expect(progress?.selfAssessment, MemorizationSelfAssessment.assisted);
+    expect(restored.practiceDays, contains('2026-09-13'));
+  });
+
   test('review metadata and self assessment survive a local reload', () async {
     const store = MemorizationProgressStore();
     final memorizedAt = DateTime(2026, 9, 10, 9);
