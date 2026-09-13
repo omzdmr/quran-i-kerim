@@ -74,5 +74,14 @@
   "memorizeReview": "Review",
   "memorizeRevealVerse": "Tap to reveal",
   "memorizeMarkPage": "Mark page as memorized",
-  "memorizePageCompleted": "Memorized"
+  "memorizePageCompleted": "Memorized",
+  "memorizeTestTitle": "Memorization Test",
+  "memorizeTestBody": "Use a random verse from memorized pages and try to continue it from memory.",
+  "memorizeTestContinuePrompt": "Continue from memory",
+  "memorizeTestShowAnswer": "Show answer",
+  "memorizeTestAnother": "Another question",
+  "memorizeTestKnown": "I knew it",
+  "memorizeTestMissed": "I missed it",
+  "memorizeTestEmptyTitle": "No test is ready yet",
+  "memorizeTestEmptyBody": "Mark a page containing at least two consecutive verses as memorized on the memorization map, then the random recall test can begin."
 }

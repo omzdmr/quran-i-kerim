@@ -63,5 +63,14 @@
   "memorizeReview": "Tekrar et",
   "memorizeRevealVerse": "Açmak için dokun",
   "memorizeMarkPage": "Sayfayı ezberlendi olarak işaretle",
-  "memorizePageCompleted": "Ezberlendi"
+  "memorizePageCompleted": "Ezberlendi",
+  "memorizeTestTitle": "Ezber Testi",
+  "memorizeTestBody": "Ezberlediğin sayfalardan rastgele bir ayetle devamını hatırlamayı dene.",
+  "memorizeTestContinuePrompt": "Devamını ezberinden oku",
+  "memorizeTestShowAnswer": "Cevabı göster",
+  "memorizeTestAnother": "Başka soru",
+  "memorizeTestKnown": "Bildim",
+  "memorizeTestMissed": "Bilemedim",
+  "memorizeTestEmptyTitle": "Henüz test oluşturulamıyor",
+  "memorizeTestEmptyBody": "Ezber haritasında en az iki ardışık ayeti kapsayan bir sayfayı ezberlendi olarak işaretledikten sonra rastgele test başlayabilir."
 }

@@ -5,6 +5,7 @@ import '../../../navigation/app_navigation.dart';
 import '../application/memorization_page_catalog.dart';
 import '../application/memorization_progress_store.dart';
 import 'memorization_map_screen.dart';
+import 'memorization_recall_test_screen.dart';
 
 class MemorizationOverview extends StatefulWidget {
   const MemorizationOverview({super.key});
@@ -38,6 +39,13 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
   Future<void> _openMap() async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(builder: (_) => const MemorizationMapScreen()),
+    );
+    await _load();
+  }
+
+  Future<void> _openRecallTest() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => const MemorizationRecallTestScreen()),
     );
     await _load();
   }
@@ -196,6 +204,58 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
               ],
             ),
           ),
+        const SizedBox(height: 12),
+        Material(
+          color: scheme.surfaceContainer,
+          borderRadius: BorderRadius.circular(22),
+          child: InkWell(
+            onTap: _openRecallTest,
+            borderRadius: BorderRadius.circular(22),
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: scheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(Icons.casino_outlined, color: scheme.primary),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.memorizeTestTitle,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          l10n.memorizeTestBody,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: scheme.onSurfaceVariant,
+                            height: 1.35,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
+                ],
+              ),
+            ),
+          ),
+        ),
         const SizedBox(height: 12),
         OutlinedButton.icon(
           onPressed: _openMap,

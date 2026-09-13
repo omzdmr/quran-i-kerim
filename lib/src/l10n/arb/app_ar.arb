@@ -63,5 +63,14 @@
   "memorizeReview": "مراجعة",
   "memorizeRevealVerse": "اضغط لإظهار الآية",
   "memorizeMarkPage": "تحديد الصفحة كمحفوظة",
-  "memorizePageCompleted": "محفوظة"
+  "memorizePageCompleted": "محفوظة",
+  "memorizeTestTitle": "اختبار الحفظ",
+  "memorizeTestBody": "اختبر قدرتك على متابعة آية عشوائية من الصفحات التي حفظتها.",
+  "memorizeTestContinuePrompt": "أكمل من حفظك",
+  "memorizeTestShowAnswer": "إظهار الإجابة",
+  "memorizeTestAnother": "سؤال آخر",
+  "memorizeTestKnown": "تذكرت",
+  "memorizeTestMissed": "لم أتذكر",
+  "memorizeTestEmptyTitle": "لا يوجد اختبار جاهز بعد",
+  "memorizeTestEmptyBody": "حدّد صفحة تحتوي على آيتين متتاليتين على الأقل كمحفوظة في خريطة الحفظ، ثم يمكن بدء اختبار الاسترجاع العشوائي."
 }

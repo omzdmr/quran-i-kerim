@@ -63,5 +63,14 @@
   "memorizeReview": "Повторить",
   "memorizeRevealVerse": "Нажмите, чтобы показать",
   "memorizeMarkPage": "Отметить страницу как выученную",
-  "memorizePageCompleted": "Выучено"
+  "memorizePageCompleted": "Выучено",
+  "memorizeTestTitle": "Тест заучивания",
+  "memorizeTestBody": "Возьмите случайный аят из выученных страниц и попробуйте продолжить его по памяти.",
+  "memorizeTestContinuePrompt": "Продолжите по памяти",
+  "memorizeTestShowAnswer": "Показать ответ",
+  "memorizeTestAnother": "Другой вопрос",
+  "memorizeTestKnown": "Вспомнил",
+  "memorizeTestMissed": "Не вспомнил",
+  "memorizeTestEmptyTitle": "Тест пока недоступен",
+  "memorizeTestEmptyBody": "Отметьте в карте заучивания как минимум одну страницу с двумя последовательными аятами, затем можно начать случайный тест памяти."
 }

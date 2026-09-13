@@ -63,5 +63,14 @@
   "memorizeReview": "Təkrar et",
   "memorizeRevealVerse": "Göstərmək üçün toxun",
   "memorizeMarkPage": "Səhifəni əzbərlənmiş kimi işarələ",
-  "memorizePageCompleted": "Əzbərləndi"
+  "memorizePageCompleted": "Əzbərləndi",
+  "memorizeTestTitle": "Əzbər Testi",
+  "memorizeTestBody": "Əzbərlədiyin səhifələrdən təsadüfi ayə ilə davamını yaddaşdan deməyə çalış.",
+  "memorizeTestContinuePrompt": "Davamını əzbərindən oxu",
+  "memorizeTestShowAnswer": "Cavabı göstər",
+  "memorizeTestAnother": "Başqa sual",
+  "memorizeTestKnown": "Bildim",
+  "memorizeTestMissed": "Bilmədim",
+  "memorizeTestEmptyTitle": "Hələ test hazır deyil",
+  "memorizeTestEmptyBody": "Əzbər xəritəsində ən azı iki ardıcıl ayəni əhatə edən bir səhifəni əzbərlənmiş kimi işarələ; sonra təsadüfi yaddaş testi başlaya bilər."
 }
