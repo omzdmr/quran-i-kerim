@@ -82,6 +82,27 @@ void main() {
     expect(queue.consolidationPages, isEmpty);
   });
 
+  test('daily queue can be constrained to the active memorization target', () {
+    final now = DateTime(2026, 9, 13);
+    final queue = buildMemorizationDailyQueue(
+      pace: MemorizationPlanPace.intensive12Months,
+      planDayIndex: 6,
+      now: now,
+      eligiblePages: <int>{2, 4},
+      memorizedAtByPage: <int, DateTime>{
+        1: now.subtract(const Duration(days: 2)),
+        2: now.subtract(const Duration(days: 2)),
+        3: now.subtract(const Duration(days: 14)),
+        4: now.subtract(const Duration(days: 40)),
+      },
+    );
+
+    expect(queue.recentReviewPages, <int>[2]);
+    expect(queue.checkpointReviewPages, isEmpty);
+    expect(queue.oldReviewPages, <int>[4]);
+    expect(queue.consolidationPages, <int>[2]);
+  });
+
   test('old review prioritizes never reviewed then least recently reviewed', () {
     final now = DateTime(2026, 9, 13);
     final memorizedAtByPage = <int, DateTime>{

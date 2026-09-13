@@ -158,13 +158,15 @@ int _memorizationAgeInDays(DateTime memorizedAt, DateTime now) =>
 /// Day 14/30 checkpoints are kept separate from the rotating older-review
 /// bucket so a page is not scheduled twice for the same day. Older pages are
 /// selected by least-recent review first, which gives the rotation a stable
-/// priority without requiring a server-side cursor.
+/// priority without requiring a server-side cursor. When [eligiblePages] is
+/// provided, only pages in the active memorization target are scheduled.
 MemorizationDailyQueue buildMemorizationDailyQueue({
   required MemorizationPlanPace pace,
   required int planDayIndex,
   required DateTime now,
   required Map<int, DateTime> memorizedAtByPage,
   Map<int, DateTime> lastReviewedAtByPage = const <int, DateTime>{},
+  Set<int>? eligiblePages,
 }) {
   if (planDayIndex < 0) {
     throw ArgumentError.value(planDayIndex, 'planDayIndex', 'must be >= 0');
@@ -180,6 +182,7 @@ MemorizationDailyQueue buildMemorizationDailyQueue({
   for (final entry in memorizedAtByPage.entries) {
     final page = entry.key;
     if (page < 1 || page > 604) continue;
+    if (eligiblePages != null && !eligiblePages.contains(page)) continue;
 
     final age = _memorizationAgeInDays(entry.value, now);
     if (age < 0) continue;
