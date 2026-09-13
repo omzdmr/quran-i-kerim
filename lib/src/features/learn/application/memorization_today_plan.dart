@@ -84,17 +84,16 @@ int _missedPlanDaysInTrailingWeek({
       .length;
 }
 
-int _struggledTargetPageCount({
+int _fragileTargetPageCount({
   required MemorizationProgressSnapshot progress,
   required Set<int> targetPages,
 }) {
-  return progress.pageProgress.entries
-      .where(
-        (entry) =>
-            targetPages.contains(entry.key) &&
-            entry.value.selfAssessment == MemorizationSelfAssessment.struggled,
-      )
-      .length;
+  return progress.pageProgress.entries.where((entry) {
+    if (!targetPages.contains(entry.key)) return false;
+    final assessment = entry.value.selfAssessment;
+    return assessment == MemorizationSelfAssessment.struggled ||
+        assessment == MemorizationSelfAssessment.assisted;
+  }).length;
 }
 
 /// Binds the persisted hifz plan, progress, active target and recall history
@@ -144,11 +143,11 @@ MemorizationTodayPlan? buildMemorizationTodayPlan({
 
   final targetPages = memorizationPagesForTarget(target);
   final targetPageSet = targetPages.toSet();
-  final struggledTargetPageCount = _struggledTargetPageCount(
+  final fragileTargetPageCount = _fragileTargetPageCount(
     progress: progress,
     targetPages: targetPageSet,
   );
-  final effectiveWeakRecallCount = weakRecallCount + struggledTargetPageCount;
+  final effectiveWeakRecallCount = weakRecallCount + fragileTargetPageCount;
   final queue = buildAdaptiveMemorizationDailyQueue(
     pace: plan.pace!,
     planDayIndex: effectivePlanDayIndex,

@@ -124,7 +124,7 @@ void main() {
     expect(result.isNewLoadReduced, isTrue);
   });
 
-  test('persisted struggled assessments contribute to weak recall pressure', () {
+  test('persisted fragile assessments contribute to weak recall pressure', () {
     final now = DateTime(2026, 9, 13);
     final result = buildMemorizationTodayPlan(
       plan: MemorizationPlanSnapshot(
@@ -132,7 +132,7 @@ void main() {
         startedAt: now,
       ),
       progress: MemorizationProgressSnapshot(
-        memorizedPages: const <int>{1, 2},
+        memorizedPages: const <int>{1, 2, 3},
         practiceDays: const <String>{},
         pageProgress: <int, MemorizationPageProgress>{
           1: MemorizationPageProgress(
@@ -141,7 +141,11 @@ void main() {
           ),
           2: MemorizationPageProgress(
             memorizedAt: now.subtract(const Duration(days: 10)),
-            selfAssessment: MemorizationSelfAssessment.struggled,
+            selfAssessment: MemorizationSelfAssessment.assisted,
+          ),
+          3: MemorizationPageProgress(
+            memorizedAt: now.subtract(const Duration(days: 10)),
+            selfAssessment: MemorizationSelfAssessment.unassisted,
           ),
         },
       ),
