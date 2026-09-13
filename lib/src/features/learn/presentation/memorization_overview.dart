@@ -6,10 +6,13 @@ import '../application/memorization_juz_review.dart';
 import '../application/memorization_page_catalog.dart';
 import '../application/memorization_progress_store.dart';
 import '../application/memorization_recall_history_store.dart';
+import '../application/memorization_target_catalog.dart';
+import '../application/memorization_target_store.dart';
 import '../application/memorization_weekly_review.dart';
 import 'memorization_juz_review_screen.dart';
 import 'memorization_map_screen.dart';
 import 'memorization_recall_test_screen.dart';
+import 'memorization_target_screen.dart';
 import 'memorization_weak_verses_screen.dart';
 import 'memorization_weekly_review_screen.dart';
 
@@ -23,7 +26,9 @@ class MemorizationOverview extends StatefulWidget {
 class _MemorizationOverviewState extends State<MemorizationOverview> {
   static const _store = MemorizationProgressStore();
   static const _historyStore = MemorizationRecallHistoryStore();
+  static const _targetStore = MemorizationTargetStore();
   MemorizationProgressSnapshot? _snapshot;
+  MemorizationTargetId _target = MemorizationTargetId.fullQuran;
   int _weakVerseCount = 0;
   int _weeklyPageCount = 0;
   int _completedJuzCount = 0;
@@ -37,9 +42,11 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
   Future<void> _load() async {
     final snapshot = await _store.load();
     final history = await _historyStore.load();
+    final target = await _targetStore.load();
     if (!mounted) return;
     setState(() {
       _snapshot = snapshot;
+      _target = target;
       _weakVerseCount = history.weakQuestionIds.length;
       _weeklyPageCount = weeklyMemorizedPages(snapshot).length;
       _completedJuzCount = completedMemorizedJuz(snapshot).length;
@@ -55,6 +62,13 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
   Future<void> _openMap() async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(builder: (_) => const MemorizationMapScreen()),
+    );
+    await _load();
+  }
+
+  Future<void> _openTarget() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => const MemorizationTargetScreen()),
     );
     await _load();
   }
@@ -104,8 +118,18 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
       );
     }
 
-    final nextPage = snapshot.nextPage;
-    final progress = snapshot.memorizedCount / 604;
+    final targetPages = memorizationPagesForTarget(_target);
+    final targetMemorizedCount = memorizedPageCountForTarget(
+      _target,
+      snapshot.memorizedPages,
+    );
+    final nextPage = nextMemorizationPageForTarget(
+      _target,
+      snapshot.memorizedPages,
+    );
+    final progress = targetPages.isEmpty
+        ? 0.0
+        : targetMemorizedCount / targetPages.length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -150,7 +174,7 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
               ),
               const SizedBox(height: 8),
               Text(
-                '${snapshot.memorizedCount} / 604 ${l10n.memorizePages}',
+                '$targetMemorizedCount / ${targetPages.length} ${l10n.memorizePages}',
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w800,
@@ -158,6 +182,14 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
               ),
             ],
           ),
+        ),
+        const SizedBox(height: 14),
+        _OverviewActionCard(
+          icon: Icons.flag_outlined,
+          title: memorizationTargetLabel(context, _target),
+          body: l10n.memorizeProgress,
+          badge: '$targetMemorizedCount/${targetPages.length}',
+          onTap: _openTarget,
         ),
         const SizedBox(height: 14),
         _StartGuideCard(
@@ -182,7 +214,7 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
             Expanded(
               child: _MetricCard(
                 icon: Icons.check_circle_outline_rounded,
-                value: '${snapshot.memorizedCount}',
+                value: '$targetMemorizedCount',
                 label: l10n.memorizeProgress,
               ),
             ),
