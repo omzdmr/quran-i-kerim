@@ -5,9 +5,11 @@ import '../../../navigation/app_navigation.dart';
 import '../application/memorization_page_catalog.dart';
 import '../application/memorization_progress_store.dart';
 import '../application/memorization_recall_history_store.dart';
+import '../application/memorization_weekly_review.dart';
 import 'memorization_map_screen.dart';
 import 'memorization_recall_test_screen.dart';
 import 'memorization_weak_verses_screen.dart';
+import 'memorization_weekly_review_screen.dart';
 
 class MemorizationOverview extends StatefulWidget {
   const MemorizationOverview({super.key});
@@ -21,6 +23,7 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
   static const _historyStore = MemorizationRecallHistoryStore();
   MemorizationProgressSnapshot? _snapshot;
   int _weakVerseCount = 0;
+  int _weeklyPageCount = 0;
 
   @override
   void initState() {
@@ -35,6 +38,7 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
     setState(() {
       _snapshot = snapshot;
       _weakVerseCount = history.weakQuestionIds.length;
+      _weeklyPageCount = weeklyMemorizedPages(snapshot).length;
     });
   }
 
@@ -61,6 +65,15 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
   Future<void> _openWeakVerses() async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(builder: (_) => const MemorizationWeakVersesScreen()),
+    );
+    await _load();
+  }
+
+  Future<void> _openWeeklyReview() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => const MemorizationWeeklyReviewScreen(),
+      ),
     );
     await _load();
   }
@@ -219,6 +232,14 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
               ],
             ),
           ),
+        const SizedBox(height: 12),
+        _OverviewActionCard(
+          icon: Icons.event_repeat_rounded,
+          title: l10n.memorizeWeeklyTitle,
+          body: l10n.memorizeWeeklyBody,
+          badge: '$_weeklyPageCount',
+          onTap: _openWeeklyReview,
+        ),
         const SizedBox(height: 12),
         _OverviewActionCard(
           icon: Icons.casino_outlined,

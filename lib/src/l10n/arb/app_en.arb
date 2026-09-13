@@ -89,5 +89,12 @@
   "memorizeWeakEmptyBody": "No weak verses right now. Verses you miss in the memorization test will appear here for priority review.",
   "memorizeWeakReview": "Review again",
   "memorizeWeakDifficulty": "Difficulty",
-  "memorizeWeakAttempts": "Attempts"
+  "memorizeWeakAttempts": "Attempts",
+  "memorizeWeeklyTitle": "Weekly Consolidation",
+  "memorizeWeeklyBody": "Run a short review session from pages memorized during the last 7 days.",
+  "memorizeWeeklyEmptyTitle": "No new pages are ready for this week's test",
+  "memorizeWeeklyEmptyBody": "Your weekly review will appear here when the last 7 days contain memorized pages that can form continuation questions.",
+  "memorizeWeeklyCompleteTitle": "Weekly review complete",
+  "memorizeWeeklyCompleteBody": "Verses you missed were added to Weak Verses, and successful recalls were saved to your review history.",
+  "memorizeWeeklyRestart": "Review again"
 }

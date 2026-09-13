@@ -78,5 +78,12 @@
   "memorizeWeakEmptyBody": "لا توجد آيات صعبة الآن. الآيات التي لا تتذكرها في اختبار الحفظ ستظهر هنا للمراجعة ذات الأولوية.",
   "memorizeWeakReview": "مراجعة مرة أخرى",
   "memorizeWeakDifficulty": "الصعوبة",
-  "memorizeWeakAttempts": "المحاولات"
+  "memorizeWeakAttempts": "المحاولات",
+  "memorizeWeeklyTitle": "تثبيت أسبوعي",
+  "memorizeWeeklyBody": "نفّذ جلسة مراجعة قصيرة من الصفحات التي حفظتها خلال آخر 7 أيام.",
+  "memorizeWeeklyEmptyTitle": "لا توجد صفحات جديدة جاهزة لاختبار هذا الأسبوع",
+  "memorizeWeeklyEmptyBody": "ستظهر المراجعة الأسبوعية هنا عندما تحتوي آخر 7 أيام على صفحات محفوظة يمكن تكوين أسئلة متابعة منها.",
+  "memorizeWeeklyCompleteTitle": "اكتملت المراجعة الأسبوعية",
+  "memorizeWeeklyCompleteBody": "أُضيفت الآيات التي تعثرت فيها إلى الآيات الصعبة، وسُجلت الاسترجاعات الناجحة في سجل المراجعة.",
+  "memorizeWeeklyRestart": "مراجعة مرة أخرى"
 }

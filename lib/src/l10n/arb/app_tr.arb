@@ -78,5 +78,12 @@
   "memorizeWeakEmptyBody": "Şimdilik zor ayet görünmüyor. Ezber testinde zorlandığın ayetler burada öncelikli tekrar listesine girer.",
   "memorizeWeakReview": "Tekrar çalış",
   "memorizeWeakDifficulty": "Zorluk",
-  "memorizeWeakAttempts": "Deneme"
+  "memorizeWeakAttempts": "Deneme",
+  "memorizeWeeklyTitle": "Haftalık Sağlamlaştırma",
+  "memorizeWeeklyBody": "Son 7 günde ezberlediğin sayfalardan kısa bir tekrar oturumu yap.",
+  "memorizeWeeklyEmptyTitle": "Bu hafta testlik yeni sayfa yok",
+  "memorizeWeeklyEmptyBody": "Son 7 günde ezberlediğin sayfalardan devam sorusu oluşturulabildiğinde haftalık tekrar burada hazırlanır.",
+  "memorizeWeeklyCompleteTitle": "Haftalık tekrar tamamlandı",
+  "memorizeWeeklyCompleteBody": "Zorlandığın ayetler Zor Ayetler havuzuna işlendi; iyi hatırladıkların da tekrar geçmişine kaydedildi.",
+  "memorizeWeeklyRestart": "Yeniden çalış"
 }

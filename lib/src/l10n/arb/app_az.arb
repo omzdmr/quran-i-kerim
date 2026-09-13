@@ -78,5 +78,12 @@
   "memorizeWeakEmptyBody": "İndi çətin ayə yoxdur. Əzbər testində qaçırdığın ayələr üstün təkrar üçün burada görünəcək.",
   "memorizeWeakReview": "Yenidən təkrar et",
   "memorizeWeakDifficulty": "Çətinlik",
-  "memorizeWeakAttempts": "Cəhdlər"
+  "memorizeWeakAttempts": "Cəhdlər",
+  "memorizeWeeklyTitle": "Həftəlik möhkəmləndirmə",
+  "memorizeWeeklyBody": "Son 7 gündə əzbərlədiyin səhifələrdən qısa təkrar sessiyası et.",
+  "memorizeWeeklyEmptyTitle": "Bu həftə test üçün yeni səhifə yoxdur",
+  "memorizeWeeklyEmptyBody": "Son 7 gündə davam sualı yaradıla bilən əzbər səhifələr olduqda həftəlik təkrar burada hazırlanacaq.",
+  "memorizeWeeklyCompleteTitle": "Həftəlik təkrar tamamlandı",
+  "memorizeWeeklyCompleteBody": "Çətinlik çəkdiyin ayələr Çətin ayələr siyahısına əlavə edildi, uğurlu xatırlamalar isə təkrar tarixçəsinə yazıldı.",
+  "memorizeWeeklyRestart": "Yenidən çalış"
 }
