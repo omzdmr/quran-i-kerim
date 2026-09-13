@@ -4,10 +4,12 @@ import '../../../l10n/generated/generated_app_localizations.dart';
 import '../../../navigation/app_navigation.dart';
 import '../application/memorization_juz_review.dart';
 import '../application/memorization_page_catalog.dart';
+import '../application/memorization_plan_store.dart';
 import '../application/memorization_progress_store.dart';
 import '../application/memorization_recall_history_store.dart';
 import '../application/memorization_target_catalog.dart';
 import '../application/memorization_target_store.dart';
+import '../application/memorization_today_plan.dart';
 import '../application/memorization_weekly_review.dart';
 import 'memorization_juz_review_screen.dart';
 import 'memorization_map_screen.dart';
@@ -27,8 +29,10 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
   static const _store = MemorizationProgressStore();
   static const _historyStore = MemorizationRecallHistoryStore();
   static const _targetStore = MemorizationTargetStore();
+  static const _planStore = MemorizationPlanStore();
   MemorizationProgressSnapshot? _snapshot;
   MemorizationTargetId _target = MemorizationTargetId.fullQuran;
+  MemorizationTodayPlan? _todayPlan;
   int _weakVerseCount = 0;
   int _weeklyPageCount = 0;
   int _completedJuzCount = 0;
@@ -43,10 +47,19 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
     final snapshot = await _store.load();
     final history = await _historyStore.load();
     final target = await _targetStore.load();
+    final plan = await _planStore.load();
+    final todayPlan = buildMemorizationTodayPlan(
+      plan: plan,
+      progress: snapshot,
+      target: target,
+      weakRecallCount: history.weakQuestionIds.length,
+      now: DateTime.now(),
+    );
     if (!mounted) return;
     setState(() {
       _snapshot = snapshot;
       _target = target;
+      _todayPlan = todayPlan;
       _weakVerseCount = history.weakQuestionIds.length;
       _weeklyPageCount = weeklyMemorizedPages(snapshot).length;
       _completedJuzCount = completedMemorizedJuz(snapshot).length;
@@ -127,6 +140,17 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
       _target,
       snapshot.memorizedPages,
     );
+    final todayPlan = _todayPlan;
+    final scheduledNextPage = todayPlan == null
+        ? nextPage
+        : todayPlan.newPages.isEmpty
+            ? null
+            : todayPlan.newPages.first;
+    final todayProgramBadge = todayPlan == null
+        ? null
+        : todayPlan.isNewLoadReduced
+            ? '${todayPlan.newPageCount}/${todayPlan.baseNewPageCount}'
+            : '${todayPlan.newPageCount}';
     final progress = targetPages.isEmpty
         ? 0.0
         : targetMemorizedCount / targetPages.length;
@@ -197,14 +221,17 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
             _StartGuideStep(
               icon: Icons.today_outlined,
               label: l10n.memorizeTodayProgram,
+              badge: todayProgramBadge,
             ),
             _StartGuideStep(
               icon: Icons.menu_book_outlined,
               label: l10n.memorizeNextPage,
+              badge: scheduledNextPage == null ? null : '$scheduledNextPage',
             ),
             _StartGuideStep(
               icon: Icons.replay_rounded,
               label: l10n.memorizeTodayReview,
+              badge: todayPlan == null ? null : '${todayPlan.reviewPages.length}',
             ),
           ],
         ),
@@ -229,7 +256,7 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
           ],
         ),
         const SizedBox(height: 14),
-        if (nextPage != null)
+        if (scheduledNextPage != null)
           Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
@@ -261,7 +288,7 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        '$nextPage',
+                        '$scheduledNextPage',
                         style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
@@ -271,7 +298,7 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
                   ),
                 ),
                 FilledButton.tonal(
-                  onPressed: () => _openPage(nextPage),
+                  onPressed: () => _openPage(scheduledNextPage),
                   child: Text(l10n.memorizeOpenNext),
                 ),
               ],
@@ -320,10 +347,15 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
 }
 
 class _StartGuideStep {
-  const _StartGuideStep({required this.icon, required this.label});
+  const _StartGuideStep({
+    required this.icon,
+    required this.label,
+    this.badge,
+  });
 
   final IconData icon;
   final String label;
+  final String? badge;
 }
 
 class _StartGuideCard extends StatelessWidget {
@@ -379,6 +411,26 @@ class _StartGuideCard extends StatelessWidget {
                     style: const TextStyle(fontWeight: FontWeight.w800),
                   ),
                 ),
+                if (steps[index].badge != null) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: scheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      steps[index].badge!,
+                      style: TextStyle(
+                        color: scheme.primary,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
             if (index != steps.length - 1)
