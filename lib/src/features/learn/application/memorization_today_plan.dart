@@ -89,7 +89,10 @@ int _fragileTargetPageCount({
   required Set<int> targetPages,
 }) {
   return progress.pageProgress.entries.where((entry) {
-    if (!targetPages.contains(entry.key)) return false;
+    if (!targetPages.contains(entry.key) ||
+        !progress.memorizedPages.contains(entry.key)) {
+      return false;
+    }
     final assessment = entry.value.selfAssessment;
     return assessment == MemorizationSelfAssessment.struggled ||
         assessment == MemorizationSelfAssessment.assisted;
