@@ -145,7 +145,7 @@ void main() {
           ),
           3: MemorizationPageProgress(
             memorizedAt: now.subtract(const Duration(days: 10)),
-            selfAssessment: MemorizationSelfAssessment.unassisted,
+            selfAssessment: MemorizationSelfAssessment.independent,
           ),
         },
       ),
