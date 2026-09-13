@@ -61,6 +61,82 @@ void main() {
     expect(full.oldReviewPages, 10);
   });
 
+  test('daily queue separates recent, checkpoint, and old review pages', () {
+    final now = DateTime(2026, 9, 13, 18);
+    final queue = buildMemorizationDailyQueue(
+      pace: MemorizationPlanPace.intensive12Months,
+      planDayIndex: 3,
+      now: now,
+      memorizedAtByPage: <int, DateTime>{
+        1: now.subtract(const Duration(days: 2)),
+        2: now.subtract(const Duration(days: 14)),
+        3: now.subtract(const Duration(days: 30)),
+        4: now.subtract(const Duration(days: 40)),
+      },
+    );
+
+    expect(queue.newPageCount, 2);
+    expect(queue.recentReviewPages, <int>[1]);
+    expect(queue.checkpointReviewPages, <int>[2, 3]);
+    expect(queue.oldReviewPages, <int>[4]);
+    expect(queue.consolidationPages, isEmpty);
+  });
+
+  test('old review prioritizes never reviewed then least recently reviewed', () {
+    final now = DateTime(2026, 9, 13);
+    final memorizedAtByPage = <int, DateTime>{
+      for (var page = 1; page <= 121; page++)
+        page: now.subtract(Duration(days: 40 + page)),
+    };
+    final queue = buildMemorizationDailyQueue(
+      pace: MemorizationPlanPace.intensive12Months,
+      planDayIndex: 0,
+      now: now,
+      memorizedAtByPage: memorizedAtByPage,
+      lastReviewedAtByPage: <int, DateTime>{
+        1: now.subtract(const Duration(days: 1)),
+        2: now.subtract(const Duration(days: 20)),
+      },
+    );
+
+    expect(queue.oldReviewPages.length, 3);
+    expect(queue.oldReviewPages, <int>[3, 4, 5]);
+  });
+
+  test('consolidation day collects current week pages and schedules no new work', () {
+    final now = DateTime(2026, 9, 13);
+    final queue = buildMemorizationDailyQueue(
+      pace: MemorizationPlanPace.balanced24Months,
+      planDayIndex: 6,
+      now: now,
+      memorizedAtByPage: <int, DateTime>{
+        10: now.subtract(const Duration(days: 1)),
+        11: now.subtract(const Duration(days: 6)),
+        12: now.subtract(const Duration(days: 7)),
+      },
+    );
+
+    expect(queue.isConsolidationDay, isTrue);
+    expect(queue.newPageCount, 0);
+    expect(queue.consolidationPages, <int>[10, 11]);
+  });
+
+  test('future memorization timestamps are ignored by the daily queue', () {
+    final now = DateTime(2026, 9, 13);
+    final queue = buildMemorizationDailyQueue(
+      pace: MemorizationPlanPace.steady18Months,
+      planDayIndex: 0,
+      now: now,
+      memorizedAtByPage: <int, DateTime>{
+        20: now.add(const Duration(days: 1)),
+      },
+    );
+
+    expect(queue.recentReviewPages, isEmpty);
+    expect(queue.checkpointReviewPages, isEmpty);
+    expect(queue.oldReviewPages, isEmpty);
+  });
+
   test('learning protocol uses recall and never enables automatic speech scoring', () {
     expect(defaultMemorizationLearningProtocol.readWhileLooking.min, 5);
     expect(defaultMemorizationLearningProtocol.readWhileLooking.max, 10);
