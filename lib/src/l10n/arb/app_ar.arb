@@ -85,5 +85,12 @@
   "memorizeWeeklyEmptyBody": "ستظهر المراجعة الأسبوعية هنا عندما تحتوي آخر 7 أيام على صفحات محفوظة يمكن تكوين أسئلة متابعة منها.",
   "memorizeWeeklyCompleteTitle": "اكتملت المراجعة الأسبوعية",
   "memorizeWeeklyCompleteBody": "أُضيفت الآيات التي تعثرت فيها إلى الآيات الصعبة، وسُجلت الاسترجاعات الناجحة في سجل المراجعة.",
-  "memorizeWeeklyRestart": "مراجعة مرة أخرى"
+  "memorizeWeeklyRestart": "مراجعة مرة أخرى",
+  "memorizeTestModeContinue": "المتابعة",
+  "memorizeTestModeHint": "تلميح",
+  "memorizeHintPrompt": "اقرأ الآية كاملة من حفظك انطلاقًا من الكلمات الأولى",
+  "memorizeHintEmptyBody": "يتاح وضع التلميح عندما تحتوي الصفحات المحفوظة على آية يمكن إكمالها بعد الكلمات الأولى.",
+  "memorizeTestIndependent": "قرأتها دون مساعدة",
+  "memorizeTestAssisted": "احتجت إلى مساعدة",
+  "memorizeTestStruggled": "تعثرت"
 }

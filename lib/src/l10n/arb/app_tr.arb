@@ -85,5 +85,12 @@
   "memorizeWeeklyEmptyBody": "Son 7 günde ezberlediğin sayfalardan devam sorusu oluşturulabildiğinde haftalık tekrar burada hazırlanır.",
   "memorizeWeeklyCompleteTitle": "Haftalık tekrar tamamlandı",
   "memorizeWeeklyCompleteBody": "Zorlandığın ayetler Zor Ayetler havuzuna işlendi; iyi hatırladıkların da tekrar geçmişine kaydedildi.",
-  "memorizeWeeklyRestart": "Yeniden çalış"
+  "memorizeWeeklyRestart": "Yeniden çalış",
+  "memorizeTestModeContinue": "Devam",
+  "memorizeTestModeHint": "İpucu",
+  "memorizeHintPrompt": "İlk kelimelerden ayetin tamamını ezberinden oku",
+  "memorizeHintEmptyBody": "Ezberlediğin sayfalarda ilk kelimelerden sonra devam eden bir ayet olduğunda İpucu modu başlayabilir.",
+  "memorizeTestIndependent": "Yardımsız okudum",
+  "memorizeTestAssisted": "Yardım aldım",
+  "memorizeTestStruggled": "Zorlandım"
 }

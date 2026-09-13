@@ -96,5 +96,12 @@
   "memorizeWeeklyEmptyBody": "Your weekly review will appear here when the last 7 days contain memorized pages that can form continuation questions.",
   "memorizeWeeklyCompleteTitle": "Weekly review complete",
   "memorizeWeeklyCompleteBody": "Verses you missed were added to Weak Verses, and successful recalls were saved to your review history.",
-  "memorizeWeeklyRestart": "Review again"
+  "memorizeWeeklyRestart": "Review again",
+  "memorizeTestModeContinue": "Continuation",
+  "memorizeTestModeHint": "Hint",
+  "memorizeHintPrompt": "Use the first words to recite the full verse from memory",
+  "memorizeHintEmptyBody": "Hint mode becomes available when a memorized page contains a verse long enough to continue after the first words.",
+  "memorizeTestIndependent": "I recited independently",
+  "memorizeTestAssisted": "I needed help",
+  "memorizeTestStruggled": "I struggled"
 }

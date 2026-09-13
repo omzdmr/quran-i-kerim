@@ -85,5 +85,12 @@
   "memorizeWeeklyEmptyBody": "Son 7 gündə davam sualı yaradıla bilən əzbər səhifələr olduqda həftəlik təkrar burada hazırlanacaq.",
   "memorizeWeeklyCompleteTitle": "Həftəlik təkrar tamamlandı",
   "memorizeWeeklyCompleteBody": "Çətinlik çəkdiyin ayələr Çətin ayələr siyahısına əlavə edildi, uğurlu xatırlamalar isə təkrar tarixçəsinə yazıldı.",
-  "memorizeWeeklyRestart": "Yenidən çalış"
+  "memorizeWeeklyRestart": "Yenidən çalış",
+  "memorizeTestModeContinue": "Davam",
+  "memorizeTestModeHint": "İpucu",
+  "memorizeHintPrompt": "İlk sözlərdən ayənin tamamını əzbərdən oxu",
+  "memorizeHintEmptyBody": "Əzbərlənmiş səhifələrdə ilk sözlərdən sonra davam edən ayə olduqda İpucu rejimi açılır.",
+  "memorizeTestIndependent": "Köməksiz oxudum",
+  "memorizeTestAssisted": "Kömək aldım",
+  "memorizeTestStruggled": "Çətinlik çəkdim"
 }

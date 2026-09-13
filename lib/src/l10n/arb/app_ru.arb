@@ -85,5 +85,12 @@
   "memorizeWeeklyEmptyBody": "Еженедельное повторение появится здесь, когда за последние 7 дней будут выученные страницы, из которых можно составить вопросы на продолжение.",
   "memorizeWeeklyCompleteTitle": "Еженедельное повторение завершено",
   "memorizeWeeklyCompleteBody": "Аяты, которые вызвали трудности, добавлены в список трудных аятов, а успешные ответы сохранены в истории повторений.",
-  "memorizeWeeklyRestart": "Повторить снова"
+  "memorizeWeeklyRestart": "Повторить снова",
+  "memorizeTestModeContinue": "Продолжение",
+  "memorizeTestModeHint": "Подсказка",
+  "memorizeHintPrompt": "По первым словам прочитайте весь аят по памяти",
+  "memorizeHintEmptyBody": "Режим подсказки доступен, когда на выученной странице есть аят, который продолжается после первых слов.",
+  "memorizeTestIndependent": "Прочитал без помощи",
+  "memorizeTestAssisted": "Нужна была помощь",
+  "memorizeTestStruggled": "Было трудно"
 }
