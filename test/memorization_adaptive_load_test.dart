@@ -10,6 +10,7 @@ void main() {
       isConsolidationDay: false,
       recentReviewPageCount: 2,
       checkpointReviewPageCount: 0,
+      oldReviewPageCount: 1,
       weakRecallCount: 0,
       missedPlanDaysLast7: 0,
     );
@@ -25,6 +26,7 @@ void main() {
       isConsolidationDay: false,
       recentReviewPageCount: 2,
       checkpointReviewPageCount: 0,
+      oldReviewPageCount: 0,
       weakRecallCount: 2,
       missedPlanDaysLast7: 0,
     );
@@ -34,12 +36,29 @@ void main() {
     expect(decision.isReduced, isTrue);
   });
 
+  test('heavy old review pressure pauses new memorization', () {
+    final decision = adaptMemorizationNewPageLoad(
+      baseNewPageCount: 2,
+      isConsolidationDay: false,
+      recentReviewPageCount: 0,
+      checkpointReviewPageCount: 0,
+      oldReviewPageCount: 8,
+      weakRecallCount: 0,
+      missedPlanDaysLast7: 0,
+    );
+
+    expect(decision.newPageCount, 0);
+    expect(decision.reason, MemorizationAdaptiveLoadReason.recovery);
+    expect(decision.pausesNewMemorization, isTrue);
+  });
+
   test('two simultaneous pressure signals can pause a one-page plan', () {
     final decision = adaptMemorizationNewPageLoad(
       baseNewPageCount: 1,
       isConsolidationDay: false,
       recentReviewPageCount: 5,
       checkpointReviewPageCount: 0,
+      oldReviewPageCount: 0,
       weakRecallCount: 2,
       missedPlanDaysLast7: 0,
     );
@@ -55,6 +74,7 @@ void main() {
       isConsolidationDay: false,
       recentReviewPageCount: 0,
       checkpointReviewPageCount: 0,
+      oldReviewPageCount: 0,
       weakRecallCount: 0,
       missedPlanDaysLast7: 2,
     );
@@ -69,6 +89,7 @@ void main() {
       isConsolidationDay: true,
       recentReviewPageCount: 0,
       checkpointReviewPageCount: 0,
+      oldReviewPageCount: 0,
       weakRecallCount: 0,
       missedPlanDaysLast7: 0,
     );
@@ -106,7 +127,8 @@ void main() {
         isConsolidationDay: false,
         recentReviewPageCount: 0,
         checkpointReviewPageCount: 0,
-        weakRecallCount: -1,
+        oldReviewPageCount: -1,
+        weakRecallCount: 0,
         missedPlanDaysLast7: 0,
       ),
       throwsArgumentError,

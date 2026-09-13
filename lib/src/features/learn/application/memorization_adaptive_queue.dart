@@ -51,6 +51,7 @@ MemorizationAdaptiveDailyQueue buildAdaptiveMemorizationDailyQueue({
     isConsolidationDay: baseQueue.isConsolidationDay,
     recentReviewPageCount: baseQueue.recentReviewPages.length,
     checkpointReviewPageCount: baseQueue.checkpointReviewPages.length,
+    oldReviewPageCount: baseQueue.oldReviewPages.length,
     weakRecallCount: weakRecallCount,
     missedPlanDaysLast7: missedPlanDaysLast7,
   );

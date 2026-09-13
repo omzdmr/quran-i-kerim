@@ -32,6 +32,7 @@ MemorizationAdaptiveLoadDecision adaptMemorizationNewPageLoad({
   required bool isConsolidationDay,
   required int recentReviewPageCount,
   required int checkpointReviewPageCount,
+  required int oldReviewPageCount,
   required int weakRecallCount,
   required int missedPlanDaysLast7,
 }) {
@@ -39,6 +40,7 @@ MemorizationAdaptiveLoadDecision adaptMemorizationNewPageLoad({
     'baseNewPageCount': baseNewPageCount,
     'recentReviewPageCount': recentReviewPageCount,
     'checkpointReviewPageCount': checkpointReviewPageCount,
+    'oldReviewPageCount': oldReviewPageCount,
     'weakRecallCount': weakRecallCount,
     'missedPlanDaysLast7': missedPlanDaysLast7,
   };
@@ -58,12 +60,13 @@ MemorizationAdaptiveLoadDecision adaptMemorizationNewPageLoad({
   }
 
   // Strong recovery signals pause new memorization for the day. The learner
-  // first clears fragile/recent material instead of allowing review debt to
-  // grow while the calendar keeps adding pages.
+  // first clears fragile/recent or heavy older review instead of allowing
+  // review debt to grow while the calendar keeps adding pages.
   final requiresRecovery = missedPlanDaysLast7 >= 2 ||
       weakRecallCount >= 5 ||
       recentReviewPageCount >= 8 ||
-      checkpointReviewPageCount >= 4;
+      checkpointReviewPageCount >= 4 ||
+      oldReviewPageCount >= 8;
   if (requiresRecovery) {
     return MemorizationAdaptiveLoadDecision(
       baseNewPageCount: baseNewPageCount,
@@ -78,6 +81,7 @@ MemorizationAdaptiveLoadDecision adaptMemorizationNewPageLoad({
     weakRecallCount >= 2,
     recentReviewPageCount >= 5,
     checkpointReviewPageCount >= 2,
+    oldReviewPageCount >= 4,
   ].where((value) => value).length;
 
   if (pressureSignals == 0) {
