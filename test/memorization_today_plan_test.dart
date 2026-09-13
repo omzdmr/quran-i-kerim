@@ -153,5 +153,6 @@ void main() {
     expect(result.queue.recentReviewPages, <int>[2]);
     expect(result.newPages, <int>[3, 4]);
     expect(result.studyPages, <int>[1, 2, 3, 4]);
+    expect(result.firstStudyPage, 1);
   });
 }

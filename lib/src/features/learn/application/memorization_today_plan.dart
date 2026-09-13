@@ -61,6 +61,13 @@ class MemorizationTodayPlan {
 
     return List<int>.unmodifiable(pages);
   }
+
+  /// First concrete page the existing memorization study surface should open.
+  /// Returns null when today's plan has no review or new-memorization work.
+  int? get firstStudyPage {
+    final pages = studyPages;
+    return pages.isEmpty ? null : pages.first;
+  }
 }
 
 DateTime _dateOnly(DateTime value) =>
