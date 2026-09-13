@@ -61,18 +61,27 @@ MemorizationRecallQuestion? pickMemorizationRecallQuestion(
   Set<int> memorizedPages, {
   Random? random,
   String? previousId,
+  Set<String> preferredIds = const <String>{},
 }) {
   final candidates = buildMemorizationRecallCandidates(memorizedPages);
   if (candidates.isEmpty) return null;
 
   final generator = random ?? Random();
-  if (candidates.length == 1 || previousId == null) {
-    return candidates[generator.nextInt(candidates.length)];
+  if (candidates.length == 1) return candidates.first;
+
+  final withoutPrevious = previousId == null
+      ? candidates
+      : candidates
+          .where((question) => question.id != previousId)
+          .toList(growable: false);
+  var pool = withoutPrevious.isEmpty ? candidates : withoutPrevious;
+
+  if (preferredIds.isNotEmpty) {
+    final preferred = pool
+        .where((question) => preferredIds.contains(question.id))
+        .toList(growable: false);
+    if (preferred.isNotEmpty) pool = preferred;
   }
 
-  final filtered = candidates
-      .where((question) => question.id != previousId)
-      .toList(growable: false);
-  final pool = filtered.isEmpty ? candidates : filtered;
   return pool[generator.nextInt(pool.length)];
 }

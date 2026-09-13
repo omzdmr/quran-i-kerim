@@ -36,4 +36,18 @@ void main() {
     expect(next, isNotNull);
     expect(next!.id, isNot(first.id));
   });
+
+  test('picker prioritizes weak recall questions when available', () {
+    final candidates = buildMemorizationRecallCandidates(<int>{1});
+    expect(candidates.length, greaterThan(1));
+    final weak = candidates.last;
+
+    final picked = pickMemorizationRecallQuestion(
+      <int>{1},
+      random: Random(1),
+      preferredIds: <String>{weak.id},
+    );
+
+    expect(picked?.id, weak.id);
+  });
 }

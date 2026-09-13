@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../data/surah_localization.dart';
 import '../../../l10n/generated/generated_app_localizations.dart';
 import '../application/memorization_progress_store.dart';
+import '../application/memorization_recall_history_store.dart';
 import '../application/memorization_recall_quiz.dart';
 
 class MemorizationRecallTestScreen extends StatefulWidget {
@@ -17,10 +18,13 @@ class MemorizationRecallTestScreen extends StatefulWidget {
 class _MemorizationRecallTestScreenState
     extends State<MemorizationRecallTestScreen> {
   static const _store = MemorizationProgressStore();
+  static const _historyStore = MemorizationRecallHistoryStore();
 
   Set<int>? _memorizedPages;
+  Set<String> _preferredQuestionIds = const <String>{};
   MemorizationRecallQuestion? _question;
   bool _revealed = false;
+  bool _savingResult = false;
 
   @override
   void initState() {
@@ -30,10 +34,15 @@ class _MemorizationRecallTestScreenState
 
   Future<void> _load() async {
     final snapshot = await _store.load();
-    final question = pickMemorizationRecallQuestion(snapshot.memorizedPages);
+    final history = await _historyStore.load();
+    final question = pickMemorizationRecallQuestion(
+      snapshot.memorizedPages,
+      preferredIds: history.weakQuestionIds,
+    );
     if (!mounted) return;
     setState(() {
       _memorizedPages = snapshot.memorizedPages;
+      _preferredQuestionIds = history.weakQuestionIds;
       _question = question;
       _revealed = false;
     });
@@ -41,11 +50,12 @@ class _MemorizationRecallTestScreenState
 
   void _nextQuestion() {
     final pages = _memorizedPages;
-    if (pages == null) return;
+    if (pages == null || _savingResult) return;
     HapticFeedback.selectionClick();
     final next = pickMemorizationRecallQuestion(
       pages,
       previousId: _question?.id,
+      preferredIds: _preferredQuestionIds,
     );
     setState(() {
       _question = next;
@@ -53,7 +63,46 @@ class _MemorizationRecallTestScreenState
     });
   }
 
+  Future<void> _recordResult(bool known) async {
+    final question = _question;
+    final pages = _memorizedPages;
+    if (question == null || pages == null || _savingResult) return;
+
+    setState(() => _savingResult = true);
+    if (known) {
+      HapticFeedback.lightImpact();
+    } else {
+      HapticFeedback.mediumImpact();
+    }
+
+    final history = await _historyStore.recordResult(
+      question.id,
+      known: known,
+    );
+    await _store.recordReview(
+      question.page,
+      selfAssessment: known
+          ? MemorizationSelfAssessment.independent
+          : MemorizationSelfAssessment.struggled,
+    );
+
+    if (!mounted) return;
+    final preferredIds = history.weakQuestionIds;
+    final next = pickMemorizationRecallQuestion(
+      pages,
+      previousId: question.id,
+      preferredIds: preferredIds,
+    );
+    setState(() {
+      _preferredQuestionIds = preferredIds;
+      _question = next;
+      _revealed = false;
+      _savingResult = false;
+    });
+  }
+
   void _reveal() {
+    if (_savingResult) return;
     HapticFeedback.lightImpact();
     setState(() => _revealed = true);
   }
@@ -89,7 +138,7 @@ class _MemorizationRecallTestScreenState
                       const SizedBox(height: 14),
                       if (!_revealed)
                         FilledButton.icon(
-                          onPressed: _reveal,
+                          onPressed: _savingResult ? null : _reveal,
                           icon: const Icon(Icons.visibility_outlined),
                           label: Text(l10n.memorizeTestShowAnswer),
                           style: FilledButton.styleFrom(
@@ -103,7 +152,9 @@ class _MemorizationRecallTestScreenState
                           children: [
                             Expanded(
                               child: FilledButton.tonalIcon(
-                                onPressed: _nextQuestion,
+                                onPressed: _savingResult
+                                    ? null
+                                    : () => _recordResult(false),
                                 icon: const Icon(Icons.close_rounded),
                                 label: Text(l10n.memorizeTestMissed),
                                 style: FilledButton.styleFrom(
@@ -117,7 +168,9 @@ class _MemorizationRecallTestScreenState
                             const SizedBox(width: 12),
                             Expanded(
                               child: FilledButton.tonalIcon(
-                                onPressed: _nextQuestion,
+                                onPressed: _savingResult
+                                    ? null
+                                    : () => _recordResult(true),
                                 icon: const Icon(Icons.check_rounded),
                                 label: Text(l10n.memorizeTestKnown),
                                 style: FilledButton.styleFrom(
@@ -133,7 +186,7 @@ class _MemorizationRecallTestScreenState
                       ],
                       const SizedBox(height: 12),
                       TextButton.icon(
-                        onPressed: _nextQuestion,
+                        onPressed: _savingResult ? null : _nextQuestion,
                         icon: const Icon(Icons.casino_outlined),
                         label: Text(l10n.memorizeTestAnother),
                       ),
