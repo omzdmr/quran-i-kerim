@@ -19,6 +19,77 @@ class LearnArticleCardData {
   final IconData icon;
 }
 
+/// Section wrapper matching the reference pattern of a compact article preview
+/// plus an explicit “see all” action. Content and licensing stay external.
+class LearnArticleSection extends StatelessWidget {
+  const LearnArticleSection({
+    required this.title,
+    required this.items,
+    required this.onOpen,
+    super.key,
+    this.seeAllLabel,
+    this.onSeeAll,
+    this.previewCount = 4,
+    this.emptyState,
+  });
+
+  final String title;
+  final String? seeAllLabel;
+  final VoidCallback? onSeeAll;
+  final int previewCount;
+  final List<LearnArticleCardData> items;
+  final ValueChanged<LearnArticleCardData> onOpen;
+  final Widget? emptyState;
+
+  @override
+  Widget build(BuildContext context) {
+    final safeCount = previewCount < 0 ? 0 : previewCount;
+    final preview = items.take(safeCount).toList(growable: false);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            if (seeAllLabel != null && onSeeAll != null)
+              TextButton(
+                onPressed: () {
+                  HapticFeedback.selectionClick();
+                  onSeeAll!();
+                },
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      seeAllLabel!,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.arrow_forward_rounded, size: 17),
+                  ],
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        LearnArticleGrid(
+          items: preview,
+          onOpen: onOpen,
+          emptyState: emptyState,
+        ),
+      ],
+    );
+  }
+}
+
 /// Two-column article surface derived from the supplied references.
 ///
 /// Data and licensing remain outside this widget. Callers should only provide
