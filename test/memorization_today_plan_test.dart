@@ -123,4 +123,35 @@ void main() {
     expect(result.newPageCount, 1);
     expect(result.isNewLoadReduced, isTrue);
   });
+
+  test('study pages protect old and recent review before new memorization', () {
+    final now = DateTime(2026, 9, 13);
+    final result = buildMemorizationTodayPlan(
+      plan: MemorizationPlanSnapshot(
+        pace: MemorizationPlanPace.intensive12Months,
+        startedAt: now,
+      ),
+      progress: MemorizationProgressSnapshot(
+        memorizedPages: const <int>{1, 2},
+        practiceDays: const <String>{},
+        pageProgress: <int, MemorizationPageProgress>{
+          1: MemorizationPageProgress(
+            memorizedAt: now.subtract(const Duration(days: 40)),
+          ),
+          2: MemorizationPageProgress(
+            memorizedAt: now.subtract(const Duration(days: 2)),
+          ),
+        },
+      ),
+      target: MemorizationTargetId.fullQuran,
+      weakRecallCount: 0,
+      now: now,
+    );
+
+    expect(result, isNotNull);
+    expect(result!.queue.oldReviewPages, <int>[1]);
+    expect(result.queue.recentReviewPages, <int>[2]);
+    expect(result.newPages, <int>[3, 4]);
+    expect(result.studyPages, <int>[1, 2, 3, 4]);
+  });
 }

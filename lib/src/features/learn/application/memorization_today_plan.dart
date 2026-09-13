@@ -36,6 +36,31 @@ class MemorizationTodayPlan {
       ..sort();
     return List<int>.unmodifiable(pages);
   }
+
+  /// Concrete page order for the study flow.
+  ///
+  /// Review debt is intentionally placed before new memorization, matching the
+  /// hifz product rule that old review and fragile recent material must not be
+  /// sacrificed just to keep adding new pages. A page that appears in more
+  /// than one review bucket is scheduled only once.
+  List<int> get studyPages {
+    final seen = <int>{};
+    final pages = <int>[];
+
+    void append(Iterable<int> values) {
+      for (final page in values) {
+        if (seen.add(page)) pages.add(page);
+      }
+    }
+
+    append(queue.oldReviewPages);
+    append(queue.recentReviewPages);
+    append(queue.checkpointReviewPages);
+    append(queue.consolidationPages);
+    append(newPages);
+
+    return List<int>.unmodifiable(pages);
+  }
 }
 
 DateTime _dateOnly(DateTime value) =>
