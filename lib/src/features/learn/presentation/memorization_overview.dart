@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/generated/generated_app_localizations.dart';
 import '../../../navigation/app_navigation.dart';
+import '../application/memorization_juz_review.dart';
 import '../application/memorization_page_catalog.dart';
 import '../application/memorization_progress_store.dart';
 import '../application/memorization_recall_history_store.dart';
 import '../application/memorization_weekly_review.dart';
+import 'memorization_juz_review_screen.dart';
 import 'memorization_map_screen.dart';
 import 'memorization_recall_test_screen.dart';
 import 'memorization_weak_verses_screen.dart';
@@ -24,6 +26,7 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
   MemorizationProgressSnapshot? _snapshot;
   int _weakVerseCount = 0;
   int _weeklyPageCount = 0;
+  int _completedJuzCount = 0;
 
   @override
   void initState() {
@@ -39,6 +42,7 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
       _snapshot = snapshot;
       _weakVerseCount = history.weakQuestionIds.length;
       _weeklyPageCount = weeklyMemorizedPages(snapshot).length;
+      _completedJuzCount = completedMemorizedJuz(snapshot).length;
     });
   }
 
@@ -73,6 +77,15 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
         builder: (_) => const MemorizationWeeklyReviewScreen(),
+      ),
+    );
+    await _load();
+  }
+
+  Future<void> _openJuzReview() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => const MemorizationJuzReviewScreen(),
       ),
     );
     await _load();
@@ -239,6 +252,14 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
           body: l10n.memorizeWeeklyBody,
           badge: '$_weeklyPageCount',
           onTap: _openWeeklyReview,
+        ),
+        const SizedBox(height: 12),
+        _OverviewActionCard(
+          icon: Icons.workspace_premium_outlined,
+          title: '${l10n.memorizeJuz} · ${l10n.memorizeTestTitle}',
+          body: l10n.memorizeTestBody,
+          badge: '$_completedJuzCount',
+          onTap: _openJuzReview,
         ),
         const SizedBox(height: 12),
         _OverviewActionCard(
