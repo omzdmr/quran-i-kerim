@@ -84,6 +84,19 @@ int _missedPlanDaysInTrailingWeek({
       .length;
 }
 
+int _struggledTargetPageCount({
+  required MemorizationProgressSnapshot progress,
+  required Set<int> targetPages,
+}) {
+  return progress.pageProgress.entries
+      .where(
+        (entry) =>
+            targetPages.contains(entry.key) &&
+            entry.value.selfAssessment == MemorizationSelfAssessment.struggled,
+      )
+      .length;
+}
+
 /// Binds the persisted hifz plan, progress, active target and recall history
 /// signals into the concrete work that should be shown for today.
 ///
@@ -131,6 +144,11 @@ MemorizationTodayPlan? buildMemorizationTodayPlan({
 
   final targetPages = memorizationPagesForTarget(target);
   final targetPageSet = targetPages.toSet();
+  final struggledTargetPageCount = _struggledTargetPageCount(
+    progress: progress,
+    targetPages: targetPageSet,
+  );
+  final effectiveWeakRecallCount = weakRecallCount + struggledTargetPageCount;
   final queue = buildAdaptiveMemorizationDailyQueue(
     pace: plan.pace!,
     planDayIndex: effectivePlanDayIndex,
@@ -138,7 +156,7 @@ MemorizationTodayPlan? buildMemorizationTodayPlan({
     memorizedAtByPage: memorizedAtByPage,
     lastReviewedAtByPage: lastReviewedAtByPage,
     eligiblePages: targetPageSet,
-    weakRecallCount: weakRecallCount,
+    weakRecallCount: effectiveWeakRecallCount,
     missedPlanDaysLast7: missedPlanDaysLast7,
   );
 
@@ -151,7 +169,7 @@ MemorizationTodayPlan? buildMemorizationTodayPlan({
     elapsedPlanDayIndex: elapsedPlanDayIndex,
     effectivePlanDayIndex: effectivePlanDayIndex,
     missedPlanDaysLast7: missedPlanDaysLast7,
-    weakRecallCount: weakRecallCount,
+    weakRecallCount: effectiveWeakRecallCount,
     queue: queue,
     newPages: List<int>.unmodifiable(newPages),
   );

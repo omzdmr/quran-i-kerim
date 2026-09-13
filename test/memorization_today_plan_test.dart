@@ -124,6 +124,39 @@ void main() {
     expect(result.isNewLoadReduced, isTrue);
   });
 
+  test('persisted struggled assessments contribute to weak recall pressure', () {
+    final now = DateTime(2026, 9, 13);
+    final result = buildMemorizationTodayPlan(
+      plan: MemorizationPlanSnapshot(
+        pace: MemorizationPlanPace.intensive12Months,
+        startedAt: now,
+      ),
+      progress: MemorizationProgressSnapshot(
+        memorizedPages: const <int>{1, 2},
+        practiceDays: const <String>{},
+        pageProgress: <int, MemorizationPageProgress>{
+          1: MemorizationPageProgress(
+            memorizedAt: now.subtract(const Duration(days: 10)),
+            selfAssessment: MemorizationSelfAssessment.struggled,
+          ),
+          2: MemorizationPageProgress(
+            memorizedAt: now.subtract(const Duration(days: 10)),
+            selfAssessment: MemorizationSelfAssessment.struggled,
+          ),
+        },
+      ),
+      target: MemorizationTargetId.fullQuran,
+      weakRecallCount: 0,
+      now: now,
+    );
+
+    expect(result, isNotNull);
+    expect(result!.weakRecallCount, 2);
+    expect(result.baseNewPageCount, 2);
+    expect(result.newPageCount, 1);
+    expect(result.isNewLoadReduced, isTrue);
+  });
+
   test('study pages protect old and recent review before new memorization', () {
     final now = DateTime(2026, 9, 13);
     final result = buildMemorizationTodayPlan(
