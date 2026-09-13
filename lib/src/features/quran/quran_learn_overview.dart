@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -282,13 +284,18 @@ class _FeatureHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 25),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(30),
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF315348), Color(0xFF182B25)],
+          colors: [
+            Color(0xFF315348),
+            Color(0xFF183A31),
+            Color(0xFF453B5A),
+          ],
+          stops: [0, .62, 1],
         ),
         boxShadow: [
           BoxShadow(
@@ -299,32 +306,67 @@ class _FeatureHero extends StatelessWidget {
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: .12),
-              borderRadius: BorderRadius.circular(18),
+          SizedBox(
+            width: 112,
+            height: 112,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Transform.rotate(
+                  angle: math.pi / 4,
+                  child: Container(
+                    width: 74,
+                    height: 74,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF25C58A).withValues(alpha: .17),
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(
+                        color: const Color(0xFF25C58A).withValues(alpha: .58),
+                      ),
+                    ),
+                  ),
+                ),
+                Container(
+                  width: 76,
+                  height: 76,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: .09),
+                    borderRadius: BorderRadius.circular(25),
+                    border: Border.all(color: Colors.white12),
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 38),
+                ),
+                const Positioned(
+                  top: 8,
+                  right: 13,
+                  child: Icon(
+                    Icons.auto_awesome_rounded,
+                    color: Color(0xFF5CE7B3),
+                    size: 14,
+                  ),
+                ),
+              ],
             ),
-            child: Icon(icon, color: Colors.white, size: 28),
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 11),
           Text(
             title,
+            textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 25,
               fontWeight: FontWeight.w900,
+              height: 1.15,
             ),
           ),
           const SizedBox(height: 9),
           Text(
             body,
+            textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.white70,
-              fontSize: 15.5,
+              fontSize: 15,
               height: 1.5,
             ),
           ),
