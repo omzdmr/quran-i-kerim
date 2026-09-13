@@ -37,6 +37,33 @@ void main() {
     expect(recovered.statFor('2:6')?.attempts, 3);
   });
 
+  test('assisted recall is a moderate weak signal', () async {
+    const store = MemorizationRecallHistoryStore();
+
+    final assisted = await store.recordAssessment(
+      '2:6',
+      assessment: MemorizationRecallAssessment.assisted,
+      now: DateTime(2026, 9, 13, 19),
+    );
+    final missed = await store.recordAssessment(
+      '2:7',
+      assessment: MemorizationRecallAssessment.struggled,
+      now: DateTime(2026, 9, 13, 19),
+    );
+
+    expect(assisted.statFor('2:6')?.difficulty, 1);
+    expect(assisted.statFor('2:6')?.attempts, 1);
+    expect(assisted.weakQuestionIds, contains('2:6'));
+    expect(missed.statFor('2:7')?.difficulty, 2);
+
+    final recovered = await store.recordAssessment(
+      '2:6',
+      assessment: MemorizationRecallAssessment.independent,
+    );
+    expect(recovered.statFor('2:6')?.difficulty, 0);
+    expect(recovered.weakQuestionIds, isNot(contains('2:6')));
+  });
+
   test('weak verses are ordered by difficulty then oldest attempt', () async {
     const store = MemorizationRecallHistoryStore();
 

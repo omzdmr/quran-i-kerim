@@ -2,6 +2,12 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+enum MemorizationRecallAssessment {
+  independent,
+  assisted,
+  struggled,
+}
+
 class MemorizationRecallStat {
   const MemorizationRecallStat({
     required this.difficulty,
@@ -114,6 +120,20 @@ class MemorizationRecallHistoryStore {
     String questionId, {
     required bool known,
     DateTime? now,
+  }) {
+    return recordAssessment(
+      questionId,
+      assessment: known
+          ? MemorizationRecallAssessment.independent
+          : MemorizationRecallAssessment.struggled,
+      now: now,
+    );
+  }
+
+  Future<MemorizationRecallHistorySnapshot> recordAssessment(
+    String questionId, {
+    required MemorizationRecallAssessment assessment,
+    DateTime? now,
   }) async {
     if (questionId.trim().isEmpty) return load();
 
@@ -121,9 +141,12 @@ class MemorizationRecallHistoryStore {
     final stats = <String, MemorizationRecallStat>{...current.stats};
     final existing = stats[questionId] ??
         const MemorizationRecallStat(difficulty: 0, attempts: 0);
-    final nextDifficulty = known
-        ? (existing.difficulty - 1).clamp(0, 9)
-        : (existing.difficulty + 2).clamp(0, 9);
+    final delta = switch (assessment) {
+      MemorizationRecallAssessment.independent => -1,
+      MemorizationRecallAssessment.assisted => 1,
+      MemorizationRecallAssessment.struggled => 2,
+    };
+    final nextDifficulty = (existing.difficulty + delta).clamp(0, 9);
     stats[questionId] = MemorizationRecallStat(
       difficulty: nextDifficulty,
       attempts: existing.attempts + 1,
