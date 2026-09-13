@@ -26,6 +26,27 @@ class MemorizationRecallHistorySnapshot {
       .map((entry) => entry.key)
       .toSet();
 
+  List<MapEntry<String, MemorizationRecallStat>> get weakStatsByPriority {
+    final entries = stats.entries
+        .where((entry) => entry.value.isWeak)
+        .toList(growable: false)
+      ..sort((a, b) {
+        final difficulty = b.value.difficulty.compareTo(a.value.difficulty);
+        if (difficulty != 0) return difficulty;
+
+        final aDate = a.value.lastAttemptAt;
+        final bDate = b.value.lastAttemptAt;
+        if (aDate == null && bDate != null) return -1;
+        if (aDate != null && bDate == null) return 1;
+        if (aDate != null && bDate != null) {
+          final oldestFirst = aDate.compareTo(bDate);
+          if (oldestFirst != 0) return oldestFirst;
+        }
+        return a.key.compareTo(b.key);
+      });
+    return List<MapEntry<String, MemorizationRecallStat>>.unmodifiable(entries);
+  }
+
   MemorizationRecallStat? statFor(String questionId) => stats[questionId];
 }
 

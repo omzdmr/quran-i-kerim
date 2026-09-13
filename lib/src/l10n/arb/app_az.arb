@@ -72,5 +72,11 @@
   "memorizeTestKnown": "Bildim",
   "memorizeTestMissed": "Bilmədim",
   "memorizeTestEmptyTitle": "Hələ test hazır deyil",
-  "memorizeTestEmptyBody": "Əzbər xəritəsində ən azı iki ardıcıl ayəni əhatə edən bir səhifəni əzbərlənmiş kimi işarələ; sonra təsadüfi yaddaş testi başlaya bilər."
+  "memorizeTestEmptyBody": "Əzbər xəritəsində ən azı iki ardıcıl ayəni əhatə edən bir səhifəni əzbərlənmiş kimi işarələ; sonra təsadüfi yaddaş testi başlaya bilər.",
+  "memorizeWeakTitle": "Çətin ayələr",
+  "memorizeWeakBody": "Sınaqlarda çətinlik çəkdiyin ayələri burada topla; yaddaş gücləndikcə siyahıdan çıxsın.",
+  "memorizeWeakEmptyBody": "İndi çətin ayə yoxdur. Əzbər testində qaçırdığın ayələr üstün təkrar üçün burada görünəcək.",
+  "memorizeWeakReview": "Yenidən təkrar et",
+  "memorizeWeakDifficulty": "Çətinlik",
+  "memorizeWeakAttempts": "Cəhdlər"
 }

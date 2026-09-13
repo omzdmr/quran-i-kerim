@@ -8,7 +8,12 @@ import '../application/memorization_recall_history_store.dart';
 import '../application/memorization_recall_quiz.dart';
 
 class MemorizationRecallTestScreen extends StatefulWidget {
-  const MemorizationRecallTestScreen({super.key});
+  const MemorizationRecallTestScreen({
+    super.key,
+    this.initialQuestionId,
+  });
+
+  final String? initialQuestionId;
 
   @override
   State<MemorizationRecallTestScreen> createState() =>
@@ -35,9 +40,13 @@ class _MemorizationRecallTestScreenState
   Future<void> _load() async {
     final snapshot = await _store.load();
     final history = await _historyStore.load();
+    final initialId = widget.initialQuestionId;
+    final initialPreferred = initialId == null
+        ? history.weakQuestionIds
+        : <String>{initialId};
     final question = pickMemorizationRecallQuestion(
       snapshot.memorizedPages,
-      preferredIds: history.weakQuestionIds,
+      preferredIds: initialPreferred,
     );
     if (!mounted) return;
     setState(() {

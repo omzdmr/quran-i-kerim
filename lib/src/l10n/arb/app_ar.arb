@@ -72,5 +72,11 @@
   "memorizeTestKnown": "تذكرت",
   "memorizeTestMissed": "لم أتذكر",
   "memorizeTestEmptyTitle": "لا يوجد اختبار جاهز بعد",
-  "memorizeTestEmptyBody": "حدّد صفحة تحتوي على آيتين متتاليتين على الأقل كمحفوظة في خريطة الحفظ، ثم يمكن بدء اختبار الاسترجاع العشوائي."
+  "memorizeTestEmptyBody": "حدّد صفحة تحتوي على آيتين متتاليتين على الأقل كمحفوظة في خريطة الحفظ، ثم يمكن بدء اختبار الاسترجاع العشوائي.",
+  "memorizeWeakTitle": "الآيات الصعبة",
+  "memorizeWeakBody": "اجمع هنا الآيات التي تتعثر فيها، وتخرج من القائمة تدريجيًا مع تحسن الاسترجاع.",
+  "memorizeWeakEmptyBody": "لا توجد آيات صعبة الآن. الآيات التي لا تتذكرها في اختبار الحفظ ستظهر هنا للمراجعة ذات الأولوية.",
+  "memorizeWeakReview": "مراجعة مرة أخرى",
+  "memorizeWeakDifficulty": "الصعوبة",
+  "memorizeWeakAttempts": "المحاولات"
 }

@@ -4,8 +4,10 @@ import '../../../l10n/generated/generated_app_localizations.dart';
 import '../../../navigation/app_navigation.dart';
 import '../application/memorization_page_catalog.dart';
 import '../application/memorization_progress_store.dart';
+import '../application/memorization_recall_history_store.dart';
 import 'memorization_map_screen.dart';
 import 'memorization_recall_test_screen.dart';
+import 'memorization_weak_verses_screen.dart';
 
 class MemorizationOverview extends StatefulWidget {
   const MemorizationOverview({super.key});
@@ -16,7 +18,9 @@ class MemorizationOverview extends StatefulWidget {
 
 class _MemorizationOverviewState extends State<MemorizationOverview> {
   static const _store = MemorizationProgressStore();
+  static const _historyStore = MemorizationRecallHistoryStore();
   MemorizationProgressSnapshot? _snapshot;
+  int _weakVerseCount = 0;
 
   @override
   void initState() {
@@ -26,8 +30,12 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
 
   Future<void> _load() async {
     final snapshot = await _store.load();
+    final history = await _historyStore.load();
     if (!mounted) return;
-    setState(() => _snapshot = snapshot);
+    setState(() {
+      _snapshot = snapshot;
+      _weakVerseCount = history.weakQuestionIds.length;
+    });
   }
 
   void _openPage(int page) {
@@ -46,6 +54,13 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
   Future<void> _openRecallTest() async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(builder: (_) => const MemorizationRecallTestScreen()),
+    );
+    await _load();
+  }
+
+  Future<void> _openWeakVerses() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => const MemorizationWeakVersesScreen()),
     );
     await _load();
   }
@@ -205,56 +220,19 @@ class _MemorizationOverviewState extends State<MemorizationOverview> {
             ),
           ),
         const SizedBox(height: 12),
-        Material(
-          color: scheme.surfaceContainer,
-          borderRadius: BorderRadius.circular(22),
-          child: InkWell(
-            onTap: _openRecallTest,
-            borderRadius: BorderRadius.circular(22),
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: Row(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: scheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Icon(Icons.casino_outlined, color: scheme.primary),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l10n.memorizeTestTitle,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          l10n.memorizeTestBody,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: scheme.onSurfaceVariant,
-                            height: 1.35,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
-                ],
-              ),
-            ),
-          ),
+        _OverviewActionCard(
+          icon: Icons.casino_outlined,
+          title: l10n.memorizeTestTitle,
+          body: l10n.memorizeTestBody,
+          onTap: _openRecallTest,
+        ),
+        const SizedBox(height: 12),
+        _OverviewActionCard(
+          icon: Icons.psychology_alt_outlined,
+          title: l10n.memorizeWeakTitle,
+          body: l10n.memorizeWeakBody,
+          badge: '$_weakVerseCount',
+          onTap: _openWeakVerses,
         ),
         const SizedBox(height: 12),
         OutlinedButton.icon(
@@ -339,6 +317,95 @@ class _StartGuideCard extends StatelessWidget {
               ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _OverviewActionCard extends StatelessWidget {
+  const _OverviewActionCard({
+    required this.icon,
+    required this.title,
+    required this.body,
+    required this.onTap,
+    this.badge,
+  });
+
+  final IconData icon;
+  final String title;
+  final String body;
+  final VoidCallback onTap;
+  final String? badge;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: scheme.surfaceContainer,
+      borderRadius: BorderRadius.circular(22),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(22),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: scheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(icon, color: scheme.primary),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      body,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: scheme.onSurfaceVariant,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (badge != null) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: scheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    badge!,
+                    style: TextStyle(
+                      color: scheme.primary,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(width: 4),
+              Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
+            ],
+          ),
+        ),
       ),
     );
   }

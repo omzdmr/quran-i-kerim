@@ -37,6 +37,38 @@ void main() {
     expect(recovered.statFor('2:6')?.attempts, 3);
   });
 
+  test('weak verses are ordered by difficulty then oldest attempt', () async {
+    const store = MemorizationRecallHistoryStore();
+
+    await store.recordResult(
+      '2:7',
+      known: false,
+      now: DateTime(2026, 9, 13, 12),
+    );
+    await store.recordResult(
+      '2:6',
+      known: false,
+      now: DateTime(2026, 9, 13, 13),
+    );
+    await store.recordResult(
+      '2:6',
+      known: false,
+      now: DateTime(2026, 9, 13, 14),
+    );
+    await store.recordResult(
+      '2:8',
+      known: false,
+      now: DateTime(2026, 9, 13, 11),
+    );
+
+    final snapshot = await store.load();
+
+    expect(
+      snapshot.weakStatsByPriority.map((entry) => entry.key),
+      orderedEquals(<String>['2:6', '2:8', '2:7']),
+    );
+  });
+
   test('empty question ids are ignored', () async {
     const store = MemorizationRecallHistoryStore();
 

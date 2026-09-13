@@ -72,5 +72,11 @@
   "memorizeTestKnown": "Bildim",
   "memorizeTestMissed": "Bilemedim",
   "memorizeTestEmptyTitle": "Henüz test oluşturulamıyor",
-  "memorizeTestEmptyBody": "Ezber haritasında en az iki ardışık ayeti kapsayan bir sayfayı ezberlendi olarak işaretledikten sonra rastgele test başlayabilir."
+  "memorizeTestEmptyBody": "Ezber haritasında en az iki ardışık ayeti kapsayan bir sayfayı ezberlendi olarak işaretledikten sonra rastgele test başlayabilir.",
+  "memorizeWeakTitle": "Zor Ayetler",
+  "memorizeWeakBody": "Testlerde zorlandığın ayetleri burada topla ve iyileştikçe listeden düşür.",
+  "memorizeWeakEmptyBody": "Şimdilik zor ayet görünmüyor. Ezber testinde zorlandığın ayetler burada öncelikli tekrar listesine girer.",
+  "memorizeWeakReview": "Tekrar çalış",
+  "memorizeWeakDifficulty": "Zorluk",
+  "memorizeWeakAttempts": "Deneme"
 }

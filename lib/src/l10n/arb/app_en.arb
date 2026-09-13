@@ -83,5 +83,11 @@
   "memorizeTestKnown": "I knew it",
   "memorizeTestMissed": "I missed it",
   "memorizeTestEmptyTitle": "No test is ready yet",
-  "memorizeTestEmptyBody": "Mark a page containing at least two consecutive verses as memorized on the memorization map, then the random recall test can begin."
+  "memorizeTestEmptyBody": "Mark a page containing at least two consecutive verses as memorized on the memorization map, then the random recall test can begin.",
+  "memorizeWeakTitle": "Weak Verses",
+  "memorizeWeakBody": "Keep verses you struggle with here and clear them from the list as recall improves.",
+  "memorizeWeakEmptyBody": "No weak verses right now. Verses you miss in the memorization test will appear here for priority review.",
+  "memorizeWeakReview": "Review again",
+  "memorizeWeakDifficulty": "Difficulty",
+  "memorizeWeakAttempts": "Attempts"
 }
