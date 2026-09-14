@@ -113,7 +113,8 @@ class MemorizationVoiceRecordingController extends ChangeNotifier {
 
   Future<void> cancel() async {
     if (phase == MemorizationVoiceRecordingPhase.loading ||
-        _recordingTransitionInFlight) {
+        _recordingTransitionInFlight ||
+        _playbackTransitionInFlight) {
       return;
     }
     await _service.cancel();

@@ -127,6 +127,31 @@ void main() {
     controller.dispose();
   });
 
+  test('blocks cancel while playback start is pending', () async {
+    final playGate = Completer<void>();
+    final service = _DelayedRecordingService(playGate: playGate)
+      ..existingPath = '/tmp/page_042.m4a';
+    final controller = MemorizationVoiceRecordingController(
+      page: 42,
+      service: service,
+    );
+
+    await controller.initialize();
+    expect(controller.hasRecording, isTrue);
+
+    final pendingPlay = controller.togglePlayback();
+    await Future<void>.delayed(Duration.zero);
+
+    await controller.cancel();
+    expect(service.cancelCalls, 0);
+    expect(service.existingPath, '/tmp/page_042.m4a');
+
+    playGate.complete();
+    expect(await pendingPlay, isTrue);
+    expect(controller.isPlaying, isTrue);
+    controller.dispose();
+  });
+
   test('blocks delete while recording start is pending', () async {
     final startGate = Completer<void>();
     final service = _DelayedRecordingService(startGate: startGate)
