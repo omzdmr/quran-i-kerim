@@ -144,8 +144,15 @@ class MemorizationProgressStore {
         .where((page) => page >= 1 && page <= 604)
         .toSet();
     final days = (prefs.getStringList(_daysKey) ?? const <String>[]).toSet();
-    final pageProgress = _decodePageProgress(prefs.getString(_pageProgressKey))
+    final rawPageProgress = prefs.getString(_pageProgressKey);
+    final pageProgress = _decodePageProgress(rawPageProgress)
       ..removeWhere((page, _) => !pages.contains(page));
+    if (rawPageProgress != null) {
+      final normalizedPageProgress = _encodePageProgress(pageProgress);
+      if (rawPageProgress != normalizedPageProgress) {
+        await prefs.setString(_pageProgressKey, normalizedPageProgress);
+      }
+    }
     return MemorizationProgressSnapshot(
       memorizedPages: pages,
       practiceDays: days,

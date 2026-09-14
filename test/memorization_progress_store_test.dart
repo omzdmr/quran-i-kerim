@@ -110,4 +110,25 @@ void main() {
     expect(restored.memorizedPages, isEmpty);
     expect(restored.practiceDays, isEmpty);
   });
+
+  test('load normalizes invalid and orphan page progress metadata', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'memorized_pages_v1': <String>['12'],
+      'memorization_page_progress_v1':
+          '{"12":{"memorizedAt":"2026-09-13T08:30:00.000Z","lastReviewedAt":"bad","selfAssessment":"bogus"},"99":{"memorizedAt":"2026-09-01T00:00:00.000Z"},"605":{"memorizedAt":"2026-09-01T00:00:00.000Z"},"bad":{}}',
+    });
+    const store = MemorizationProgressStore();
+
+    final restored = await store.load();
+    final prefs = await SharedPreferences.getInstance();
+
+    expect(restored.pageProgress.keys, <int>[12]);
+    expect(restored.progressForPage(12)?.memorizedAt, DateTime.utc(2026, 9, 13, 8, 30));
+    expect(restored.progressForPage(12)?.lastReviewedAt, isNull);
+    expect(restored.progressForPage(12)?.selfAssessment, isNull);
+    expect(
+      prefs.getString('memorization_page_progress_v1'),
+      '{"12":{"memorizedAt":"2026-09-13T08:30:00.000Z","lastReviewedAt":null,"selfAssessment":null}}',
+    );
+  });
 }
