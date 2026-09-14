@@ -152,14 +152,39 @@ DateTime _memorizationDay(DateTime value) =>
 int _memorizationAgeInDays(DateTime memorizedAt, DateTime now) =>
     _memorizationDay(now).difference(_memorizationDay(memorizedAt)).inDays;
 
+bool _hasPendingCheckpoint({
+  required DateTime memorizedAt,
+  required DateTime now,
+  required List<int> checkpointDays,
+  DateTime? lastReviewedAt,
+}) {
+  final age = _memorizationAgeInDays(memorizedAt, now);
+  int? latestDueCheckpoint;
+  for (final checkpointDay in checkpointDays) {
+    if (checkpointDay <= age &&
+        (latestDueCheckpoint == null || checkpointDay > latestDueCheckpoint)) {
+      latestDueCheckpoint = checkpointDay;
+    }
+  }
+  if (latestDueCheckpoint == null) return false;
+
+  final dueDate = _memorizationDay(memorizedAt).add(
+    Duration(days: latestDueCheckpoint),
+  );
+  if (lastReviewedAt == null) return true;
+  return _memorizationDay(lastReviewedAt).isBefore(dueDate);
+}
+
 /// Builds a local-first page queue from persisted memorization timestamps.
 ///
 /// Recent pages stay in daily review for the configured seven-day window.
 /// Day 14/30 checkpoints are kept separate from the rotating older-review
-/// bucket so a page is not scheduled twice for the same day. Older pages are
-/// selected by least-recent review first, which gives the rotation a stable
-/// priority without requiring a server-side cursor. When [eligiblePages] is
-/// provided, only pages in the active memorization target are scheduled.
+/// bucket. A missed checkpoint remains pending until the page is reviewed on
+/// or after its due date, so skipping one calendar day does not silently lose
+/// that recall opportunity. Older pages are selected by least-recent review
+/// first, which gives the rotation a stable priority without requiring a
+/// server-side cursor. When [eligiblePages] is provided, only pages in the
+/// active memorization target are scheduled.
 MemorizationDailyQueue buildMemorizationDailyQueue({
   required MemorizationPlanPace pace,
   required int planDayIndex,
@@ -189,7 +214,12 @@ MemorizationDailyQueue buildMemorizationDailyQueue({
 
     if (age < preset.recentReviewDays) {
       recentReviewPages.add(page);
-    } else if (preset.checkpointDays.contains(age)) {
+    } else if (_hasPendingCheckpoint(
+      memorizedAt: entry.value,
+      now: now,
+      checkpointDays: preset.checkpointDays,
+      lastReviewedAt: lastReviewedAtByPage[page],
+    )) {
       checkpointReviewPages.add(page);
     } else {
       olderPages.add(page);
