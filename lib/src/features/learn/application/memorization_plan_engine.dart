@@ -171,7 +171,14 @@ bool _hasPendingCheckpoint({
   final dueDate = _memorizationDay(memorizedAt).add(
     Duration(days: latestDueCheckpoint),
   );
-  if (lastReviewedAt == null) return true;
+
+  // Exact checkpoint days must always surface, even when the page predates the
+  // review-metadata feature. For overdue checkpoints, require review history
+  // before keeping the checkpoint pending. This avoids turning every legacy
+  // page with no lastReviewedAt metadata into a permanent checkpoint backlog.
+  if (lastReviewedAt == null) {
+    return age == latestDueCheckpoint;
+  }
   return _memorizationDay(lastReviewedAt).isBefore(dueDate);
 }
 
@@ -179,12 +186,13 @@ bool _hasPendingCheckpoint({
 ///
 /// Recent pages stay in daily review for the configured seven-day window.
 /// Day 14/30 checkpoints are kept separate from the rotating older-review
-/// bucket. A missed checkpoint remains pending until the page is reviewed on
-/// or after its due date, so skipping one calendar day does not silently lose
-/// that recall opportunity. Older pages are selected by least-recent review
-/// first, which gives the rotation a stable priority without requiring a
-/// server-side cursor. When [eligiblePages] is provided, only pages in the
-/// active memorization target are scheduled.
+/// bucket. A missed checkpoint with review history remains pending until the
+/// page is reviewed on or after its due date. Legacy pages without review
+/// metadata still surface on the exact checkpoint day, then safely enter the
+/// old-review rotation instead of flooding the checkpoint queue. Older pages
+/// are selected by least-recent review first, which gives the rotation a stable
+/// priority without requiring a server-side cursor. When [eligiblePages] is
+/// provided, only pages in the active memorization target are scheduled.
 MemorizationDailyQueue buildMemorizationDailyQueue({
   required MemorizationPlanPace pace,
   required int planDayIndex,
@@ -247,10 +255,15 @@ MemorizationDailyQueue buildMemorizationDailyQueue({
     return a.compareTo(b);
   });
 
+  // Checkpoint pages are mature memorization too. Keep them in the denominator
+  // used to size the old-review rotation so a due checkpoint does not
+  // accidentally shrink the day's normal Manzil allowance.
+  final matureMemorizedPageCount =
+      olderPages.length + checkpointReviewPages.length;
   final load = buildMemorizationDailyLoad(
     pace: pace,
     planDayIndex: planDayIndex,
-    olderMemorizedPages: olderPages.length,
+    olderMemorizedPages: matureMemorizedPageCount,
   );
   final oldReviewPages = olderPages.take(load.oldReviewPages).toList();
 
