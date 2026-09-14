@@ -64,6 +64,14 @@ class MemorizationPlanStore {
     return days.toList()..sort();
   }
 
+  bool _sameStringList(List<String> left, List<String> right) {
+    if (left.length != right.length) return false;
+    for (var index = 0; index < left.length; index++) {
+      if (left[index] != right[index]) return false;
+    }
+    return true;
+  }
+
   Future<MemorizationPlanSnapshot> load() async {
     final prefs = await SharedPreferences.getInstance();
     final pace = _parsePace(prefs.getString(_paceKey));
@@ -80,12 +88,19 @@ class MemorizationPlanStore {
       );
     }
 
+    final rawMissedPlanDays = prefs.getStringList(_missedPlanDaysKey);
+    final missedPlanDays = _parseMissedPlanDays(rawMissedPlanDays);
+    if (rawMissedPlanDays != null) {
+      final normalizedRaw = missedPlanDays.map((day) => '$day').toList();
+      if (!_sameStringList(rawMissedPlanDays, normalizedRaw)) {
+        await prefs.setStringList(_missedPlanDaysKey, normalizedRaw);
+      }
+    }
+
     return MemorizationPlanSnapshot(
       pace: pace,
       startedAt: startedAt,
-      missedPlanDays: _parseMissedPlanDays(
-        prefs.getStringList(_missedPlanDaysKey),
-      ),
+      missedPlanDays: missedPlanDays,
     );
   }
 

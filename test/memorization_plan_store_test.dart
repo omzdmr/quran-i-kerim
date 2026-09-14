@@ -65,8 +65,14 @@ void main() {
     });
 
     final restored = await const MemorizationPlanStore().load();
+    final prefs = await SharedPreferences.getInstance();
+
     expect(restored.missedPlanDays, <int>[4, 9]);
     expect(restored.hasPlan, isTrue);
+    expect(
+      prefs.getStringList('memorization_plan_missed_days_v1'),
+      <String>['4', '9'],
+    );
   });
 
   test('negative missed plan day cannot be persisted', () async {
