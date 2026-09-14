@@ -55,7 +55,8 @@ class MemorizationVoiceRecordingController extends ChangeNotifier {
   Future<bool> start() async {
     if (phase == MemorizationVoiceRecordingPhase.loading ||
         isRecording ||
-        _recordingTransitionInFlight) {
+        _recordingTransitionInFlight ||
+        _playbackTransitionInFlight) {
       return false;
     }
 
