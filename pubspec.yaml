@@ -4,7 +4,7 @@ publish_to: "none"
 version: 0.4.1+5
 
 environment:
-  sdk: ">=3.8.0 <4.0.0"
+  sdk: ">=3.12.0 <4.0.0"
 
 dependencies:
   flutter:
@@ -22,6 +22,7 @@ dependencies:
   lat_lng_to_timezone: ^0.2.0
   path_provider: ^2.1.5
   quran: ^1.4.1
+  record: ^7.1.1
   share_plus: ^13.3.0
   shared_preferences: ^2.5.3
   timezone: ^0.11.0
