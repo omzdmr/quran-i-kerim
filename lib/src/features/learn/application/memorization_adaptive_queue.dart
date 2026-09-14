@@ -22,6 +22,12 @@ class MemorizationAdaptiveDailyQueue {
   bool get isConsolidationDay => baseQueue.isConsolidationDay;
 }
 
+DateTime _dateOnly(DateTime value) =>
+    DateTime(value.year, value.month, value.day);
+
+bool _isSameMemorizationDay(DateTime value, DateTime now) =>
+    _dateOnly(value) == _dateOnly(now);
+
 /// Builds the normal evidence-informed queue first, then applies a conservative
 /// local adaptation to the new-memorization allowance.
 ///
@@ -37,11 +43,22 @@ MemorizationAdaptiveDailyQueue buildAdaptiveMemorizationDailyQueue({
   int weakRecallCount = 0,
   int missedPlanDaysLast7 = 0,
 }) {
+  final reviewEligibleMemorizedAtByPage = <int, DateTime>{};
+  for (final entry in memorizedAtByPage.entries) {
+    final lastReviewedAt = lastReviewedAtByPage[entry.key];
+    final memorizedToday = _isSameMemorizationDay(entry.value, now);
+    final reviewedToday = lastReviewedAt != null &&
+        _isSameMemorizationDay(lastReviewedAt, now);
+    if (!memorizedToday && !reviewedToday) {
+      reviewEligibleMemorizedAtByPage[entry.key] = entry.value;
+    }
+  }
+
   final baseQueue = buildMemorizationDailyQueue(
     pace: pace,
     planDayIndex: planDayIndex,
     now: now,
-    memorizedAtByPage: memorizedAtByPage,
+    memorizedAtByPage: reviewEligibleMemorizedAtByPage,
     lastReviewedAtByPage: lastReviewedAtByPage,
     eligiblePages: eligiblePages,
   );
