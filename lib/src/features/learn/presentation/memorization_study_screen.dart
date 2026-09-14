@@ -118,6 +118,23 @@ class _MemorizationStudyScreenState extends State<MemorizationStudyScreen> {
           if (value == MemorizationStudyMode.read) _revealed.clear();
         });
       },
+      actions: [
+        IconButton(
+          tooltip: l10n.memorizeReview,
+          onPressed: _recordingController.phase ==
+                  MemorizationVoiceRecordingPhase.loading
+              ? null
+              : () {
+                  HapticFeedback.selectionClick();
+                  unawaited(_recordingController.toggleRecording());
+                },
+          icon: Icon(
+            _recordingController.isRecording
+                ? Icons.stop_circle_rounded
+                : Icons.mic_rounded,
+          ),
+        ),
+      ],
       meta: MemorizationStudyMeta(
         leading: juz == null ? null : '${l10n.memorizeJuz} $juz',
         center: '${l10n.quranProgressCurrentPage} ${widget.page}',
