@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 
 import 'memorization_voice_recording_service.dart';
@@ -22,15 +23,24 @@ class MemorizationVoiceRecordingController extends ChangeNotifier {
 
   MemorizationVoiceRecordingPhase _phase =
       MemorizationVoiceRecordingPhase.loading;
+  StreamSubscription<PlayerState>? _playbackSubscription;
   bool _permissionDenied = false;
+  bool _isPlaying = false;
   bool _disposed = false;
 
   MemorizationVoiceRecordingPhase get phase => _phase;
   bool get permissionDenied => _permissionDenied;
   bool get isRecording => phase == MemorizationVoiceRecordingPhase.recording;
   bool get hasRecording => phase == MemorizationVoiceRecordingPhase.recorded;
+  bool get isPlaying => _isPlaying;
 
   Future<void> initialize() async {
+    await _playbackSubscription?.cancel();
+    _isPlaying = _service.playbackState == PlayerState.playing;
+    _playbackSubscription = _service.playbackStateChanges.listen(
+      (state) => _setPlaying(state == PlayerState.playing),
+    );
+
     final existing = await _service.existingRecordingPath(page);
     _setState(
       existing == null
@@ -47,6 +57,7 @@ class MemorizationVoiceRecordingController extends ChangeNotifier {
       return false;
     }
 
+    _setPlaying(false);
     _setState(
       MemorizationVoiceRecordingPhase.recording,
       permissionDenied: false,
@@ -77,11 +88,27 @@ class MemorizationVoiceRecordingController extends ChangeNotifier {
     );
   }
 
+  Future<bool> togglePlayback() async {
+    if (isRecording) return false;
+
+    if (isPlaying) {
+      await _service.pausePlayback();
+      _setPlaying(false);
+      return true;
+    }
+
+    if (!hasRecording) return false;
+    final started = await _service.play(page);
+    if (started) _setPlaying(true);
+    return started;
+  }
+
   Future<bool> delete() async {
     if (isRecording) {
       await _service.cancel();
     }
     final deleted = await _service.delete(page);
+    _setPlaying(false);
     _setState(
       MemorizationVoiceRecordingPhase.idle,
       permissionDenied: false,
@@ -100,11 +127,22 @@ class MemorizationVoiceRecordingController extends ChangeNotifier {
     if (changed) notifyListeners();
   }
 
+  void _setPlaying(bool next) {
+    if (_disposed || _isPlaying == next) return;
+    _isPlaying = next;
+    notifyListeners();
+  }
+
+  Future<void> _disposeResources() async {
+    await _playbackSubscription?.cancel();
+    await _service.dispose();
+  }
+
   @override
   void dispose() {
     if (_disposed) return;
     _disposed = true;
-    unawaited(_service.dispose());
+    unawaited(_disposeResources());
     super.dispose();
   }
 }
