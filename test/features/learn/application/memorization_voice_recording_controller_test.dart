@@ -40,6 +40,55 @@ void main() {
       controller.dispose();
     });
 
+    test('toggle recording is ignored while initialization is pending', () async {
+      final service = _FakeRecordingService();
+      final controller = MemorizationVoiceRecordingController(
+        page: 42,
+        service: service,
+      );
+
+      expect(await controller.toggleRecording(), isFalse);
+      expect(controller.phase, MemorizationVoiceRecordingPhase.loading);
+      expect(service.startCalls, 0);
+      controller.dispose();
+    });
+
+    test('toggle recording starts then saves the page recording', () async {
+      final service = _FakeRecordingService();
+      final controller = MemorizationVoiceRecordingController(
+        page: 42,
+        service: service,
+      );
+
+      await controller.initialize();
+
+      expect(await controller.toggleRecording(), isTrue);
+      expect(controller.phase, MemorizationVoiceRecordingPhase.recording);
+      expect(service.startCalls, 1);
+
+      service.existingPath = '/tmp/page_042.m4a';
+      expect(await controller.toggleRecording(), isTrue);
+      expect(controller.phase, MemorizationVoiceRecordingPhase.recorded);
+      expect(service.stopCalls, 1);
+      controller.dispose();
+    });
+
+    test('repeated start does not restart an active recording', () async {
+      final service = _FakeRecordingService();
+      final controller = MemorizationVoiceRecordingController(
+        page: 42,
+        service: service,
+      );
+
+      await controller.initialize();
+      expect(await controller.start(), isTrue);
+      expect(await controller.start(), isFalse);
+
+      expect(controller.phase, MemorizationVoiceRecordingPhase.recording);
+      expect(service.startCalls, 1);
+      controller.dispose();
+    });
+
     test('keeps idle state and exposes permission denial', () async {
       final service = _FakeRecordingService(permissionDenied: true);
       final controller = MemorizationVoiceRecordingController(
@@ -115,6 +164,8 @@ class _FakeRecordingService implements MemorizationVoiceRecordingService {
   String? existingPath;
   bool permissionDenied;
   bool recording = false;
+  int startCalls = 0;
+  int stopCalls = 0;
   PlayerState _playbackState = PlayerState.stopped;
 
   @override
@@ -170,6 +221,7 @@ class _FakeRecordingService implements MemorizationVoiceRecordingService {
 
   @override
   Future<MemorizationRecordingStartResult> start(int page) async {
+    startCalls += 1;
     if (permissionDenied) {
       return MemorizationRecordingStartResult.permissionDenied;
     }
@@ -180,6 +232,7 @@ class _FakeRecordingService implements MemorizationVoiceRecordingService {
 
   @override
   Future<bool> stop() async {
+    stopCalls += 1;
     if (!recording) return false;
     recording = false;
     return true;

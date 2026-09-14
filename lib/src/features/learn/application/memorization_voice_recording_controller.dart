@@ -51,6 +51,10 @@ class MemorizationVoiceRecordingController extends ChangeNotifier {
   }
 
   Future<bool> start() async {
+    if (phase == MemorizationVoiceRecordingPhase.loading || isRecording) {
+      return false;
+    }
+
     final result = await _service.start(page);
     if (result == MemorizationRecordingStartResult.permissionDenied) {
       _setState(phase, permissionDenied: true);
@@ -75,6 +79,14 @@ class MemorizationVoiceRecordingController extends ChangeNotifier {
       permissionDenied: false,
     );
     return saved;
+  }
+
+  /// Starts a local recording when idle/recorded and saves it when already
+  /// recording. Calls made while the controller is still loading are ignored
+  /// so a fast UI tap cannot race initialization or create a second recorder.
+  Future<bool> toggleRecording() async {
+    if (phase == MemorizationVoiceRecordingPhase.loading) return false;
+    return isRecording ? stop() : start();
   }
 
   Future<void> cancel() async {
