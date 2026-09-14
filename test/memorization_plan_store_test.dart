@@ -98,6 +98,26 @@ void main() {
     expect(restored.hasPlan, isFalse);
   });
 
+  test('partial plan state is fully sanitized on load', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'memorization_plan_pace_v1': MemorizationPlanPace.steady18Months.name,
+      'memorization_plan_started_at_v1': 'not-a-date',
+      'memorization_plan_missed_days_v1': <String>['3'],
+    });
+
+    const store = MemorizationPlanStore();
+    final restored = await store.load();
+    final prefs = await SharedPreferences.getInstance();
+
+    expect(restored.pace, isNull);
+    expect(restored.startedAt, isNull);
+    expect(restored.missedPlanDays, isEmpty);
+    expect(restored.hasPlan, isFalse);
+    expect(prefs.containsKey('memorization_plan_pace_v1'), isFalse);
+    expect(prefs.containsKey('memorization_plan_started_at_v1'), isFalse);
+    expect(prefs.containsKey('memorization_plan_missed_days_v1'), isFalse);
+  });
+
   test('clearing a plan removes persisted plan and missed-day state', () async {
     const store = MemorizationPlanStore();
     await store.save(

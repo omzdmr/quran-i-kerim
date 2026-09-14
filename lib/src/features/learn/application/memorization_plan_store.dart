@@ -69,10 +69,14 @@ class MemorizationPlanStore {
     final pace = _parsePace(prefs.getString(_paceKey));
     final startedAt = _parseDate(prefs.getString(_startedAtKey));
     if (pace == null || startedAt == null) {
-      await prefs.remove(_missedPlanDaysKey);
-      return MemorizationPlanSnapshot(
-        pace: pace,
-        startedAt: startedAt,
+      await Future.wait([
+        prefs.remove(_paceKey),
+        prefs.remove(_startedAtKey),
+        prefs.remove(_missedPlanDaysKey),
+      ]);
+      return const MemorizationPlanSnapshot(
+        pace: null,
+        startedAt: null,
       );
     }
 
