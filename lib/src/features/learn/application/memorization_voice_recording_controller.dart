@@ -121,7 +121,7 @@ class MemorizationVoiceRecordingController extends ChangeNotifier {
   }
 
   Future<bool> togglePlayback() async {
-    if (isRecording) return false;
+    if (isRecording || _recordingTransitionInFlight) return false;
 
     if (isPlaying) {
       await _service.pausePlayback();
