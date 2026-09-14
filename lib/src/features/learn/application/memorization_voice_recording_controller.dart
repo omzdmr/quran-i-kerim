@@ -37,6 +37,12 @@ class MemorizationVoiceRecordingController extends ChangeNotifier {
   bool get isPlaying => _isPlaying;
 
   Future<void> initialize() async {
+    if (isRecording ||
+        _recordingTransitionInFlight ||
+        _playbackTransitionInFlight) {
+      return;
+    }
+
     await _playbackSubscription?.cancel();
     _isPlaying = _service.playbackState == PlayerState.playing;
     _playbackSubscription = _service.playbackStateChanges.listen(
