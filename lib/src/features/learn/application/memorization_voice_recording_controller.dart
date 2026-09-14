@@ -26,6 +26,7 @@ class MemorizationVoiceRecordingController extends ChangeNotifier {
   StreamSubscription<PlayerState>? _playbackSubscription;
   bool _permissionDenied = false;
   bool _isPlaying = false;
+  bool _recordingTransitionInFlight = false;
   bool _disposed = false;
 
   MemorizationVoiceRecordingPhase get phase => _phase;
@@ -51,42 +52,60 @@ class MemorizationVoiceRecordingController extends ChangeNotifier {
   }
 
   Future<bool> start() async {
-    if (phase == MemorizationVoiceRecordingPhase.loading || isRecording) {
+    if (phase == MemorizationVoiceRecordingPhase.loading ||
+        isRecording ||
+        _recordingTransitionInFlight) {
       return false;
     }
 
-    final result = await _service.start(page);
-    if (result == MemorizationRecordingStartResult.permissionDenied) {
-      _setState(phase, permissionDenied: true);
-      return false;
-    }
+    _recordingTransitionInFlight = true;
+    try {
+      final result = await _service.start(page);
+      if (result == MemorizationRecordingStartResult.permissionDenied) {
+        _setState(phase, permissionDenied: true);
+        return false;
+      }
 
-    _setPlaying(false);
-    _setState(
-      MemorizationVoiceRecordingPhase.recording,
-      permissionDenied: false,
-    );
-    return true;
+      _setPlaying(false);
+      _setState(
+        MemorizationVoiceRecordingPhase.recording,
+        permissionDenied: false,
+      );
+      return true;
+    } finally {
+      _recordingTransitionInFlight = false;
+    }
   }
 
   Future<bool> stop() async {
-    if (!isRecording) return false;
-    final saved = await _service.stop();
-    final existing = saved ? null : await _service.existingRecordingPath(page);
-    _setState(
-      saved || existing != null
-          ? MemorizationVoiceRecordingPhase.recorded
-          : MemorizationVoiceRecordingPhase.idle,
-      permissionDenied: false,
-    );
-    return saved;
+    if (!isRecording || _recordingTransitionInFlight) return false;
+
+    _recordingTransitionInFlight = true;
+    try {
+      final saved = await _service.stop();
+      final existing =
+          saved ? null : await _service.existingRecordingPath(page);
+      _setState(
+        saved || existing != null
+            ? MemorizationVoiceRecordingPhase.recorded
+            : MemorizationVoiceRecordingPhase.idle,
+        permissionDenied: false,
+      );
+      return saved;
+    } finally {
+      _recordingTransitionInFlight = false;
+    }
   }
 
   /// Starts a local recording when idle/recorded and saves it when already
-  /// recording. Calls made while the controller is still loading are ignored
-  /// so a fast UI tap cannot race initialization or create a second recorder.
+  /// recording. Calls made while initialization or another recording
+  /// transition is still pending are ignored so rapid taps cannot create
+  /// overlapping platform recorder operations.
   Future<bool> toggleRecording() async {
-    if (phase == MemorizationVoiceRecordingPhase.loading) return false;
+    if (phase == MemorizationVoiceRecordingPhase.loading ||
+        _recordingTransitionInFlight) {
+      return false;
+    }
     return isRecording ? stop() : start();
   }
 
