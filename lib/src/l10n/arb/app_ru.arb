@@ -61,6 +61,8 @@
   "memorizeCurrentPlace": "Место продолжения",
   "memorizeTodayReview": "Повторение сегодня",
   "memorizeReview": "Повторить",
+  "memorizeStartRecording": "Начать запись голоса",
+  "memorizeStopRecording": "Остановить запись голоса",
   "memorizeRevealVerse": "Нажмите, чтобы показать",
   "memorizeMarkPage": "Отметить страницу как выученную",
   "memorizePageCompleted": "Выучено",

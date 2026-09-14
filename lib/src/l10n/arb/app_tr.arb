@@ -61,6 +61,8 @@
   "memorizeCurrentPlace": "Kaldığın yer",
   "memorizeTodayReview": "Bugünkü tekrar",
   "memorizeReview": "Tekrar et",
+  "memorizeStartRecording": "Ses kaydını başlat",
+  "memorizeStopRecording": "Ses kaydını durdur",
   "memorizeRevealVerse": "Açmak için dokun",
   "memorizeMarkPage": "Sayfayı ezberlendi olarak işaretle",
   "memorizePageCompleted": "Ezberlendi",

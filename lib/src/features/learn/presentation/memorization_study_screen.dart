@@ -120,7 +120,9 @@ class _MemorizationStudyScreenState extends State<MemorizationStudyScreen> {
       },
       actions: [
         IconButton(
-          tooltip: l10n.memorizeReview,
+          tooltip: _recordingController.isRecording
+              ? l10n.memorizeStopRecording
+              : l10n.memorizeStartRecording,
           onPressed: _recordingController.phase ==
                   MemorizationVoiceRecordingPhase.loading
               ? null
