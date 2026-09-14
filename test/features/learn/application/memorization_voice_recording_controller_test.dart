@@ -40,6 +40,25 @@ void main() {
       controller.dispose();
     });
 
+    test('keeps an older recording visible when replacement save fails', () async {
+      final service = _FakeRecordingService(
+        existingPath: '/tmp/page_042.m4a',
+        stopSucceeds: false,
+      );
+      final controller = MemorizationVoiceRecordingController(
+        page: 42,
+        service: service,
+      );
+
+      await controller.initialize();
+      expect(await controller.start(), isTrue);
+
+      expect(await controller.stop(), isFalse);
+      expect(controller.phase, MemorizationVoiceRecordingPhase.recorded);
+      expect(controller.hasRecording, isTrue);
+      controller.dispose();
+    });
+
     test('toggle recording is ignored while initialization is pending', () async {
       final service = _FakeRecordingService();
       final controller = MemorizationVoiceRecordingController(
@@ -157,12 +176,17 @@ void main() {
 }
 
 class _FakeRecordingService implements MemorizationVoiceRecordingService {
-  _FakeRecordingService({this.existingPath, this.permissionDenied = false});
+  _FakeRecordingService({
+    this.existingPath,
+    this.permissionDenied = false,
+    this.stopSucceeds = true,
+  });
 
   final StreamController<PlayerState> _playbackStates =
       StreamController<PlayerState>.broadcast();
   String? existingPath;
   bool permissionDenied;
+  bool stopSucceeds;
   bool recording = false;
   int startCalls = 0;
   int stopCalls = 0;
@@ -235,6 +259,6 @@ class _FakeRecordingService implements MemorizationVoiceRecordingService {
     stopCalls += 1;
     if (!recording) return false;
     recording = false;
-    return true;
+    return stopSucceeds;
   }
 }

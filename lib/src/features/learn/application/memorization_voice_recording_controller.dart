@@ -72,8 +72,9 @@ class MemorizationVoiceRecordingController extends ChangeNotifier {
   Future<bool> stop() async {
     if (!isRecording) return false;
     final saved = await _service.stop();
+    final existing = saved ? null : await _service.existingRecordingPath(page);
     _setState(
-      saved
+      saved || existing != null
           ? MemorizationVoiceRecordingPhase.recorded
           : MemorizationVoiceRecordingPhase.idle,
       permissionDenied: false,
