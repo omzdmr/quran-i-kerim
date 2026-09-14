@@ -27,6 +27,7 @@ class MemorizationVoiceRecordingController extends ChangeNotifier {
   bool _permissionDenied = false;
   bool _isPlaying = false;
   bool _recordingTransitionInFlight = false;
+  bool _playbackTransitionInFlight = false;
   bool _disposed = false;
 
   MemorizationVoiceRecordingPhase get phase => _phase;
@@ -125,18 +126,27 @@ class MemorizationVoiceRecordingController extends ChangeNotifier {
   }
 
   Future<bool> togglePlayback() async {
-    if (isRecording || _recordingTransitionInFlight) return false;
-
-    if (isPlaying) {
-      await _service.pausePlayback();
-      _setPlaying(false);
-      return true;
+    if (isRecording ||
+        _recordingTransitionInFlight ||
+        _playbackTransitionInFlight) {
+      return false;
     }
 
-    if (!hasRecording) return false;
-    final started = await _service.play(page);
-    if (started) _setPlaying(true);
-    return started;
+    _playbackTransitionInFlight = true;
+    try {
+      if (isPlaying) {
+        await _service.pausePlayback();
+        _setPlaying(false);
+        return true;
+      }
+
+      if (!hasRecording) return false;
+      final started = await _service.play(page);
+      if (started) _setPlaying(true);
+      return started;
+    } finally {
+      _playbackTransitionInFlight = false;
+    }
   }
 
   Future<bool> delete() async {
