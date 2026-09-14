@@ -66,9 +66,19 @@ class MemorizationPlanStore {
 
   Future<MemorizationPlanSnapshot> load() async {
     final prefs = await SharedPreferences.getInstance();
+    final pace = _parsePace(prefs.getString(_paceKey));
+    final startedAt = _parseDate(prefs.getString(_startedAtKey));
+    if (pace == null || startedAt == null) {
+      await prefs.remove(_missedPlanDaysKey);
+      return MemorizationPlanSnapshot(
+        pace: pace,
+        startedAt: startedAt,
+      );
+    }
+
     return MemorizationPlanSnapshot(
-      pace: _parsePace(prefs.getString(_paceKey)),
-      startedAt: _parseDate(prefs.getString(_startedAtKey)),
+      pace: pace,
+      startedAt: startedAt,
       missedPlanDays: _parseMissedPlanDays(
         prefs.getStringList(_missedPlanDaysKey),
       ),
