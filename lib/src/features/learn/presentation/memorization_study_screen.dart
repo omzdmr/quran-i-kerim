@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:quran/quran.dart' as quran;
@@ -7,6 +9,7 @@ import '../../../data/surah_localization.dart';
 import '../../../l10n/generated/generated_app_localizations.dart';
 import '../application/memorization_page_catalog.dart';
 import '../application/memorization_progress_store.dart';
+import '../application/memorization_voice_recording_controller.dart';
 import 'memorization_study_scaffold.dart';
 
 class MemorizationStudyScreen extends StatefulWidget {
@@ -31,6 +34,7 @@ class _MemorizationStudyScreenState extends State<MemorizationStudyScreen> {
   late MemorizationStudyMode _mode;
   final Set<String> _revealed = <String>{};
   late final List<_MemorizationVerse> _verses;
+  late final MemorizationVoiceRecordingController _recordingController;
   bool _completed = false;
 
   @override
@@ -38,7 +42,21 @@ class _MemorizationStudyScreenState extends State<MemorizationStudyScreen> {
     super.initState();
     _mode = widget.initialMode;
     _verses = _versesForPage();
+    _recordingController = MemorizationVoiceRecordingController(page: widget.page)
+      ..addListener(_handleRecordingChanged);
+    unawaited(_recordingController.initialize());
     _loadCompletion();
+  }
+
+  void _handleRecordingChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _recordingController.removeListener(_handleRecordingChanged);
+    _recordingController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadCompletion() async {
@@ -117,27 +135,45 @@ class _MemorizationStudyScreenState extends State<MemorizationStudyScreen> {
         },
         revealLabel: l10n.memorizeRevealVerse,
       ),
-      bottomBar: widget.showCompletionAction
-          ? Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
-              child: FilledButton.icon(
-                onPressed: _toggleCompleted,
-                icon: Icon(
-                  _completed
-                      ? Icons.check_circle_rounded
-                      : Icons.check_circle_outline_rounded,
-                ),
-                label: Text(
-                  _completed
-                      ? l10n.memorizePageCompleted
-                      : l10n.memorizeMarkPage,
-                ),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(52),
-                ),
+      bottomBar: _buildBottomBar(l10n),
+    );
+  }
+
+  Widget? _buildBottomBar(GeneratedAppLocalizations l10n) {
+    final hasRecording = _recordingController.hasRecording;
+    if (!hasRecording && !widget.showCompletionAction) return null;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (hasRecording)
+          MemorizationStudyAudioBar(
+            title: l10n.memorizeReview,
+            subtitle: '${l10n.quranProgressCurrentPage} ${widget.page}',
+            isPlaying: _recordingController.isPlaying,
+            onPlayPause: () => unawaited(_recordingController.togglePlayback()),
+          ),
+        if (widget.showCompletionAction)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+            child: FilledButton.icon(
+              onPressed: _toggleCompleted,
+              icon: Icon(
+                _completed
+                    ? Icons.check_circle_rounded
+                    : Icons.check_circle_outline_rounded,
               ),
-            )
-          : null,
+              label: Text(
+                _completed
+                    ? l10n.memorizePageCompleted
+                    : l10n.memorizeMarkPage,
+              ),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(52),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
