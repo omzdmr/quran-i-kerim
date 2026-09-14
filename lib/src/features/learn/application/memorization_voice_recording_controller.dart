@@ -110,6 +110,10 @@ class MemorizationVoiceRecordingController extends ChangeNotifier {
   }
 
   Future<void> cancel() async {
+    if (phase == MemorizationVoiceRecordingPhase.loading ||
+        _recordingTransitionInFlight) {
+      return;
+    }
     await _service.cancel();
     final existing = await _service.existingRecordingPath(page);
     _setState(

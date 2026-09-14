@@ -78,6 +78,31 @@ void main() {
     controller.dispose();
   });
 
+  test('blocks cancel while recording start is pending', () async {
+    final startGate = Completer<void>();
+    final service = _DelayedRecordingService(startGate: startGate)
+      ..existingPath = '/tmp/page_042.m4a';
+    final controller = MemorizationVoiceRecordingController(
+      page: 42,
+      service: service,
+    );
+
+    await controller.initialize();
+    expect(controller.hasRecording, isTrue);
+
+    final pendingStart = controller.start();
+    await Future<void>.delayed(Duration.zero);
+
+    await controller.cancel();
+    expect(service.cancelCalls, 0);
+    expect(service.existingPath, '/tmp/page_042.m4a');
+
+    startGate.complete();
+    expect(await pendingStart, isTrue);
+    expect(controller.isRecording, isTrue);
+    controller.dispose();
+  });
+
   test('serializes rapid recording stop requests', () async {
     final stopGate = Completer<void>();
     final service = _DelayedRecordingService(stopGate: stopGate);
@@ -118,6 +143,7 @@ class _DelayedRecordingService implements MemorizationVoiceRecordingService {
   int stopCalls = 0;
   int playCalls = 0;
   int deleteCalls = 0;
+  int cancelCalls = 0;
   PlayerState _playbackState = PlayerState.stopped;
 
   @override
@@ -131,6 +157,7 @@ class _DelayedRecordingService implements MemorizationVoiceRecordingService {
 
   @override
   Future<void> cancel() async {
+    cancelCalls += 1;
     recording = false;
   }
 
