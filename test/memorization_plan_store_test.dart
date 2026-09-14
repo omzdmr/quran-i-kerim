@@ -43,6 +43,20 @@ void main() {
     expect((await store.load()).missedPlanDays, <int>[3, 12]);
   });
 
+  test('missed days are not persisted without an active plan', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'memorization_plan_missed_days_v1': <String>['2', '5'],
+    });
+
+    const store = MemorizationPlanStore();
+    final updated = await store.saveMissedPlanDays(<int>[7, 9]);
+    final restored = await store.load();
+
+    expect(updated, isEmpty);
+    expect(restored.hasPlan, isFalse);
+    expect(restored.missedPlanDays, isEmpty);
+  });
+
   test('corrupted missed-day values are ignored instead of inventing work', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{
       'memorization_plan_pace_v1': MemorizationPlanPace.steady18Months.name,
@@ -56,8 +70,14 @@ void main() {
   });
 
   test('negative missed plan day cannot be persisted', () async {
+    const store = MemorizationPlanStore();
+    await store.save(
+      pace: MemorizationPlanPace.steady18Months,
+      startedAt: DateTime(2026, 9, 1),
+    );
+
     expect(
-      () => const MemorizationPlanStore().saveMissedPlanDays(<int>[0, -1]),
+      () => store.saveMissedPlanDays(<int>[0, -1]),
       throwsArgumentError,
     );
   });

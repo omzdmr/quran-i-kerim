@@ -102,6 +102,13 @@ class MemorizationPlanStore {
 
   Future<List<int>> saveMissedPlanDays(Iterable<int> planDayIndices) async {
     final prefs = await SharedPreferences.getInstance();
+    final pace = _parsePace(prefs.getString(_paceKey));
+    final startedAt = _parseDate(prefs.getString(_startedAtKey));
+    if (pace == null || startedAt == null) {
+      await prefs.remove(_missedPlanDaysKey);
+      return const <int>[];
+    }
+
     final normalized = _normalizeMissedPlanDays(planDayIndices);
     await prefs.setStringList(
       _missedPlanDaysKey,
