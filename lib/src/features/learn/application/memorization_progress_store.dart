@@ -77,6 +77,19 @@ class MemorizationProgressStore {
     return '${date.year}-$month-$day';
   }
 
+  bool _isValidDayKey(String raw) {
+    final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(raw);
+    if (match == null) return false;
+
+    final year = int.parse(match.group(1)!);
+    final month = int.parse(match.group(2)!);
+    final day = int.parse(match.group(3)!);
+    final normalized = DateTime(year, month, day);
+    return normalized.year == year &&
+        normalized.month == month &&
+        normalized.day == day;
+  }
+
   DateTime? _parseDateTime(Object? raw) {
     if (raw is! String) return null;
     return DateTime.tryParse(raw);
@@ -143,7 +156,14 @@ class MemorizationProgressStore {
         .whereType<int>()
         .where((page) => page >= 1 && page <= 604)
         .toSet();
-    final days = (prefs.getStringList(_daysKey) ?? const <String>[]).toSet();
+    final rawDays = prefs.getStringList(_daysKey);
+    final days = (rawDays ?? const <String>[]).where(_isValidDayKey).toSet();
+    if (rawDays != null) {
+      final normalizedDays = days.toList()..sort();
+      if (jsonEncode(rawDays) != jsonEncode(normalizedDays)) {
+        await prefs.setStringList(_daysKey, normalizedDays);
+      }
+    }
     final rawPageProgress = prefs.getString(_pageProgressKey);
     final pageProgress = _decodePageProgress(rawPageProgress)
       ..removeWhere((page, _) => !pages.contains(page));

@@ -111,6 +111,28 @@ void main() {
     expect(restored.practiceDays, isEmpty);
   });
 
+  test('load normalizes invalid practice day keys', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'memorization_practice_days_v1': <String>[
+        '2026-09-14',
+        'bad',
+        '2026-02-31',
+        '2026-09-13',
+        '2026-09-14',
+      ],
+    });
+    const store = MemorizationProgressStore();
+
+    final restored = await store.load();
+    final prefs = await SharedPreferences.getInstance();
+
+    expect(restored.practiceDays, <String>{'2026-09-13', '2026-09-14'});
+    expect(
+      prefs.getStringList('memorization_practice_days_v1'),
+      <String>['2026-09-13', '2026-09-14'],
+    );
+  });
+
   test('load normalizes invalid and orphan page progress metadata', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{
       'memorized_pages_v1': <String>['12'],
