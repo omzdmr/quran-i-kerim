@@ -11,13 +11,13 @@ void main() {
     const store = MemorizationPlanStore();
 
     final saved = await store.save(
-      pace: MemorizationPlanPace.balanced18Months,
+      pace: MemorizationPlanPace.steady18Months,
       startedAt: DateTime(2026, 9, 15, 18, 45),
       missedPlanDays: const <int>[4, 1, 4, 2],
     );
     final reloaded = await store.load();
 
-    expect(saved.pace, MemorizationPlanPace.balanced18Months);
+    expect(saved.pace, MemorizationPlanPace.steady18Months);
     expect(saved.startedAt, DateTime(2026, 9, 15));
     expect(saved.missedPlanDays, <int>[1, 2, 4]);
     expect(reloaded.pace, saved.pace);
@@ -29,7 +29,7 @@ void main() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     const store = MemorizationPlanStore();
     await store.save(
-      pace: MemorizationPlanPace.calm24Months,
+      pace: MemorizationPlanPace.balanced24Months,
       startedAt: DateTime(2026, 9, 1),
     );
 
@@ -37,7 +37,7 @@ void main() {
     final reloaded = await store.load();
 
     expect(savedDays, <int>[2, 6]);
-    expect(reloaded.pace, MemorizationPlanPace.calm24Months);
+    expect(reloaded.pace, MemorizationPlanPace.balanced24Months);
     expect(reloaded.startedAt, DateTime(2026, 9, 1));
     expect(reloaded.missedPlanDays, <int>[2, 6]);
   });
