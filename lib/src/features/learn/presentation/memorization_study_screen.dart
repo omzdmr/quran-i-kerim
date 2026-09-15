@@ -76,50 +76,114 @@ class _MemorizationStudyScreenState extends State<MemorizationStudyScreen> {
   }
 
   Future<void> _logPractice(GeneratedAppLocalizations l10n) async {
+    final history = await _practiceStore.load();
+    if (!mounted) return;
+    var pageEvents = history.eventsForPage(widget.page);
+
     final selected = await showModalBottomSheet<MemorizationPracticeContext>(
       context: context,
+      isScrollControlled: true,
       showDragHandle: true,
-      builder: (sheetContext) => SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(8, 2, 8, 10),
-                child: Text(
-                  l10n.memorizePracticeTitle,
-                  style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w900,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sheetContext, setSheetState) {
+          final material = MaterialLocalizations.of(sheetContext);
+          final maxHeight = MediaQuery.sizeOf(sheetContext).height * 0.78;
+
+          String contextLabel(MemorizationPracticeContext value) => switch (value) {
+                MemorizationPracticeContext.soloReview =>
+                  l10n.memorizePracticeSolo,
+                MemorizationPracticeContext.prayer =>
+                  l10n.memorizePracticePrayer,
+                MemorizationPracticeContext.recitedToSomeone =>
+                  l10n.memorizePracticeSomeone,
+              };
+
+          IconData contextIcon(MemorizationPracticeContext value) =>
+              switch (value) {
+                MemorizationPracticeContext.soloReview =>
+                  Icons.person_outline_rounded,
+                MemorizationPracticeContext.prayer => Icons.mosque_outlined,
+                MemorizationPracticeContext.recitedToSomeone =>
+                  Icons.people_outline_rounded,
+              };
+
+          return SafeArea(
+            top: false,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: maxHeight),
+              child: ListView(
+                shrinkWrap: true,
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 2, 8, 10),
+                    child: Text(
+                      l10n.memorizePracticeTitle,
+                      style: Theme.of(sheetContext)
+                          .textTheme
+                          .titleLarge
+                          ?.copyWith(fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                  _PracticeOptionTile(
+                    icon: Icons.person_outline_rounded,
+                    label: l10n.memorizePracticeSolo,
+                    onTap: () => Navigator.of(sheetContext).pop(
+                      MemorizationPracticeContext.soloReview,
+                    ),
+                  ),
+                  _PracticeOptionTile(
+                    icon: Icons.mosque_outlined,
+                    label: l10n.memorizePracticePrayer,
+                    onTap: () => Navigator.of(sheetContext).pop(
+                      MemorizationPracticeContext.prayer,
+                    ),
+                  ),
+                  _PracticeOptionTile(
+                    icon: Icons.people_outline_rounded,
+                    label: l10n.memorizePracticeSomeone,
+                    onTap: () => Navigator.of(sheetContext).pop(
+                      MemorizationPracticeContext.recitedToSomeone,
+                    ),
+                  ),
+                  if (pageEvents.isNotEmpty) ...[
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 4),
+                      child: Divider(),
+                    ),
+                    ...pageEvents.map(
+                      (event) => ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                        leading: Icon(
+                          contextIcon(event.context),
+                          color: Theme.of(sheetContext).colorScheme.primary,
+                        ),
+                        title: Text(
+                          contextLabel(event.context),
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        subtitle: Text(
+                          '${material.formatCompactDate(event.occurredAt)} · '
+                          '${material.formatTimeOfDay(TimeOfDay.fromDateTime(event.occurredAt))}',
+                        ),
+                        trailing: IconButton(
+                          tooltip: material.deleteButtonTooltip,
+                          onPressed: () async {
+                            final updated = await _practiceStore.remove(event.id);
+                            if (!sheetContext.mounted) return;
+                            pageEvents = updated.eventsForPage(widget.page);
+                            setSheetState(() {});
+                          },
+                          icon: const Icon(Icons.delete_outline_rounded),
+                        ),
                       ),
-                ),
+                    ),
+                  ],
+                ],
               ),
-              _PracticeOptionTile(
-                icon: Icons.person_outline_rounded,
-                label: l10n.memorizePracticeSolo,
-                onTap: () => Navigator.of(sheetContext).pop(
-                  MemorizationPracticeContext.soloReview,
-                ),
-              ),
-              _PracticeOptionTile(
-                icon: Icons.mosque_outlined,
-                label: l10n.memorizePracticePrayer,
-                onTap: () => Navigator.of(sheetContext).pop(
-                  MemorizationPracticeContext.prayer,
-                ),
-              ),
-              _PracticeOptionTile(
-                icon: Icons.people_outline_rounded,
-                label: l10n.memorizePracticeSomeone,
-                onTap: () => Navigator.of(sheetContext).pop(
-                  MemorizationPracticeContext.recitedToSomeone,
-                ),
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
     if (selected == null || !mounted) return;
