@@ -166,10 +166,19 @@ class _SimilarityCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final source = similarity.source;
     final candidate = similarity.candidate;
+    final cardShape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(24),
+      side: isWeak
+          ? BorderSide(color: scheme.primary, width: 1.5)
+          : BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.6)),
+    );
 
     return Material(
-      color: scheme.surfaceContainerLow,
-      borderRadius: BorderRadius.circular(24),
+      color: isWeak
+          ? scheme.primaryContainer.withValues(alpha: 0.16)
+          : scheme.surfaceContainerLow,
+      shape: cardShape,
+      clipBehavior: Clip.antiAlias,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
         child: Column(
@@ -184,7 +193,9 @@ class _SimilarityCard extends StatelessWidget {
             ),
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 14),
-              child: Divider(color: scheme.outlineVariant),
+              child: Divider(
+                color: isWeak ? scheme.primary.withValues(alpha: 0.28) : scheme.outlineVariant,
+              ),
             ),
             _VerseComparisonBlock(
               label: candidateLabel,
@@ -198,6 +209,8 @@ class _SimilarityCard extends StatelessWidget {
               alignment: AlignmentDirectional.centerStart,
               child: FilterChip(
                 selected: isWeak,
+                selectedColor: scheme.primaryContainer,
+                side: isWeak ? BorderSide(color: scheme.primary) : null,
                 onSelected: isSaving ? null : (_) => onToggleWeak(),
                 avatar: isSaving
                     ? const SizedBox.square(
@@ -210,7 +223,12 @@ class _SimilarityCard extends StatelessWidget {
                             : Icons.warning_amber_rounded,
                         size: 18,
                       ),
-                label: Text(weakLabel),
+                label: Text(
+                  weakLabel,
+                  style: TextStyle(
+                    fontWeight: isWeak ? FontWeight.w800 : FontWeight.w600,
+                  ),
+                ),
                 showCheckmark: false,
               ),
             ),
