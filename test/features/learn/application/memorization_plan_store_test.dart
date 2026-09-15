@@ -1,9 +1,46 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:quran_i_kerim/src/features/learn/application/memorization_plan_engine.dart';
 import 'package:quran_i_kerim/src/features/learn/application/memorization_plan_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('save persists pace, date-only start, and normalized missed days', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    const store = MemorizationPlanStore();
+
+    final saved = await store.save(
+      pace: MemorizationPlanPace.balanced18Months,
+      startedAt: DateTime(2026, 9, 15, 18, 45),
+      missedPlanDays: const <int>[4, 1, 4, 2],
+    );
+    final reloaded = await store.load();
+
+    expect(saved.pace, MemorizationPlanPace.balanced18Months);
+    expect(saved.startedAt, DateTime(2026, 9, 15));
+    expect(saved.missedPlanDays, <int>[1, 2, 4]);
+    expect(reloaded.pace, saved.pace);
+    expect(reloaded.startedAt, saved.startedAt);
+    expect(reloaded.missedPlanDays, saved.missedPlanDays);
+  });
+
+  test('saveMissedPlanDays updates an existing plan without changing it', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    const store = MemorizationPlanStore();
+    await store.save(
+      pace: MemorizationPlanPace.calm24Months,
+      startedAt: DateTime(2026, 9, 1),
+    );
+
+    final savedDays = await store.saveMissedPlanDays(const <int>[6, 2, 6]);
+    final reloaded = await store.load();
+
+    expect(savedDays, <int>[2, 6]);
+    expect(reloaded.pace, MemorizationPlanPace.calm24Months);
+    expect(reloaded.startedAt, DateTime(2026, 9, 1));
+    expect(reloaded.missedPlanDays, <int>[2, 6]);
+  });
 
   test('load drops orphan missed days when plan state is incomplete', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{
