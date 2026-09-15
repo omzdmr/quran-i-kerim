@@ -105,5 +105,10 @@
   "memorizeSimilarSource": "Изучаемый аят",
   "memorizeSimilarCandidate": "Похожий текст",
   "memorizeSimilarEmptyTitle": "Явно похожий аят не найден",
-  "memorizeSimilarEmptyBody": "Для этого аята ни один результат не прошёл текущие пороги текстового сходства."
+  "memorizeSimilarEmptyBody": "Для этого аята ни один результат не прошёл текущие пороги текстового сходства.",
+  "memorizePracticeTitle": "Записать повторение",
+  "memorizePracticeSolo": "Повторил самостоятельно",
+  "memorizePracticePrayer": "Прочитал в намазе",
+  "memorizePracticeSomeone": "Прочитал кому-то",
+  "memorizePracticeSaved": "Повторение сохранено"
 }

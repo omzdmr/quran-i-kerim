@@ -118,5 +118,10 @@
   "memorizeSimilarSource": "Verse you are studying",
   "memorizeSimilarCandidate": "Similar text",
   "memorizeSimilarEmptyTitle": "No clear similar verse was found",
-  "memorizeSimilarEmptyBody": "No verse met the current textual-similarity thresholds for this passage."
+  "memorizeSimilarEmptyBody": "No verse met the current textual-similarity thresholds for this passage.",
+  "memorizePracticeTitle": "Log practice",
+  "memorizePracticeSolo": "I reviewed on my own",
+  "memorizePracticePrayer": "I recited it in prayer",
+  "memorizePracticeSomeone": "I recited it to someone",
+  "memorizePracticeSaved": "Practice saved"
 }

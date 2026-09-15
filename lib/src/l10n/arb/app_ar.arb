@@ -105,5 +105,10 @@
   "memorizeSimilarSource": "الآية التي تدرسها",
   "memorizeSimilarCandidate": "نص مشابه",
   "memorizeSimilarEmptyTitle": "لم يُعثر على آية مشابهة بوضوح",
-  "memorizeSimilarEmptyBody": "لم تتجاوز أي آية حدود التشابه النصي الحالية لهذا الموضع."
+  "memorizeSimilarEmptyBody": "لم تتجاوز أي آية حدود التشابه النصي الحالية لهذا الموضع.",
+  "memorizePracticeTitle": "تسجيل المراجعة",
+  "memorizePracticeSolo": "راجعتها بمفردي",
+  "memorizePracticePrayer": "قرأتها في الصلاة",
+  "memorizePracticeSomeone": "قرأتها لشخص آخر",
+  "memorizePracticeSaved": "تم حفظ المراجعة"
 }

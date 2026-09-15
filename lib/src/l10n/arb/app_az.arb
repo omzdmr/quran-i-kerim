@@ -105,5 +105,10 @@
   "memorizeSimilarSource": "Çalışdığın ayə",
   "memorizeSimilarCandidate": "Oxşar mətn",
   "memorizeSimilarEmptyTitle": "Aydın oxşar ayə tapılmadı",
-  "memorizeSimilarEmptyBody": "Bu ayə üçün mövcud mətn oxşarlığı hədlərini keçən nəticə tapılmadı."
+  "memorizeSimilarEmptyBody": "Bu ayə üçün mövcud mətn oxşarlığı hədlərini keçən nəticə tapılmadı.",
+  "memorizePracticeTitle": "Təkrarı qeyd et",
+  "memorizePracticeSolo": "Təkbaşına təkrar etdim",
+  "memorizePracticePrayer": "Namazda oxudum",
+  "memorizePracticeSomeone": "Birinə oxudum",
+  "memorizePracticeSaved": "Təkrar qeyd edildi"
 }

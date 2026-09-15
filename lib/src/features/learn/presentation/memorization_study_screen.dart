@@ -8,6 +8,7 @@ import '../../../data/surah_catalog.dart';
 import '../../../data/surah_localization.dart';
 import '../../../l10n/generated/generated_app_localizations.dart';
 import '../application/memorization_page_catalog.dart';
+import '../application/memorization_practice_history_store.dart';
 import '../application/memorization_progress_store.dart';
 import '../application/memorization_voice_recording_controller.dart';
 import 'memorization_similar_verses_screen.dart';
@@ -31,6 +32,7 @@ class MemorizationStudyScreen extends StatefulWidget {
 
 class _MemorizationStudyScreenState extends State<MemorizationStudyScreen> {
   static const _store = MemorizationProgressStore();
+  static const _practiceStore = MemorizationPracticeHistoryStore();
 
   late MemorizationStudyMode _mode;
   final Set<String> _revealed = <String>{};
@@ -71,6 +73,63 @@ class _MemorizationStudyScreenState extends State<MemorizationStudyScreen> {
     final snapshot = await _store.togglePage(widget.page);
     if (!mounted) return;
     setState(() => _completed = snapshot.containsPage(widget.page));
+  }
+
+  Future<void> _logPractice(GeneratedAppLocalizations l10n) async {
+    final selected = await showModalBottomSheet<MemorizationPracticeContext>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 2, 8, 10),
+                child: Text(
+                  l10n.memorizePracticeTitle,
+                  style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+              ),
+              _PracticeOptionTile(
+                icon: Icons.person_outline_rounded,
+                label: l10n.memorizePracticeSolo,
+                onTap: () => Navigator.of(sheetContext).pop(
+                  MemorizationPracticeContext.soloReview,
+                ),
+              ),
+              _PracticeOptionTile(
+                icon: Icons.mosque_outlined,
+                label: l10n.memorizePracticePrayer,
+                onTap: () => Navigator.of(sheetContext).pop(
+                  MemorizationPracticeContext.prayer,
+                ),
+              ),
+              _PracticeOptionTile(
+                icon: Icons.people_outline_rounded,
+                label: l10n.memorizePracticeSomeone,
+                onTap: () => Navigator.of(sheetContext).pop(
+                  MemorizationPracticeContext.recitedToSomeone,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (selected == null || !mounted) return;
+
+    await _practiceStore.record(page: widget.page, context: selected);
+    if (!mounted) return;
+    HapticFeedback.selectionClick();
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(content: Text(l10n.memorizePracticeSaved)));
   }
 
   List<_MemorizationVerse> _versesForPage() {
@@ -175,7 +234,7 @@ class _MemorizationStudyScreenState extends State<MemorizationStudyScreen> {
 
   Widget? _buildBottomBar(GeneratedAppLocalizations l10n) {
     final hasRecording = _recordingController.hasRecording;
-    if (!hasRecording && !widget.showCompletionAction) return null;
+    if (!hasRecording && !_completed && !widget.showCompletionAction) return null;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -186,6 +245,18 @@ class _MemorizationStudyScreenState extends State<MemorizationStudyScreen> {
             subtitle: '${l10n.quranProgressCurrentPage} ${widget.page}',
             isPlaying: _recordingController.isPlaying,
             onPlayPause: () => unawaited(_recordingController.togglePlayback()),
+          ),
+        if (_completed)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: OutlinedButton.icon(
+              onPressed: () => unawaited(_logPractice(l10n)),
+              icon: const Icon(Icons.fact_check_outlined),
+              label: Text(l10n.memorizePracticeTitle),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+              ),
+            ),
           ),
         if (widget.showCompletionAction)
           Padding(
@@ -208,6 +279,39 @@ class _MemorizationStudyScreenState extends State<MemorizationStudyScreen> {
             ),
           ),
       ],
+    );
+  }
+}
+
+class _PracticeOptionTile extends StatelessWidget {
+  const _PracticeOptionTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: scheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(18),
+        child: ListTile(
+          onTap: onTap,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          leading: Icon(icon, color: scheme.primary),
+          title: Text(label, style: const TextStyle(fontWeight: FontWeight.w800)),
+          trailing: const Icon(Icons.chevron_right_rounded),
+        ),
+      ),
     );
   }
 }

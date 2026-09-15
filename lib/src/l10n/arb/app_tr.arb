@@ -105,5 +105,10 @@
   "memorizeSimilarSource": "Çalıştığın ayet",
   "memorizeSimilarCandidate": "Benzer metin",
   "memorizeSimilarEmptyTitle": "Belirgin bir benzer ayet bulunamadı",
-  "memorizeSimilarEmptyBody": "Bu ayet için mevcut eşiklerde yeterli metinsel benzerlik bulunmadı."
+  "memorizeSimilarEmptyBody": "Bu ayet için mevcut eşiklerde yeterli metinsel benzerlik bulunmadı.",
+  "memorizePracticeTitle": "Tekrar kaydet",
+  "memorizePracticeSolo": "Tek başıma tekrar ettim",
+  "memorizePracticePrayer": "Namazda okudum",
+  "memorizePracticeSomeone": "Birine okudum",
+  "memorizePracticeSaved": "Tekrar kaydedildi"
 }
