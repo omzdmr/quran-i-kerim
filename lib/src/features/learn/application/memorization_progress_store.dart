@@ -151,11 +151,19 @@ class MemorizationProgressStore {
 
   Future<MemorizationProgressSnapshot> load() async {
     final prefs = await SharedPreferences.getInstance();
-    final pages = (prefs.getStringList(_pagesKey) ?? const <String>[])
+    final rawPages = prefs.getStringList(_pagesKey);
+    final pages = (rawPages ?? const <String>[])
         .map(int.tryParse)
         .whereType<int>()
         .where((page) => page >= 1 && page <= 604)
         .toSet();
+    if (rawPages != null) {
+      final normalizedPages = pages.toList()..sort();
+      final normalizedPageKeys = normalizedPages.map((page) => '$page').toList();
+      if (jsonEncode(rawPages) != jsonEncode(normalizedPageKeys)) {
+        await prefs.setStringList(_pagesKey, normalizedPageKeys);
+      }
+    }
     final rawDays = prefs.getStringList(_daysKey);
     final days = (rawDays ?? const <String>[]).where(_isValidDayKey).toSet();
     if (rawDays != null) {
