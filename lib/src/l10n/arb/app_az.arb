@@ -94,5 +94,12 @@
   "memorizeHintEmptyBody": "Əzbərlənmiş səhifələrdə ilk sözlərdən sonra davam edən ayə olduqda İpucu rejimi açılır.",
   "memorizeTestIndependent": "Köməksiz oxudum",
   "memorizeTestAssisted": "Kömək aldım",
-  "memorizeTestStruggled": "Çətinlik çəkdim"
+  "memorizeTestStruggled": "Çətinlik çəkdim",
+  "memorizeSimilarTitle": "Oxşar ayələr",
+  "memorizeSimilarAction": "Oxşar ayələr",
+  "memorizeSimilarBody": "Bu uyğunluqlar yalnız cihazdakı Quran mətnində söz və başlanğıc oxşarlığına görə sıralanır; təfsir və ya qəti mütəşabih təsnifatı deyil.",
+  "memorizeSimilarSource": "Çalışdığın ayə",
+  "memorizeSimilarCandidate": "Oxşar mətn",
+  "memorizeSimilarEmptyTitle": "Aydın oxşar ayə tapılmadı",
+  "memorizeSimilarEmptyBody": "Bu ayə üçün mövcud mətn oxşarlığı hədlərini keçən nəticə tapılmadı."
 }

@@ -10,6 +10,7 @@ import '../../../l10n/generated/generated_app_localizations.dart';
 import '../application/memorization_page_catalog.dart';
 import '../application/memorization_progress_store.dart';
 import '../application/memorization_voice_recording_controller.dart';
+import 'memorization_similar_verses_screen.dart';
 import 'memorization_study_scaffold.dart';
 
 class MemorizationStudyScreen extends StatefulWidget {
@@ -152,7 +153,21 @@ class _MemorizationStudyScreenState extends State<MemorizationStudyScreen> {
             if (!_revealed.remove(key)) _revealed.add(key);
           });
         },
+        onOpenSimilar: (verse) {
+          HapticFeedback.selectionClick();
+          unawaited(
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => MemorizationSimilarVersesScreen(
+                  surah: verse.surah,
+                  ayah: verse.ayah,
+                ),
+              ),
+            ),
+          );
+        },
         revealLabel: l10n.memorizeRevealVerse,
+        similarLabel: l10n.memorizeSimilarAction,
       ),
       bottomBar: _buildBottomBar(l10n),
     );
@@ -203,14 +218,18 @@ class _MemorizationPageBody extends StatelessWidget {
     required this.mode,
     required this.revealed,
     required this.onToggleReveal,
+    required this.onOpenSimilar,
     required this.revealLabel,
+    required this.similarLabel,
   });
 
   final List<_MemorizationVerse> verses;
   final MemorizationStudyMode mode;
   final Set<String> revealed;
   final ValueChanged<String> onToggleReveal;
+  final ValueChanged<_MemorizationVerse> onOpenSimilar;
   final String revealLabel;
+  final String similarLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -273,12 +292,26 @@ class _MemorizationPageBody extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 10),
-                            Align(
-                              alignment: AlignmentDirectional.centerEnd,
-                              child: _ReferenceChip(
-                                label: '${verse.surah}:${verse.ayah}',
-                                revealed: mode == MemorizationStudyMode.memorize,
-                              ),
+                            Wrap(
+                              alignment: WrapAlignment.spaceBetween,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: 8,
+                              runSpacing: 6,
+                              children: [
+                                TextButton.icon(
+                                  onPressed: () => onOpenSimilar(verse),
+                                  icon: const Icon(
+                                    Icons.compare_arrows_rounded,
+                                    size: 18,
+                                  ),
+                                  label: Text(similarLabel),
+                                ),
+                                _ReferenceChip(
+                                  label: '${verse.surah}:${verse.ayah}',
+                                  revealed:
+                                      mode == MemorizationStudyMode.memorize,
+                                ),
+                              ],
                             ),
                           ],
                         )

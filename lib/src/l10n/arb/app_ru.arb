@@ -94,5 +94,12 @@
   "memorizeHintEmptyBody": "Режим подсказки доступен, когда на выученной странице есть аят, который продолжается после первых слов.",
   "memorizeTestIndependent": "Прочитал без помощи",
   "memorizeTestAssisted": "Нужна была помощь",
-  "memorizeTestStruggled": "Было трудно"
+  "memorizeTestStruggled": "Было трудно",
+  "memorizeSimilarTitle": "Похожие аяты",
+  "memorizeSimilarAction": "Похожие аяты",
+  "memorizeSimilarBody": "Эти совпадения отсортированы только по сходству слов и начала текста Корана, сохранённого на устройстве; это не тафсир и не окончательная классификация муташабихат.",
+  "memorizeSimilarSource": "Изучаемый аят",
+  "memorizeSimilarCandidate": "Похожий текст",
+  "memorizeSimilarEmptyTitle": "Явно похожий аят не найден",
+  "memorizeSimilarEmptyBody": "Для этого аята ни один результат не прошёл текущие пороги текстового сходства."
 }

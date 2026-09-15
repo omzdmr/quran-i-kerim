@@ -94,5 +94,12 @@
   "memorizeHintEmptyBody": "Ezberlediğin sayfalarda ilk kelimelerden sonra devam eden bir ayet olduğunda İpucu modu başlayabilir.",
   "memorizeTestIndependent": "Yardımsız okudum",
   "memorizeTestAssisted": "Yardım aldım",
-  "memorizeTestStruggled": "Zorlandım"
+  "memorizeTestStruggled": "Zorlandım",
+  "memorizeSimilarTitle": "Benzer Ayetler",
+  "memorizeSimilarAction": "Benzer ayetler",
+  "memorizeSimilarBody": "Bu eşleşmeler yalnızca cihazdaki Kur’an metnindeki sözcük ve başlangıç benzerliğine göre sıralanır; tefsir veya kesin bir müteşabih sınıflandırması değildir.",
+  "memorizeSimilarSource": "Çalıştığın ayet",
+  "memorizeSimilarCandidate": "Benzer metin",
+  "memorizeSimilarEmptyTitle": "Belirgin bir benzer ayet bulunamadı",
+  "memorizeSimilarEmptyBody": "Bu ayet için mevcut eşiklerde yeterli metinsel benzerlik bulunmadı."
 }

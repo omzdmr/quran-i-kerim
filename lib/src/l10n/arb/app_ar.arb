@@ -94,5 +94,12 @@
   "memorizeHintEmptyBody": "يتاح وضع التلميح عندما تحتوي الصفحات المحفوظة على آية يمكن إكمالها بعد الكلمات الأولى.",
   "memorizeTestIndependent": "قرأتها دون مساعدة",
   "memorizeTestAssisted": "احتجت إلى مساعدة",
-  "memorizeTestStruggled": "تعثرت"
+  "memorizeTestStruggled": "تعثرت",
+  "memorizeSimilarTitle": "آيات متشابهة نصيًا",
+  "memorizeSimilarAction": "آيات مشابهة",
+  "memorizeSimilarBody": "تُرتب هذه النتائج فقط بحسب تشابه الكلمات وبداية النص في القرآن المخزن على جهازك؛ وليست تفسيرًا ولا تصنيفًا حاسمًا للمتشابهات.",
+  "memorizeSimilarSource": "الآية التي تدرسها",
+  "memorizeSimilarCandidate": "نص مشابه",
+  "memorizeSimilarEmptyTitle": "لم يُعثر على آية مشابهة بوضوح",
+  "memorizeSimilarEmptyBody": "لم تتجاوز أي آية حدود التشابه النصي الحالية لهذا الموضع."
 }

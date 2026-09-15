@@ -107,5 +107,12 @@
   "memorizeHintEmptyBody": "Hint mode becomes available when a memorized page contains a verse long enough to continue after the first words.",
   "memorizeTestIndependent": "I recited independently",
   "memorizeTestAssisted": "I needed help",
-  "memorizeTestStruggled": "I struggled"
+  "memorizeTestStruggled": "I struggled",
+  "memorizeSimilarTitle": "Similar Verses",
+  "memorizeSimilarAction": "Similar verses",
+  "memorizeSimilarBody": "These matches are ranked only by word and opening-text similarity in the Quran stored on your device; they are not tafsir or a definitive mutashabihat classification.",
+  "memorizeSimilarSource": "Verse you are studying",
+  "memorizeSimilarCandidate": "Similar text",
+  "memorizeSimilarEmptyTitle": "No clear similar verse was found",
+  "memorizeSimilarEmptyBody": "No verse met the current textual-similarity thresholds for this passage."
 }
