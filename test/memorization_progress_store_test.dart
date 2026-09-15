@@ -111,6 +111,22 @@ void main() {
     expect(restored.practiceDays, isEmpty);
   });
 
+  test('load normalizes invalid memorized page keys', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'memorized_pages_v1': <String>['12', 'bad', '0', '605', '2', '12'],
+    });
+    const store = MemorizationProgressStore();
+
+    final restored = await store.load();
+    final prefs = await SharedPreferences.getInstance();
+
+    expect(restored.memorizedPages, <int>{2, 12});
+    expect(
+      prefs.getStringList('memorized_pages_v1'),
+      <String>['2', '12'],
+    );
+  });
+
   test('load normalizes invalid practice day keys', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{
       'memorization_practice_days_v1': <String>[
