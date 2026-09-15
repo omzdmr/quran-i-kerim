@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../data/surah_localization.dart';
 import '../../../l10n/generated/generated_app_localizations.dart';
+import '../application/memorization_recall_history_store.dart';
 import '../application/memorization_similar_verses.dart';
 
 class MemorizationSimilarVersesScreen extends StatefulWidget {
@@ -21,7 +23,11 @@ class MemorizationSimilarVersesScreen extends StatefulWidget {
 
 class _MemorizationSimilarVersesScreenState
     extends State<MemorizationSimilarVersesScreen> {
+  static const _historyStore = MemorizationRecallHistoryStore();
+
   late final List<MemorizationVerseSimilarity> _matches;
+  Set<String> _manuallyWeakIds = const <String>{};
+  Set<String> _savingIds = const <String>{};
 
   @override
   void initState() {
@@ -30,6 +36,36 @@ class _MemorizationSimilarVersesScreenState
       surah: widget.surah,
       ayah: widget.ayah,
     );
+    _loadWeakStatus();
+  }
+
+  Future<void> _loadWeakStatus() async {
+    final history = await _historyStore.load();
+    if (!mounted) return;
+    setState(() => _manuallyWeakIds = history.manuallyWeakQuestionIds);
+  }
+
+  String _candidateId(MemorizationVerseSimilarity similarity) =>
+      '${similarity.candidate.surah}:${similarity.candidate.ayah}';
+
+  Future<void> _toggleWeak(MemorizationVerseSimilarity similarity) async {
+    final id = _candidateId(similarity);
+    if (_savingIds.contains(id)) return;
+
+    final shouldMark = !_manuallyWeakIds.contains(id);
+    HapticFeedback.selectionClick();
+    setState(() => _savingIds = <String>{..._savingIds, id});
+
+    final history = await _historyStore.setManuallyWeak(
+      id,
+      weak: shouldMark,
+    );
+    if (!mounted) return;
+
+    setState(() {
+      _manuallyWeakIds = history.manuallyWeakQuestionIds;
+      _savingIds = <String>{..._savingIds}..remove(id);
+    });
   }
 
   @override
@@ -84,6 +120,14 @@ class _MemorizationSimilarVersesScreenState
                     sourceLabel: l10n.memorizeSimilarSource,
                     candidateLabel: l10n.memorizeSimilarCandidate,
                     pageLabel: l10n.quranProgressCurrentPage,
+                    weakLabel: l10n.memorizeWeakTitle,
+                    isWeak: _manuallyWeakIds.contains(
+                      _candidateId(_matches[index]),
+                    ),
+                    isSaving: _savingIds.contains(
+                      _candidateId(_matches[index]),
+                    ),
+                    onToggleWeak: () => _toggleWeak(_matches[index]),
                   ),
                   if (index != _matches.length - 1)
                     const SizedBox(height: 12),
@@ -101,6 +145,10 @@ class _SimilarityCard extends StatelessWidget {
     required this.sourceLabel,
     required this.candidateLabel,
     required this.pageLabel,
+    required this.weakLabel,
+    required this.isWeak,
+    required this.isSaving,
+    required this.onToggleWeak,
   });
 
   final MemorizationVerseSimilarity similarity;
@@ -108,6 +156,10 @@ class _SimilarityCard extends StatelessWidget {
   final String sourceLabel;
   final String candidateLabel;
   final String pageLabel;
+  final String weakLabel;
+  final bool isWeak;
+  final bool isSaving;
+  final VoidCallback onToggleWeak;
 
   @override
   Widget build(BuildContext context) {
@@ -140,6 +192,27 @@ class _SimilarityCard extends StatelessWidget {
                   '${localizedSurahName(candidate.surah, localeCode)} · ${candidate.surah}:${candidate.ayah} · $pageLabel ${candidate.page}',
               arabic: candidate.arabic,
               sharedPrefixWords: similarity.sharedPrefixWords,
+            ),
+            const SizedBox(height: 14),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: FilterChip(
+                selected: isWeak,
+                onSelected: isSaving ? null : (_) => onToggleWeak(),
+                avatar: isSaving
+                    ? const SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(
+                        isWeak
+                            ? Icons.check_circle_rounded
+                            : Icons.warning_amber_rounded,
+                        size: 18,
+                      ),
+                label: Text(weakLabel),
+                showCheckmark: false,
+              ),
             ),
           ],
         ),

@@ -13,13 +13,18 @@ class MemorizationRecallStat {
     required this.difficulty,
     required this.attempts,
     this.lastAttemptAt,
+    this.manuallyWeak = false,
   });
 
   final int difficulty;
   final int attempts;
   final DateTime? lastAttemptAt;
+  final bool manuallyWeak;
 
-  bool get isWeak => difficulty > 0;
+  int get priorityDifficulty =>
+      difficulty > 0 ? difficulty : (manuallyWeak ? 1 : 0);
+
+  bool get isWeak => priorityDifficulty > 0;
 }
 
 class MemorizationRecallHistorySnapshot {
@@ -32,12 +37,18 @@ class MemorizationRecallHistorySnapshot {
       .map((entry) => entry.key)
       .toSet();
 
+  Set<String> get manuallyWeakQuestionIds => stats.entries
+      .where((entry) => entry.value.manuallyWeak)
+      .map((entry) => entry.key)
+      .toSet();
+
   List<MapEntry<String, MemorizationRecallStat>> get weakStatsByPriority {
     final entries = stats.entries
         .where((entry) => entry.value.isWeak)
         .toList(growable: false)
       ..sort((a, b) {
-        final difficulty = b.value.difficulty.compareTo(a.value.difficulty);
+        final difficulty = b.value.priorityDifficulty
+            .compareTo(a.value.priorityDifficulty);
         if (difficulty != 0) return difficulty;
 
         final aDate = a.value.lastAttemptAt;
@@ -86,6 +97,7 @@ class MemorizationRecallHistoryStore {
           difficulty: difficulty.clamp(0, 9),
           attempts: attempts < 0 ? 0 : attempts,
           lastAttemptAt: _parseDateTime(value['lastAttemptAt']),
+          manuallyWeak: value['manuallyWeak'] == true,
         );
       }
       return result;
@@ -103,6 +115,7 @@ class MemorizationRecallHistoryStore {
         'difficulty': stat.difficulty,
         'attempts': stat.attempts,
         'lastAttemptAt': stat.lastAttemptAt?.toIso8601String(),
+        if (stat.manuallyWeak) 'manuallyWeak': true,
       };
     }
     return jsonEncode(encoded);
@@ -151,8 +164,43 @@ class MemorizationRecallHistoryStore {
       difficulty: nextDifficulty,
       attempts: existing.attempts + 1,
       lastAttemptAt: now ?? DateTime.now(),
+      manuallyWeak: existing.manuallyWeak,
     );
 
+    return _save(stats);
+  }
+
+  Future<MemorizationRecallHistorySnapshot> setManuallyWeak(
+    String questionId, {
+    required bool weak,
+  }) async {
+    if (questionId.trim().isEmpty) return load();
+
+    final current = await load();
+    final stats = <String, MemorizationRecallStat>{...current.stats};
+    final existing = stats[questionId] ??
+        const MemorizationRecallStat(difficulty: 0, attempts: 0);
+
+    if (!weak &&
+        existing.difficulty == 0 &&
+        existing.attempts == 0 &&
+        existing.lastAttemptAt == null) {
+      stats.remove(questionId);
+    } else {
+      stats[questionId] = MemorizationRecallStat(
+        difficulty: existing.difficulty,
+        attempts: existing.attempts,
+        lastAttemptAt: existing.lastAttemptAt,
+        manuallyWeak: weak,
+      );
+    }
+
+    return _save(stats);
+  }
+
+  Future<MemorizationRecallHistorySnapshot> _save(
+    Map<String, MemorizationRecallStat> stats,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_key, _encode(stats));
     return MemorizationRecallHistorySnapshot(

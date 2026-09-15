@@ -96,6 +96,48 @@ void main() {
     );
   });
 
+  test('a manually confusing verse becomes weak without a fake attempt', () async {
+    const store = MemorizationRecallHistoryStore();
+
+    await store.setManuallyWeak('2:6', weak: true);
+    final restored = await store.load();
+    final stat = restored.statFor('2:6');
+
+    expect(stat?.manuallyWeak, isTrue);
+    expect(stat?.difficulty, 0);
+    expect(stat?.priorityDifficulty, 1);
+    expect(stat?.attempts, 0);
+    expect(stat?.lastAttemptAt, isNull);
+    expect(restored.manuallyWeakQuestionIds, contains('2:6'));
+    expect(restored.weakQuestionIds, contains('2:6'));
+  });
+
+  test('clearing a manual weak flag keeps test-derived difficulty intact', () async {
+    const store = MemorizationRecallHistoryStore();
+
+    await store.recordAssessment(
+      '2:6',
+      assessment: MemorizationRecallAssessment.struggled,
+      now: DateTime(2026, 9, 13, 19),
+    );
+    await store.setManuallyWeak('2:6', weak: true);
+    final cleared = await store.setManuallyWeak('2:6', weak: false);
+
+    expect(cleared.statFor('2:6')?.manuallyWeak, isFalse);
+    expect(cleared.statFor('2:6')?.difficulty, 2);
+    expect(cleared.weakQuestionIds, contains('2:6'));
+  });
+
+  test('clearing a manual-only weak flag removes the synthetic entry', () async {
+    const store = MemorizationRecallHistoryStore();
+
+    await store.setManuallyWeak('2:6', weak: true);
+    final cleared = await store.setManuallyWeak('2:6', weak: false);
+
+    expect(cleared.statFor('2:6'), isNull);
+    expect(cleared.weakQuestionIds, isNot(contains('2:6')));
+  });
+
   test('empty question ids are ignored', () async {
     const store = MemorizationRecallHistoryStore();
 

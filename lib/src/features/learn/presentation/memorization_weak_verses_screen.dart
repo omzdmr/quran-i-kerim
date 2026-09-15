@@ -258,7 +258,7 @@ class _WeakVerseCard extends StatelessWidget {
               _MetricPill(
                 icon: Icons.priority_high_rounded,
                 label: difficultyLabel,
-                value: item.stat.difficulty,
+                value: item.stat.priorityDifficulty,
               ),
               const SizedBox(width: 8),
               _MetricPill(
