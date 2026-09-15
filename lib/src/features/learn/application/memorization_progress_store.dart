@@ -121,9 +121,17 @@ class MemorizationProgressStore {
         if (page == null || page < 1 || page > 604 || value is! Map) {
           continue;
         }
+        final memorizedAt = _parseDateTime(value['memorizedAt']);
+        final parsedLastReviewedAt = _parseDateTime(value['lastReviewedAt']);
+        final lastReviewedAt =
+            memorizedAt != null &&
+                parsedLastReviewedAt != null &&
+                parsedLastReviewedAt.isBefore(memorizedAt)
+            ? null
+            : parsedLastReviewedAt;
         result[page] = MemorizationPageProgress(
-          memorizedAt: _parseDateTime(value['memorizedAt']),
-          lastReviewedAt: _parseDateTime(value['lastReviewedAt']),
+          memorizedAt: memorizedAt,
+          lastReviewedAt: lastReviewedAt,
           selfAssessment: _parseAssessment(value['selfAssessment']),
         );
       }
