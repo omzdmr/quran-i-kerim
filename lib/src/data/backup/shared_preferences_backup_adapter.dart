@@ -5,8 +5,8 @@ import 'backup_manifest.dart';
 /// Explicit SharedPreferences adapter used by backup/restore.
 ///
 /// Only keys listed here, or keys under an explicitly allowed dynamic prefix,
-/// can leave the device. Unknown preferences, downloaded content and caches are
-/// intentionally ignored.
+/// can leave the device. Unknown preferences, downloaded content, caches and
+/// exact prayer-location coordinates are intentionally ignored.
 class SharedPreferencesBackupAdapter {
   const SharedPreferencesBackupAdapter();
 
@@ -56,6 +56,50 @@ class SharedPreferencesBackupAdapter {
     'audio_after_surah_v1',
   };
 
+  static const Set<String> dhikrKeys = <String>{
+    'dhikr_v2_selected',
+    'dhikr_v2_counts',
+    'dhikr_v2_targets',
+    'dhikr_v2_custom',
+    'dhikr_v2_daily_counts',
+    'dhikr_v2_daily_date',
+  };
+
+  /// Prayer behavior that is useful across devices but does not reveal an
+  /// exact or manually selected location. City/GPS/manual-location storage is
+  /// deliberately excluded because those records can contain coordinates.
+  static const Set<String> prayerPreferenceKeys = <String>{
+    'prayer_method_override',
+    'prayer_asr_method',
+    'prayer_high_latitude_method',
+    'prayer_adjustment_fajr',
+    'prayer_adjustment_sunrise',
+    'prayer_adjustment_dhuhr',
+    'prayer_adjustment_asr',
+    'prayer_adjustment_maghrib',
+    'prayer_adjustment_isha',
+    'prayer_notifications_enabled',
+    'prayer_notification_ids',
+    'prayer_hijri_offset',
+  };
+
+  static const Set<String> excludedPrayerLocationKeys = <String>{
+    'prayer_city_id',
+    'prayer_device_latitude',
+    'prayer_device_longitude',
+    'prayer_device_timezone',
+    'prayer_device_method',
+    'prayer_device_region',
+    'prayer_manual_source_id',
+    'prayer_manual_label',
+    'prayer_manual_country',
+    'prayer_manual_latitude',
+    'prayer_manual_longitude',
+    'prayer_manual_timezone',
+    'prayer_manual_method',
+    'prayer_manual_region',
+  };
+
   static const Map<String, Set<String>> keysBySection =
       <String, Set<String>>{
         'reading': readingKeys,
@@ -66,6 +110,8 @@ class SharedPreferencesBackupAdapter {
         'memorizationPractice': memorizationPracticeKeys,
         'preferences': preferenceKeys,
         'learning': <String>{},
+        'dhikr': dhikrKeys,
+        'prayerPreferences': prayerPreferenceKeys,
       };
 
   static const Map<String, Set<String>> dynamicPrefixesBySection =
@@ -81,6 +127,8 @@ class SharedPreferencesBackupAdapter {
     ...memorizationKeys,
     ...memorizationPracticeKeys,
     ...preferenceKeys,
+    ...dhikrKeys,
+    ...prayerPreferenceKeys,
   };
 
   Future<Map<String, Object?>> capture() async {

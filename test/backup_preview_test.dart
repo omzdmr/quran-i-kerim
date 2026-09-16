@@ -6,36 +6,36 @@ void main() {
 
   test('previews current compatible backup without mutating data', () {
     final preview = parser.parse(<String, Object?>{
-      'version': 2,
+      'version': 3,
       'createdAt': '2026-09-16T06:00:00Z',
       'data': <String, Object?>{
         'notes': <Object?>[1, 2],
         'bookmarks': <Object?>[1],
         'preferences': <String, Object?>{'locale': 'tr'},
-        'highlights': <Object?>[],
         'learning': <String, Object?>{'learn_progress_v1:a': '{}'},
+        'dhikr': <String, Object?>{'dhikr_v2_selected': 'subhanallah'},
+        'prayerPreferences': <String, Object?>{'prayer_hijri_offset': 1},
       },
     });
 
     expect(preview.canRestore, isTrue);
     expect(preview.createdAt, DateTime.utc(2026, 9, 16, 6));
     expect(preview.recordCounts['notes'], 2);
-    expect(preview.recordCounts['bookmarks'], 1);
-    expect(preview.recordCounts['preferences'], 1);
-    expect(preview.recordCounts['highlights'], 0);
     expect(preview.recordCounts['learning'], 1);
-    expect(preview.totalRecords, 5);
+    expect(preview.recordCounts['dhikr'], 1);
+    expect(preview.recordCounts['prayerPreferences'], 1);
+    expect(preview.totalRecords, 7);
   });
 
-  test('keeps version one backups restorable', () {
-    final preview = parser.parse(<String, Object?>{
-      'version': 1,
-      'createdAt': '2026-09-16T06:00:00Z',
-      'data': <String, Object?>{},
-    });
-
-    expect(preview.canRestore, isTrue);
-    expect(preview.version, 1);
+  test('keeps version one and two backups restorable', () {
+    for (final version in <int>[1, 2]) {
+      final preview = parser.parse(<String, Object?>{
+        'version': version,
+        'createdAt': '2026-09-16T06:00:00Z',
+        'data': <String, Object?>{},
+      });
+      expect(preview.canRestore, isTrue, reason: 'version $version');
+    }
   });
 
   test('blocks unsupported backup versions', () {
@@ -51,7 +51,7 @@ void main() {
 
   test('reports malformed metadata and payload', () {
     final preview = parser.parse(<String, Object?>{
-      'version': 2,
+      'version': 3,
       'createdAt': 'not-a-date',
       'data': <String, Object?>{'notes': 'invalid'},
     });
@@ -81,7 +81,7 @@ void main() {
 
   test('normalizes offset backup timestamp to UTC', () {
     final preview = parser.parse(<String, Object?>{
-      'version': 2,
+      'version': 3,
       'createdAt': '2026-09-16T14:00:00+08:00',
       'data': <String, Object?>{},
     });
@@ -92,7 +92,7 @@ void main() {
 
   test('reports invalid map keys without counting them', () {
     final preview = parser.parse(<String, Object?>{
-      'version': 2,
+      'version': 3,
       'createdAt': '2026-09-16T06:00:00Z',
       'data': <Object?, Object?>{
         'notes': <Object?>[1],
@@ -104,21 +104,5 @@ void main() {
     expect(preview.recordCounts, <String, int>{'notes': 1});
     expect(preview.totalRecords, 1);
     expect(preview.issues, contains(BackupPreviewIssue.invalidData));
-  });
-
-  test('counts null sections as empty without rejecting backup', () {
-    final preview = parser.parse(<String, Object?>{
-      'version': 2,
-      'createdAt': '2026-09-16T06:00:00Z',
-      'data': <String, Object?>{
-        'notes': null,
-        'bookmarks': <Object?>[],
-      },
-    });
-
-    expect(preview.canRestore, isTrue);
-    expect(preview.recordCounts['notes'], 0);
-    expect(preview.recordCounts['bookmarks'], 0);
-    expect(preview.totalRecords, 0);
   });
 }

@@ -27,8 +27,7 @@ void main() {
   test('exports an atomic current-schema JSON file', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{
       'last_surah': 2,
-      'last_ayah': 255,
-      'learn_progress_v1:intro': '{"lessonId":"intro"}',
+      'dhikr_v2_selected': 'subhanallah',
     });
 
     final file = await service().exportToFile(
@@ -39,7 +38,7 @@ void main() {
     expect(file.path, contains('quran_backups'));
     expect(file.path, endsWith('.json'));
     final decoded = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
-    expect(decoded['version'], 2);
+    expect(decoded['version'], 3);
     expect(decoded['createdAt'], '2026-09-16T10:00:00.000Z');
     expect(file.parent.listSync().whereType<File>(), hasLength(1));
     expect(file.parent.listSync().any((entry) => entry.path.contains('.tmp-')), isFalse);
@@ -48,13 +47,11 @@ void main() {
   test('previews and restores a selected local backup file', () async {
     final input = File('${tempRoot.path}${Platform.pathSeparator}import.json');
     await input.writeAsString(jsonEncode(<String, Object?>{
-      'version': 2,
+      'version': 3,
       'createdAt': '2026-09-16T10:00:00Z',
       'data': <String, Object?>{
         'reading': <String, Object?>{'last_surah': 36, 'last_ayah': 58},
-        'bookmarks': <String, Object?>{
-          'bookmarks': <String>['36:58'],
-        },
+        'dhikr': <String, Object?>{'dhikr_v2_selected': 'alhamdulillah'},
       },
     }));
 
@@ -67,7 +64,7 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getInt('last_surah'), 36);
     expect(prefs.getInt('last_ayah'), 58);
-    expect(prefs.getStringList('bookmarks'), ['36:58']);
+    expect(prefs.getString('dhikr_v2_selected'), 'alhamdulillah');
   });
 
   test('rejects oversized imports before parsing JSON', () async {

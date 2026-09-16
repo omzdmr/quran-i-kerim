@@ -2,8 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:quran_i_kerim/src/data/backup/backup_manifest.dart';
 
 void main() {
-  test('current schema includes user-created progress and settings', () {
-    expect(BackupManifest.schemaVersion, 2);
+  test('current schema includes user-created progress and safe preferences', () {
+    expect(BackupManifest.schemaVersion, 3);
     expect(BackupManifest.includedSections, containsAll(<String>{
       'reading',
       'bookmarks',
@@ -13,33 +13,46 @@ void main() {
       'memorizationPractice',
       'preferences',
       'learning',
+      'dhikr',
+      'prayerPreferences',
     }));
   });
 
-  test('explicitly excludes large or re-downloadable content', () {
+  test('explicitly excludes large, re-downloadable and location content', () {
     expect(BackupManifest.excludedSections, containsAll(<String>{
       'quranText',
       'translations',
       'audioCache',
       'memorizationRecordings',
+      'prayerLocation',
     }));
   });
 
-  test('version one restore scope does not include later learning section', () {
+  test('older restore scopes do not include sections introduced later', () {
     expect(BackupManifest.isVersionSupported(1), isTrue);
+    expect(BackupManifest.isVersionSupported(2), isTrue);
     expect(BackupManifest.sectionsForVersion(1), isNot(contains('learning')));
     expect(BackupManifest.sectionsForVersion(2), contains('learning'));
+    expect(BackupManifest.sectionsForVersion(2), isNot(contains('dhikr')));
+    expect(BackupManifest.sectionsForVersion(2), isNot(contains('prayerPreferences')));
+    expect(BackupManifest.sectionsForVersion(3), contains('dhikr'));
+    expect(BackupManifest.sectionsForVersion(3), contains('prayerPreferences'));
   });
 
   test('unknown and excluded sections never leak into selected data', () {
     final selected = BackupManifest.selectBackupData(<String, Object?>{
       'notes': <Object>[1],
-      'learning': <String, Object?>{'learn_progress_v1:a': '{}'},
+      'dhikr': <String, Object?>{'dhikr_v2_selected': 'subhanallah'},
+      'prayerPreferences': <String, Object?>{'prayer_hijri_offset': 1},
+      'prayerLocation': <String, Object?>{'latitude': 1.0},
       'audioCache': <Object>[2],
       'futureUnknown': <Object>[3],
     });
 
-    expect(selected.keys, unorderedEquals(<String>['notes', 'learning']));
+    expect(
+      selected.keys,
+      unorderedEquals(<String>['notes', 'dhikr', 'prayerPreferences']),
+    );
   });
 
   test('included and excluded sections never overlap', () {

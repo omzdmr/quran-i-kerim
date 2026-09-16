@@ -5,8 +5,8 @@
 class BackupManifest {
   const BackupManifest._();
 
-  static const int schemaVersion = 2;
-  static const Set<int> supportedVersions = <int>{1, schemaVersion};
+  static const int schemaVersion = 3;
+  static const Set<int> supportedVersions = <int>{1, 2, schemaVersion};
 
   static const Set<String> version1Sections = <String>{
     'reading',
@@ -18,9 +18,15 @@ class BackupManifest {
     'preferences',
   };
 
-  static const Set<String> includedSections = <String>{
+  static const Set<String> version2Sections = <String>{
     ...version1Sections,
     'learning',
+  };
+
+  static const Set<String> includedSections = <String>{
+    ...version2Sections,
+    'dhikr',
+    'prayerPreferences',
   };
 
   static const Set<String> excludedSections = <String>{
@@ -28,6 +34,7 @@ class BackupManifest {
     'translations',
     'audioCache',
     'memorizationRecordings',
+    'prayerLocation',
   };
 
   static bool isIncluded(String section) => includedSections.contains(section);
@@ -37,6 +44,7 @@ class BackupManifest {
   static Set<String> sectionsForVersion(int version) {
     return switch (version) {
       1 => version1Sections,
+      2 => version2Sections,
       schemaVersion => includedSections,
       _ => const <String>{},
     };
