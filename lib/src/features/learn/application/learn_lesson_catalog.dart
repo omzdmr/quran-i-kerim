@@ -8,7 +8,9 @@ class LearnLessonDefinition {
     required this.introBodyKey,
     required this.summaryBodyKey,
     required this.quizDistractorSurahs,
-  });
+    required this.quizCorrectOptionIndex,
+  }) : assert(quizCorrectOptionIndex >= 0),
+       assert(quizCorrectOptionIndex <= quizDistractorSurahs.length);
 
   final String id;
   final int surah;
@@ -18,6 +20,7 @@ class LearnLessonDefinition {
   final String introBodyKey;
   final String summaryBodyKey;
   final List<int> quizDistractorSurahs;
+  final int quizCorrectOptionIndex;
 
   int get firstAyah => ayahs.first;
 }
@@ -31,6 +34,7 @@ const LearnLessonDefinition inshirahEaseLesson = LearnLessonDefinition(
   introBodyKey: 'learnLessonEaseIntroBodyV1',
   summaryBodyKey: 'learnLessonEaseSummaryBodyV1',
   quizDistractorSurahs: <int>[93, 95],
+  quizCorrectOptionIndex: 1,
 );
 
 const LearnLessonDefinition asrLesson = LearnLessonDefinition(
@@ -42,6 +46,7 @@ const LearnLessonDefinition asrLesson = LearnLessonDefinition(
   introBodyKey: 'learnLessonAsrIntroBodyV1',
   summaryBodyKey: 'learnLessonAsrSummaryBodyV1',
   quizDistractorSurahs: <int>[102, 104],
+  quizCorrectOptionIndex: 2,
 );
 
 const LearnLessonDefinition ikhlasLesson = LearnLessonDefinition(
@@ -53,6 +58,7 @@ const LearnLessonDefinition ikhlasLesson = LearnLessonDefinition(
   introBodyKey: 'learnLessonIkhlasIntroBodyV1',
   summaryBodyKey: 'learnLessonIkhlasSummaryBodyV1',
   quizDistractorSurahs: <int>[111, 113],
+  quizCorrectOptionIndex: 0,
 );
 
 const List<LearnLessonDefinition> curatedLearnLessons = <LearnLessonDefinition>[
