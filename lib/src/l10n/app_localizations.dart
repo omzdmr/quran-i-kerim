@@ -174,6 +174,8 @@ class AppLocalizations {
   String get readerPersonalNote => _value('readerPersonalNote');
   String get readerEditNote => _value('readerEditNote');
   String get readerOpenArchive => _value('readerOpenArchive');
+  String get readerVerseNoteTooltip => _value('readerVerseNoteTooltip');
+  String get readerVerseFootnoteTooltip => _value('readerVerseFootnoteTooltip');
   String get readerAudioPlay => _value('readerAudioPlay');
   String get readerAudioPause => _value('readerAudioPause');
   String get readerAudioPreviousVerse => _value('readerAudioPreviousVerse');

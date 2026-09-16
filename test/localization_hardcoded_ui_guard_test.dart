@@ -9,6 +9,7 @@ void main() {
     'lib/src/features/reader/passage_preview_screen.dart',
     'lib/src/features/reader/reader_note_sheet.dart',
     'lib/src/features/reader/reader_media_session.dart',
+    'lib/src/features/reader/reader_mixed_verse_list.dart',
     'lib/src/features/prayer/application/prayer_notification_service.dart',
   ];
 

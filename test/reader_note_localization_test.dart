@@ -9,6 +9,8 @@ void main() {
     'readerPersonalNote',
     'readerEditNote',
     'readerOpenArchive',
+    'readerVerseNoteTooltip',
+    'readerVerseFootnoteTooltip',
   };
 
   test('reader note copy keeps five-locale key parity', () {
@@ -31,18 +33,34 @@ void main() {
       AppLocalizations(const Locale('tr')).readerPersonalNote,
       'Kişisel Not',
     );
+    expect(
+      AppLocalizations(const Locale('tr')).readerVerseFootnoteTooltip,
+      'Dipnot',
+    );
     expect(AppLocalizations(const Locale('en')).readerEditNote, 'Edit');
     expect(
       AppLocalizations(const Locale('ar')).readerOpenArchive,
       'فتح في ملفك',
     );
     expect(
+      AppLocalizations(const Locale('ar')).readerVerseNoteTooltip,
+      'ملاحظة',
+    );
+    expect(
       AppLocalizations(const Locale('az')).readerPersonalNote,
       'Şəxsi qeyd',
     );
     expect(
+      AppLocalizations(const Locale('az')).readerVerseFootnoteTooltip,
+      'Haşiyə',
+    );
+    expect(
       AppLocalizations(const Locale('ru')).readerEditNote,
       'Изменить',
+    );
+    expect(
+      AppLocalizations(const Locale('ru')).readerVerseNoteTooltip,
+      'Заметка',
     );
   });
 }
