@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quran_i_kerim/src/features/reader/reader_reading_history.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -29,5 +31,45 @@ void main() {
       await repo.record(surah: (i % 60) + 1, ayah: i + 1, sourceId: 'x');
     }
     expect((await repo.load()).length, ReaderReadingHistoryRepository.maxEntries);
+  });
+
+  test('reading history ignores malformed persisted entries', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      ReaderReadingHistoryRepository.storageKey: jsonEncode(<Object?>[
+        <String, Object>{
+          'surah': 2,
+          'ayah': 255,
+          'sourceId': 'tr_rwwad',
+          'updatedAt': 1234,
+        },
+        <String, Object>{
+          'surah': 0,
+          'ayah': 1,
+          'sourceId': 'invalid_surah',
+          'updatedAt': 1234,
+        },
+        <String, Object>{
+          'surah': 3,
+          'ayah': 0,
+          'sourceId': 'invalid_ayah',
+          'updatedAt': 1234,
+        },
+        'not-an-entry',
+      ]),
+    });
+
+    final items = await ReaderReadingHistoryRepository.instance.load();
+    expect(items, hasLength(1));
+    expect(items.single.surah, 2);
+    expect(items.single.ayah, 255);
+    expect(items.single.sourceId, 'tr_rwwad');
+  });
+
+  test('reading history recovers from malformed json', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      ReaderReadingHistoryRepository.storageKey: '{broken-json',
+    });
+
+    expect(await ReaderReadingHistoryRepository.instance.load(), isEmpty);
   });
 }
