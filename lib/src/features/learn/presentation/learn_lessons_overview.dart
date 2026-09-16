@@ -137,10 +137,45 @@ class _LearnLessonsOverviewState extends State<LearnLessonsOverview> {
         FutureBuilder<Map<String, LearnProgressSnapshot?>>(
           future: _progressFuture,
           builder: (context, snapshot) {
-            final progressByLesson = snapshot.data ?? const <String, LearnProgressSnapshot?>{};
+            if (snapshot.connectionState == ConnectionState.waiting &&
+                !snapshot.hasData) {
+              return Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainer,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: const LinearProgressIndicator(),
+              );
+            }
+
+            final progressByLesson =
+                snapshot.data ?? const <String, LearnProgressSnapshot?>{};
+            final completedCount = curatedLearnLessons.where((lesson) {
+              return progressByLesson[lesson.id]
+                      ?.completedStepIds
+                      .contains('completion') ??
+                  false;
+            }).length;
+            final summary = learnText(
+              languageCode,
+              'learnLessonProgressSummaryV1',
+            )
+                .replaceAll('{completed}', '$completedCount')
+                .replaceAll('{total}', '${curatedLearnLessons.length}');
+
             return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                for (var index = 0; index < curatedLearnLessons.length; index++) ...[
+                _CatalogProgressCard(
+                  completed: completedCount,
+                  total: curatedLearnLessons.length,
+                  label: summary,
+                ),
+                const SizedBox(height: 12),
+                for (var index = 0;
+                    index < curatedLearnLessons.length;
+                    index++) ...[
                   _LessonCard(
                     lesson: curatedLearnLessons[index],
                     progress: progressByLesson[curatedLearnLessons[index].id],
@@ -155,6 +190,57 @@ class _LearnLessonsOverviewState extends State<LearnLessonsOverview> {
           },
         ),
       ],
+    );
+  }
+}
+
+class _CatalogProgressCard extends StatelessWidget {
+  const _CatalogProgressCard({
+    required this.completed,
+    required this.total,
+    required this.label,
+  });
+
+  final int completed;
+  final int total;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final progress = total == 0 ? 0.0 : completed / total;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 15, 18, 16),
+      decoration: BoxDecoration(
+        color: scheme.primaryContainer.withValues(alpha: .55),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.school_rounded, color: scheme.primary, size: 20),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 11),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 6,
+              backgroundColor: scheme.surface.withValues(alpha: .65),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
