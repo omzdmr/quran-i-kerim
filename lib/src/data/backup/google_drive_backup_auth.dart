@@ -2,6 +2,7 @@ import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sig
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 
+import 'backup_build_config.dart';
 import 'backup_cloud_connector.dart';
 import 'google_drive_app_data_backup_store.dart';
 
@@ -23,7 +24,7 @@ class GoogleDriveBackupUnsupported implements Exception {
 ///
 /// No Google account is requested during app startup. The UI calls [connect]
 /// from an explicit user action, and only the appDataFolder scope is requested.
-/// Android builds may provide a web OAuth client through
+/// Android builds provide a Web OAuth client through
 /// `--dart-define=GOOGLE_DRIVE_SERVER_CLIENT_ID=...`; a future iOS build can
 /// provide its platform client through `GOOGLE_DRIVE_CLIENT_ID`.
 class GoogleDriveBackupAuth implements BackupCloudConnector {
@@ -32,10 +33,9 @@ class GoogleDriveBackupAuth implements BackupCloudConnector {
     String? clientId,
     String? serverClientId,
   }) : signIn = signIn ?? GoogleSignIn.instance,
-       clientId = clientId ??
-           const String.fromEnvironment('GOOGLE_DRIVE_CLIENT_ID'),
-       serverClientId = serverClientId ??
-           const String.fromEnvironment('GOOGLE_DRIVE_SERVER_CLIENT_ID');
+       clientId = clientId ?? BackupBuildConfig.googleDriveClientId,
+       serverClientId =
+           serverClientId ?? BackupBuildConfig.googleDriveServerClientId;
 
   static const List<String> scopes = <String>[
     drive.DriveApi.driveAppdataScope,

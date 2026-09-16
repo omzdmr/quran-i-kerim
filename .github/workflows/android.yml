@@ -4,6 +4,11 @@ on:
   push:
     branches: [ main, feature/localization-v01 ]
   workflow_dispatch:
+    inputs:
+      google_drive_server_client_id:
+        description: Optional Web OAuth client ID for a Drive-enabled test APK
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -51,12 +56,16 @@ jobs:
 
       - name: Verify stable test signing certificate
         run: |
-          fingerprint="$(keytool -list -v \
+          certificate_info="$(keytool -list -v \
             -keystore .ci/test-signing.jks \
             -storepass android \
-            -alias quran_test | sed -n 's/.*SHA256: //p')"
-          echo "Test certificate SHA256: $fingerprint"
-          test "$fingerprint" = "B4:3E:F1:1A:40:8E:65:C3:CE:42:73:8D:6D:44:94:2A:F2:CB:78:78:04:23:CE:E6:4B:78:2A:8C:79:36:AE:5C"
+            -alias quran_test)"
+          sha1="$(printf '%s\n' "$certificate_info" | sed -n 's/.*SHA1: //p')"
+          sha256="$(printf '%s\n' "$certificate_info" | sed -n 's/.*SHA256: //p')"
+          echo "Android OAuth registration: package=com.omzdmr.quran_i_kerim SHA1=$sha1"
+          echo "Test certificate SHA256: $sha256"
+          test -n "$sha1"
+          test "$sha256" = "B4:3E:F1:1A:40:8E:65:C3:CE:42:73:8D:6D:44:94:2A:F2:CB:78:78:04:23:CE:E6:4B:78:2A:8C:79:36:AE:5C"
 
       - name: Configure stable test signing
         run: |
@@ -234,14 +243,29 @@ jobs:
         run: flutter test
 
       - name: Build ARM64 test APK
+        env:
+          GOOGLE_DRIVE_SERVER_CLIENT_ID: ${{ inputs.google_drive_server_client_id }}
         run: |
           BUILD_NUMBER=$((100000 + GITHUB_RUN_NUMBER))
+          DRIVE_ARGS=()
+          if [[ -n "$GOOGLE_DRIVE_SERVER_CLIENT_ID" ]]; then
+            if [[ ! "$GOOGLE_DRIVE_SERVER_CLIENT_ID" =~ ^[0-9]+-[A-Za-z0-9_-]+\.apps\.googleusercontent\.com$ ]]; then
+              echo "Invalid Google Drive Web OAuth client ID format" >&2
+              exit 1
+            fi
+            DRIVE_ARGS+=(--dart-define=GOOGLE_DRIVE_BACKUP_ENABLED=true)
+            DRIVE_ARGS+=(--dart-define="GOOGLE_DRIVE_SERVER_CLIENT_ID=$GOOGLE_DRIVE_SERVER_CLIENT_ID")
+            echo "Google Drive backup: enabled for this manual build"
+          else
+            echo "Google Drive backup: disabled"
+          fi
           echo "Building version 0.5.0 ($BUILD_NUMBER)"
           flutter build apk \
             --release \
             --target-platform android-arm64 \
             --build-name=0.5.0 \
-            --build-number="$BUILD_NUMBER"
+            --build-number="$BUILD_NUMBER" \
+            "${DRIVE_ARGS[@]}"
 
       - name: Verify APK signer and identity
         run: |
