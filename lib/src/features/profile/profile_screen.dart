@@ -9,6 +9,7 @@ import '../../settings/app_settings.dart';
 import '../reader/passage_preview_screen.dart';
 import '../settings/settings_screen.dart';
 import 'downloads_screen.dart';
+import 'profile_reading_plan_card.dart';
 
 enum _ArchiveFilter { all, highlights, bookmarks, notes }
 
@@ -152,6 +153,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ],
           ),
+          const ProfileReadingPlanCard(),
           const SizedBox(height: 28),
           Text(
             l10n.text('quranArchive'),
