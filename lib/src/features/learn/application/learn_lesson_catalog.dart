@@ -9,7 +9,8 @@ class LearnLessonDefinition {
     required this.summaryBodyKey,
     required this.quizDistractorSurahs,
     required this.quizCorrectOptionIndex,
-  });
+  }) : assert(quizCorrectOptionIndex >= 0),
+       assert(quizCorrectOptionIndex <= quizDistractorSurahs.length);
 
   final String id;
   final int surah;
