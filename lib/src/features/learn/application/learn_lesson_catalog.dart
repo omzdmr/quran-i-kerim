@@ -33,6 +33,30 @@ const LearnLessonDefinition inshirahEaseLesson = LearnLessonDefinition(
   quizDistractorSurahs: <int>[93, 95],
 );
 
+const LearnLessonDefinition asrLesson = LearnLessonDefinition(
+  id: 'asr-103-1-3-v1',
+  surah: 103,
+  ayahs: <int>[1, 2, 3],
+  titleKey: 'learnLessonAsrTitleV1',
+  subtitleKey: 'learnLessonAsrSubtitleV1',
+  introBodyKey: 'learnLessonAsrIntroBodyV1',
+  summaryBodyKey: 'learnLessonAsrSummaryBodyV1',
+  quizDistractorSurahs: <int>[102, 104],
+);
+
+const LearnLessonDefinition ikhlasLesson = LearnLessonDefinition(
+  id: 'ikhlas-112-1-4-v1',
+  surah: 112,
+  ayahs: <int>[1, 2, 3, 4],
+  titleKey: 'learnLessonIkhlasTitleV1',
+  subtitleKey: 'learnLessonIkhlasSubtitleV1',
+  introBodyKey: 'learnLessonIkhlasIntroBodyV1',
+  summaryBodyKey: 'learnLessonIkhlasSummaryBodyV1',
+  quizDistractorSurahs: <int>[111, 113],
+);
+
 const List<LearnLessonDefinition> curatedLearnLessons = <LearnLessonDefinition>[
   inshirahEaseLesson,
+  asrLesson,
+  ikhlasLesson,
 ];
