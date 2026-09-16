@@ -207,6 +207,14 @@ class AppSettings extends ChangeNotifier {
         : AudioAfterSurahBehavior.continueNext;
   }
 
+  /// Reloads persisted settings after a backup restore and refreshes every
+  /// widget that depends on [AppSettingsScope]. Initial startup still uses
+  /// [load] directly so it does not emit an unnecessary notification.
+  Future<void> reloadFromStorage() async {
+    await load();
+    notifyListeners();
+  }
+
   Map<String, String> _decodeStringMap(String? encoded) {
     if (encoded == null || encoded.isEmpty) return <String, String>{};
     try {

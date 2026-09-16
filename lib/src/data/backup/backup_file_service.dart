@@ -27,11 +27,7 @@ class BackupFileService {
   Future<File> exportToFile({DateTime? now}) async {
     final createdAt = (now ?? DateTime.now()).toUtc();
     final encoded = await backupService.exportJson(now: createdAt);
-    final root = await _directoryProvider();
-    final directory = Directory(
-      '${root.path}${Platform.pathSeparator}quran_backups',
-    );
-    await directory.create(recursive: true);
+    final directory = await _backupDirectory(create: true);
 
     final stamp = createdAt
         .toIso8601String()
@@ -55,6 +51,24 @@ class BackupFileService {
     }
   }
 
+  Future<List<File>> listBackupFiles() async {
+    final directory = await _backupDirectory(create: false);
+    if (!await directory.exists()) return const <File>[];
+
+    final files = await directory
+        .list(followLinks: false)
+        .where(
+          (entry) =>
+              entry is File &&
+              _fileName(entry.path).startsWith('quran-backup-') &&
+              entry.path.endsWith('.json'),
+        )
+        .cast<File>()
+        .toList();
+    files.sort((a, b) => _fileName(b.path).compareTo(_fileName(a.path)));
+    return List<File>.unmodifiable(files);
+  }
+
   Future<BackupPreview> previewFile(File file) async {
     final encoded = await _readImport(file);
     return backupService.previewJson(encoded);
@@ -63,6 +77,15 @@ class BackupFileService {
   Future<void> restoreFile(File file) async {
     final encoded = await _readImport(file);
     await backupService.restoreJson(encoded);
+  }
+
+  Future<Directory> _backupDirectory({required bool create}) async {
+    final root = await _directoryProvider();
+    final directory = Directory(
+      '${root.path}${Platform.pathSeparator}quran_backups',
+    );
+    if (create) await directory.create(recursive: true);
+    return directory;
   }
 
   Future<String> _readImport(File file) async {
@@ -80,4 +103,6 @@ class BackupFileService {
     }
     return file.readAsString();
   }
+
+  String _fileName(String path) => path.split(Platform.pathSeparator).last;
 }

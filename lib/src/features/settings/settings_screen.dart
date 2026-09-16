@@ -5,6 +5,7 @@ import '../../data/translation_catalog.dart';
 import '../../l10n/app_localizations.dart';
 import '../../settings/app_settings.dart';
 import '../profile/downloads_screen.dart';
+import 'backup_settings_screen.dart';
 import 'quran_translation_catalog_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -182,6 +183,22 @@ class SettingsScreen extends StatelessWidget {
               ),
               icon: const Icon(Icons.download_done_rounded),
               label: Text(l10n.downloads),
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.tonalIcon(
+              onPressed: () {
+                HapticFeedback.selectionClick();
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const BackupSettingsScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.cloud_sync_outlined),
+              label: Text(l10n.text('backupTitle')),
             ),
           ),
           const SizedBox(height: 30),

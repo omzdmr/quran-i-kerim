@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
+import 'strings/backup_strings.dart';
 import 'strings/feature_strings.dart';
 import 'strings/home_verse_strings.dart';
 import 'strings/prayer_notification_strings.dart';
@@ -44,18 +45,21 @@ class AppLocalizations {
   };
 
   String? _featureValue(String key) =>
+      backupStrings[locale.languageCode]?[key] ??
       featureStrings[locale.languageCode]?[key] ??
       homeVerseStrings[locale.languageCode]?[key] ??
       readerAudioTransportStrings[locale.languageCode]?[key] ??
       readerMediaStrings[locale.languageCode]?[key] ??
       readerNavigationStrings[locale.languageCode]?[key] ??
       readerNoteStrings[locale.languageCode]?[key] ??
+      backupStrings['en']?[key] ??
       featureStrings['en']?[key] ??
       homeVerseStrings['en']?[key] ??
       readerAudioTransportStrings['en']?[key] ??
       readerMediaStrings['en']?[key] ??
       readerNavigationStrings['en']?[key] ??
       readerNoteStrings['en']?[key] ??
+      backupStrings['tr']?[key] ??
       featureStrings['tr']?[key] ??
       homeVerseStrings['tr']?[key] ??
       readerAudioTransportStrings['tr']?[key] ??

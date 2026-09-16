@@ -44,6 +44,26 @@ void main() {
     expect(file.parent.listSync().any((entry) => entry.path.contains('.tmp-')), isFalse);
   });
 
+  test('lists only local backup files newest first', () async {
+    final fileService = service();
+    final older = await fileService.exportToFile(
+      now: DateTime.parse('2026-09-15T10:00:00Z'),
+    );
+    final newer = await fileService.exportToFile(
+      now: DateTime.parse('2026-09-16T10:00:00Z'),
+    );
+    await File(
+      '${newer.parent.path}${Platform.pathSeparator}unrelated.json',
+    ).writeAsString('{}');
+    await File(
+      '${newer.parent.path}${Platform.pathSeparator}quran-backup-ignore.tmp',
+    ).writeAsString('{}');
+
+    final files = await fileService.listBackupFiles();
+
+    expect(files.map((file) => file.path), <String>[newer.path, older.path]);
+  });
+
   test('previews and restores a selected local backup file', () async {
     final input = File('${tempRoot.path}${Platform.pathSeparator}import.json');
     await input.writeAsString(jsonEncode(<String, Object?>{
