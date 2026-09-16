@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../l10n/generated/generated_app_localizations.dart';
+import '../../../l10n/strings/learn_catalog_strings.dart';
 import '../../../l10n/strings/learn_strings.dart';
 import '../application/learn_lesson_catalog.dart';
 import '../application/learn_progress_store.dart';
@@ -157,7 +158,7 @@ class _LearnLessonsOverviewState extends State<LearnLessonsOverview> {
                       .contains('completion') ??
                   false;
             }).length;
-            final summary = learnText(
+            final summary = learnCatalogText(
               languageCode,
               'learnLessonProgressSummaryV1',
             )
