@@ -295,7 +295,9 @@ class _ReaderMixedVerseBlock extends StatelessWidget {
                   textAlign: TextAlign.left,
                   style: TextStyle(
                     color: scheme.onSurfaceVariant,
-                    fontSize: (translationTextSize * .72).clamp(13, 20),
+                    fontSize: (translationTextSize * .72)
+                        .clamp(13.0, 20.0)
+                        .toDouble(),
                     height: 1.45,
                     fontStyle: FontStyle.italic,
                   ),

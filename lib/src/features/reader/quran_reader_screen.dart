@@ -14,12 +14,14 @@ import '../../data/surah_localization.dart';
 import '../../data/translation_catalog.dart';
 import '../../data/translation_pack.dart';
 import '../../data/translation_repository.dart';
+import '../../data/transliteration_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../navigation/app_navigation.dart';
 import '../../settings/app_settings.dart';
 import '../settings/quran_translation_catalog_screen.dart';
 import 'reader_audio_sheet.dart';
 import 'reader_navigation.dart';
+import 'reader_mixed_verse_list.dart';
 import 'reader_note_sheet.dart';
 import 'reader_reading_history.dart';
 
@@ -47,6 +49,8 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   final ScrollController _scrollController = ScrollController();
   final GlobalKey<_ContinuousVerseTextState> _textKey =
       GlobalKey<_ContinuousVerseTextState>();
+  final GlobalKey<ReaderMixedVerseListState> _mixedTextKey =
+      GlobalKey<ReaderMixedVerseListState>();
   String? _cachedSourceId;
   Future<TranslationPack?>? _cachedTranslationFuture;
 
@@ -191,8 +195,10 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   }) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final state = _textKey.currentState;
-      final globalY = state?.globalYForAyah(ayah);
+      final settings = AppSettingsScope.of(context);
+      final globalY = settings.readerUsesArabic
+          ? _textKey.currentState?.globalYForAyah(ayah)
+          : _mixedTextKey.currentState?.globalYForAyah(ayah);
       if (globalY != null && _scrollController.hasClients) {
         final desiredY = audioFollow
             ? MediaQuery.sizeOf(context).height * .28
@@ -872,28 +878,64 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                     setState(() {});
                   },
                 ),
-              _ContinuousVerseText(
-                key: _textKey,
-                surahNumber: _surahNumber,
-                verseCount: surah.verseCount,
-                translations: translations,
-                footnotes: footnotes,
-                mode: settings.readerMode,
-                textSize: settings.readerTextSize,
-                lineHeight: settings.readerUsesArabic
-                    ? settings.arabicLineHeight
-                    : settings.translationLineHeight,
-                selectedAyahs: _selectedAyahs,
-                activeAudioAyah:
-                    _audioController.isPlaying &&
-                        _audioController.surahNumber == _surahNumber
-                    ? _audioController.currentAyah
-                    : null,
-                settings: settings,
-                onAyahTap: _toggleAyahSelection,
-                onNoteTap: _openNoteForAyah,
-                onFootnoteTap: _showFootnoteForAyah,
-              ),
+              if (settings.readerUsesArabic)
+                _ContinuousVerseText(
+                  key: _textKey,
+                  surahNumber: _surahNumber,
+                  verseCount: surah.verseCount,
+                  translations: translations,
+                  footnotes: footnotes,
+                  mode: settings.readerMode,
+                  textSize: settings.readerTextSize,
+                  lineHeight: settings.arabicLineHeight,
+                  selectedAyahs: _selectedAyahs,
+                  activeAudioAyah:
+                      _audioController.isPlaying &&
+                          _audioController.surahNumber == _surahNumber
+                      ? _audioController.currentAyah
+                      : null,
+                  settings: settings,
+                  onAyahTap: _toggleAyahSelection,
+                  onNoteTap: _openNoteForAyah,
+                  onFootnoteTap: _showFootnoteForAyah,
+                )
+              else
+                FutureBuilder<Map<String, String>>(
+                  future: TransliterationRepository.instance.loadBundled(),
+                  builder: (context, snapshot) {
+                    final info = translationById(
+                      settings.selectedQuranSourceId,
+                    );
+                    return ReaderMixedVerseList(
+                      key: _mixedTextKey,
+                      surahNumber: _surahNumber,
+                      verseCount: surah.verseCount,
+                      arabicForAyah: (ayah) =>
+                          quran.getVerse(_surahNumber, ayah),
+                      transliterations:
+                          snapshot.data ?? const <String, String>{},
+                      translations: translations,
+                      footnotes: footnotes,
+                      translationLanguageCode:
+                          info?.languageCode ??
+                          Localizations.localeOf(context).languageCode,
+                      arabicTextSize: settings.arabicFontSize,
+                      translationTextSize: settings.translationFontSize,
+                      arabicLineHeight: settings.arabicLineHeight,
+                      translationLineHeight: settings.translationLineHeight,
+                      selectedAyahs: _selectedAyahs,
+                      activeAudioAyah:
+                          _audioController.isPlaying &&
+                              _audioController.surahNumber == _surahNumber
+                          ? _audioController.currentAyah
+                          : null,
+                      settings: settings,
+                      onAyahTap: _toggleAyahSelection,
+                      onNoteTap: _openNoteForAyah,
+                      onFootnoteTap: _showFootnoteForAyah,
+                    );
+                  },
+                ),
             ],
           ),
         ),
@@ -977,12 +1019,14 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   void _saveVisibleReadingPosition() {
     if (!mounted) return;
     final targetY = MediaQuery.paddingOf(context).top + 100;
-    final ayah = _textKey.currentState?.ayahClosestToGlobalY(targetY);
+    final settings = AppSettingsScope.of(context);
+    final ayah = settings.readerUsesArabic
+        ? _textKey.currentState?.ayahClosestToGlobalY(targetY)
+        : _mixedTextKey.currentState?.ayahClosestToGlobalY(targetY);
     if (ayah == null) return;
     if (_visibleAyah != ayah) {
       setState(() => _visibleAyah = ayah);
     }
-    final settings = AppSettingsScope.of(context);
     settings.saveReadingPosition(surah: _surahNumber, ayah: ayah);
     ReaderReadingHistoryRepository.instance.record(
       surah: _surahNumber,
@@ -1033,7 +1077,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
               fontWeight: FontWeight.w600,
             ),
           ),
-          if (arabicMode && hasSeparateBasmala) ...[
+          if (hasSeparateBasmala) ...[
             const SizedBox(height: 24),
             Text(
               quran.basmala,
