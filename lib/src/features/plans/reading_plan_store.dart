@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'reading_plan.dart';
@@ -20,6 +21,16 @@ class ReadingPlanStore {
   const ReadingPlanStore();
 
   static const preferenceKey = 'reading_plan_state_v1';
+
+  /// Lightweight process-local signal for surfaces that mirror plan state.
+  ///
+  /// SharedPreferences stays the source of truth. The signal only tells
+  /// already-mounted screens to reload after a plan write or backup restore.
+  static final ValueNotifier<int> changes = ValueNotifier<int>(0);
+
+  static void notifyExternalChange() {
+    changes.value += 1;
+  }
 
   Future<ReadingPlanSnapshot> load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -192,6 +203,7 @@ class ReadingPlanStore {
       ],
     };
     await prefs.setString(preferenceKey, jsonEncode(json));
+    notifyExternalChange();
   }
 
   String _date(DateTime value) {

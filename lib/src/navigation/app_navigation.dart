@@ -16,6 +16,10 @@ class ReaderTarget {
 class AppNavigation {
   AppNavigation._();
 
+  static const int homeTabIndex = 0;
+  static const int quranTabIndex = 1;
+  static const int plansTabIndex = 2;
+
   static final AppNavigation instance = AppNavigation._();
 
   final ValueNotifier<int?> tabRequest = ValueNotifier<int?>(null);
@@ -29,7 +33,12 @@ class AppNavigation {
       surah: surah.clamp(1, 114).toInt(),
       ayah: ayah < 1 ? 1 : ayah,
     );
-    tabRequest.value = 1;
+    tabRequest.value = quranTabIndex;
+  }
+
+  void openPlans() {
+    readerSelectionActive.value = false;
+    tabRequest.value = plansTabIndex;
   }
 
   void setReaderSelectionActive(bool active) {

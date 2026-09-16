@@ -10,6 +10,8 @@ import '../../data/translation_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../navigation/app_navigation.dart';
 import '../../settings/app_settings.dart';
+import '../plans/reading_plan_store.dart';
+import '../reader/reader_navigation.dart';
 import 'home_prayer_card.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -22,8 +24,13 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   static const _communitySeenCountKey = 'community_seen_activity_count_v1';
 
+  final ReadingPlanStore _readingPlanStore = const ReadingPlanStore();
+
   int _tab = 0;
   int _communitySeenCount = 0;
+  int _readingPlanLoadGeneration = 0;
+  bool _readingPlanLoading = true;
+  ReadingPlanSnapshot _readingPlanSnapshot = const ReadingPlanSnapshot();
 
   static const _dailyVerseRefs = <(int, int)>[
     (94, 5),
@@ -43,7 +50,15 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    ReadingPlanStore.changes.addListener(_handleReadingPlanChanged);
     _loadCommunitySeenCount();
+    _loadReadingPlan();
+  }
+
+  @override
+  void dispose() {
+    ReadingPlanStore.changes.removeListener(_handleReadingPlanChanged);
+    super.dispose();
   }
 
   Future<void> _loadCommunitySeenCount() async {
@@ -52,6 +67,40 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _communitySeenCount = prefs.getInt(_communitySeenCountKey) ?? 0;
     });
+  }
+
+  void _handleReadingPlanChanged() {
+    _loadReadingPlan();
+  }
+
+  Future<void> _loadReadingPlan() async {
+    final generation = ++_readingPlanLoadGeneration;
+    final snapshot = await _readingPlanStore.load();
+    if (!mounted || generation != _readingPlanLoadGeneration) return;
+    setState(() {
+      _readingPlanSnapshot = snapshot;
+      _readingPlanLoading = false;
+    });
+  }
+
+  void _openPlans() {
+    HapticFeedback.selectionClick();
+    AppNavigation.instance.openPlans();
+  }
+
+  void _openReadingPlanDay() {
+    final day = _readingPlanSnapshot.active?.nextDay;
+    if (day == null) {
+      _openPlans();
+      return;
+    }
+    final target = firstVerseForPage(day.startPage);
+    if (target == null) {
+      _openPlans();
+      return;
+    }
+    HapticFeedback.selectionClick();
+    AppNavigation.instance.openReader(surah: target.surah, ayah: target.ayah);
   }
 
   int _activityCount(AppSettings settings) =>
@@ -164,11 +213,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         style: Theme.of(context).textTheme.headlineMedium,
                       ),
                       const SizedBox(height: 18),
-                      _InfoCard(
-                        eyebrow: l10n.text('needPlaceToStart'),
-                        title: l10n.text('choosePlanHelp'),
-                        button: l10n.text('explorePlans'),
-                        icon: Icons.route_outlined,
+                      _ReadingPlanHomeCard(
+                        loading: _readingPlanLoading,
+                        snapshot: _readingPlanSnapshot,
+                        onOpenPlans: _openPlans,
+                        onReadToday: _openReadingPlanDay,
                       ),
                     ],
                   )
@@ -540,70 +589,209 @@ class _Stat extends StatelessWidget {
   );
 }
 
+class _ReadingPlanHomeCard extends StatelessWidget {
+  const _ReadingPlanHomeCard({
+    required this.loading,
+    required this.snapshot,
+    required this.onOpenPlans,
+    required this.onReadToday,
+  });
+
+  final bool loading;
+  final ReadingPlanSnapshot snapshot;
+  final VoidCallback onOpenPlans;
+  final VoidCallback onReadToday;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final active = snapshot.active;
+    if (loading || active == null) {
+      return _InfoCard(
+        eyebrow: l10n.text('needPlaceToStart'),
+        title: l10n.text('choosePlanHelp'),
+        button: l10n.text('explorePlans'),
+        icon: Icons.route_outlined,
+        onTap: onOpenPlans,
+      );
+    }
+
+    final scheme = Theme.of(context).colorScheme;
+    final day = active.nextDay;
+    final dayText = day == null
+        ? l10n.text('myPlans')
+        : l10n
+            .text('plansDayProgressV1')
+            .replaceAll('{day}', '${day.dayNumber}')
+            .replaceAll('{total}', '${active.preset.durationDays}');
+    final pagesText = day == null
+        ? l10n.text('plansPlanCompletedV1')
+        : l10n
+            .text('plansPagesV1')
+            .replaceAll('{start}', '${day.startPage}')
+            .replaceAll('{end}', '${day.endPage}');
+    final progressText = l10n
+        .text('plansProgressV1')
+        .replaceAll('{done}', '${active.completedDays.length}')
+        .replaceAll('{total}', '${active.preset.durationDays}');
+
+    return Material(
+      color: scheme.surfaceContainer,
+      borderRadius: BorderRadius.circular(25),
+      child: InkWell(
+        onTap: onOpenPlans,
+        borderRadius: BorderRadius.circular(25),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 54,
+                    height: 54,
+                    decoration: BoxDecoration(
+                      color: scheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(17),
+                    ),
+                    child: Icon(Icons.route_rounded, color: scheme.primary),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.today,
+                          style: TextStyle(color: scheme.onSurfaceVariant),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          l10n.text(active.preset.titleKey),
+                          style: const TextStyle(
+                            fontSize: 21,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          '$dayText · $pagesText',
+                          style: TextStyle(color: scheme.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right_rounded),
+                ],
+              ),
+              const SizedBox(height: 16),
+              LinearProgressIndicator(value: active.progress.clamp(0, 1)),
+              const SizedBox(height: 7),
+              Text(
+                progressText,
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 15),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.tonalIcon(
+                  onPressed: day == null ? onOpenPlans : onReadToday,
+                  icon: Icon(
+                    day == null
+                        ? Icons.route_outlined
+                        : Icons.menu_book_rounded,
+                  ),
+                  label: Text(
+                    l10n.text(day == null ? 'myPlans' : 'plansReadTodayV1'),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _InfoCard extends StatelessWidget {
   const _InfoCard({
     required this.eyebrow,
     required this.title,
     required this.button,
     required this.icon,
+    this.onTap,
   });
 
   final String eyebrow;
   final String title;
   final String button;
   final IconData icon;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainer,
+    return Material(
+      color: scheme.surfaceContainer,
+      borderRadius: BorderRadius.circular(25),
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(25),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(eyebrow, style: TextStyle(color: scheme.onSurfaceVariant)),
-                const SizedBox(height: 7),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    height: 1.25,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: scheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(22),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 9,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      eyebrow,
+                      style: TextStyle(color: scheme.onSurfaceVariant),
                     ),
-                    child: Text(
-                      button,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    const SizedBox(height: 7),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        height: 1.25,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 14),
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: scheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(22),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 9,
+                        ),
+                        child: Text(
+                          button,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 15),
+              SizedBox(
+                width: 88,
+                child: Icon(icon, size: 54, color: scheme.primary),
+              ),
+            ],
           ),
-          const SizedBox(width: 15),
-          SizedBox(
-            width: 88,
-            child: Icon(icon, size: 54, color: scheme.primary),
-          ),
-        ],
+        ),
       ),
     );
   }

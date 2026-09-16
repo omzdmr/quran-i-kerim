@@ -31,22 +31,28 @@ class _PlansScreenState extends State<PlansScreen> {
   @override
   void initState() {
     super.initState();
+    ReadingPlanStore.changes.addListener(_handleStoreChanged);
     _load();
   }
 
   @override
   void dispose() {
+    ReadingPlanStore.changes.removeListener(_handleStoreChanged);
     _searchController.dispose();
     super.dispose();
   }
 
-  Future<void> _load() async {
+  void _handleStoreChanged() {
+    _load(selectActiveTab: false);
+  }
+
+  Future<void> _load({bool selectActiveTab = true}) async {
     final snapshot = await _store.load();
     if (!mounted) return;
     setState(() {
       _snapshot = snapshot;
       _loading = false;
-      if (snapshot.active != null) _tab = _PlansTab.mine;
+      if (selectActiveTab && snapshot.active != null) _tab = _PlansTab.mine;
     });
   }
 
