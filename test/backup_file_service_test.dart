@@ -64,6 +64,18 @@ void main() {
     expect(files.map((file) => file.path), <String>[newer.path, older.path]);
   });
 
+  test('returns an empty list before the backup directory exists', () async {
+    final files = await service().listBackupFiles();
+
+    expect(files, isEmpty);
+    expect(
+      await Directory(
+        '${tempRoot.path}${Platform.pathSeparator}quran_backups',
+      ).exists(),
+      isFalse,
+    );
+  });
+
   test('previews and restores a selected local backup file', () async {
     final input = File('${tempRoot.path}${Platform.pathSeparator}import.json');
     await input.writeAsString(jsonEncode(<String, Object?>{
@@ -87,6 +99,20 @@ void main() {
     expect(prefs.getString('dhikr_v2_selected'), 'alhamdulillah');
   });
 
+  test('accepts an import exactly at the configured byte limit', () async {
+    final input = File('${tempRoot.path}${Platform.pathSeparator}limit.json');
+    final encoded = jsonEncode(<String, Object?>{
+      'version': 3,
+      'createdAt': '2026-09-16T10:00:00Z',
+      'data': <String, Object?>{},
+    });
+    await input.writeAsString(encoded);
+
+    final preview = await service(maxImportBytes: encoded.length).previewFile(input);
+
+    expect(preview.canRestore, isTrue);
+  });
+
   test('rejects oversized imports before parsing JSON', () async {
     final input = File('${tempRoot.path}${Platform.pathSeparator}large.json');
     await input.writeAsString(List<String>.filled(33, 'x').join());
@@ -94,6 +120,16 @@ void main() {
     await expectLater(
       service(maxImportBytes: 32).previewFile(input),
       throwsFormatException,
+    );
+  });
+
+  test('rejects non-positive import limits before reading the file', () async {
+    final input = File('${tempRoot.path}${Platform.pathSeparator}import.json');
+    await input.writeAsString('{}');
+
+    await expectLater(
+      service(maxImportBytes: 0).previewFile(input),
+      throwsArgumentError,
     );
   });
 
