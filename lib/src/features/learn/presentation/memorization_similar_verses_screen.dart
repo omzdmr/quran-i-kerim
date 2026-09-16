@@ -120,7 +120,7 @@ class _MemorizationSimilarVersesScreenState
                     sourceLabel: l10n.memorizeSimilarSource,
                     candidateLabel: l10n.memorizeSimilarCandidate,
                     pageLabel: l10n.quranProgressCurrentPage,
-                    weakLabel: l10n.memorizeTestStruggled,
+                    weakLabel: l10n.memorizeWeakTitle,
                     isWeak: _manuallyWeakIds.contains(
                       _candidateId(_matches[index]),
                     ),
