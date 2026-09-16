@@ -69,6 +69,7 @@ class LearnLessonVisualFlow extends StatefulWidget {
     required this.steps,
     required this.labels,
     super.key,
+    this.initialStepIndex = 0,
     this.onStepChanged,
     this.onFinished,
     this.onBackToLessons,
@@ -78,6 +79,7 @@ class LearnLessonVisualFlow extends StatefulWidget {
   final String lessonTitle;
   final List<LearnLessonVisualStep> steps;
   final LearnLessonVisualLabels labels;
+  final int initialStepIndex;
   final ValueChanged<int>? onStepChanged;
   final VoidCallback? onFinished;
   final VoidCallback? onBackToLessons;
@@ -88,12 +90,43 @@ class LearnLessonVisualFlow extends StatefulWidget {
 }
 
 class _LearnLessonVisualFlowState extends State<LearnLessonVisualFlow> {
-  int _index = 0;
+  late int _index;
   int? _quizSelection;
+
+  @override
+  void initState() {
+    super.initState();
+    _index = _safeInitialIndex();
+  }
+
+  @override
+  void didUpdateWidget(covariant LearnLessonVisualFlow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.steps.isEmpty) {
+      _index = 0;
+      _quizSelection = null;
+      return;
+    }
+    if (_index >= widget.steps.length) {
+      _index = widget.steps.length - 1;
+      _quizSelection = null;
+    }
+  }
+
+  int _safeInitialIndex() {
+    if (widget.steps.isEmpty) return 0;
+    return widget.initialStepIndex.clamp(0, widget.steps.length - 1).toInt();
+  }
 
   LearnLessonVisualStep get _step => widget.steps[_index];
 
   bool get _isLast => _index >= widget.steps.length - 1;
+
+  bool get _canAdvance {
+    if (_step.type != LearnLessonVisualStepType.quiz) return true;
+    if (_step.quizOptions.isEmpty) return true;
+    return _quizSelection != null;
+  }
 
   void _goTo(int index) {
     if (widget.steps.isEmpty) return;
@@ -108,6 +141,7 @@ class _LearnLessonVisualFlowState extends State<LearnLessonVisualFlow> {
   }
 
   void _next() {
+    if (!_canAdvance) return;
     if (_isLast) {
       widget.onFinished?.call();
       return;
@@ -199,7 +233,7 @@ class _LearnLessonVisualFlowState extends State<LearnLessonVisualFlow> {
                   canGoBack: _index > 0,
                   isLast: _isLast,
                   onPrevious: () => _goTo(_index - 1),
-                  onNext: _next,
+                  onNext: _canAdvance ? _next : null,
                 ),
             ],
           ),
@@ -490,7 +524,7 @@ class _LessonNavigation extends StatelessWidget {
   final bool canGoBack;
   final bool isLast;
   final VoidCallback onPrevious;
-  final VoidCallback onNext;
+  final VoidCallback? onNext;
 
   @override
   Widget build(BuildContext context) {
