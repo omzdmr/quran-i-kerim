@@ -47,31 +47,36 @@ class LocalBackupService {
 
   Future<void> restoreDecoded(Object? decoded) async {
     Map<String, Object?>? normalizedData;
+    int? normalizedVersion;
 
     await restoreCoordinator.restore(
       validate: () async {
         final preview = previewParser.parse(decoded);
-        if (!preview.canRestore || decoded is! Map) {
+        if (!preview.canRestore || decoded is! Map || preview.version == null) {
           throw const FormatException('Backup is not restorable.');
         }
         final rawData = decoded['data'];
         if (rawData is! Map) {
           throw const FormatException('Backup data is invalid.');
         }
+        normalizedVersion = preview.version;
         final selected = <String, Object?>{};
         for (final entry in rawData.entries) {
           if (entry.key is! String) {
             throw const FormatException('Backup section key is invalid.');
           }
           final section = entry.key as String;
-          if (BackupManifest.isIncluded(section)) {
+          if (BackupManifest.sectionsForVersion(normalizedVersion!).contains(section)) {
             selected[section] = entry.value;
           }
         }
         normalizedData = Map<String, Object?>.unmodifiable(selected);
       },
       captureSnapshot: adapter.capture,
-      applyRestore: () => adapter.restoreSections(normalizedData!),
+      applyRestore: () => adapter.restoreSections(
+        normalizedData!,
+        schemaVersion: normalizedVersion!,
+      ),
       rollback: (snapshot) async {
         if (snapshot is! Map) {
           throw const FormatException('Backup rollback snapshot is invalid.');

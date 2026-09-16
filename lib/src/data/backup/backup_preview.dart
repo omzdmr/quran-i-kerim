@@ -1,3 +1,5 @@
+import 'backup_manifest.dart';
+
 enum BackupPreviewIssue {
   invalidRoot,
   unsupportedVersion,
@@ -26,7 +28,7 @@ class BackupPreview {
 class BackupPreviewParser {
   const BackupPreviewParser();
 
-  static const int currentVersion = 1;
+  static const int currentVersion = BackupManifest.schemaVersion;
 
   BackupPreview parse(Object? decoded) {
     if (decoded is! Map) {
@@ -41,7 +43,7 @@ class BackupPreviewParser {
     final issues = <BackupPreviewIssue>{};
     final version = decoded['version'];
     final parsedVersion = version is int ? version : null;
-    if (parsedVersion != currentVersion) {
+    if (parsedVersion == null || !BackupManifest.isVersionSupported(parsedVersion)) {
       issues.add(BackupPreviewIssue.unsupportedVersion);
     }
 

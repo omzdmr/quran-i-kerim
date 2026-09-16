@@ -1,9 +1,12 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'backup_manifest.dart';
+
 /// Explicit SharedPreferences adapter used by backup/restore.
 ///
-/// Only keys listed here can leave the device. Unknown preferences, downloaded
-/// content and caches are intentionally ignored.
+/// Only keys listed here, or keys under an explicitly allowed dynamic prefix,
+/// can leave the device. Unknown preferences, downloaded content and caches are
+/// intentionally ignored.
 class SharedPreferencesBackupAdapter {
   const SharedPreferencesBackupAdapter();
 
@@ -32,6 +35,7 @@ class SharedPreferencesBackupAdapter {
     'memorization_plan_started_at_v1',
     'memorization_plan_missed_days_v1',
     'memorization_recall_history_v1',
+    'memorization_target_v1',
   };
 
   static const Set<String> memorizationPracticeKeys = <String>{
@@ -61,6 +65,12 @@ class SharedPreferencesBackupAdapter {
         'memorization': memorizationKeys,
         'memorizationPractice': memorizationPracticeKeys,
         'preferences': preferenceKeys,
+        'learning': <String>{},
+      };
+
+  static const Map<String, Set<String>> dynamicPrefixesBySection =
+      <String, Set<String>>{
+        'learning': <String>{'learn_progress_v1:'},
       };
 
   static const Set<String> includedKeys = <String>{
@@ -75,20 +85,30 @@ class SharedPreferencesBackupAdapter {
 
   Future<Map<String, Object?>> capture() async {
     final prefs = await SharedPreferences.getInstance();
-    return Map<String, Object?>.unmodifiable(<String, Object?>{
+    final result = <String, Object?>{
       for (final key in includedKeys)
         if (prefs.containsKey(key)) key: _copyValue(prefs.get(key)),
-    });
+    };
+    for (final key in prefs.getKeys()) {
+      if (_matchesCurrentDynamicKey(key)) {
+        result[key] = _copyValue(prefs.get(key));
+      }
+    }
+    return Map<String, Object?>.unmodifiable(result);
   }
 
   Future<Map<String, Object?>> captureSections() async {
     final flat = await capture();
     final sections = <String, Object?>{};
-    for (final section in keysBySection.entries) {
-      sections[section.key] = Map<String, Object?>.unmodifiable(
+    for (final section in BackupManifest.includedSections) {
+      final fixedKeys = keysBySection[section] ?? const <String>{};
+      final prefixes = dynamicPrefixesBySection[section] ?? const <String>{};
+      sections[section] = Map<String, Object?>.unmodifiable(
         <String, Object?>{
-          for (final key in section.value)
-            if (flat.containsKey(key)) key: flat[key],
+          for (final entry in flat.entries)
+            if (fixedKeys.contains(entry.key) ||
+                prefixes.any((prefix) => entry.key.startsWith(prefix)))
+              entry.key: entry.value,
         },
       );
     }
@@ -96,8 +116,65 @@ class SharedPreferencesBackupAdapter {
   }
 
   Future<void> restore(Map<String, Object?> snapshot) async {
+    await _restoreFlat(snapshot, schemaVersion: BackupManifest.schemaVersion);
+  }
+
+  Future<void> restoreSections(
+    Map<String, Object?> sections, {
+    int schemaVersion = BackupManifest.schemaVersion,
+  }) async {
+    if (!BackupManifest.isVersionSupported(schemaVersion)) {
+      throw FormatException('Unsupported backup schema version: $schemaVersion');
+    }
+
+    final flat = <String, Object?>{};
+    for (final section in BackupManifest.sectionsForVersion(schemaVersion)) {
+      final rawSection = sections[section];
+      if (rawSection == null) continue;
+      if (rawSection is! Map) {
+        throw FormatException('Invalid backup section: $section');
+      }
+      final fixedKeys = _fixedKeysForSection(section, schemaVersion);
+      final prefixes = _dynamicPrefixesForSection(section, schemaVersion);
+      for (final entry in rawSection.entries) {
+        if (entry.key is! String) {
+          throw FormatException('Invalid backup key in $section');
+        }
+        final key = entry.key as String;
+        if (fixedKeys.contains(key) ||
+            prefixes.any((prefix) => key.startsWith(prefix))) {
+          flat[key] = entry.value;
+        }
+      }
+    }
+    await _restoreFlat(flat, schemaVersion: schemaVersion);
+  }
+
+  Future<void> _restoreFlat(
+    Map<String, Object?> snapshot, {
+    required int schemaVersion,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
-    for (final key in includedKeys) {
+    final managedKeys = <String>{};
+    for (final section in BackupManifest.sectionsForVersion(schemaVersion)) {
+      final fixedKeys = _fixedKeysForSection(section, schemaVersion);
+      final prefixes = _dynamicPrefixesForSection(section, schemaVersion);
+      managedKeys.addAll(fixedKeys);
+      if (prefixes.isNotEmpty) {
+        managedKeys.addAll(
+          prefs.getKeys().where(
+            (key) => prefixes.any((prefix) => key.startsWith(prefix)),
+          ),
+        );
+        managedKeys.addAll(
+          snapshot.keys.where(
+            (key) => prefixes.any((prefix) => key.startsWith(prefix)),
+          ),
+        );
+      }
+    }
+
+    for (final key in managedKeys) {
       if (!snapshot.containsKey(key)) {
         await prefs.remove(key);
         continue;
@@ -106,25 +183,24 @@ class SharedPreferencesBackupAdapter {
     }
   }
 
-  Future<void> restoreSections(Map<String, Object?> sections) async {
-    final flat = <String, Object?>{};
-    for (final section in keysBySection.entries) {
-      final rawSection = sections[section.key];
-      if (rawSection == null) continue;
-      if (rawSection is! Map) {
-        throw FormatException('Invalid backup section: ${section.key}');
-      }
-      for (final entry in rawSection.entries) {
-        if (entry.key is! String) {
-          throw FormatException('Invalid backup key in ${section.key}');
-        }
-        final key = entry.key as String;
-        if (section.value.contains(key)) {
-          flat[key] = entry.value;
-        }
-      }
+  Set<String> _fixedKeysForSection(String section, int schemaVersion) {
+    final keys = keysBySection[section] ?? const <String>{};
+    if (schemaVersion == 1 && section == 'memorization') {
+      return keys.where((key) => key != 'memorization_target_v1').toSet();
     }
-    await restore(flat);
+    return keys;
+  }
+
+  Set<String> _dynamicPrefixesForSection(String section, int schemaVersion) {
+    if (schemaVersion == 1) return const <String>{};
+    return dynamicPrefixesBySection[section] ?? const <String>{};
+  }
+
+  bool _matchesCurrentDynamicKey(String key) {
+    for (final prefixes in dynamicPrefixesBySection.values) {
+      if (prefixes.any((prefix) => key.startsWith(prefix))) return true;
+    }
+    return false;
   }
 
   Object? _copyValue(Object? value) {

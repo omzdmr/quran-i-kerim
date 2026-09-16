@@ -5,9 +5,10 @@
 class BackupManifest {
   const BackupManifest._();
 
-  static const int schemaVersion = 1;
+  static const int schemaVersion = 2;
+  static const Set<int> supportedVersions = <int>{1, schemaVersion};
 
-  static const Set<String> includedSections = <String>{
+  static const Set<String> version1Sections = <String>{
     'reading',
     'bookmarks',
     'highlights',
@@ -15,6 +16,11 @@ class BackupManifest {
     'memorization',
     'memorizationPractice',
     'preferences',
+  };
+
+  static const Set<String> includedSections = <String>{
+    ...version1Sections,
+    'learning',
   };
 
   static const Set<String> excludedSections = <String>{
@@ -26,6 +32,15 @@ class BackupManifest {
 
   static bool isIncluded(String section) => includedSections.contains(section);
   static bool isExcluded(String section) => excludedSections.contains(section);
+  static bool isVersionSupported(int version) => supportedVersions.contains(version);
+
+  static Set<String> sectionsForVersion(int version) {
+    return switch (version) {
+      1 => version1Sections,
+      schemaVersion => includedSections,
+      _ => const <String>{},
+    };
+  }
 
   static Map<String, Object?> selectBackupData(Map<String, Object?> localData) {
     return Map<String, Object?>.unmodifiable(<String, Object?>{
