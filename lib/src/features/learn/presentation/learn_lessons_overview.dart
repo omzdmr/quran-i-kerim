@@ -23,6 +23,18 @@ class _LearnLessonsOverviewState extends State<LearnLessonsOverview> {
   void initState() {
     super.initState();
     _progressFuture = _loadProgress();
+    LearnProgressStore.externalChanges.addListener(_handleExternalChange);
+  }
+
+  @override
+  void dispose() {
+    LearnProgressStore.externalChanges.removeListener(_handleExternalChange);
+    super.dispose();
+  }
+
+  void _handleExternalChange() {
+    if (!mounted) return;
+    setState(() => _progressFuture = _loadProgress());
   }
 
   Future<Map<String, LearnProgressSnapshot?>> _loadProgress() async {

@@ -65,4 +65,22 @@ void main() {
       isNull,
     );
   });
+
+  test('external restore signal is separate from normal lesson writes', () async {
+    const store = LearnProgressStore();
+    final before = LearnProgressStore.externalChanges.value;
+
+    await store.save(
+      const LearnProgressSnapshot(
+        lessonId: 'lesson-restore',
+        completedStepIds: <String>{'intro'},
+        currentStepId: 'verse',
+        updatedAtMs: 10,
+      ),
+    );
+    expect(LearnProgressStore.externalChanges.value, before);
+
+    LearnProgressStore.notifyExternalChange();
+    expect(LearnProgressStore.externalChanges.value, before + 1);
+  });
 }

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Local-only progress for one curated learning lesson.
@@ -79,6 +80,18 @@ class LearnProgressStore {
   const LearnProgressStore();
 
   static const _prefix = 'learn_progress_v1:';
+
+  /// Process-local signal used only when SharedPreferences changes outside the
+  /// normal lesson flow, currently backup/cloud restore.
+  ///
+  /// Normal lesson writes deliberately do not fire this notifier because the
+  /// lesson list already reloads when a lesson route closes. Firing on every
+  /// step would make the hidden overview reread all lesson progress repeatedly.
+  static final ValueNotifier<int> externalChanges = ValueNotifier<int>(0);
+
+  static void notifyExternalChange() {
+    externalChanges.value += 1;
+  }
 
   String _key(String lessonId) => '$_prefix$lessonId';
 
