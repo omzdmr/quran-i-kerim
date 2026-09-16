@@ -2,21 +2,8 @@ import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sig
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 
+import 'backup_cloud_connector.dart';
 import 'google_drive_app_data_backup_store.dart';
-
-class GoogleDriveBackupSession {
-  GoogleDriveBackupSession({
-    required this.account,
-    required this.store,
-    required void Function() closeClient,
-  }) : _closeClient = closeClient;
-
-  final GoogleSignInAccount account;
-  final GoogleDriveAppDataBackupStore store;
-  final void Function() _closeClient;
-
-  void close() => _closeClient();
-}
 
 class GoogleDriveBackupAuthorizationRequired implements Exception {
   const GoogleDriveBackupAuthorizationRequired();
@@ -32,14 +19,14 @@ class GoogleDriveBackupUnsupported implements Exception {
   String toString() => 'Interactive Google sign-in is unsupported on this platform.';
 }
 
-/// Creates an authenticated Drive backup session on demand.
+/// Creates an authenticated Drive backup connection on demand.
 ///
 /// No Google account is requested during app startup. The UI calls [connect]
 /// from an explicit user action, and only the appDataFolder scope is requested.
 /// Android builds may provide a web OAuth client through
 /// `--dart-define=GOOGLE_DRIVE_SERVER_CLIENT_ID=...`; a future iOS build can
 /// provide its platform client through `GOOGLE_DRIVE_CLIENT_ID`.
-class GoogleDriveBackupAuth {
+class GoogleDriveBackupAuth implements BackupCloudConnector {
   GoogleDriveBackupAuth({
     GoogleSignIn? signIn,
     String? clientId,
@@ -68,7 +55,8 @@ class GoogleDriveBackupAuth {
     );
   }
 
-  Future<GoogleDriveBackupSession> connect({bool interactive = true}) async {
+  @override
+  Future<BackupCloudConnection> connect({bool interactive = true}) async {
     await initialize();
 
     GoogleSignInAccount? account;
@@ -98,13 +86,14 @@ class GoogleDriveBackupAuth {
 
     final client = authorization.authClient(scopes: scopes);
     final api = drive.DriveApi(client);
-    return GoogleDriveBackupSession(
-      account: account,
+    return BackupCloudConnection(
+      accountLabel: account.email,
       store: GoogleDriveAppDataBackupStore(api),
-      closeClient: client.close,
+      close: client.close,
     );
   }
 
+  @override
   Future<void> signOut() async {
     await initialize();
     await signIn.signOut();
