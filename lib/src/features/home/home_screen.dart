@@ -632,8 +632,18 @@ class _ReadingPlanHomeCard extends StatelessWidget {
             .replaceAll('{end}', '${day.endPage}');
     final progressText = l10n
         .text('plansProgressV1')
-        .replaceAll('{done}', '${active.completedDays.length}')
+        .replaceAll('{done}', '${active.completedPrefixDays}')
         .replaceAll('{total}', '${active.preset.durationDays}');
+    final schedule = active.scheduleStatus(DateTime.now());
+    final scheduleText = schedule.isBehind
+        ? l10n
+            .text('plansScheduleBehindV1')
+            .replaceAll('{count}', '${schedule.behindByDays}')
+        : schedule.isAhead
+            ? l10n
+                .text('plansScheduleAheadV1')
+                .replaceAll('{count}', '${schedule.aheadByDays}')
+            : l10n.text('plansScheduleOnTrackV1');
 
     return Material(
       color: scheme.surfaceContainer,
@@ -690,10 +700,15 @@ class _ReadingPlanHomeCard extends StatelessWidget {
               LinearProgressIndicator(value: active.progress.clamp(0, 1)),
               const SizedBox(height: 7),
               Text(
-                progressText,
+                '$progressText · $scheduleText',
                 style: TextStyle(
-                  color: scheme.onSurfaceVariant,
+                  color: schedule.isBehind
+                      ? scheme.error
+                      : scheme.onSurfaceVariant,
                   fontSize: 13,
+                  fontWeight: schedule.isBehind
+                      ? FontWeight.w700
+                      : FontWeight.normal,
                 ),
               ),
               const SizedBox(height: 15),

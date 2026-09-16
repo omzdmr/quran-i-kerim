@@ -490,7 +490,7 @@ class _ActivePlanCard extends StatelessWidget {
     final l10n = context.l10n;
     final scheme = Theme.of(context).colorScheme;
     final day = active.nextDay;
-    final done = active.completedDays.length;
+    final done = active.completedPrefixDays;
     final total = active.preset.durationDays;
     if (day == null) return const SizedBox.shrink();
 
@@ -504,6 +504,34 @@ class _ActivePlanCard extends StatelessWidget {
     final progressText = value('plansProgressV1')
         .replaceAll('{done}', '$done')
         .replaceAll('{total}', '$total');
+    final schedule = active.scheduleStatus(DateTime.now());
+    final scheduleText = schedule.isBehind
+        ? value('plansScheduleBehindV1').replaceAll(
+            '{count}',
+            '${schedule.behindByDays}',
+          )
+        : schedule.isAhead
+            ? value('plansScheduleAheadV1').replaceAll(
+                '{count}',
+                '${schedule.aheadByDays}',
+              )
+            : value('plansScheduleOnTrackV1');
+    final scheduleDayText = value('plansScheduleDayV1')
+        .replaceAll('{day}', '${schedule.calendarDayNumber}')
+        .replaceAll('{total}', '$total');
+    final scheduledEnd = MaterialLocalizations.of(context).formatMediumDate(
+      schedule.scheduledEndDate,
+    );
+    final scheduledEndText = value('plansScheduledEndV1').replaceAll(
+      '{date}',
+      scheduledEnd,
+    );
+    final statusColor = schedule.isBehind ? scheme.error : scheme.primary;
+    final statusIcon = schedule.isBehind
+        ? Icons.schedule_rounded
+        : schedule.isAhead
+            ? Icons.fast_forward_rounded
+            : Icons.check_circle_outline_rounded;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -521,11 +549,57 @@ class _ActivePlanCard extends StatelessWidget {
                 ),
           ),
           const SizedBox(height: 8),
-          Text('$dayText · $pagesText', style: TextStyle(color: scheme.onSurfaceVariant)),
+          Text(
+            '$dayText · $pagesText',
+            style: TextStyle(color: scheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(13),
+            decoration: BoxDecoration(
+              color: statusColor.withValues(alpha: .09),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: statusColor.withValues(alpha: .22)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(statusIcon, color: statusColor, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        scheduleText,
+                        style: TextStyle(
+                          color: statusColor,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        '$scheduleDayText · $scheduledEndText',
+                        style: TextStyle(
+                          color: scheme.onSurfaceVariant,
+                          fontSize: 12,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 16),
           LinearProgressIndicator(value: active.progress.clamp(0, 1)),
           const SizedBox(height: 8),
-          Text(progressText, style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13)),
+          Text(
+            progressText,
+            style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+          ),
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
@@ -576,7 +650,10 @@ class _CompletedPlanCard extends StatelessWidget {
         backgroundColor: scheme.primaryContainer,
         child: Icon(Icons.check_rounded, color: scheme.onPrimaryContainer),
       ),
-      title: Text(l10n.text(item.preset.titleKey), style: const TextStyle(fontWeight: FontWeight.w800)),
+      title: Text(
+        l10n.text(item.preset.titleKey),
+        style: const TextStyle(fontWeight: FontWeight.w800),
+      ),
       subtitle: Text(subtitle),
     );
   }
@@ -602,7 +679,11 @@ class _EmptyState extends StatelessWidget {
         children: [
           Icon(icon, size: 38, color: scheme.primary),
           const SizedBox(height: 12),
-          Text(text, textAlign: TextAlign.center, style: TextStyle(color: scheme.onSurfaceVariant)),
+          Text(
+            text,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: scheme.onSurfaceVariant),
+          ),
           if (action != null) ...[
             const SizedBox(height: 18),
             action!,
