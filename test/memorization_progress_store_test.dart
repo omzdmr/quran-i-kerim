@@ -169,4 +169,40 @@ void main() {
       '{"12":{"memorizedAt":"2026-09-13T08:30:00.000Z","lastReviewedAt":null,"selfAssessment":null}}',
     );
   });
+
+  test('load drops review timestamps older than memorization', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'memorized_pages_v1': <String>['12'],
+      'memorization_page_progress_v1':
+          '{"12":{"memorizedAt":"2026-09-13T08:30:00.000Z","lastReviewedAt":"2026-09-12T18:00:00.000Z","selfAssessment":"assisted"}}',
+    });
+    const store = MemorizationProgressStore();
+
+    final restored = await store.load();
+    final prefs = await SharedPreferences.getInstance();
+    final progress = restored.progressForPage(12);
+
+    expect(progress?.memorizedAt, DateTime.utc(2026, 9, 13, 8, 30));
+    expect(progress?.lastReviewedAt, isNull);
+    expect(progress?.selfAssessment, MemorizationSelfAssessment.assisted);
+    expect(
+      prefs.getString('memorization_page_progress_v1'),
+      '{"12":{"memorizedAt":"2026-09-13T08:30:00.000Z","lastReviewedAt":null,"selfAssessment":"assisted"}}',
+    );
+  });
+
+  test('load recovers from malformed page progress json', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'memorized_pages_v1': <String>['12'],
+      'memorization_page_progress_v1': '{not-json',
+    });
+    const store = MemorizationProgressStore();
+
+    final restored = await store.load();
+    final prefs = await SharedPreferences.getInstance();
+
+    expect(restored.memorizedPages, <int>{12});
+    expect(restored.pageProgress, isEmpty);
+    expect(prefs.getString('memorization_page_progress_v1'), '{}');
+  });
 }
