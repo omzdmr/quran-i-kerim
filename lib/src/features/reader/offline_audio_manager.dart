@@ -5,6 +5,8 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'resumable_file_download.dart';
+
 enum AudioNetworkKind { wifi, mobile, offline, other }
 
 enum AudioDownloadStatus { downloading, paused, completed, failed }
@@ -186,10 +188,12 @@ class OfflineAudioManager extends ChangeNotifier {
           ayah: ayah,
         );
         if (existing == null) {
-          await _downloadOne(
+          final result = await _downloadOne(
             file: await _verseFile(storageKey, surah, ayah),
             url: urlForAyah(ayah),
+            job: job,
           );
+          if (result == ResumableDownloadResult.interrupted) break;
         }
         stats = await surahStats(
           storageKey: storageKey,
@@ -339,51 +343,15 @@ class OfflineAudioManager extends ChangeNotifier {
     return ((verseCount * averageSecondsPerAyah * kbps * 1000) / 8).round();
   }
 
-  Future<void> _downloadOne({required File file, required String url}) async {
-    final part = File('${file.path}.part');
-    final client = HttpClient()
-      ..connectionTimeout = const Duration(seconds: 15)
-      ..idleTimeout = const Duration(seconds: 20);
-    try {
-      for (var attempt = 0; attempt < 3; attempt++) {
-        final request = await client.getUrl(Uri.parse(url));
-        request.headers.set(HttpHeaders.acceptHeader, 'audio/mpeg,*/*;q=0.8');
-        final response = await request.close();
-        if ((response.statusCode == 429 || response.statusCode >= 500) &&
-            attempt < 2) {
-          await response.drain<void>();
-          await Future<void>.delayed(Duration(seconds: 1 << attempt));
-          continue;
-        }
-        if (response.statusCode < 200 || response.statusCode >= 300) {
-          await response.drain<void>();
-          throw HttpException(
-            'Audio download failed with ${response.statusCode}',
-            uri: Uri.parse(url),
-          );
-        }
-        final sink = part.openWrite();
-        try {
-          await response.pipe(sink);
-        } finally {
-          await sink.close();
-        }
-        if (await part.length() <= 0) {
-          throw const FileSystemException('Downloaded audio file is empty');
-        }
-        if (await file.exists()) await file.delete();
-        await part.rename(file.path);
-        return;
-      }
-    } finally {
-      if (await part.exists()) {
-        try {
-          await part.delete();
-        } catch (_) {}
-      }
-      client.close(force: true);
-    }
-  }
+  Future<ResumableDownloadResult> _downloadOne({
+    required File file,
+    required String url,
+    required _DownloadJob job,
+  }) => downloadResumableFile(
+    target: file,
+    uri: Uri.parse(url),
+    shouldInterrupt: () => job.cancelRequested || job.pauseRequested,
+  );
 
   Future<void> _deleteSurahInternal(String storageKey, int surah) async {
     final directory = await _surahDirectory(storageKey, surah, create: false);
