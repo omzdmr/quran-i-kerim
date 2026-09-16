@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quran_i_kerim/src/features/learn/application/memorization_practice_history_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -63,5 +65,75 @@ void main() {
     expect(updated.eventsForPage(20), isEmpty);
     expect(updated.eventsForPage(21), hasLength(1));
     expect((await store.load()).eventsForPage(20), isEmpty);
+  });
+
+  test('load ignores malformed, invalid-page, and unknown-context events', () async {
+    final validTime = DateTime.utc(2026, 9, 15, 12);
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'memorization_practice_history_v1': jsonEncode(<Object>[
+        <String, Object>{
+          'id': 'valid',
+          'page': 12,
+          'context': MemorizationPracticeContext.prayer.name,
+          'occurredAt': validTime.toIso8601String(),
+        },
+        <String, Object>{
+          'id': 'invalid-page',
+          'page': 605,
+          'context': MemorizationPracticeContext.soloReview.name,
+          'occurredAt': validTime.toIso8601String(),
+        },
+        <String, Object>{
+          'id': 'unknown-context',
+          'page': 13,
+          'context': 'automaticSpeechScore',
+          'occurredAt': validTime.toIso8601String(),
+        },
+        <String, Object>{
+          'id': 'bad-date',
+          'page': 14,
+          'context': MemorizationPracticeContext.recitedToSomeone.name,
+          'occurredAt': 'not-a-date',
+        },
+      ]),
+    });
+
+    final snapshot = await const MemorizationPracticeHistoryStore().load();
+
+    expect(snapshot.events, hasLength(1));
+    expect(snapshot.events.single.id, 'valid');
+    expect(snapshot.events.single.page, 12);
+    expect(snapshot.events.single.context, MemorizationPracticeContext.prayer);
+  });
+
+  test('duplicate persisted event ids keep the last valid entry', () async {
+    final earlier = DateTime.utc(2026, 9, 14, 8);
+    final later = DateTime.utc(2026, 9, 15, 8);
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'memorization_practice_history_v1': jsonEncode(<Object>[
+        <String, Object>{
+          'id': 'same-id',
+          'page': 30,
+          'context': MemorizationPracticeContext.soloReview.name,
+          'occurredAt': earlier.toIso8601String(),
+        },
+        <String, Object>{
+          'id': 'same-id',
+          'page': 31,
+          'context': MemorizationPracticeContext.recitedToSomeone.name,
+          'occurredAt': later.toIso8601String(),
+        },
+      ]),
+    });
+
+    final snapshot = await const MemorizationPracticeHistoryStore().load();
+
+    expect(snapshot.events, hasLength(1));
+    expect(snapshot.events.single.page, 31);
+    expect(
+      snapshot.events.single.context,
+      MemorizationPracticeContext.recitedToSomeone,
+    );
+    expect(snapshot.events.single.occurredAt, later);
   });
 }
