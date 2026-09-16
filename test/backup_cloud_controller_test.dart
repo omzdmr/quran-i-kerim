@@ -109,7 +109,11 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getInt('last_surah'), 36);
     expect(prefs.getInt('last_ayah'), 58);
-    expect(controller.state, BackupCloudState.upToDate);
+    expect(controller.inspection?.remote?.revision, 'r2');
+    // This fixture deliberately contains only the reading section. Restore
+    // preserves unrelated safe local data, so a fresh full local export can
+    // still differ from this sparse but valid remote document.
+    expect(controller.state, BackupCloudState.diverged);
   });
 
   test('sign out closes the active connection and clears state', () async {
