@@ -7,7 +7,6 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/generated/generated_app_localizations.dart';
 import '../../navigation/app_navigation.dart';
 import '../../settings/app_settings.dart';
-import '../plans/reading_plan.dart';
 import '../plans/reading_plan_store.dart';
 import '../reader/reader_navigation.dart';
 
