@@ -56,4 +56,66 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.containsKey('memorization_plan_missed_days_v1'), isFalse);
   });
+
+  test('load normalizes persisted missed-day values and removes invalid entries', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'memorization_plan_pace_v1': MemorizationPlanPace.steady18Months.name,
+      'memorization_plan_started_at_v1': '2026-09-01T18:45:00.000',
+      'memorization_plan_missed_days_v1': <String>['5', '-1', '2', 'oops', '5'],
+    });
+
+    final snapshot = await const MemorizationPlanStore().load();
+
+    expect(snapshot.hasPlan, isTrue);
+    expect(snapshot.startedAt, DateTime(2026, 9, 1));
+    expect(snapshot.missedPlanDays, <int>[2, 5]);
+
+    final prefs = await SharedPreferences.getInstance();
+    expect(
+      prefs.getStringList('memorization_plan_missed_days_v1'),
+      <String>['2', '5'],
+    );
+  });
+
+  test('load clears the whole snapshot when persisted pace is unknown', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'memorization_plan_pace_v1': 'retiredLegacyPace',
+      'memorization_plan_started_at_v1': '2026-09-01T00:00:00.000',
+      'memorization_plan_missed_days_v1': <String>['2'],
+    });
+
+    final snapshot = await const MemorizationPlanStore().load();
+
+    expect(snapshot.hasPlan, isFalse);
+    expect(snapshot.missedPlanDays, isEmpty);
+
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.containsKey('memorization_plan_pace_v1'), isFalse);
+    expect(prefs.containsKey('memorization_plan_started_at_v1'), isFalse);
+    expect(prefs.containsKey('memorization_plan_missed_days_v1'), isFalse);
+  });
+
+  test('save rejects negative missed plan days without replacing existing plan', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    const store = MemorizationPlanStore();
+    await store.save(
+      pace: MemorizationPlanPace.balanced24Months,
+      startedAt: DateTime(2026, 9, 1),
+      missedPlanDays: const <int>[3],
+    );
+
+    expect(
+      () => store.save(
+        pace: MemorizationPlanPace.steady18Months,
+        startedAt: DateTime(2026, 9, 15),
+        missedPlanDays: const <int>[4, -1],
+      ),
+      throwsArgumentError,
+    );
+
+    final reloaded = await store.load();
+    expect(reloaded.pace, MemorizationPlanPace.balanced24Months);
+    expect(reloaded.startedAt, DateTime(2026, 9, 1));
+    expect(reloaded.missedPlanDays, <int>[3]);
+  });
 }
