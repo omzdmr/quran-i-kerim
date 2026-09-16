@@ -61,14 +61,16 @@ class _ProfileReadingPlanCardState extends State<ProfileReadingPlanCard> {
     final total = active.preset.durationDays;
     final completed = active.completedPrefixDays;
     final schedule = active.scheduleStatus(DateTime.now());
-    final scheduleText = schedule.isBehind
+    final scheduleText = active.isPaused
+        ? l10n.text('plansPausedV1')
+        : schedule.isBehind
         ? l10n
-            .text('plansScheduleBehindV1')
-            .replaceAll('{count}', '${schedule.behindByDays}')
+              .text('plansScheduleBehindV1')
+              .replaceAll('{count}', '${schedule.behindByDays}')
         : schedule.isAhead
         ? l10n
-            .text('plansScheduleAheadV1')
-            .replaceAll('{count}', '${schedule.aheadByDays}')
+              .text('plansScheduleAheadV1')
+              .replaceAll('{count}', '${schedule.aheadByDays}')
         : l10n.text('plansScheduleOnTrackV1');
     final progressText = l10n
         .text('plansProgressV1')
@@ -144,7 +146,9 @@ class _ProfileReadingPlanCardState extends State<ProfileReadingPlanCard> {
                     Text(
                       scheduleText,
                       style: TextStyle(
-                        color: schedule.isBehind
+                        color: active.isPaused
+                            ? scheme.primary
+                            : schedule.isBehind
                             ? scheme.error
                             : scheme.primary,
                         fontSize: 12,
