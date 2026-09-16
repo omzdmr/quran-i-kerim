@@ -42,6 +42,37 @@ void main() {
     expect(reloaded.missedPlanDays, <int>[2, 6]);
   });
 
+  test('saveMissedPlanDays without a plan drops orphan persisted days', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'memorization_plan_missed_days_v1': <String>['1', '3'],
+    });
+
+    final savedDays = await const MemorizationPlanStore()
+        .saveMissedPlanDays(const <int>[2, 4]);
+
+    expect(savedDays, isEmpty);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.containsKey('memorization_plan_missed_days_v1'), isFalse);
+  });
+
+  test('saveMissedPlanDays rejects negative days without replacing existing days', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    const store = MemorizationPlanStore();
+    await store.save(
+      pace: MemorizationPlanPace.balanced24Months,
+      startedAt: DateTime(2026, 9, 1),
+      missedPlanDays: const <int>[3],
+    );
+
+    expect(
+      () => store.saveMissedPlanDays(const <int>[4, -1]),
+      throwsArgumentError,
+    );
+
+    final reloaded = await store.load();
+    expect(reloaded.missedPlanDays, <int>[3]);
+  });
+
   test('load drops orphan missed days when plan state is incomplete', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{
       'memorization_plan_started_at_v1': '2026-09-01T00:00:00.000',
