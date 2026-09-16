@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:quran_i_kerim/src/data/surah_localization.dart';
 import 'package:quran_i_kerim/src/data/translation_pack.dart';
 import 'package:quran_i_kerim/src/data/transliteration_repository.dart';
 import 'package:quran_i_kerim/src/features/learn/application/learn_lesson_builder.dart';
@@ -76,6 +77,24 @@ void main() {
       ),
       throwsStateError,
     );
+  });
+
+  test('builder places correct quiz answer at configured option position', () {
+    final steps = buildSourcedLearnLessonSteps(
+      lesson: inshirahEaseLesson,
+      pack: pack(),
+      languageCode: 'tr',
+      text: (key) => learnText('tr', key),
+    );
+
+    final quiz = steps.singleWhere((step) => step.id == 'quiz-surah');
+    expect(quiz.correctQuizIndex, inshirahEaseLesson.quizCorrectOptionIndex);
+    expect(
+      quiz.quizOptions[inshirahEaseLesson.quizCorrectOptionIndex],
+      localizedSurahName(inshirahEaseLesson.surah, 'tr'),
+    );
+    expect(quiz.quizOptions.first, localizedSurahName(93, 'tr'));
+    expect(quiz.quizOptions.last, localizedSurahName(95, 'tr'));
   });
 
   test('builder omits explanation and hadith when no sourced content exists', () {
