@@ -92,13 +92,12 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
     if (_busy) return;
     HapticFeedback.selectionClick();
     try {
-      final result = await FilePicker.pickFiles(
+      final picked = await FilePicker.pickFile(
         type: FileType.custom,
         allowedExtensions: const <String>['json'],
-        allowMultiple: false,
       );
-      if (result == null || result.files.isEmpty) return;
-      final path = result.files.single.path;
+      if (picked == null) return;
+      final path = picked.path;
       if (path == null || path.trim().isEmpty) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
