@@ -132,6 +132,7 @@ class _LessonSessionState extends State<_LessonSession> {
   final LearnProgressStore _progressStore = const LearnProgressStore();
   Future<void> _writeQueue = Future<void>.value();
   late int _lastIndex;
+  bool _leaving = false;
 
   @override
   void initState() {
@@ -185,11 +186,19 @@ class _LessonSessionState extends State<_LessonSession> {
     });
   }
 
-  void _backToLessons() {
+  Future<void> _backToLessons() async {
+    if (_leaving) return;
+    _leaving = true;
+    await _writeQueue;
+    if (!mounted) return;
     Navigator.of(context).pop();
   }
 
-  void _continueInQuran() {
+  Future<void> _continueInQuran() async {
+    if (_leaving) return;
+    _leaving = true;
+    await _writeQueue;
+    if (!mounted) return;
     Navigator.of(context).pop();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       AppNavigation.instance.openReader(
@@ -218,8 +227,12 @@ class _LessonSessionState extends State<_LessonSession> {
         continueInQuran: text('learnLessonContinueQuranV1'),
       ),
       onStepChanged: _handleStepChanged,
-      onBackToLessons: _backToLessons,
-      onContinueInQuran: _continueInQuran,
+      onBackToLessons: () {
+        _backToLessons();
+      },
+      onContinueInQuran: () {
+        _continueInQuran();
+      },
     );
   }
 }
