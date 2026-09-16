@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../l10n/generated/generated_app_localizations.dart';
+import '../../l10n/strings/learn_strings.dart';
+import '../learn/application/learn_lesson_catalog.dart';
+import '../learn/application/learn_progress_store.dart';
+import '../learn/presentation/curated_lesson_screen.dart';
 import '../learn/presentation/memorization_overview.dart';
 
 class QuranLearnOverview extends StatefulWidget {
@@ -58,13 +62,43 @@ class _QuranLearnOverviewState extends State<QuranLearnOverview> {
   }
 }
 
-class _LessonsOverview extends StatelessWidget {
+class _LessonsOverview extends StatefulWidget {
   const _LessonsOverview({super.key});
+
+  @override
+  State<_LessonsOverview> createState() => _LessonsOverviewState();
+}
+
+class _LessonsOverviewState extends State<_LessonsOverview> {
+  final LearnProgressStore _progressStore = const LearnProgressStore();
+  late Future<LearnProgressSnapshot?> _progressFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _progressFuture = _progressStore.load(inshirahEaseLesson.id);
+  }
+
+  Future<void> _openLesson() async {
+    HapticFeedback.selectionClick();
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => const CuratedLearnLessonScreen(
+          lesson: inshirahEaseLesson,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    setState(() {
+      _progressFuture = _progressStore.load(inshirahEaseLesson.id);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = GeneratedAppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
+    final languageCode = Localizations.localeOf(context).languageCode;
     final steps = <({IconData icon, String label})>[
       (icon: Icons.menu_book_outlined, label: l10n.quranLearnFlowVerse),
       (icon: Icons.translate_rounded, label: l10n.quranLearnFlowMeaning),
@@ -145,10 +179,99 @@ class _LessonsOverview extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        _EmptyStateCard(
-          icon: Icons.verified_outlined,
-          title: l10n.quranLearnLessons,
-          body: l10n.quranLearnLessonsEmpty,
+        FutureBuilder<LearnProgressSnapshot?>(
+          future: _progressFuture,
+          builder: (context, snapshot) {
+            final progress = snapshot.data;
+            final completed = progress?.completedStepIds.contains('completion') ?? false;
+            final started = progress != null && progress.completedStepIds.isNotEmpty;
+            final actionKey = completed
+                ? 'learnLessonCompletedV1'
+                : started
+                ? 'learnLessonContinueV1'
+                : 'learnLessonStartV1';
+            return Material(
+              color: scheme.surfaceContainer,
+              borderRadius: BorderRadius.circular(24),
+              child: InkWell(
+                onTap: _openLesson,
+                borderRadius: BorderRadius.circular(24),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: scheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(17),
+                            ),
+                            child: Icon(
+                              Icons.auto_stories_rounded,
+                              color: scheme.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  learnText(languageCode, 'learnLessonSourceBadgeV1'),
+                                  style: TextStyle(
+                                    color: scheme.primary,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  learnText(languageCode, inshirahEaseLesson.titleKey),
+                                  style: const TextStyle(
+                                    fontSize: 19,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.chevron_right_rounded),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        learnText(languageCode, inshirahEaseLesson.subtitleKey),
+                        style: TextStyle(
+                          color: scheme.onSurfaceVariant,
+                          height: 1.45,
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+                      Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: FilledButton.tonalIcon(
+                          onPressed: _openLesson,
+                          icon: Icon(
+                            completed
+                                ? Icons.replay_rounded
+                                : started
+                                ? Icons.play_arrow_rounded
+                                : Icons.school_outlined,
+                          ),
+                          label: Text(learnText(languageCode, actionKey)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ],
     );
