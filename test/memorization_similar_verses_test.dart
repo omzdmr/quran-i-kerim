@@ -83,4 +83,81 @@ void main() {
 
     expect(result, isEmpty);
   });
+
+  test('rejects invalid ranking thresholds', () {
+    final source = verse(1, 1, 'هذا نص طويل للاختبار');
+
+    expect(
+      () => rankSimilarMemorizationVerses(
+        source: source,
+        candidates: const <MemorizationVerseRef>[],
+        minSharedWords: 0,
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      () => rankSimilarMemorizationVerses(
+        source: source,
+        candidates: const <MemorizationVerseRef>[],
+        minScore: -0.01,
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      () => rankSimilarMemorizationVerses(
+        source: source,
+        candidates: const <MemorizationVerseRef>[],
+        minScore: 1.01,
+      ),
+      throwsArgumentError,
+    );
+  });
+
+  test('non-positive limit returns no candidates', () {
+    final result = rankSimilarMemorizationVerses(
+      source: verse(1, 1, 'هذا نص طويل للاختبار'),
+      candidates: [verse(2, 1, 'هذا نص طويل اخر')],
+      limit: 0,
+      minSharedWords: 3,
+      minScore: 0,
+    );
+
+    expect(result, isEmpty);
+  });
+
+  test('eligible pages scope bundled Quran similarity search', () {
+    final unrestricted = findSimilarMemorizationVerses(
+      surah: 2,
+      ayah: 1,
+      limit: 5,
+      minSharedWords: 1,
+      minScore: 0,
+    );
+    expect(unrestricted, isNotEmpty);
+
+    final allowedPage = unrestricted.first.candidate.page;
+    final scoped = findSimilarMemorizationVerses(
+      surah: 2,
+      ayah: 1,
+      eligiblePages: <int>{allowedPage},
+      limit: 5,
+      minSharedWords: 1,
+      minScore: 0,
+    );
+
+    expect(scoped, isNotEmpty);
+    expect(scoped.every((item) => item.candidate.page == allowedPage), isTrue);
+  });
+
+  test('empty eligible page set produces no bundled candidates', () {
+    final result = findSimilarMemorizationVerses(
+      surah: 2,
+      ayah: 1,
+      eligiblePages: const <int>{},
+      minSharedWords: 1,
+      minScore: 0,
+    );
+
+    expect(result, isEmpty);
+  });
 }
