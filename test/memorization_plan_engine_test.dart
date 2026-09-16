@@ -82,6 +82,55 @@ void main() {
     expect(queue.consolidationPages, isEmpty);
   });
 
+  test('overdue checkpoint remains pending until reviewed on or after due date', () {
+    final now = DateTime(2026, 9, 20);
+    final memorizedAt = now.subtract(const Duration(days: 17));
+
+    final pending = buildMemorizationDailyQueue(
+      pace: MemorizationPlanPace.steady18Months,
+      planDayIndex: 0,
+      now: now,
+      memorizedAtByPage: <int, DateTime>{1: memorizedAt},
+      lastReviewedAtByPage: <int, DateTime>{
+        1: memorizedAt.add(const Duration(days: 13)),
+      },
+    );
+    final completed = buildMemorizationDailyQueue(
+      pace: MemorizationPlanPace.steady18Months,
+      planDayIndex: 0,
+      now: now,
+      memorizedAtByPage: <int, DateTime>{1: memorizedAt},
+      lastReviewedAtByPage: <int, DateTime>{
+        1: memorizedAt.add(const Duration(days: 14)),
+      },
+    );
+
+    expect(pending.checkpointReviewPages, <int>[1]);
+    expect(completed.checkpointReviewPages, isEmpty);
+    expect(completed.oldReviewPages, <int>[1]);
+  });
+
+  test('legacy page without review metadata only surfaces on exact checkpoint day', () {
+    final memorizedAt = DateTime(2026, 9, 1);
+
+    final exact = buildMemorizationDailyQueue(
+      pace: MemorizationPlanPace.steady18Months,
+      planDayIndex: 0,
+      now: DateTime(2026, 9, 15),
+      memorizedAtByPage: <int, DateTime>{1: memorizedAt},
+    );
+    final overdue = buildMemorizationDailyQueue(
+      pace: MemorizationPlanPace.steady18Months,
+      planDayIndex: 0,
+      now: DateTime(2026, 9, 16),
+      memorizedAtByPage: <int, DateTime>{1: memorizedAt},
+    );
+
+    expect(exact.checkpointReviewPages, <int>[1]);
+    expect(overdue.checkpointReviewPages, isEmpty);
+    expect(overdue.oldReviewPages, <int>[1]);
+  });
+
   test('daily queue can be constrained to the active memorization target', () {
     final now = DateTime(2026, 9, 13);
     final queue = buildMemorizationDailyQueue(
