@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:quran/quran.dart' as quran;
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/surah_localization.dart';
 import '../../data/translation_catalog.dart';
@@ -8,6 +9,8 @@ import '../../data/translation_repository.dart';
 import '../../l10n/generated/generated_app_localizations.dart';
 import '../../navigation/app_navigation.dart';
 import '../../settings/app_settings.dart';
+
+final Uri _tanzilSourceUri = Uri.https('tanzil.net');
 
 class PassagePreviewScreen extends StatelessWidget {
   const PassagePreviewScreen({
@@ -84,6 +87,10 @@ class PassagePreviewScreen extends StatelessWidget {
   Future<Map<String, String>> _loadTranslation(String sourceId) async {
     if (sourceId == arabicOriginalSourceId) return const <String, String>{};
     return TranslationRepository.instance.loadSourceVerses(sourceId);
+  }
+
+  Future<void> _openTanzilSource() async {
+    await launchUrl(_tanzilSourceUri, mode: LaunchMode.externalApplication);
   }
 
   @override
@@ -219,13 +226,23 @@ class PassagePreviewScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
-            Text(
-              isArabic
-                  ? 'Tanzil.net · CC BY 3.0'
-                  : '${sourceInfo?.publisher ?? ''}\n${sourceInfo?.source ?? ''} · ${sourceInfo?.version ?? ''}',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: scheme.onSurfaceVariant, height: 1.45),
-            ),
+            if (isArabic)
+              Center(
+                child: TextButton.icon(
+                  onPressed: _openTanzilSource,
+                  icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                  label: const Text('Tanzil.net · CC BY 3.0'),
+                ),
+              )
+            else
+              Text(
+                '${sourceInfo?.publisher ?? ''}\n${sourceInfo?.source ?? ''} · ${sourceInfo?.version ?? ''}',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant,
+                  height: 1.45,
+                ),
+              ),
           ],
         ),
       ),
