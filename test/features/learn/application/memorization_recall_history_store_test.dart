@@ -130,4 +130,40 @@ void main() {
       <String>['older', 'newer', 'manual'],
     );
   });
+
+  test('persisted recall stats sanitize malformed fields and invalid entries', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'memorization_recall_history_v1': '''{
+        "2:6":{"difficulty":15,"attempts":-4,"lastAttemptAt":"not-a-date","manuallyWeak":true},
+        "2:7":{"difficulty":2,"attempts":3,"lastAttemptAt":"2026-09-15T10:00:00.000Z"},
+        "":{"difficulty":1,"attempts":1},
+        "bad-difficulty":{"difficulty":"2","attempts":1},
+        "bad-attempts":{"difficulty":2,"attempts":"1"},
+        "bad-value":"oops"
+      }''',
+    });
+    const store = MemorizationRecallHistoryStore();
+
+    final restored = await store.load();
+
+    expect(restored.stats.keys, <String>['2:6', '2:7']);
+    expect(restored.statFor('2:6')?.difficulty, 9);
+    expect(restored.statFor('2:6')?.attempts, 0);
+    expect(restored.statFor('2:6')?.lastAttemptAt, isNull);
+    expect(restored.statFor('2:6')?.manuallyWeak, isTrue);
+    expect(restored.statFor('2:7')?.lastAttemptAt, DateTime.utc(2026, 9, 15, 10));
+  });
+
+  test('malformed recall history json recovers to an empty snapshot', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'memorization_recall_history_v1': '{not-json',
+    });
+    const store = MemorizationRecallHistoryStore();
+
+    final restored = await store.load();
+
+    expect(restored.stats, isEmpty);
+    expect(restored.weakQuestionIds, isEmpty);
+    expect(restored.manuallyWeakQuestionIds, isEmpty);
+  });
 }
