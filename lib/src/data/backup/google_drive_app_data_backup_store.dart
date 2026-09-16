@@ -4,27 +4,86 @@ import 'package:googleapis/drive/v3.dart' as drive;
 
 import 'backup_cloud_store.dart';
 
-/// Google Drive implementation that stores one JSON backup in appDataFolder.
+/// Google Drive implementation backed by small append-only snapshots in the
+/// private appDataFolder.
 ///
-/// Authentication is intentionally injected through [driveApi]. This keeps
-/// Google account/OAuth concerns out of the backup domain layer and lets the
-/// app request only [drive.DriveApi.driveAppdataScope] when wiring sign-in.
+/// Authentication is injected through [driveApi], keeping OAuth concerns out
+/// of the backup domain layer. Writes create a new snapshot instead of
+/// destructively replacing the previous blob. This matters because Drive v3
+/// exposes a monotonically increasing file version but does not expose that
+/// version as an atomic files.update precondition. Concurrent devices can
+/// therefore leave two snapshots, but neither silently destroys the other.
 class GoogleDriveAppDataBackupStore implements BackupCloudStore {
   GoogleDriveAppDataBackupStore(
     this.driveApi, {
     this.fileName = 'quran-i-kerim-backup.json',
-  });
+    this.retainedSnapshots = 10,
+  }) : assert(retainedSnapshots > 0);
 
   static const String mimeType = 'application/json';
 
   final drive.DriveApi driveApi;
   final String fileName;
+  final int retainedSnapshots;
 
   @override
   Future<BackupCloudObject?> read() async {
-    final metadata = await _findCurrent();
-    if (metadata == null) return null;
+    final snapshots = await _listSnapshots();
+    if (snapshots.isEmpty) return null;
+    return _download(snapshots.first);
+  }
 
+  @override
+  Future<BackupCloudObject> write({
+    required String content,
+    required String? expectedRevision,
+  }) async {
+    final snapshots = await _listSnapshots();
+    final current = snapshots.isEmpty ? null : snapshots.first;
+
+    if (current == null) {
+      if (expectedRevision != null) {
+        throw const BackupCloudConflictException();
+      }
+    } else if (expectedRevision == null ||
+        _revision(current) != expectedRevision) {
+      throw const BackupCloudConflictException();
+    }
+
+    final created = await driveApi.files.create(
+      drive.File(
+        name: fileName,
+        mimeType: mimeType,
+        parents: const <String>['appDataFolder'],
+        appProperties: <String, String?>{
+          'quranBackup': 'snapshot-v1',
+          if (expectedRevision != null) 'previousRevision': expectedRevision,
+        },
+      ),
+      uploadMedia: _media(content),
+      $fields: 'id,name,modifiedTime,version',
+    );
+    final result = _metadataToObject(created, content);
+
+    // New snapshot is retained plus the newest N-1 snapshots observed before
+    // the upload. Cleanup is best-effort: a failed delete must never turn a
+    // successfully uploaded backup into an apparent failure.
+    final stale = snapshots.skip(retainedSnapshots - 1).toList(growable: false);
+    for (final file in stale) {
+      final id = file.id;
+      if (id == null || id.isEmpty) continue;
+      try {
+        await driveApi.files.delete(id);
+      } catch (_) {
+        // Keeping an extra tiny backup is safer than reporting the upload as
+        // failed after its new snapshot already exists remotely.
+      }
+    }
+
+    return result;
+  }
+
+  Future<BackupCloudObject> _download(drive.File metadata) async {
     final id = metadata.id;
     if (id == null || id.isEmpty) {
       throw const FormatException('Google Drive backup is missing a file id.');
@@ -51,69 +110,27 @@ class GoogleDriveAppDataBackupStore implements BackupCloudStore {
     );
   }
 
-  @override
-  Future<BackupCloudObject> write({
-    required String content,
-    required String? expectedRevision,
-  }) async {
-    final current = await _findCurrent();
-
-    if (current == null) {
-      if (expectedRevision != null) {
-        throw const BackupCloudConflictException();
-      }
-      final created = await driveApi.files.create(
-        drive.File(
-          name: fileName,
-          mimeType: mimeType,
-          parents: const <String>['appDataFolder'],
-          appProperties: const <String, String?>{
-            'quranBackup': 'canonical-v1',
-          },
-        ),
-        uploadMedia: _media(content),
-        $fields: 'id,name,modifiedTime,version',
-      );
-      return _metadataToObject(created, content);
-    }
-
-    if (expectedRevision == null || _revision(current) != expectedRevision) {
-      throw const BackupCloudConflictException();
-    }
-
-    final id = current.id;
-    if (id == null || id.isEmpty) {
-      throw const FormatException('Google Drive backup is missing a file id.');
-    }
-
-    final updated = await driveApi.files.update(
-      drive.File(mimeType: mimeType),
-      id,
-      uploadMedia: _media(content),
-      $fields: 'id,name,modifiedTime,version',
-    );
-    return _metadataToObject(updated, content);
-  }
-
-  Future<drive.File?> _findCurrent() async {
+  Future<List<drive.File>> _listSnapshots() async {
     final escapedName = fileName.replaceAll("'", "\\'");
     final result = await driveApi.files.list(
       spaces: 'appDataFolder',
       q: "name = '$escapedName' and trashed = false",
       orderBy: 'modifiedTime desc',
-      pageSize: 10,
+      pageSize: 100,
       $fields: 'files(id,name,modifiedTime,version)',
     );
-    final files = result.files ?? const <drive.File>[];
-    if (files.isEmpty) return null;
-
-    // Duplicate names are possible in Drive. Using the most recently modified
-    // object keeps legacy/raced duplicates from making selection ambiguous.
-    return files.reduce((a, b) {
+    final files = List<drive.File>.from(
+      result.files ?? const <drive.File>[],
+      growable: false,
+    );
+    files.sort((a, b) {
       final aTime = a.modifiedTime ?? DateTime.fromMillisecondsSinceEpoch(0);
       final bTime = b.modifiedTime ?? DateTime.fromMillisecondsSinceEpoch(0);
-      return bTime.isAfter(aTime) ? b : a;
+      final byTime = bTime.compareTo(aTime);
+      if (byTime != 0) return byTime;
+      return (b.id ?? '').compareTo(a.id ?? '');
     });
+    return files;
   }
 
   drive.Media _media(String content) {
@@ -134,12 +151,14 @@ class GoogleDriveAppDataBackupStore implements BackupCloudStore {
   }
 
   String _revision(drive.File file) {
-    final version = file.version?.trim();
-    if (version != null && version.isNotEmpty) return version;
-    final modified = file.modifiedTime;
-    if (modified != null) return modified.toUtc().toIso8601String();
     final id = file.id?.trim();
-    if (id != null && id.isNotEmpty) return 'id:$id';
-    throw const FormatException('Google Drive backup has no usable revision.');
+    if (id == null || id.isEmpty) {
+      throw const FormatException('Google Drive backup has no usable file id.');
+    }
+    final version = file.version?.trim();
+    if (version != null && version.isNotEmpty) return '$id@$version';
+    final modified = file.modifiedTime;
+    if (modified != null) return '$id@${modified.toUtc().toIso8601String()}';
+    return 'id:$id';
   }
 }
