@@ -37,6 +37,67 @@ void main() {
     expect((persisted['5'] as Map<String, dynamic>)['lastReviewedAt'], isNull);
   });
 
+  test('load normalizes invalid persisted progress and practice days', () async {
+    SharedPreferences.setMockInitialValues({
+      'memorized_pages_v1': <String>['12', '12', '0', '605', 'bad'],
+      'memorization_practice_days_v1': <String>[
+        '2026-09-12',
+        '2026-02-30',
+        'bad',
+        '2026-09-12',
+      ],
+      'memorization_page_progress_v1': jsonEncode({
+        '12': {
+          'memorizedAt': '2026-09-10T08:30:00.000',
+          'lastReviewedAt': 'not-a-date',
+          'selfAssessment': 'unknown',
+        },
+        '13': {
+          'memorizedAt': '2026-09-11T08:30:00.000',
+          'selfAssessment': 'independent',
+        },
+        '605': {'memorizedAt': '2026-09-11T08:30:00.000'},
+      }),
+    });
+
+    const store = MemorizationProgressStore();
+    final snapshot = await store.load();
+
+    expect(snapshot.memorizedPages, <int>{12});
+    expect(snapshot.practiceDays, <String>{'2026-09-12'});
+    expect(snapshot.pageProgress.keys, <int>{12});
+    expect(snapshot.progressForPage(12)?.memorizedAt, DateTime(2026, 9, 10, 8, 30));
+    expect(snapshot.progressForPage(12)?.lastReviewedAt, isNull);
+    expect(snapshot.progressForPage(12)?.selfAssessment, isNull);
+
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getStringList('memorized_pages_v1'), <String>['12']);
+    expect(
+      prefs.getStringList('memorization_practice_days_v1'),
+      <String>['2026-09-12'],
+    );
+    final persisted = jsonDecode(
+      prefs.getString('memorization_page_progress_v1')!,
+    ) as Map<String, dynamic>;
+    expect(persisted.keys, <String>['12']);
+  });
+
+  test('malformed page progress JSON recovers without losing pages', () async {
+    SharedPreferences.setMockInitialValues({
+      'memorized_pages_v1': <String>['3'],
+      'memorization_page_progress_v1': '{broken-json',
+    });
+
+    const store = MemorizationProgressStore();
+    final snapshot = await store.load();
+
+    expect(snapshot.memorizedPages, <int>{3});
+    expect(snapshot.pageProgress, isEmpty);
+
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('memorization_page_progress_v1'), '{}');
+  });
+
   test('memorized page and review metadata survive reload', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     const store = MemorizationProgressStore();
