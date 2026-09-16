@@ -55,7 +55,6 @@ class _CuratedLearnLessonScreenState extends State<CuratedLearnLessonScreen> {
     );
     final progress = await const LearnProgressStore().load(widget.lesson.id);
     return _LoadedLesson(
-      pack: pack,
       steps: steps,
       progress: progress,
       languageCode: languageCode,
@@ -227,13 +226,11 @@ class _LessonSessionState extends State<_LessonSession> {
 
 class _LoadedLesson {
   const _LoadedLesson({
-    required this.pack,
     required this.steps,
     required this.progress,
     required this.languageCode,
   });
 
-  final TranslationPack pack;
   final List<LearnLessonVisualStep> steps;
   final LearnProgressSnapshot? progress;
   final String languageCode;
