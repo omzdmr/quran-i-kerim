@@ -10,6 +10,7 @@ import '../../data/backup/backup_file_service.dart';
 import '../../data/backup/backup_preview.dart';
 import '../../l10n/app_localizations.dart';
 import '../../settings/app_settings.dart';
+import '../learn/application/learn_progress_store.dart';
 import '../plans/reading_plan_store.dart';
 import '../prayer/application/prayer_notification_service.dart';
 import 'google_drive_backup_section.dart';
@@ -96,6 +97,7 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
     await settings.reloadFromStorage();
     await PrayerNotificationService.refreshFromSaved();
     ReadingPlanStore.notifyExternalChange();
+    LearnProgressStore.notifyExternalChange();
     if (!mounted) return;
     await _refreshLocalBackups();
   }
