@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../l10n/generated/generated_app_localizations.dart';
 import '../learn/presentation/learn_lessons_overview.dart';
+import '../learn/presentation/learn_reference_overview.dart';
 import '../learn/presentation/memorization_overview.dart';
 
 class QuranLearnOverview extends StatefulWidget {
@@ -51,71 +52,10 @@ class _QuranLearnOverviewState extends State<QuranLearnOverview> {
           child: switch (_tab) {
             0 => const LearnLessonsOverview(key: ValueKey('lessons')),
             1 => const MemorizationOverview(key: ValueKey('memorize')),
-            _ => const _ArticlesOverview(key: ValueKey('articles')),
+            _ => const LearnReferenceOverview(key: ValueKey('articles')),
           },
         ),
       ],
-    );
-  }
-}
-
-class _ArticlesOverview extends StatelessWidget {
-  const _ArticlesOverview({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = GeneratedAppLocalizations.of(context)!;
-    return _EmptyStateCard(
-      icon: Icons.article_outlined,
-      title: l10n.quranLearnArticlesEmptyTitle,
-      body: l10n.quranLearnArticlesEmptyBody,
-    );
-  }
-}
-
-class _EmptyStateCard extends StatelessWidget {
-  const _EmptyStateCard({
-    required this.icon,
-    required this.title,
-    required this.body,
-  });
-
-  final IconData icon;
-  final String title;
-  final String body;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: scheme.primary, size: 30),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  body,
-                  style: TextStyle(color: scheme.onSurfaceVariant, height: 1.45),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
