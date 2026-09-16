@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quran_i_kerim/src/features/reader/reader_mixed_verse_list.dart';
+import 'package:quran_i_kerim/src/l10n/app_localizations.dart';
+import 'package:quran_i_kerim/src/l10n/generated/generated_app_localizations.dart';
 import 'package:quran_i_kerim/src/settings/app_settings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -15,6 +18,19 @@ void main() {
     await settings.load();
   });
 
+  Widget localizedTestApp(Widget child) => MaterialApp(
+    locale: const Locale('en'),
+    supportedLocales: AppLocalizations.supportedLocales,
+    localizationsDelegates: const [
+      GeneratedAppLocalizations.delegate,
+      AppLocalizations.delegate,
+      GlobalMaterialLocalizations.delegate,
+      GlobalWidgetsLocalizations.delegate,
+      GlobalCupertinoLocalizations.delegate,
+    ],
+    home: Scaffold(body: child),
+  );
+
   testWidgets('mixed verse renders Arabic then transliteration then translation', (
     tester,
   ) async {
@@ -23,30 +39,28 @@ void main() {
     const translation = 'Selected translation';
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SingleChildScrollView(
-            child: ReaderMixedVerseList(
-              surahNumber: 1,
-              verseCount: 1,
-              arabicForAyah: (_) => arabic,
-              transliterations: const <String, String>{
-                '1:1': transliteration,
-              },
-              translations: const <String, String>{'1:1': translation},
-              footnotes: const <String, String>{},
-              translationLanguageCode: 'en',
-              arabicTextSize: 28,
-              translationTextSize: 18,
-              arabicLineHeight: 1.8,
-              translationLineHeight: 1.5,
-              selectedAyahs: const <int>{},
-              activeAudioAyah: null,
-              settings: settings,
-              onAyahTap: (_) {},
-              onNoteTap: (_) {},
-              onFootnoteTap: (_) {},
-            ),
+      localizedTestApp(
+        SingleChildScrollView(
+          child: ReaderMixedVerseList(
+            surahNumber: 1,
+            verseCount: 1,
+            arabicForAyah: (_) => arabic,
+            transliterations: const <String, String>{
+              '1:1': transliteration,
+            },
+            translations: const <String, String>{'1:1': translation},
+            footnotes: const <String, String>{},
+            translationLanguageCode: 'en',
+            arabicTextSize: 28,
+            translationTextSize: 18,
+            arabicLineHeight: 1.8,
+            translationLineHeight: 1.5,
+            selectedAyahs: const <int>{},
+            activeAudioAyah: null,
+            settings: settings,
+            onAyahTap: (_) {},
+            onNoteTap: (_) {},
+            onFootnoteTap: (_) {},
           ),
         ),
       ),
@@ -75,27 +89,25 @@ void main() {
     var noteAyah = 0;
     var footnoteAyah = 0;
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: ReaderMixedVerseList(
-            surahNumber: 1,
-            verseCount: 1,
-            arabicForAyah: (_) => 'Arabic',
-            transliterations: const <String, String>{'1:1': 'Latin'},
-            translations: const <String, String>{'1:1': 'Translation'},
-            footnotes: const <String, String>{'1:1': 'Footnote'},
-            translationLanguageCode: 'en',
-            arabicTextSize: 28,
-            translationTextSize: 18,
-            arabicLineHeight: 1.8,
-            translationLineHeight: 1.5,
-            selectedAyahs: const <int>{},
-            activeAudioAyah: null,
-            settings: settings,
-            onAyahTap: (ayah) => tappedAyah = ayah,
-            onNoteTap: (ayah) => noteAyah = ayah,
-            onFootnoteTap: (ayah) => footnoteAyah = ayah,
-          ),
+      localizedTestApp(
+        ReaderMixedVerseList(
+          surahNumber: 1,
+          verseCount: 1,
+          arabicForAyah: (_) => 'Arabic',
+          transliterations: const <String, String>{'1:1': 'Latin'},
+          translations: const <String, String>{'1:1': 'Translation'},
+          footnotes: const <String, String>{'1:1': 'Footnote'},
+          translationLanguageCode: 'en',
+          arabicTextSize: 28,
+          translationTextSize: 18,
+          arabicLineHeight: 1.8,
+          translationLineHeight: 1.5,
+          selectedAyahs: const <int>{},
+          activeAudioAyah: null,
+          settings: settings,
+          onAyahTap: (ayah) => tappedAyah = ayah,
+          onNoteTap: (ayah) => noteAyah = ayah,
+          onFootnoteTap: (ayah) => footnoteAyah = ayah,
         ),
       ),
     );
@@ -119,34 +131,32 @@ void main() {
   ) async {
     final key = GlobalKey<ReaderMixedVerseListState>();
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: ReaderMixedVerseList(
-            key: key,
-            surahNumber: 1,
-            verseCount: 2,
-            arabicForAyah: (ayah) => 'Arabic $ayah',
-            transliterations: const <String, String>{
-              '1:1': 'Latin 1',
-              '1:2': 'Latin 2',
-            },
-            translations: const <String, String>{
-              '1:1': 'Translation 1',
-              '1:2': 'Translation 2',
-            },
-            footnotes: const <String, String>{},
-            translationLanguageCode: 'en',
-            arabicTextSize: 28,
-            translationTextSize: 18,
-            arabicLineHeight: 1.8,
-            translationLineHeight: 1.5,
-            selectedAyahs: const <int>{},
-            activeAudioAyah: null,
-            settings: settings,
-            onAyahTap: (_) {},
-            onNoteTap: (_) {},
-            onFootnoteTap: (_) {},
-          ),
+      localizedTestApp(
+        ReaderMixedVerseList(
+          key: key,
+          surahNumber: 1,
+          verseCount: 2,
+          arabicForAyah: (ayah) => 'Arabic $ayah',
+          transliterations: const <String, String>{
+            '1:1': 'Latin 1',
+            '1:2': 'Latin 2',
+          },
+          translations: const <String, String>{
+            '1:1': 'Translation 1',
+            '1:2': 'Translation 2',
+          },
+          footnotes: const <String, String>{},
+          translationLanguageCode: 'en',
+          arabicTextSize: 28,
+          translationTextSize: 18,
+          arabicLineHeight: 1.8,
+          translationLineHeight: 1.5,
+          selectedAyahs: const <int>{},
+          activeAudioAyah: null,
+          settings: settings,
+          onAyahTap: (_) {},
+          onNoteTap: (_) {},
+          onFootnoteTap: (_) {},
         ),
       ),
     );
