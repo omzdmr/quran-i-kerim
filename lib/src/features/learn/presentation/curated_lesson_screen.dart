@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../data/translation_catalog.dart';
 import '../../../data/translation_pack.dart';
 import '../../../data/translation_repository.dart';
+import '../../../data/transliteration_repository.dart';
 import '../../../l10n/strings/learn_strings.dart';
 import '../../../navigation/app_navigation.dart';
 import '../../../settings/app_settings.dart';
@@ -47,11 +48,14 @@ class _CuratedLearnLessonScreenState extends State<CuratedLearnLessonScreen> {
     required String languageCode,
   }) async {
     final pack = await _resolvePack(sourceId, languageCode);
+    final transliterations =
+        await TransliterationRepository.instance.loadBundled();
     final steps = buildSourcedLearnLessonSteps(
       lesson: widget.lesson,
       pack: pack,
       languageCode: languageCode,
       text: (key) => learnText(languageCode, key),
+      transliterations: transliterations,
     );
     final progress = await const LearnProgressStore().load(widget.lesson.id);
     return _LoadedLesson(

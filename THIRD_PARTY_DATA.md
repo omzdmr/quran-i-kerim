@@ -11,6 +11,20 @@ The Arabic Quran text exposed through the `quran` package is sourced from the Ta
 
 Tanzil permits verbatim redistribution but does not permit changing the Quran text. The app therefore treats the Arabic text as immutable source data. Reader surfaces identify Tanzil and provide a link back to the project so users can follow upstream changes.
 
+## English transliteration
+
+Learn lessons bundle the `en.transliteration` edition delivered by the Al Quran Cloud API and preserve every transliteration string verbatim. The edition is validated at build time for the expected identifier, all 114 surahs, and exactly 6,236 verse records before it is compressed into the offline asset.
+
+- Delivery source: Al Quran Cloud / Islamic Network
+- Edition: `en.transliteration`
+- API: https://api.alquran.cloud/v1/quran/en.transliteration
+- API terms: https://alquran.cloud/terms-and-conditions
+- Upstream translation catalogue: https://tanzil.net/trans/
+
+Tanzil lists **English Transliteration** in its translations catalogue. Tanzil translation resources are currently provided for non-commercial use unless any additional permission required by the translator or publisher is obtained. The current app model is free/no-backend; any future paid or commercial distribution must re-check the transliteration licence before release.
+
+The transliteration is source data, not machine-generated pronunciation. Learn verse cards show the source edition alongside the Arabic verse.
+
 ## QuranEnc translations
 
 Supported QuranEnc translations are downloaded or bundled as source-bound translation packs. Translation text and provider-authored footnotes are preserved verbatim.

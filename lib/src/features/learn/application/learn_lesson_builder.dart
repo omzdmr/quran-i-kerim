@@ -4,6 +4,7 @@ import '../../../data/sourced_explanation.dart';
 import '../../../data/surah_localization.dart';
 import '../../../data/translation_catalog.dart';
 import '../../../data/translation_pack.dart';
+import '../../../data/transliteration_repository.dart';
 import '../presentation/lesson_visual_flow.dart';
 import 'learn_lesson_catalog.dart';
 
@@ -12,6 +13,7 @@ List<LearnLessonVisualStep> buildSourcedLearnLessonSteps({
   required TranslationPack pack,
   required String languageCode,
   required String Function(String key) text,
+  Map<String, String> transliterations = const <String, String>{},
 }) {
   final info = translationById(pack.translationId);
   final publisher = info?.publisher.trim();
@@ -33,11 +35,18 @@ List<LearnLessonVisualStep> buildSourcedLearnLessonSteps({
   ];
 
   for (final ayah in lesson.ayahs) {
+    final verseKey = '${lesson.surah}:$ayah';
     final translation = pack.verse(lesson.surah, ayah);
     if (translation == null || translation.trim().isEmpty) {
       throw StateError(
-        'Translation ${pack.translationId} is missing ${lesson.surah}:$ayah.',
+        'Translation ${pack.translationId} is missing $verseKey.',
       );
+    }
+
+    final transliteration = transliterations[verseKey];
+    if (transliterations.isNotEmpty &&
+        (transliteration == null || transliteration.trim().isEmpty)) {
+      throw StateError('Transliteration is missing $verseKey.');
     }
 
     final verseTitle = text('learnLessonVerseTitleV1').replaceAll(
@@ -50,7 +59,10 @@ List<LearnLessonVisualStep> buildSourcedLearnLessonSteps({
         type: LearnLessonVisualStepType.verse,
         title: verseTitle,
         arabicText: quran.getVerse(lesson.surah, ayah),
-        reference: '${lesson.surah}:$ayah',
+        transliteration: transliteration,
+        reference: transliteration == null
+            ? verseKey
+            : '$verseKey · $bundledTransliterationSourceLabel',
       ),
     );
     steps.add(
@@ -59,7 +71,7 @@ List<LearnLessonVisualStep> buildSourcedLearnLessonSteps({
         type: LearnLessonVisualStepType.meaning,
         title: text('learnLessonMeaningTitleV1'),
         body: translation,
-        reference: '$sourceLabel · ${lesson.surah}:$ayah',
+        reference: '$sourceLabel · $verseKey',
       ),
     );
 
@@ -75,8 +87,7 @@ List<LearnLessonVisualStep> buildSourcedLearnLessonSteps({
           type: LearnLessonVisualStepType.explanation,
           title: text('learnLessonExplanationTitleV1'),
           body: explanation.text,
-          reference:
-              '$sourceLabel · ${explanation.reference}',
+          reference: '$sourceLabel · ${explanation.reference}',
         ),
       );
     }

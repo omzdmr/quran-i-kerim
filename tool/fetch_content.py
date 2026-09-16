@@ -31,10 +31,14 @@ BUNDLED = (
     ),
 )
 
+TRANSLITERATION_URL = "https://api.alquran.cloud/v1/quran/en.transliteration"
+TRANSLITERATION_TARGET = (
+    ROOT / "assets/data/transliterations/en_transliteration.json.gz"
+)
 GEONAMES_CITIES_URL = "https://download.geonames.org/export/dump/cities5000.zip"
 GEONAMES_COUNTRY_INFO_URL = "https://download.geonames.org/export/dump/countryInfo.txt"
 GEONAMES_TARGET = ROOT / "assets/data/locations/cities5000.json.gz"
-USER_AGENT = "Quran-i-Kerim-build/0.5 (GeoNames offline city bundle)"
+USER_AGENT = "Quran-i-Kerim-build/0.5 (local-first content bundle)"
 
 
 def _request_bytes(url: str) -> bytes:
@@ -84,6 +88,90 @@ def validate_translation(path: pathlib.Path) -> None:
     for key in ("1:1", "2:255", "114:6"):
         if key not in data:
             raise SystemExit(f"{path.name}: sanity-check verse is missing: {key}")
+
+
+def build_transliteration_bundle() -> None:
+    print("Al Quran Cloud transliteration downloading…")
+    try:
+        payload = json.loads(_request_bytes(TRANSLITERATION_URL).decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise SystemExit("Transliteration response is not valid UTF-8 JSON") from exc
+
+    if not isinstance(payload, dict) or not isinstance(payload.get("data"), dict):
+        raise SystemExit("Transliteration response is missing data")
+    data = payload["data"]
+    edition = data.get("edition")
+    if not isinstance(edition, dict):
+        raise SystemExit("Transliteration response is missing edition metadata")
+    identifier = str(edition.get("identifier") or "").strip()
+    if identifier != "en.transliteration":
+        raise SystemExit(
+            f"Unexpected transliteration edition identifier: {identifier!r}"
+        )
+
+    surahs = data.get("surahs")
+    if not isinstance(surahs, list):
+        raise SystemExit("Transliteration response is missing surahs")
+
+    records: dict[str, str] = {}
+    represented_surahs: set[int] = set()
+    for raw_surah in surahs:
+        if not isinstance(raw_surah, dict):
+            raise SystemExit("Transliteration response contains an invalid surah")
+        try:
+            surah = int(raw_surah.get("number"))
+        except (TypeError, ValueError) as exc:
+            raise SystemExit("Transliteration response has an invalid surah number") from exc
+        ayahs = raw_surah.get("ayahs")
+        if not 1 <= surah <= 114 or not isinstance(ayahs, list):
+            raise SystemExit(f"Invalid transliteration surah: {surah}")
+        represented_surahs.add(surah)
+
+        for raw_ayah in ayahs:
+            if not isinstance(raw_ayah, dict):
+                raise SystemExit(
+                    f"Transliteration surah {surah} contains an invalid ayah"
+                )
+            try:
+                ayah = int(raw_ayah.get("numberInSurah"))
+            except (TypeError, ValueError) as exc:
+                raise SystemExit(
+                    f"Transliteration surah {surah} has an invalid ayah number"
+                ) from exc
+            text = raw_ayah.get("text")
+            if ayah < 1 or not isinstance(text, str) or not text.strip():
+                raise SystemExit(f"Invalid transliteration verse: {surah}:{ayah}")
+            key = f"{surah}:{ayah}"
+            if key in records:
+                raise SystemExit(f"Duplicate transliteration verse: {key}")
+            records[key] = text
+
+    if represented_surahs != set(range(1, 115)):
+        missing = sorted(set(range(1, 115)) - represented_surahs)
+        raise SystemExit(f"Transliteration bundle missing surahs: {missing}")
+    if len(records) != 6236:
+        raise SystemExit(
+            f"Transliteration bundle must contain 6236 verses, got {len(records)}"
+        )
+    for key in ("1:1", "2:255", "114:6"):
+        if key not in records:
+            raise SystemExit(f"Transliteration sanity-check verse is missing: {key}")
+
+    TRANSLITERATION_TARGET.parent.mkdir(parents=True, exist_ok=True)
+    encoded = json.dumps(
+        records,
+        ensure_ascii=False,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    with gzip.open(TRANSLITERATION_TARGET, "wb", compresslevel=9) as handle:
+        handle.write(encoded)
+
+    print(
+        "Ready: "
+        f"{TRANSLITERATION_TARGET.relative_to(ROOT)} "
+        f"({TRANSLITERATION_TARGET.stat().st_size} bytes, "
+        f"{len(records)} verses, edition=en.transliteration)"
+    )
 
 
 def _fold_ascii(value: str) -> str:
@@ -199,6 +287,7 @@ def main() -> None:
         validate_translation(target)
         print(f"Ready: {target.relative_to(ROOT)} ({target.stat().st_size} bytes)")
 
+    build_transliteration_bundle()
     build_geonames_city_bundle()
 
 

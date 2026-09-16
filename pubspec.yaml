@@ -44,4 +44,5 @@ flutter:
   assets:
     - assets/data/translations/tr_rwwad.json.gz
     - assets/data/translations/en_rwwad.json.gz
+    - assets/data/transliterations/en_transliteration.json.gz
     - assets/data/locations/cities5000.json.gz
