@@ -123,11 +123,29 @@ class _PlansScreenState extends State<PlansScreen> {
     }
   }
 
+  Future<void> _togglePause() async {
+    final active = _snapshot.active;
+    if (_busy || active == null) return;
+    final wasPaused = active.isPaused;
+    HapticFeedback.selectionClick();
+    setState(() => _busy = true);
+    try {
+      final snapshot = wasPaused
+          ? await _store.resumeActive()
+          : await _store.pauseActive();
+      if (!mounted) return;
+      setState(() => _snapshot = snapshot);
+      _snack(wasPaused ? 'plansResumedV1' : 'plansPausedV1');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<void> _completeNextDay() async {
     final active = _snapshot.active;
-    if (_busy || active?.nextDay == null) return;
+    if (_busy || active?.nextDay == null || active!.isPaused) return;
     final finishing =
-        active!.completedPrefixDays + 1 >= active.preset.durationDays;
+        active.completedPrefixDays + 1 >= active.preset.durationDays;
     HapticFeedback.mediumImpact();
     setState(() => _busy = true);
     try {
@@ -287,6 +305,7 @@ class _PlansScreenState extends State<PlansScreen> {
       busy: _busy,
       onRead: _openNextDay,
       onComplete: _completeNextDay,
+      onPauseResume: _togglePause,
       onStop: _stop,
     );
   }
@@ -477,6 +496,7 @@ class _ActivePlanCard extends StatelessWidget {
     required this.busy,
     required this.onRead,
     required this.onComplete,
+    required this.onPauseResume,
     required this.onStop,
   });
 
@@ -484,6 +504,7 @@ class _ActivePlanCard extends StatelessWidget {
   final bool busy;
   final VoidCallback onRead;
   final VoidCallback onComplete;
+  final VoidCallback onPauseResume;
   final VoidCallback onStop;
 
   @override
@@ -506,17 +527,19 @@ class _ActivePlanCard extends StatelessWidget {
         .replaceAll('{done}', '$done')
         .replaceAll('{total}', '$total');
     final schedule = active.scheduleStatus(DateTime.now());
-    final scheduleText = schedule.isBehind
-        ? value('plansScheduleBehindV1').replaceAll(
-            '{count}',
-            '${schedule.behindByDays}',
-          )
-        : schedule.isAhead
-            ? value('plansScheduleAheadV1').replaceAll(
+    final scheduleText = active.isPaused
+        ? value('plansPausedV1')
+        : schedule.isBehind
+            ? value('plansScheduleBehindV1').replaceAll(
                 '{count}',
-                '${schedule.aheadByDays}',
+                '${schedule.behindByDays}',
               )
-            : value('plansScheduleOnTrackV1');
+            : schedule.isAhead
+                ? value('plansScheduleAheadV1').replaceAll(
+                    '{count}',
+                    '${schedule.aheadByDays}',
+                  )
+                : value('plansScheduleOnTrackV1');
     final scheduleDayText = value('plansScheduleDayV1')
         .replaceAll('{day}', '${schedule.calendarDayNumber}')
         .replaceAll('{total}', '$total');
@@ -527,12 +550,18 @@ class _ActivePlanCard extends StatelessWidget {
       '{date}',
       scheduledEnd,
     );
-    final statusColor = schedule.isBehind ? scheme.error : scheme.primary;
-    final statusIcon = schedule.isBehind
-        ? Icons.schedule_rounded
-        : schedule.isAhead
-            ? Icons.fast_forward_rounded
-            : Icons.check_circle_outline_rounded;
+    final statusColor = active.isPaused
+        ? scheme.secondary
+        : schedule.isBehind
+            ? scheme.error
+            : scheme.primary;
+    final statusIcon = active.isPaused
+        ? Icons.pause_circle_outline_rounded
+        : schedule.isBehind
+            ? Icons.schedule_rounded
+            : schedule.isAhead
+                ? Icons.fast_forward_rounded
+                : Icons.check_circle_outline_rounded;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -588,6 +617,17 @@ class _ActivePlanCard extends StatelessWidget {
                           height: 1.35,
                         ),
                       ),
+                      if (active.isPaused) ...[
+                        const SizedBox(height: 5),
+                        Text(
+                          value('plansPausedHintV1'),
+                          style: TextStyle(
+                            color: scheme.onSurfaceVariant,
+                            fontSize: 12,
+                            height: 1.35,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -614,9 +654,26 @@ class _ActivePlanCard extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: FilledButton.tonalIcon(
-              onPressed: busy ? null : onComplete,
+              onPressed: busy || active.isPaused ? null : onComplete,
               icon: const Icon(Icons.check_circle_outline_rounded),
               label: Text(l10n.text('plansMarkDoneV1')),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: busy ? null : onPauseResume,
+              icon: Icon(
+                active.isPaused
+                    ? Icons.play_arrow_rounded
+                    : Icons.pause_rounded,
+              ),
+              label: Text(
+                l10n.text(
+                  active.isPaused ? 'plansResumeV1' : 'plansPauseV1',
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 8),

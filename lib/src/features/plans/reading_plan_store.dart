@@ -76,10 +76,36 @@ class ReadingPlanStore {
     return next;
   }
 
+  Future<ReadingPlanSnapshot> pauseActive({DateTime? now}) async {
+    final current = await load();
+    final active = current.active;
+    if (active == null || active.isPaused) return current;
+    final next = ReadingPlanSnapshot(
+      active: active.pause(now ?? DateTime.now()),
+      savedPresetIds: current.savedPresetIds,
+      completed: current.completed,
+    );
+    await _save(next);
+    return next;
+  }
+
+  Future<ReadingPlanSnapshot> resumeActive({DateTime? now}) async {
+    final current = await load();
+    final active = current.active;
+    if (active == null || !active.isPaused) return current;
+    final next = ReadingPlanSnapshot(
+      active: active.resume(now ?? DateTime.now()),
+      savedPresetIds: current.savedPresetIds,
+      completed: current.completed,
+    );
+    await _save(next);
+    return next;
+  }
+
   Future<ReadingPlanSnapshot> completeNextDay({DateTime? now}) async {
     final current = await load();
     final active = current.active;
-    if (active == null) return current;
+    if (active == null || active.isPaused) return current;
     final day = active.nextDayNumber;
     if (day == null) return current;
 
@@ -128,6 +154,7 @@ class ReadingPlanStore {
       final preset = ReadingPlanPreset.fromId(rawActive['preset']?.toString());
       final startedAt = DateTime.tryParse(rawActive['startedAt']?.toString() ?? '');
       if (preset != null && startedAt != null) {
+        final normalizedStart = readingPlanDateOnly(startedAt);
         final completedDays = <int>{};
         final rawDays = rawActive['completedDays'];
         if (rawDays is List) {
@@ -138,10 +165,28 @@ class ReadingPlanStore {
             }
           }
         }
+        final rawPausedDays = rawActive['pausedDays'];
+        final parsedPausedDays = rawPausedDays is int
+            ? rawPausedDays
+            : int.tryParse('${rawPausedDays ?? ''}');
+        final pausedDays = parsedPausedDays != null && parsedPausedDays >= 0
+            ? parsedPausedDays
+            : 0;
+        DateTime? pausedAt;
+        final rawPausedAt = rawActive['pausedAt'];
+        if (rawPausedAt != null) {
+          final parsed = DateTime.tryParse(rawPausedAt.toString());
+          if (parsed != null) {
+            final normalized = readingPlanDateOnly(parsed);
+            if (!normalized.isBefore(normalizedStart)) pausedAt = normalized;
+          }
+        }
         active = ActiveReadingPlan(
           preset: preset,
-          startedAt: readingPlanDateOnly(startedAt),
+          startedAt: normalizedStart,
           completedDays: completedDays,
+          pausedAt: pausedAt,
+          pausedDays: pausedDays,
         );
       }
     }
@@ -191,6 +236,8 @@ class ReadingPlanStore {
               'preset': active.preset.id,
               'startedAt': _date(active.startedAt),
               'completedDays': active.completedDays.toList()..sort(),
+              'pausedAt': active.pausedAt == null ? null : _date(active.pausedAt!),
+              'pausedDays': active.pausedDays,
             },
       'saved': snapshot.savedPresetIds.toList()..sort(),
       'completed': <Object?>[

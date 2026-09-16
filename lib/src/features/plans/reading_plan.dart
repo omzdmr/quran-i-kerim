@@ -76,26 +76,11 @@ class ReadingPlanScheduleStatus {
     required this.scheduledEndDate,
   });
 
-  /// The plan day corresponding to the current calendar date, clamped to the
-  /// first and last plan day.
   final int calendarDayNumber;
-
-  /// Number of days completed consecutively from day one.
-  ///
-  /// Persisted data is intentionally allowed to recover malformed day lists
-  /// without crashing. Schedule math therefore does not count an isolated
-  /// future day as progress past an earlier missing day.
   final int completedPrefixDays;
-
-  /// Number of plan days that should have been completed before today began.
   final int expectedCompletedBeforeToday;
-
-  /// Whole plan days currently overdue. Today itself is never overdue yet.
   final int behindByDays;
-
-  /// Whole plan days completed beyond today's scheduled portion.
   final int aheadByDays;
-
   final DateTime scheduledEndDate;
 
   bool get isBehind => behindByDays > 0;
@@ -108,11 +93,21 @@ class ActiveReadingPlan {
     required this.preset,
     required this.startedAt,
     this.completedDays = const <int>{},
+    this.pausedAt,
+    this.pausedDays = 0,
   });
 
   final ReadingPlanPreset preset;
   final DateTime startedAt;
   final Set<int> completedDays;
+
+  /// Date on which the current pause began. Null means the schedule is active.
+  final DateTime? pausedAt;
+
+  /// Full calendar days accumulated by earlier completed pauses.
+  final int pausedDays;
+
+  bool get isPaused => pausedAt != null;
 
   int? get nextDayNumber {
     for (var day = 1; day <= preset.durationDays; day++) {
@@ -138,9 +133,14 @@ class ActiveReadingPlan {
   double get progress => completedPrefixDays / preset.durationDays;
 
   ReadingPlanScheduleStatus scheduleStatus(DateTime now) {
-    final start = readingPlanDateOnly(startedAt);
+    final originalStart = readingPlanDateOnly(startedAt);
+    final scheduleStart = originalStart.add(Duration(days: pausedDays));
     final today = readingPlanDateOnly(now);
-    final elapsedDays = today.difference(start).inDays;
+    final pauseDate = pausedAt == null ? null : readingPlanDateOnly(pausedAt!);
+    final effectiveToday = pauseDate != null && !today.isBefore(pauseDate)
+        ? pauseDate
+        : today;
+    final elapsedDays = effectiveToday.difference(scheduleStart).inDays;
     final duration = preset.durationDays;
     final calendarDay = (elapsedDays + 1).clamp(1, duration).toInt();
     final expectedBeforeToday = elapsedDays.clamp(0, duration).toInt();
@@ -149,6 +149,11 @@ class ActiveReadingPlan {
         ? expectedBeforeToday - completed
         : 0;
     final ahead = completed > calendarDay ? completed - calendarDay : 0;
+    final livePauseDays = pauseDate == null
+        ? 0
+        : today.difference(pauseDate).inDays > 0
+            ? today.difference(pauseDate).inDays
+            : 0;
 
     return ReadingPlanScheduleStatus(
       calendarDayNumber: calendarDay,
@@ -156,7 +161,33 @@ class ActiveReadingPlan {
       expectedCompletedBeforeToday: expectedBeforeToday,
       behindByDays: behind,
       aheadByDays: ahead,
-      scheduledEndDate: start.add(Duration(days: duration - 1)),
+      scheduledEndDate: scheduleStart.add(
+        Duration(days: duration - 1 + livePauseDays),
+      ),
+    );
+  }
+
+  ActiveReadingPlan pause(DateTime now) {
+    if (isPaused) return this;
+    return ActiveReadingPlan(
+      preset: preset,
+      startedAt: startedAt,
+      completedDays: completedDays,
+      pausedAt: readingPlanDateOnly(now),
+      pausedDays: pausedDays,
+    );
+  }
+
+  ActiveReadingPlan resume(DateTime now) {
+    final pauseDate = pausedAt;
+    if (pauseDate == null) return this;
+    final resumeDate = readingPlanDateOnly(now);
+    final pausedFor = resumeDate.difference(readingPlanDateOnly(pauseDate)).inDays;
+    return ActiveReadingPlan(
+      preset: preset,
+      startedAt: startedAt,
+      completedDays: completedDays,
+      pausedDays: pausedDays + (pausedFor > 0 ? pausedFor : 0),
     );
   }
 
@@ -164,6 +195,8 @@ class ActiveReadingPlan {
     preset: preset,
     startedAt: startedAt,
     completedDays: completedDays ?? this.completedDays,
+    pausedAt: pausedAt,
+    pausedDays: pausedDays,
   );
 }
 

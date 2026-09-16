@@ -5,11 +5,15 @@ void main() {
   ActiveReadingPlan plan({
     Set<int> completedDays = const <int>{},
     DateTime? startedAt,
+    DateTime? pausedAt,
+    int pausedDays = 0,
   }) {
     return ActiveReadingPlan(
       preset: ReadingPlanPreset.quran30,
       startedAt: startedAt ?? DateTime(2026, 9, 16),
       completedDays: completedDays,
+      pausedAt: pausedAt,
+      pausedDays: pausedDays,
     );
   }
 
@@ -109,5 +113,45 @@ void main() {
     final status = active.scheduleStatus(DateTime(2026, 9, 20));
     expect(status.completedPrefixDays, 2);
     expect(status.behindByDays, 2);
+  });
+
+  test('a paused plan freezes its schedule day while extending the finish date', () {
+    final active = plan(
+      completedDays: const <int>{1},
+      pausedAt: DateTime(2026, 9, 18),
+    );
+
+    final status = active.scheduleStatus(DateTime(2026, 9, 25));
+
+    expect(active.isPaused, isTrue);
+    expect(status.calendarDayNumber, 3);
+    expect(status.expectedCompletedBeforeToday, 2);
+    expect(status.behindByDays, 1);
+    expect(status.scheduledEndDate, DateTime(2026, 10, 22));
+  });
+
+  test('resuming accumulates pause days without losing the original start date', () {
+    final active = plan(pausedAt: DateTime(2026, 9, 18));
+    final resumed = active.resume(DateTime(2026, 9, 25));
+    final status = resumed.scheduleStatus(DateTime(2026, 9, 25));
+
+    expect(resumed.isPaused, isFalse);
+    expect(resumed.startedAt, DateTime(2026, 9, 16));
+    expect(resumed.pausedDays, 7);
+    expect(status.calendarDayNumber, 3);
+    expect(status.scheduledEndDate, DateTime(2026, 10, 22));
+  });
+
+  test('pausing and resuming on the same date adds no schedule offset', () {
+    final resumed = plan()
+        .pause(DateTime(2026, 9, 18, 9))
+        .resume(DateTime(2026, 9, 18, 21));
+
+    expect(resumed.pausedDays, 0);
+    expect(resumed.isPaused, isFalse);
+    expect(
+      resumed.scheduleStatus(DateTime(2026, 9, 18)).calendarDayNumber,
+      3,
+    );
   });
 }

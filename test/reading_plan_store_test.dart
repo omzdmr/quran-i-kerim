@@ -20,6 +20,8 @@ void main() {
     expect(loaded.active?.preset, ReadingPlanPreset.quran90);
     expect(loaded.active?.startedAt, DateTime(2026, 9, 16));
     expect(loaded.active?.nextDayNumber, 1);
+    expect(loaded.active?.isPaused, isFalse);
+    expect(loaded.active?.pausedDays, 0);
   });
 
   test('completing a day advances without depending on calendar time', () async {
@@ -79,6 +81,8 @@ void main() {
     expect(loaded.active?.startedAt, DateTime(2026, 9, 16));
     expect(loaded.active?.completedDays, <int>{1, 2, 30});
     expect(loaded.active?.nextDayNumber, 3);
+    expect(loaded.active?.pausedAt, isNull);
+    expect(loaded.active?.pausedDays, 0);
   });
 
   test('malformed persisted json recovers as an empty snapshot', () async {
@@ -120,5 +124,46 @@ void main() {
 
     expect(after.active, isNull);
     expect(after.savedPresetIds, <String>{'quran90'});
+  });
+
+  test('pausing persists the pause date and blocks completion', () async {
+    await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 16));
+    final paused = await store.pauseActive(now: DateTime(2026, 9, 18, 14));
+    final attempted = await store.completeNextDay(now: DateTime(2026, 9, 19));
+    final loaded = await const ReadingPlanStore().load();
+
+    expect(paused.active?.pausedAt, DateTime(2026, 9, 18));
+    expect(paused.active?.isPaused, isTrue);
+    expect(attempted.active?.completedDays, isEmpty);
+    expect(loaded.active?.pausedAt, DateTime(2026, 9, 18));
+  });
+
+  test('resuming accumulates full paused days and keeps original start', () async {
+    await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 16));
+    await store.pauseActive(now: DateTime(2026, 9, 18));
+    final resumed = await store.resumeActive(now: DateTime(2026, 9, 25));
+    final reloaded = await const ReadingPlanStore().load();
+
+    expect(resumed.active?.isPaused, isFalse);
+    expect(resumed.active?.startedAt, DateTime(2026, 9, 16));
+    expect(resumed.active?.pausedDays, 7);
+    expect(reloaded.active?.pausedDays, 7);
+    expect(
+      reloaded.active?.scheduleStatus(DateTime(2026, 9, 25)).calendarDayNumber,
+      3,
+    );
+  });
+
+  test('invalid pause metadata is sanitized without breaking older plans', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      ReadingPlanStore.preferenceKey:
+          '{"active":{"preset":"quran30","startedAt":"2026-09-16","completedDays":[],"pausedAt":"2026-09-10","pausedDays":-7},"saved":[],"completed":[]}',
+    });
+
+    final loaded = await store.load();
+
+    expect(loaded.active?.pausedAt, isNull);
+    expect(loaded.active?.pausedDays, 0);
+    expect(loaded.active?.startedAt, DateTime(2026, 9, 16));
   });
 }
