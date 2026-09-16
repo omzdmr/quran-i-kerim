@@ -389,7 +389,9 @@ class _ReadingPlanProgressCard extends StatelessWidget {
         .text('plansProgressV1')
         .replaceAll('{done}', '$done')
         .replaceAll('{total}', '$total');
-    final scheduleText = schedule.isBehind
+    final scheduleText = active.isPaused
+        ? l10n.text('plansPausedV1')
+        : schedule.isBehind
         ? l10n
               .text('plansScheduleBehindV1')
               .replaceAll('{count}', '${schedule.behindByDays}')
@@ -474,7 +476,9 @@ class _ReadingPlanProgressCard extends StatelessWidget {
           Row(
             children: [
               Icon(
-                schedule.isBehind
+                active.isPaused
+                    ? Icons.pause_circle_outline_rounded
+                    : schedule.isBehind
                     ? Icons.schedule_rounded
                     : schedule.isAhead
                     ? Icons.fast_forward_rounded

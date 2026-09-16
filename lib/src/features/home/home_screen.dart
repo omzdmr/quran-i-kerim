@@ -635,7 +635,9 @@ class _ReadingPlanHomeCard extends StatelessWidget {
         .replaceAll('{done}', '${active.completedPrefixDays}')
         .replaceAll('{total}', '${active.preset.durationDays}');
     final schedule = active.scheduleStatus(DateTime.now());
-    final scheduleText = schedule.isBehind
+    final scheduleText = active.isPaused
+        ? l10n.text('plansPausedV1')
+        : schedule.isBehind
         ? l10n
             .text('plansScheduleBehindV1')
             .replaceAll('{count}', '${schedule.behindByDays}')
@@ -702,11 +704,13 @@ class _ReadingPlanHomeCard extends StatelessWidget {
               Text(
                 '$progressText · $scheduleText',
                 style: TextStyle(
-                  color: schedule.isBehind
+                  color: active.isPaused
+                      ? scheme.primary
+                      : schedule.isBehind
                       ? scheme.error
                       : scheme.onSurfaceVariant,
                   fontSize: 13,
-                  fontWeight: schedule.isBehind
+                  fontWeight: active.isPaused || schedule.isBehind
                       ? FontWeight.w700
                       : FontWeight.normal,
                 ),
