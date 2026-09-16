@@ -28,6 +28,7 @@ void main() {
     SharedPreferences.setMockInitialValues(<String, Object>{
       'last_surah': 2,
       'dhikr_v2_selected': 'subhanallah',
+      'reading_plan_state_v1': '{"active":{"preset":"quran30"}}',
     });
 
     final file = await service().exportToFile(
@@ -38,8 +39,12 @@ void main() {
     expect(file.path, contains('quran_backups'));
     expect(file.path, endsWith('.json'));
     final decoded = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
-    expect(decoded['version'], 3);
+    expect(decoded['version'], 4);
     expect(decoded['createdAt'], '2026-09-16T10:00:00.000Z');
+    expect(
+      ((decoded['data'] as Map)['readingPlans'] as Map)['reading_plan_state_v1'],
+      isNotNull,
+    );
     expect(file.parent.listSync().whereType<File>(), hasLength(1));
     expect(file.parent.listSync().any((entry) => entry.path.contains('.tmp-')), isFalse);
   });
@@ -76,7 +81,7 @@ void main() {
     );
   });
 
-  test('previews and restores a selected local backup file', () async {
+  test('previews and restores a selected version-three backup file', () async {
     final input = File('${tempRoot.path}${Platform.pathSeparator}import.json');
     await input.writeAsString(jsonEncode(<String, Object?>{
       'version': 3,
@@ -102,7 +107,7 @@ void main() {
   test('accepts an import exactly at the configured byte limit', () async {
     final input = File('${tempRoot.path}${Platform.pathSeparator}limit.json');
     final encoded = jsonEncode(<String, Object?>{
-      'version': 3,
+      'version': 4,
       'createdAt': '2026-09-16T10:00:00Z',
       'data': <String, Object?>{},
     });

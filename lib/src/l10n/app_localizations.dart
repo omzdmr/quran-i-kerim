@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'strings/backup_strings.dart';
 import 'strings/feature_strings.dart';
 import 'strings/home_verse_strings.dart';
+import 'strings/plan_strings.dart';
 import 'strings/prayer_notification_strings.dart';
 import 'strings/reader_audio_transport_strings.dart';
 import 'strings/reader_media_strings.dart';
@@ -48,6 +49,7 @@ class AppLocalizations {
       backupStrings[locale.languageCode]?[key] ??
       featureStrings[locale.languageCode]?[key] ??
       homeVerseStrings[locale.languageCode]?[key] ??
+      planStrings[locale.languageCode]?[key] ??
       readerAudioTransportStrings[locale.languageCode]?[key] ??
       readerMediaStrings[locale.languageCode]?[key] ??
       readerNavigationStrings[locale.languageCode]?[key] ??
@@ -55,6 +57,7 @@ class AppLocalizations {
       backupStrings['en']?[key] ??
       featureStrings['en']?[key] ??
       homeVerseStrings['en']?[key] ??
+      planStrings['en']?[key] ??
       readerAudioTransportStrings['en']?[key] ??
       readerMediaStrings['en']?[key] ??
       readerNavigationStrings['en']?[key] ??
@@ -62,6 +65,7 @@ class AppLocalizations {
       backupStrings['tr']?[key] ??
       featureStrings['tr']?[key] ??
       homeVerseStrings['tr']?[key] ??
+      planStrings['tr']?[key] ??
       readerAudioTransportStrings['tr']?[key] ??
       readerMediaStrings['tr']?[key] ??
       readerNavigationStrings['tr']?[key] ??

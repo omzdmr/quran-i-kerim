@@ -6,7 +6,7 @@ void main() {
 
   test('previews current compatible backup without mutating data', () {
     final preview = parser.parse(<String, Object?>{
-      'version': 3,
+      'version': 4,
       'createdAt': '2026-09-16T06:00:00Z',
       'data': <String, Object?>{
         'notes': <Object?>[1, 2],
@@ -15,6 +15,7 @@ void main() {
         'learning': <String, Object?>{'learn_progress_v1:a': '{}'},
         'dhikr': <String, Object?>{'dhikr_v2_selected': 'subhanallah'},
         'prayerPreferences': <String, Object?>{'prayer_hijri_offset': 1},
+        'readingPlans': <String, Object?>{'reading_plan_state_v1': '{}'},
       },
     });
 
@@ -24,11 +25,12 @@ void main() {
     expect(preview.recordCounts['learning'], 1);
     expect(preview.recordCounts['dhikr'], 1);
     expect(preview.recordCounts['prayerPreferences'], 1);
-    expect(preview.totalRecords, 7);
+    expect(preview.recordCounts['readingPlans'], 1);
+    expect(preview.totalRecords, 8);
   });
 
-  test('keeps version one and two backups restorable', () {
-    for (final version in <int>[1, 2]) {
+  test('keeps versions one through three restorable', () {
+    for (final version in <int>[1, 2, 3]) {
       final preview = parser.parse(<String, Object?>{
         'version': version,
         'createdAt': '2026-09-16T06:00:00Z',
@@ -51,7 +53,7 @@ void main() {
 
   test('reports malformed metadata and payload', () {
     final preview = parser.parse(<String, Object?>{
-      'version': 3,
+      'version': 4,
       'createdAt': 'not-a-date',
       'data': <String, Object?>{'notes': 'invalid'},
     });
@@ -81,7 +83,7 @@ void main() {
 
   test('normalizes offset backup timestamp to UTC', () {
     final preview = parser.parse(<String, Object?>{
-      'version': 3,
+      'version': 4,
       'createdAt': '2026-09-16T14:00:00+08:00',
       'data': <String, Object?>{},
     });
@@ -92,7 +94,7 @@ void main() {
 
   test('reports invalid map keys without counting them', () {
     final preview = parser.parse(<String, Object?>{
-      'version': 3,
+      'version': 4,
       'createdAt': '2026-09-16T06:00:00Z',
       'data': <Object?, Object?>{
         'notes': <Object?>[1],

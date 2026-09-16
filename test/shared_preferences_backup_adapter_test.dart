@@ -22,6 +22,7 @@ void main() {
       'prayer_notifications_enabled': true,
       'prayer_notification_ids': <String>['fajr', 'isha'],
       'prayer_hijri_offset': 1,
+      'reading_plan_state_v1': '{"active":{"preset":"quran30"}}',
       'prayer_city_id': '__device_location__',
       'prayer_device_latitude': 41.123456,
       'prayer_device_longitude': 29.123456,
@@ -39,6 +40,7 @@ void main() {
     expect(snapshot['dhikr_v2_selected'], 'subhanallah');
     expect(snapshot['prayer_asr_method'], 'hanafi');
     expect(snapshot['prayer_notification_ids'], <String>['fajr', 'isha']);
+    expect(snapshot['reading_plan_state_v1'], isNotNull);
     expect(snapshot, isNot(contains('prayer_city_id')));
     for (final key in SharedPreferencesBackupAdapter.excludedPrayerLocationKeys) {
       expect(snapshot, isNot(contains(key)), reason: '$key must remain device-local');
@@ -46,12 +48,13 @@ void main() {
     expect(snapshot, isNot(contains('audio_cache_internal')));
   });
 
-  test('captureSections groups dhikr and safe prayer preferences separately', () async {
+  test('captureSections groups new and existing data separately', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{
       'dhikr_v2_selected': 'alhamdulillah',
       'dhikr_v2_counts': '{"alhamdulillah":10}',
       'prayer_method_override': 'turkiye',
       'prayer_adjustment_fajr': 2,
+      'reading_plan_state_v1': '{"active":{"preset":"quran90"}}',
       'prayer_device_latitude': 10.0,
     });
 
@@ -59,17 +62,19 @@ void main() {
 
     expect((sections['dhikr'] as Map)['dhikr_v2_selected'], 'alhamdulillah');
     expect((sections['prayerPreferences'] as Map)['prayer_adjustment_fajr'], 2);
+    expect((sections['readingPlans'] as Map)['reading_plan_state_v1'], isNotNull);
     expect(
       (sections['prayerPreferences'] as Map),
       isNot(contains('prayer_device_latitude')),
     );
   });
 
-  test('version three restore replaces dhikr and safe prayer preferences', () async {
+  test('version four restore replaces reading plans and safe preferences', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{
       'dhikr_v2_selected': 'subhanallah',
       'dhikr_v2_counts': '{"subhanallah":1}',
       'prayer_asr_method': 'standard',
+      'reading_plan_state_v1': '{"old":true}',
       'prayer_device_latitude': 41.0,
       'prayer_device_longitude': 29.0,
     });
@@ -83,6 +88,9 @@ void main() {
         'prayer_asr_method': 'hanafi',
         'prayer_hijri_offset': 1,
       },
+      'readingPlans': <String, Object?>{
+        'reading_plan_state_v1': '{"active":{"preset":"quran365"}}',
+      },
     });
 
     final prefs = await SharedPreferences.getInstance();
@@ -90,8 +98,37 @@ void main() {
     expect(prefs.getString('dhikr_v2_counts'), '{"alhamdulillah":33}');
     expect(prefs.getString('prayer_asr_method'), 'hanafi');
     expect(prefs.getInt('prayer_hijri_offset'), 1);
+    expect(
+      prefs.getString('reading_plan_state_v1'),
+      '{"active":{"preset":"quran365"}}',
+    );
     expect(prefs.getDouble('prayer_device_latitude'), 41.0);
     expect(prefs.getDouble('prayer_device_longitude'), 29.0);
+  });
+
+  test('version three restore preserves version four-only reading plan data', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'last_surah': 9,
+      'dhikr_v2_counts': '{"subhanallah":99}',
+      'prayer_asr_method': 'hanafi',
+      'reading_plan_state_v1': '{"active":{"preset":"quran30"}}',
+    });
+
+    await adapter.restoreSections(
+      <String, Object?>{
+        'reading': <String, Object?>{'last_surah': 12},
+        'dhikr': <String, Object?>{'dhikr_v2_counts': '{"subhanallah":33}'},
+      },
+      schemaVersion: 3,
+    );
+
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getInt('last_surah'), 12);
+    expect(prefs.getString('dhikr_v2_counts'), '{"subhanallah":33}');
+    expect(
+      prefs.getString('reading_plan_state_v1'),
+      '{"active":{"preset":"quran30"}}',
+    );
   });
 
   test('version two restore preserves version three-only user data', () async {
@@ -120,6 +157,7 @@ void main() {
       'memorization_target_v1': 'juzAmma',
       'learn_progress_v1:intro': '{"lessonId":"intro"}',
       'dhikr_v2_counts': '{"subhanallah":99}',
+      'reading_plan_state_v1': '{"active":{"preset":"quran30"}}',
     });
 
     await adapter.restoreSections(
@@ -135,6 +173,7 @@ void main() {
     expect(prefs.getString('memorization_target_v1'), 'juzAmma');
     expect(prefs.getString('learn_progress_v1:intro'), isNotNull);
     expect(prefs.getString('dhikr_v2_counts'), '{"subhanallah":99}');
+    expect(prefs.getString('reading_plan_state_v1'), isNotNull);
   });
 
   test('version two dynamic learning restore still works', () async {

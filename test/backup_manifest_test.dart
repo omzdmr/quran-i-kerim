@@ -3,7 +3,7 @@ import 'package:quran_i_kerim/src/data/backup/backup_manifest.dart';
 
 void main() {
   test('current schema includes user-created progress and safe preferences', () {
-    expect(BackupManifest.schemaVersion, 3);
+    expect(BackupManifest.schemaVersion, 4);
     expect(BackupManifest.includedSections, containsAll(<String>{
       'reading',
       'bookmarks',
@@ -15,6 +15,7 @@ void main() {
       'learning',
       'dhikr',
       'prayerPreferences',
+      'readingPlans',
     }));
   });
 
@@ -31,12 +32,15 @@ void main() {
   test('older restore scopes do not include sections introduced later', () {
     expect(BackupManifest.isVersionSupported(1), isTrue);
     expect(BackupManifest.isVersionSupported(2), isTrue);
+    expect(BackupManifest.isVersionSupported(3), isTrue);
     expect(BackupManifest.sectionsForVersion(1), isNot(contains('learning')));
     expect(BackupManifest.sectionsForVersion(2), contains('learning'));
     expect(BackupManifest.sectionsForVersion(2), isNot(contains('dhikr')));
     expect(BackupManifest.sectionsForVersion(2), isNot(contains('prayerPreferences')));
     expect(BackupManifest.sectionsForVersion(3), contains('dhikr'));
     expect(BackupManifest.sectionsForVersion(3), contains('prayerPreferences'));
+    expect(BackupManifest.sectionsForVersion(3), isNot(contains('readingPlans')));
+    expect(BackupManifest.sectionsForVersion(4), contains('readingPlans'));
   });
 
   test('unknown and excluded sections never leak into selected data', () {
@@ -44,6 +48,7 @@ void main() {
       'notes': <Object>[1],
       'dhikr': <String, Object?>{'dhikr_v2_selected': 'subhanallah'},
       'prayerPreferences': <String, Object?>{'prayer_hijri_offset': 1},
+      'readingPlans': <String, Object?>{'reading_plan_state_v1': '{}'},
       'prayerLocation': <String, Object?>{'latitude': 1.0},
       'audioCache': <Object>[2],
       'futureUnknown': <Object>[3],
@@ -51,7 +56,12 @@ void main() {
 
     expect(
       selected.keys,
-      unorderedEquals(<String>['notes', 'dhikr', 'prayerPreferences']),
+      unorderedEquals(<String>[
+        'notes',
+        'dhikr',
+        'prayerPreferences',
+        'readingPlans',
+      ]),
     );
   });
 

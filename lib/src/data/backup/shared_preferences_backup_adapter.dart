@@ -65,6 +65,10 @@ class SharedPreferencesBackupAdapter {
     'dhikr_v2_daily_date',
   };
 
+  static const Set<String> readingPlanKeys = <String>{
+    'reading_plan_state_v1',
+  };
+
   /// Prayer behavior that is useful across devices but does not reveal an
   /// exact or manually selected location. City/GPS/manual-location storage is
   /// deliberately excluded because those records can contain coordinates.
@@ -112,6 +116,7 @@ class SharedPreferencesBackupAdapter {
         'learning': <String>{},
         'dhikr': dhikrKeys,
         'prayerPreferences': prayerPreferenceKeys,
+        'readingPlans': readingPlanKeys,
       };
 
   static const Map<String, Set<String>> dynamicPrefixesBySection =
@@ -129,6 +134,7 @@ class SharedPreferencesBackupAdapter {
     ...preferenceKeys,
     ...dhikrKeys,
     ...prayerPreferenceKeys,
+    ...readingPlanKeys,
   };
 
   Future<Map<String, Object?>> capture() async {
