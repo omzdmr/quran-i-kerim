@@ -3,9 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:quran/quran.dart' as quran;
 
 import '../../data/surah_localization.dart';
+import '../../l10n/app_localizations.dart';
 import '../../l10n/generated/generated_app_localizations.dart';
 import '../../navigation/app_navigation.dart';
 import '../../settings/app_settings.dart';
+import '../plans/reading_plan.dart';
+import '../plans/reading_plan_store.dart';
+import '../reader/reader_navigation.dart';
 
 class QuranProgressOverview extends StatefulWidget {
   const QuranProgressOverview({super.key});
@@ -15,7 +19,25 @@ class QuranProgressOverview extends StatefulWidget {
 }
 
 class _QuranProgressOverviewState extends State<QuranProgressOverview> {
+  final ReadingPlanStore _readingPlanStore = const ReadingPlanStore();
+
   int _tab = 0;
+  int _readingPlanLoadGeneration = 0;
+  bool _readingPlanLoading = true;
+  ReadingPlanSnapshot _readingPlanSnapshot = const ReadingPlanSnapshot();
+
+  @override
+  void initState() {
+    super.initState();
+    ReadingPlanStore.changes.addListener(_handleReadingPlanChanged);
+    _loadReadingPlan();
+  }
+
+  @override
+  void dispose() {
+    ReadingPlanStore.changes.removeListener(_handleReadingPlanChanged);
+    super.dispose();
+  }
 
   void _select(int index) {
     if (_tab == index) return;
@@ -28,6 +50,40 @@ class _QuranProgressOverviewState extends State<QuranProgressOverview> {
       surah: settings.lastSurah,
       ayah: settings.lastAyah,
     );
+  }
+
+  void _handleReadingPlanChanged() {
+    _loadReadingPlan();
+  }
+
+  Future<void> _loadReadingPlan() async {
+    final generation = ++_readingPlanLoadGeneration;
+    final snapshot = await _readingPlanStore.load();
+    if (!mounted || generation != _readingPlanLoadGeneration) return;
+    setState(() {
+      _readingPlanSnapshot = snapshot;
+      _readingPlanLoading = false;
+    });
+  }
+
+  void _openPlans() {
+    HapticFeedback.selectionClick();
+    AppNavigation.instance.openPlans();
+  }
+
+  void _openReadingPlanDay() {
+    final day = _readingPlanSnapshot.active?.nextDay;
+    if (day == null) {
+      _openPlans();
+      return;
+    }
+    final target = firstVerseForPage(day.startPage);
+    if (target == null) {
+      _openPlans();
+      return;
+    }
+    HapticFeedback.selectionClick();
+    AppNavigation.instance.openReader(surah: target.surah, ayah: target.ayah);
   }
 
   @override
@@ -47,7 +103,11 @@ class _QuranProgressOverviewState extends State<QuranProgressOverview> {
         if (_tab == 0)
           _ReadingProgress(
             settings: settings,
+            readingPlanLoading: _readingPlanLoading,
+            readingPlanSnapshot: _readingPlanSnapshot,
             onContinue: () => _continueReading(settings),
+            onOpenPlans: _openPlans,
+            onReadPlan: _openReadingPlanDay,
           )
         else
           _KhatmProgress(
@@ -60,10 +120,21 @@ class _QuranProgressOverviewState extends State<QuranProgressOverview> {
 }
 
 class _ReadingProgress extends StatelessWidget {
-  const _ReadingProgress({required this.settings, required this.onContinue});
+  const _ReadingProgress({
+    required this.settings,
+    required this.readingPlanLoading,
+    required this.readingPlanSnapshot,
+    required this.onContinue,
+    required this.onOpenPlans,
+    required this.onReadPlan,
+  });
 
   final AppSettings settings;
+  final bool readingPlanLoading;
+  final ReadingPlanSnapshot readingPlanSnapshot;
   final VoidCallback onContinue;
+  final VoidCallback onOpenPlans;
+  final VoidCallback onReadPlan;
 
   String _dayKey(DateTime date) {
     final month = date.month.toString().padLeft(2, '0');
@@ -125,7 +196,10 @@ class _ReadingProgress extends StatelessWidget {
                         Text(
                           l10n.quranProgressStreak,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(color: Colors.white70, fontSize: 10),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 10,
+                          ),
                         ),
                       ],
                     ),
@@ -215,7 +289,226 @@ class _ReadingProgress extends StatelessWidget {
             ),
           ],
         ),
+        const SizedBox(height: 16),
+        _ReadingPlanProgressCard(
+          loading: readingPlanLoading,
+          snapshot: readingPlanSnapshot,
+          onOpenPlans: onOpenPlans,
+          onReadPlan: onReadPlan,
+        ),
       ],
+    );
+  }
+}
+
+class _ReadingPlanProgressCard extends StatelessWidget {
+  const _ReadingPlanProgressCard({
+    required this.loading,
+    required this.snapshot,
+    required this.onOpenPlans,
+    required this.onReadPlan,
+  });
+
+  final bool loading;
+  final ReadingPlanSnapshot snapshot;
+  final VoidCallback onOpenPlans;
+  final VoidCallback onReadPlan;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
+
+    if (loading) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainer,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: const LinearProgressIndicator(),
+      );
+    }
+
+    final active = snapshot.active;
+    if (active == null) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainer,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.calendar_month_outlined, color: scheme.primary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    l10n.text('readingPlans'),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 9),
+            Text(
+              l10n.text('plansEmptyActiveV1'),
+              style: TextStyle(color: scheme.onSurfaceVariant, height: 1.4),
+            ),
+            const SizedBox(height: 16),
+            FilledButton.tonalIcon(
+              onPressed: onOpenPlans,
+              icon: const Icon(Icons.explore_outlined),
+              label: Text(l10n.text('findPlans')),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final day = active.nextDay;
+    if (day == null) return const SizedBox.shrink();
+
+    final total = active.preset.durationDays;
+    final done = active.completedPrefixDays;
+    final schedule = active.scheduleStatus(DateTime.now());
+    final dayText = l10n
+        .text('plansDayProgressV1')
+        .replaceAll('{day}', '${day.dayNumber}')
+        .replaceAll('{total}', '$total');
+    final pagesText = l10n
+        .text('plansPagesV1')
+        .replaceAll('{start}', '${day.startPage}')
+        .replaceAll('{end}', '${day.endPage}');
+    final progressText = l10n
+        .text('plansProgressV1')
+        .replaceAll('{done}', '$done')
+        .replaceAll('{total}', '$total');
+    final scheduleText = schedule.isBehind
+        ? l10n
+              .text('plansScheduleBehindV1')
+              .replaceAll('{count}', '${schedule.behindByDays}')
+        : schedule.isAhead
+        ? l10n
+              .text('plansScheduleAheadV1')
+              .replaceAll('{count}', '${schedule.aheadByDays}')
+        : l10n.text('plansScheduleOnTrackV1');
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: schedule.isBehind
+              ? scheme.error.withValues(alpha: .35)
+              : scheme.outlineVariant,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: scheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(Icons.route_rounded, color: scheme.primary),
+              ),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.text('readingPlans'),
+                      style: TextStyle(
+                        color: scheme.onSurfaceVariant,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      l10n.text(active.preset.titleKey),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              TextButton(
+                onPressed: onOpenPlans,
+                child: Text(l10n.text('myPlans')),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(value: active.progress, minHeight: 8),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            progressText,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            '$dayText · $pagesText',
+            style: TextStyle(color: scheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 5),
+          Row(
+            children: [
+              Icon(
+                schedule.isBehind
+                    ? Icons.schedule_rounded
+                    : schedule.isAhead
+                    ? Icons.fast_forward_rounded
+                    : Icons.check_circle_outline_rounded,
+                size: 17,
+                color: schedule.isBehind ? scheme.error : scheme.primary,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  scheduleText,
+                  style: TextStyle(
+                    color: schedule.isBehind
+                        ? scheme.error
+                        : scheme.onSurfaceVariant,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: onReadPlan,
+              icon: const Icon(Icons.menu_book_rounded),
+              label: Text(l10n.text('plansReadTodayV1')),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -261,12 +554,18 @@ class _KhatmProgress extends StatelessWidget {
                   children: [
                     Text(
                       l10n.quranProgressKhatmTitle,
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       l10n.quranProgressKhatmBody,
-                      style: TextStyle(color: scheme.onSurfaceVariant, height: 1.4),
+                      style: TextStyle(
+                        color: scheme.onSurfaceVariant,
+                        height: 1.4,
+                      ),
                     ),
                   ],
                 ),
@@ -372,7 +671,10 @@ class _SectionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 16),
           child,
         ],
@@ -445,13 +747,19 @@ class _MetricTile extends StatelessWidget {
         children: [
           Icon(icon, color: scheme.primary),
           const SizedBox(height: 8),
-          Text('$value', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
+          Text(
+            '$value',
+            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 3),
           Text(
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 11.5),
+            style: TextStyle(
+              color: scheme.onSurfaceVariant,
+              fontSize: 11.5,
+            ),
           ),
         ],
       ),
