@@ -125,10 +125,7 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getInt('last_surah'), 12);
     expect(prefs.getString('dhikr_v2_counts'), '{"subhanallah":33}');
-    expect(
-      prefs.getString('reading_plan_state_v1'),
-      '{"active":{"preset":"quran30"}}',
-    );
+    expect(prefs.getString('reading_plan_state_v1'), '{"active":{"preset":"quran30"}}');
   });
 
   test('version two restore preserves version three-only user data', () async {
@@ -193,6 +190,31 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.containsKey('learn_progress_v1:old'), isFalse);
     expect(prefs.getString('learn_progress_v1:new'), '{"lessonId":"new"}');
+  });
+
+  test('Reader history survives a sectioned backup round trip', () async {
+    const history =
+        '[{"surah":2,"ayah":255,"visitedAt":"2026-09-16T18:00:00.000Z"}]';
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'last_surah': 2,
+      'last_ayah': 255,
+      'reader_history_v1': history,
+    });
+
+    final sections = await adapter.captureSections();
+    expect((sections['reading'] as Map)['reader_history_v1'], history);
+
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'last_surah': 1,
+      'last_ayah': 1,
+      'reader_history_v1': '[]',
+    });
+    await adapter.restoreSections(sections);
+
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getInt('last_surah'), 2);
+    expect(prefs.getInt('last_ayah'), 255);
+    expect(prefs.getString('reader_history_v1'), history);
   });
 
   test('unsupported values fail instead of being silently coerced', () async {
