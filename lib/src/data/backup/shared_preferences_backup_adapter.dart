@@ -8,9 +8,20 @@ class SharedPreferencesBackupAdapter {
   const SharedPreferencesBackupAdapter();
 
   static const Set<String> includedKeys = <String>{
+    // Core memorization progress.
     'memorized_pages_v1',
     'memorization_practice_days_v1',
     'memorization_page_progress_v1',
+
+    // Memorization plan and missed-day recovery.
+    'memorization_plan_pace_v1',
+    'memorization_plan_started_at_v1',
+    'memorization_plan_missed_days_v1',
+
+    // User-created practice/recall history, including manually marked weak
+    // verses. These are small JSON payloads and cannot be re-downloaded.
+    'memorization_practice_history_v1',
+    'memorization_recall_history_v1',
   };
 
   Future<Map<String, Object?>> capture() async {
