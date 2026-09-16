@@ -5,11 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../data/backup/backup_build_config.dart';
 import '../../data/backup/backup_file_service.dart';
 import '../../data/backup/backup_preview.dart';
 import '../../l10n/app_localizations.dart';
 import '../../settings/app_settings.dart';
 import '../prayer/application/prayer_notification_service.dart';
+import 'google_drive_backup_section.dart';
 
 class BackupSettingsScreen extends StatefulWidget {
   const BackupSettingsScreen({super.key});
@@ -88,6 +90,14 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
     );
   }
 
+  Future<void> _refreshRestoredAppState() async {
+    final settings = AppSettingsScope.of(context);
+    await settings.reloadFromStorage();
+    await PrayerNotificationService.refreshFromSaved();
+    if (!mounted) return;
+    await _refreshLocalBackups();
+  }
+
   Future<void> _pickAndPreviewBackup() async {
     if (_busy) return;
     HapticFeedback.selectionClick();
@@ -160,13 +170,11 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
     setState(() => _busy = true);
     try {
       await _service.restoreFile(file);
-      await AppSettingsScope.of(context).reloadFromStorage();
-      await PrayerNotificationService.refreshFromSaved();
+      await _refreshRestoredAppState();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(context.l10n.text('backupRestored'))),
       );
-      await _refreshLocalBackups();
     } catch (_) {
       if (mounted) _showFailure();
     } finally {
@@ -233,6 +241,10 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
               ],
             ),
           ),
+          if (BackupBuildConfig.googleDriveEnabled) ...[
+            const SizedBox(height: 18),
+            GoogleDriveBackupSection(onRestored: _refreshRestoredAppState),
+          ],
           const SizedBox(height: 18),
           FilledButton.icon(
             onPressed: _busy ? null : _createAndExport,
