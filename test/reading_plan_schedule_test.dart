@@ -75,6 +75,22 @@ void main() {
     expect(status.behindByDays, 27);
   });
 
+  test('completed plan remains on track after its scheduled end date', () {
+    final completedDays = <int>{
+      for (var day = 1; day <= ReadingPlanPreset.quran30.durationDays; day++) day,
+    };
+    final status = plan(
+      completedDays: completedDays,
+    ).scheduleStatus(DateTime(2026, 11, 20));
+
+    expect(status.calendarDayNumber, 30);
+    expect(status.expectedCompletedBeforeToday, 30);
+    expect(status.completedPrefixDays, 30);
+    expect(status.behindByDays, 0);
+    expect(status.aheadByDays, 0);
+    expect(status.isOnTrack, isTrue);
+  });
+
   test('a future start date never invents overdue work', () {
     final status = plan(
       startedAt: DateTime(2026, 9, 20),
