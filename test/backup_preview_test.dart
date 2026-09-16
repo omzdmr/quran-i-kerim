@@ -57,4 +57,58 @@ void main() {
     expect(preview.canRestore, isFalse);
     expect(preview.issues, <BackupPreviewIssue>{BackupPreviewIssue.invalidRoot});
   });
+
+  test('rejects missing backup version metadata', () {
+    final preview = parser.parse(<String, Object?>{
+      'createdAt': '2026-09-16T06:00:00Z',
+      'data': <String, Object?>{},
+    });
+
+    expect(preview.canRestore, isFalse);
+    expect(preview.version, isNull);
+    expect(preview.issues, contains(BackupPreviewIssue.unsupportedVersion));
+  });
+
+  test('normalizes offset backup timestamp to UTC', () {
+    final preview = parser.parse(<String, Object?>{
+      'version': 1,
+      'createdAt': '2026-09-16T14:00:00+08:00',
+      'data': <String, Object?>{},
+    });
+
+    expect(preview.canRestore, isTrue);
+    expect(preview.createdAt, DateTime.utc(2026, 9, 16, 6));
+  });
+
+  test('reports invalid map keys without counting them', () {
+    final preview = parser.parse(<String, Object?>{
+      'version': 1,
+      'createdAt': '2026-09-16T06:00:00Z',
+      'data': <Object?, Object?>{
+        'notes': <Object?>[1],
+        42: <Object?>[1, 2],
+      },
+    });
+
+    expect(preview.canRestore, isFalse);
+    expect(preview.recordCounts, <String, int>{'notes': 1});
+    expect(preview.totalRecords, 1);
+    expect(preview.issues, contains(BackupPreviewIssue.invalidData));
+  });
+
+  test('counts null sections as empty without rejecting backup', () {
+    final preview = parser.parse(<String, Object?>{
+      'version': 1,
+      'createdAt': '2026-09-16T06:00:00Z',
+      'data': <String, Object?>{
+        'notes': null,
+        'bookmarks': <Object?>[],
+      },
+    });
+
+    expect(preview.canRestore, isTrue);
+    expect(preview.recordCounts['notes'], 0);
+    expect(preview.recordCounts['bookmarks'], 0);
+    expect(preview.totalRecords, 0);
+  });
 }
