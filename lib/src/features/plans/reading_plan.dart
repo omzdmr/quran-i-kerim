@@ -66,6 +66,43 @@ ReadingPlanDay readingPlanDay(ReadingPlanPreset preset, int dayNumber) {
   );
 }
 
+class ReadingPlanScheduleStatus {
+  const ReadingPlanScheduleStatus({
+    required this.calendarDayNumber,
+    required this.completedPrefixDays,
+    required this.expectedCompletedBeforeToday,
+    required this.behindByDays,
+    required this.aheadByDays,
+    required this.scheduledEndDate,
+  });
+
+  /// The plan day corresponding to the current calendar date, clamped to the
+  /// first and last plan day.
+  final int calendarDayNumber;
+
+  /// Number of days completed consecutively from day one.
+  ///
+  /// Persisted data is intentionally allowed to recover malformed day lists
+  /// without crashing. Schedule math therefore does not count an isolated
+  /// future day as progress past an earlier missing day.
+  final int completedPrefixDays;
+
+  /// Number of plan days that should have been completed before today began.
+  final int expectedCompletedBeforeToday;
+
+  /// Whole plan days currently overdue. Today itself is never overdue yet.
+  final int behindByDays;
+
+  /// Whole plan days completed beyond today's scheduled portion.
+  final int aheadByDays;
+
+  final DateTime scheduledEndDate;
+
+  bool get isBehind => behindByDays > 0;
+  bool get isAhead => aheadByDays > 0;
+  bool get isOnTrack => !isBehind && !isAhead;
+}
+
 class ActiveReadingPlan {
   const ActiveReadingPlan({
     required this.preset,
@@ -89,7 +126,39 @@ class ActiveReadingPlan {
     return day == null ? null : readingPlanDay(preset, day);
   }
 
-  double get progress => completedDays.length / preset.durationDays;
+  int get completedPrefixDays {
+    var completed = 0;
+    for (var day = 1; day <= preset.durationDays; day++) {
+      if (!completedDays.contains(day)) break;
+      completed = day;
+    }
+    return completed;
+  }
+
+  double get progress => completedPrefixDays / preset.durationDays;
+
+  ReadingPlanScheduleStatus scheduleStatus(DateTime now) {
+    final start = readingPlanDateOnly(startedAt);
+    final today = readingPlanDateOnly(now);
+    final elapsedDays = today.difference(start).inDays;
+    final duration = preset.durationDays;
+    final calendarDay = (elapsedDays + 1).clamp(1, duration).toInt();
+    final expectedBeforeToday = elapsedDays.clamp(0, duration).toInt();
+    final completed = completedPrefixDays;
+    final behind = expectedBeforeToday > completed
+        ? expectedBeforeToday - completed
+        : 0;
+    final ahead = completed > calendarDay ? completed - calendarDay : 0;
+
+    return ReadingPlanScheduleStatus(
+      calendarDayNumber: calendarDay,
+      completedPrefixDays: completed,
+      expectedCompletedBeforeToday: expectedBeforeToday,
+      behindByDays: behind,
+      aheadByDays: ahead,
+      scheduledEndDate: start.add(Duration(days: duration - 1)),
+    );
+  }
 
   ActiveReadingPlan copyWith({Set<int>? completedDays}) => ActiveReadingPlan(
     preset: preset,
