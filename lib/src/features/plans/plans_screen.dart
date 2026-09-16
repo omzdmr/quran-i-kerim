@@ -126,7 +126,8 @@ class _PlansScreenState extends State<PlansScreen> {
   Future<void> _completeNextDay() async {
     final active = _snapshot.active;
     if (_busy || active?.nextDay == null) return;
-    final finishing = active!.completedDays.length + 1 >= active.preset.durationDays;
+    final finishing =
+        active!.completedPrefixDays + 1 >= active.preset.durationDays;
     HapticFeedback.mediumImpact();
     setState(() => _busy = true);
     try {
