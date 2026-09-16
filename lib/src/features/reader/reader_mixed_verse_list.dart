@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../settings/app_settings.dart';
 
 class ReaderMixedVerseList extends StatefulWidget {
@@ -241,7 +242,7 @@ class _ReaderMixedVerseBlock extends StatelessWidget {
                   if (hasFootnote)
                     IconButton(
                       visualDensity: VisualDensity.compact,
-                      tooltip: 'Footnote',
+                      tooltip: context.l10n.readerVerseFootnoteTooltip,
                       onPressed: onFootnoteTap,
                       icon: Icon(
                         Icons.chat_bubble_outline_rounded,
@@ -252,7 +253,7 @@ class _ReaderMixedVerseBlock extends StatelessWidget {
                   if (hasNote)
                     IconButton(
                       visualDensity: VisualDensity.compact,
-                      tooltip: 'Note',
+                      tooltip: context.l10n.readerVerseNoteTooltip,
                       onPressed: onNoteTap,
                       icon: Icon(
                         Icons.note_alt_outlined,
