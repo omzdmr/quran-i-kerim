@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:quran_i_kerim/src/features/learn/application/learn_lesson_catalog.dart';
 import 'package:quran_i_kerim/src/l10n/strings/learn_strings.dart';
 
 void main() {
@@ -13,6 +14,26 @@ void main() {
         isTrue,
         reason: 'Learn contains an empty value for $locale',
       );
+    }
+  });
+
+  test('every curated Learn lesson has localized catalog copy', () {
+    for (final locale in <String>['tr', 'en', 'ar', 'az', 'ru']) {
+      final values = learnStrings[locale]!;
+      for (final lesson in curatedLearnLessons) {
+        for (final key in <String>[
+          lesson.titleKey,
+          lesson.subtitleKey,
+          lesson.introBodyKey,
+          lesson.summaryBodyKey,
+        ]) {
+          expect(
+            values[key]?.trim(),
+            isNotEmpty,
+            reason: 'Missing $key for $locale (${lesson.id})',
+          );
+        }
+      }
     }
   });
 }
