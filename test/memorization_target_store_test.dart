@@ -24,6 +24,25 @@ void main() {
     expect(await reloadedStore.load(), MemorizationTargetId.juzAmma);
   });
 
+  test('every supported target round-trips through persistence', () async {
+    for (final target in MemorizationTargetId.values) {
+      await store.save(target);
+      expect(
+        await const MemorizationTargetStore().load(),
+        target,
+        reason: 'failed to restore ${target.name}',
+      );
+    }
+  });
+
+  test('unknown persisted target safely falls back to full Quran', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'memorization_target_v1': 'retired-or-corrupt-target',
+    });
+
+    expect(await store.load(), MemorizationTargetId.fullQuran);
+  });
+
   test('clear restores the default target', () async {
     await store.save(MemorizationTargetId.alMulk);
     await store.clear();
