@@ -68,6 +68,50 @@ void main() {
     expect(loaded.completed, isEmpty);
   });
 
+  test('persisted day lists are deduplicated, bounded, and normalized', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      ReadingPlanStore.preferenceKey:
+          '{"active":{"preset":"quran30","startedAt":"2026-09-16T23:40:00+08:00","completedDays":[1,"1",2,0,-1,30,31,"bad"]},"saved":[],"completed":[]}',
+    });
+
+    final loaded = await store.load();
+
+    expect(loaded.active?.startedAt, DateTime(2026, 9, 16));
+    expect(loaded.active?.completedDays, <int>{1, 2, 30});
+    expect(loaded.active?.nextDayNumber, 3);
+  });
+
+  test('malformed persisted json recovers as an empty snapshot', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      ReadingPlanStore.preferenceKey: '{not-json',
+    });
+
+    final loaded = await store.load();
+
+    expect(loaded.active, isNull);
+    expect(loaded.savedPresetIds, isEmpty);
+    expect(loaded.completed, isEmpty);
+  });
+
+  test('completed history ignores invalid rows and keeps at most twenty', () async {
+    final rows = <String>[
+      for (var day = 1; day <= 22; day++)
+        '{"preset":"quran30","startedAt":"2026-08-01","completedAt":"2026-09-${day.toString().padLeft(2, '0')}"}',
+      '{"preset":"unknown","startedAt":"2026-08-01","completedAt":"2026-09-01"}',
+      '{"preset":"quran30","startedAt":"bad","completedAt":"2026-09-01"}',
+    ];
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      ReadingPlanStore.preferenceKey:
+          '{"active":null,"saved":[],"completed":[${rows.join(',')}]}'
+    });
+
+    final loaded = await store.load();
+
+    expect(loaded.completed, hasLength(20));
+    expect(loaded.completed.first.completedAt, DateTime(2026, 9, 1));
+    expect(loaded.completed.last.completedAt, DateTime(2026, 9, 20));
+  });
+
   test('stopping an active plan keeps saved and completed history', () async {
     await store.toggleSaved(ReadingPlanPreset.quran90);
     await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 16));
