@@ -120,7 +120,7 @@ class _MemorizationSimilarVersesScreenState
                     sourceLabel: l10n.memorizeSimilarSource,
                     candidateLabel: l10n.memorizeSimilarCandidate,
                     pageLabel: l10n.quranProgressCurrentPage,
-                    weakLabel: l10n.memorizeWeakTitle,
+                    weakLabel: l10n.memorizeTestStruggled,
                     isWeak: _manuallyWeakIds.contains(
                       _candidateId(_matches[index]),
                     ),
@@ -194,7 +194,9 @@ class _SimilarityCard extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 14),
               child: Divider(
-                color: isWeak ? scheme.primary.withValues(alpha: 0.28) : scheme.outlineVariant,
+                color: isWeak
+                    ? scheme.primary.withValues(alpha: 0.28)
+                    : scheme.outlineVariant,
               ),
             ),
             _VerseComparisonBlock(
