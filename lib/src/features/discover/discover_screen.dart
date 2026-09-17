@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../plans/plans_screen.dart';
 import '../prayer/presentation/prayer_screen.dart';
 import '../prayer/presentation/qibla_launcher_screen.dart';
 import 'dhikr_counter_screen.dart';
@@ -51,6 +52,13 @@ class DiscoverScreen extends StatelessWidget {
       Navigator.of(context).push(
         MaterialPageRoute<void>(builder: (_) => const DhikrCounterScreen()),
       );
+    }
+
+    void openPlans() {
+      HapticFeedback.selectionClick();
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute<void>(builder: (_) => const PlansScreen()));
     }
 
     return SafeArea(
@@ -112,6 +120,7 @@ class DiscoverScreen extends StatelessWidget {
                 child: _Shortcut(
                   Icons.library_add_check_outlined,
                   l10n.text('readingPlans'),
+                  onTap: openPlans,
                 ),
               ),
               const SizedBox(width: 12),
