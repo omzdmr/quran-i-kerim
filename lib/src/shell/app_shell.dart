@@ -10,6 +10,7 @@ import '../features/profile/profile_screen.dart';
 import '../features/quran/quran_area_screen.dart';
 import '../l10n/app_localizations.dart';
 import '../navigation/app_navigation.dart';
+import 'navigation_drag_geometry.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -59,26 +60,20 @@ class _AppShellState extends State<AppShell> {
     if (haptic) HapticFeedback.selectionClick();
   }
 
-  int _indexForDx(double dx, double width) {
-    if (width <= 0) return _index;
-    final itemWidth = width / _screens.length;
-    return (dx / itemWidth).floor().clamp(0, _screens.length - 1).toInt();
-  }
-
-  double _clampNavigationDx(double dx, double width) {
-    if (width <= 0) return 0;
-    return dx.clamp(0.0, width).toDouble();
-  }
+  int _indexForDx(double dx, double width) => navigationIndexForDx(
+    dx: dx,
+    width: width,
+    itemCount: _screens.length,
+    fallbackIndex: _index,
+  );
 
   double _navigationIndicatorLeft(double width, double itemWidth) {
     if (_draggingNavigation && _navigationDragDx != null) {
-      final indicatorWidth = itemWidth - 10;
-      const minLeft = 5.0;
-      final maxLeft = width - indicatorWidth - 5;
-      if (maxLeft <= minLeft) return minLeft;
-      return (_navigationDragDx! - indicatorWidth / 2)
-          .clamp(minLeft, maxLeft)
-          .toDouble();
+      return navigationIndicatorLeftForDx(
+        dx: _navigationDragDx!,
+        width: width,
+        itemWidth: itemWidth,
+      );
     }
     return (_visualNavigationIndex * itemWidth) + 5;
   }
@@ -88,7 +83,7 @@ class _AppShellState extends State<AppShell> {
     setState(() {
       _draggingNavigation = true;
       _previewNavigationIndex = candidate;
-      _navigationDragDx = _clampNavigationDx(dx, width);
+      _navigationDragDx = clampNavigationDx(dx, width);
     });
     if (candidate != _index) HapticFeedback.selectionClick();
   }
@@ -98,7 +93,7 @@ class _AppShellState extends State<AppShell> {
     final previousCandidate = _previewNavigationIndex;
     setState(() {
       _previewNavigationIndex = candidate;
-      _navigationDragDx = _clampNavigationDx(dx, width);
+      _navigationDragDx = clampNavigationDx(dx, width);
     });
     if (candidate != previousCandidate) HapticFeedback.selectionClick();
   }
