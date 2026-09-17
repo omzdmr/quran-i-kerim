@@ -7,6 +7,7 @@ void main() {
     expect(curatedLearnLessons, isNotEmpty);
 
     final ids = <String>{};
+    final quizCorrectPositions = <int>{};
     for (final lesson in curatedLearnLessons) {
       expect(lesson.id.trim(), isNotEmpty);
       expect(ids.add(lesson.id), isTrue, reason: 'Duplicate lesson id: ${lesson.id}');
@@ -34,6 +35,18 @@ void main() {
           reason: 'Duplicate quiz distractor $distractor in ${lesson.id}',
         );
       }
+      expect(
+        lesson.quizCorrectOptionIndex,
+        inInclusiveRange(0, lesson.quizDistractorSurahs.length),
+        reason: 'Invalid quiz answer position in ${lesson.id}',
+      );
+      quizCorrectPositions.add(lesson.quizCorrectOptionIndex);
     }
+
+    expect(
+      quizCorrectPositions.length,
+      greaterThan(1),
+      reason: 'Curated lessons should not train users to pick one fixed option.',
+    );
   });
 }

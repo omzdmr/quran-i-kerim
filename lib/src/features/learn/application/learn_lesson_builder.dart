@@ -103,10 +103,8 @@ List<LearnLessonVisualStep> buildSourcedLearnLessonSteps({
     ),
   );
 
-  final quizSurahs = <int>[
-    lesson.surah,
-    ...lesson.quizDistractorSurahs,
-  ];
+  final quizSurahs = <int>[...lesson.quizDistractorSurahs]
+    ..insert(lesson.quizCorrectOptionIndex, lesson.surah);
   steps.add(
     LearnLessonVisualStep(
       id: 'quiz-surah',
@@ -116,7 +114,7 @@ List<LearnLessonVisualStep> buildSourcedLearnLessonSteps({
         for (final surah in quizSurahs)
           localizedSurahName(surah, languageCode),
       ],
-      correctQuizIndex: 0,
+      correctQuizIndex: lesson.quizCorrectOptionIndex,
     ),
   );
 
