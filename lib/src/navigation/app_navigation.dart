@@ -25,6 +25,7 @@ class AppNavigation {
   final ValueNotifier<int?> tabRequest = ValueNotifier<int?>(null);
   final ValueNotifier<ReaderTarget?> readerRequest =
       ValueNotifier<ReaderTarget?>(null);
+  final ValueNotifier<int> quranReadRequest = ValueNotifier<int>(0);
   final ValueNotifier<bool> readerSelectionActive = ValueNotifier<bool>(false);
 
   void openReader({required int surah, required int ayah}) {
@@ -38,6 +39,7 @@ class AppNavigation {
 
   void openQuran() {
     readerSelectionActive.value = false;
+    quranReadRequest.value++;
     tabRequest.value = quranTabIndex;
   }
 

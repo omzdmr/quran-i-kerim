@@ -21,16 +21,29 @@ class _QuranAreaScreenState extends State<QuranAreaScreen> {
   void initState() {
     super.initState();
     AppNavigation.instance.readerRequest.addListener(_handleReaderRequest);
+    AppNavigation.instance.quranReadRequest.addListener(_handleQuranReadRequest);
   }
 
   @override
   void dispose() {
     AppNavigation.instance.readerRequest.removeListener(_handleReaderRequest);
+    AppNavigation.instance.quranReadRequest.removeListener(
+      _handleQuranReadRequest,
+    );
     super.dispose();
   }
 
   void _handleReaderRequest() {
     if (!mounted || AppNavigation.instance.readerRequest.value == null) return;
+    _showReadSection();
+  }
+
+  void _handleQuranReadRequest() {
+    if (!mounted) return;
+    _showReadSection();
+  }
+
+  void _showReadSection() {
     if (_section == 0) return;
     setState(() => _section = 0);
   }
