@@ -10,6 +10,7 @@ import '../features/profile/profile_screen.dart';
 import '../features/quran/quran_area_screen.dart';
 import '../l10n/app_localizations.dart';
 import '../navigation/app_navigation.dart';
+import 'navigation_drag_geometry.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -22,6 +23,7 @@ class _AppShellState extends State<AppShell> {
   int _index = 0;
   bool _draggingNavigation = false;
   int? _previewNavigationIndex;
+  double? _navigationDragDx;
 
   static const _screens = [
     HomeScreen(),
@@ -58,10 +60,22 @@ class _AppShellState extends State<AppShell> {
     if (haptic) HapticFeedback.selectionClick();
   }
 
-  int _indexForDx(double dx, double width) {
-    if (width <= 0) return _index;
-    final itemWidth = width / _screens.length;
-    return (dx / itemWidth).floor().clamp(0, _screens.length - 1).toInt();
+  int _indexForDx(double dx, double width) => navigationIndexForDx(
+    dx: dx,
+    width: width,
+    itemCount: _screens.length,
+    fallbackIndex: _index,
+  );
+
+  double _navigationIndicatorLeft(double width, double itemWidth) {
+    if (_draggingNavigation && _navigationDragDx != null) {
+      return navigationIndicatorLeftForDx(
+        dx: _navigationDragDx!,
+        width: width,
+        itemWidth: itemWidth,
+      );
+    }
+    return (_visualNavigationIndex * itemWidth) + 5;
   }
 
   void _beginNavigationDrag(double dx, double width) {
@@ -69,15 +83,19 @@ class _AppShellState extends State<AppShell> {
     setState(() {
       _draggingNavigation = true;
       _previewNavigationIndex = candidate;
+      _navigationDragDx = clampNavigationDx(dx, width);
     });
     if (candidate != _index) HapticFeedback.selectionClick();
   }
 
   void _updateNavigationDrag(double dx, double width) {
     final candidate = _indexForDx(dx, width);
-    if (candidate == _previewNavigationIndex) return;
-    setState(() => _previewNavigationIndex = candidate);
-    HapticFeedback.selectionClick();
+    final previousCandidate = _previewNavigationIndex;
+    setState(() {
+      _previewNavigationIndex = candidate;
+      _navigationDragDx = clampNavigationDx(dx, width);
+    });
+    if (candidate != previousCandidate) HapticFeedback.selectionClick();
   }
 
   void _finishNavigationDrag() {
@@ -89,6 +107,7 @@ class _AppShellState extends State<AppShell> {
     setState(() {
       if (target != null) _index = target;
       _previewNavigationIndex = null;
+      _navigationDragDx = null;
       _draggingNavigation = false;
     });
   }
@@ -97,6 +116,7 @@ class _AppShellState extends State<AppShell> {
     if (!mounted) return;
     setState(() {
       _previewNavigationIndex = null;
+      _navigationDragDx = null;
       _draggingNavigation = false;
     });
   }
@@ -168,15 +188,12 @@ class _AppShellState extends State<AppShell> {
                   child: Stack(
                     children: [
                       AnimatedPositioned(
-                        duration: reduceMotion
+                        key: const ValueKey('bottom-navigation-indicator'),
+                        duration: reduceMotion || _draggingNavigation
                             ? Duration.zero
-                            : Duration(
-                                milliseconds: _draggingNavigation ? 90 : 260,
-                              ),
-                        curve: _draggingNavigation
-                            ? Curves.easeOutCubic
-                            : Curves.easeOutBack,
-                        left: (_visualNavigationIndex * itemWidth) + 5,
+                            : const Duration(milliseconds: 260),
+                        curve: Curves.easeOutBack,
+                        left: _navigationIndicatorLeft(width, itemWidth),
                         top: 5,
                         width: itemWidth - 10,
                         height: 64,
