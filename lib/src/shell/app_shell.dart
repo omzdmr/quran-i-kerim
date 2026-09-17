@@ -22,6 +22,7 @@ class _AppShellState extends State<AppShell> {
   int _index = 0;
   bool _draggingNavigation = false;
   int? _previewNavigationIndex;
+  double? _navigationDragDx;
 
   static const _screens = [
     HomeScreen(),
@@ -64,20 +65,42 @@ class _AppShellState extends State<AppShell> {
     return (dx / itemWidth).floor().clamp(0, _screens.length - 1).toInt();
   }
 
+  double _clampNavigationDx(double dx, double width) {
+    if (width <= 0) return 0;
+    return dx.clamp(0.0, width).toDouble();
+  }
+
+  double _navigationIndicatorLeft(double width, double itemWidth) {
+    if (_draggingNavigation && _navigationDragDx != null) {
+      final indicatorWidth = itemWidth - 10;
+      const minLeft = 5.0;
+      final maxLeft = width - indicatorWidth - 5;
+      if (maxLeft <= minLeft) return minLeft;
+      return (_navigationDragDx! - indicatorWidth / 2)
+          .clamp(minLeft, maxLeft)
+          .toDouble();
+    }
+    return (_visualNavigationIndex * itemWidth) + 5;
+  }
+
   void _beginNavigationDrag(double dx, double width) {
     final candidate = _indexForDx(dx, width);
     setState(() {
       _draggingNavigation = true;
       _previewNavigationIndex = candidate;
+      _navigationDragDx = _clampNavigationDx(dx, width);
     });
     if (candidate != _index) HapticFeedback.selectionClick();
   }
 
   void _updateNavigationDrag(double dx, double width) {
     final candidate = _indexForDx(dx, width);
-    if (candidate == _previewNavigationIndex) return;
-    setState(() => _previewNavigationIndex = candidate);
-    HapticFeedback.selectionClick();
+    final previousCandidate = _previewNavigationIndex;
+    setState(() {
+      _previewNavigationIndex = candidate;
+      _navigationDragDx = _clampNavigationDx(dx, width);
+    });
+    if (candidate != previousCandidate) HapticFeedback.selectionClick();
   }
 
   void _finishNavigationDrag() {
@@ -89,6 +112,7 @@ class _AppShellState extends State<AppShell> {
     setState(() {
       if (target != null) _index = target;
       _previewNavigationIndex = null;
+      _navigationDragDx = null;
       _draggingNavigation = false;
     });
   }
@@ -97,6 +121,7 @@ class _AppShellState extends State<AppShell> {
     if (!mounted) return;
     setState(() {
       _previewNavigationIndex = null;
+      _navigationDragDx = null;
       _draggingNavigation = false;
     });
   }
@@ -168,15 +193,12 @@ class _AppShellState extends State<AppShell> {
                   child: Stack(
                     children: [
                       AnimatedPositioned(
-                        duration: reduceMotion
+                        key: const ValueKey('bottom-navigation-indicator'),
+                        duration: reduceMotion || _draggingNavigation
                             ? Duration.zero
-                            : Duration(
-                                milliseconds: _draggingNavigation ? 90 : 260,
-                              ),
-                        curve: _draggingNavigation
-                            ? Curves.easeOutCubic
-                            : Curves.easeOutBack,
-                        left: (_visualNavigationIndex * itemWidth) + 5,
+                            : const Duration(milliseconds: 260),
+                        curve: Curves.easeOutBack,
+                        left: _navigationIndicatorLeft(width, itemWidth),
                         top: 5,
                         width: itemWidth - 10,
                         height: 64,
