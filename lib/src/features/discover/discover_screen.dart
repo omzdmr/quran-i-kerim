@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
-import '../plans/plans_screen.dart';
+import '../../navigation/app_navigation.dart';
 import '../prayer/presentation/prayer_screen.dart';
 import '../prayer/presentation/qibla_launcher_screen.dart';
 import 'dhikr_counter_screen.dart';
@@ -56,9 +56,7 @@ class DiscoverScreen extends StatelessWidget {
 
     void openPlans() {
       HapticFeedback.selectionClick();
-      Navigator.of(
-        context,
-      ).push(MaterialPageRoute<void>(builder: (_) => const PlansScreen()));
+      AppNavigation.instance.openPlans();
     }
 
     return SafeArea(
