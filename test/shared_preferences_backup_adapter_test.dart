@@ -217,6 +217,33 @@ void main() {
     expect(prefs.getString('reader_history_v1'), history);
   });
 
+  test('memorization practice history survives a sectioned backup round trip', () async {
+    const history =
+        '[{"id":"practice-1","page":42,"occurredAt":"2026-09-17T01:00:00.000Z","context":"review"}]';
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'memorization_practice_history_v1': history,
+    });
+
+    final sections = await adapter.captureSections();
+    expect(
+      (sections['memorizationPractice'] as Map)[
+          'memorization_practice_history_v1'],
+      history,
+    );
+    expect(
+      (sections['memorization'] as Map),
+      isNot(contains('memorization_practice_history_v1')),
+    );
+
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'memorization_practice_history_v1': '[]',
+    });
+    await adapter.restoreSections(sections);
+
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('memorization_practice_history_v1'), history);
+  });
+
   test('unsupported values fail instead of being silently coerced', () async {
     await expectLater(
       adapter.restore(<String, Object?>{
