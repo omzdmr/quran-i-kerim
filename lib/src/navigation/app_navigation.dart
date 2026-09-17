@@ -36,6 +36,11 @@ class AppNavigation {
     tabRequest.value = quranTabIndex;
   }
 
+  void openQuran() {
+    readerSelectionActive.value = false;
+    tabRequest.value = quranTabIndex;
+  }
+
   void openPlans() {
     readerSelectionActive.value = false;
     tabRequest.value = plansTabIndex;
