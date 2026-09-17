@@ -59,6 +59,11 @@ class DiscoverScreen extends StatelessWidget {
       AppNavigation.instance.openPlans();
     }
 
+    void openQuran() {
+      HapticFeedback.selectionClick();
+      AppNavigation.instance.openQuran();
+    }
+
     return SafeArea(
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 44, 20, 120),
@@ -123,7 +128,11 @@ class DiscoverScreen extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _Shortcut(Icons.menu_book_outlined, l10n.text('verses')),
+                child: _Shortcut(
+                  Icons.menu_book_outlined,
+                  l10n.text('verses'),
+                  onTap: openQuran,
+                ),
               ),
             ],
           ),
@@ -223,7 +232,7 @@ class _PrayerFeatureCard extends StatelessWidget {
                   color: scheme.primaryContainer,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(Icons.mosque_outlined, color: scheme.primary),
+                child: Icon(Icons.schedule_rounded, color: scheme.primary),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -232,17 +241,21 @@ class _PrayerFeatureCard extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const SizedBox(height: 3),
-                    Text(subtitle),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right_rounded),
+              Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
             ],
           ),
         ),
@@ -261,39 +274,31 @@ class _Shortcut extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final content = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 17),
-      child: Row(
-        children: [
-          Icon(icon, color: scheme.primary),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
-      ),
-    );
-
-    if (onTap == null) {
-      return Container(
-        decoration: BoxDecoration(
-          color: scheme.surfaceContainer,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: content,
-      );
-    }
-
     return Material(
       color: scheme.surfaceContainer,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(18),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: content,
+        borderRadius: BorderRadius.circular(18),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+          child: Row(
+            children: [
+              Icon(icon, color: scheme.primary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
