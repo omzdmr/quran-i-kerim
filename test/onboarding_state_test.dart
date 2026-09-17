@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:quran_modern/src/features/onboarding/application/onboarding_state.dart';
+import 'package:quran_i_kerim/src/features/onboarding/application/onboarding_state.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
