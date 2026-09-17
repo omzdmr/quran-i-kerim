@@ -136,4 +136,25 @@ void main() {
     );
     expect(snapshot.events.single.occurredAt, later);
   });
+
+  test('load caps restored practice history at the newest 400 events', () async {
+    final base = DateTime.utc(2026, 1, 1);
+    final persisted = List<Object>.generate(405, (index) {
+      return <String, Object>{
+        'id': 'event-$index',
+        'page': 12,
+        'context': MemorizationPracticeContext.soloReview.name,
+        'occurredAt': base.add(Duration(minutes: index)).toIso8601String(),
+      };
+    });
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'memorization_practice_history_v1': jsonEncode(persisted),
+    });
+
+    final snapshot = await const MemorizationPracticeHistoryStore().load();
+
+    expect(snapshot.events, hasLength(400));
+    expect(snapshot.events.first.id, 'event-404');
+    expect(snapshot.events.last.id, 'event-5');
+  });
 }

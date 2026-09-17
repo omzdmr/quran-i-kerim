@@ -104,7 +104,9 @@ class MemorizationPracticeHistoryStore {
           if (byDate != 0) return byDate;
           return b.id.compareTo(a.id);
         });
-      return events;
+      return events.length <= _maxEvents
+          ? events
+          : events.take(_maxEvents).toList(growable: false);
     } on FormatException {
       return <MemorizationPracticeEvent>[];
     }
