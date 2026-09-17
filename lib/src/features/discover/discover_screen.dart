@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../../navigation/app_navigation.dart';
 import '../prayer/presentation/prayer_screen.dart';
 import '../prayer/presentation/qibla_launcher_screen.dart';
+import '../profile/downloads_screen.dart';
 import 'dhikr_counter_screen.dart';
 
 class DiscoverScreen extends StatelessWidget {
@@ -62,6 +63,13 @@ class DiscoverScreen extends StatelessWidget {
     void openQuran() {
       HapticFeedback.selectionClick();
       AppNavigation.instance.openQuran();
+    }
+
+    void openAudioQuran() {
+      HapticFeedback.selectionClick();
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const DownloadsScreen()),
+      );
     }
 
     return SafeArea(
@@ -150,6 +158,7 @@ class DiscoverScreen extends StatelessWidget {
                 child: _Shortcut(
                   Icons.headphones_outlined,
                   l10n.text('audioQuran'),
+                  onTap: openAudioQuran,
                 ),
               ),
             ],
