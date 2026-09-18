@@ -110,5 +110,12 @@
   "memorizePracticeSolo": "Təkbaşına təkrar etdim",
   "memorizePracticePrayer": "Namazda oxudum",
   "memorizePracticeSomeone": "Birinə oxudum",
-  "memorizePracticeSaved": "Təkrar qeyd edildi"
+  "memorizePracticeSaved": "Təkrar qeyd edildi",
+  "onboardingLanguageTitle": "Tətbiq dilini seç",
+  "onboardingTranslationTitle": "Standart tərcüməni seç",
+  "onboardingReadingGoalTitle": "Oxuma hədəfini seç",
+  "onboardingReciterTitle": "Qari seç",
+  "onboardingBack": "Geri",
+  "onboardingContinue": "Davam et",
+  "onboardingFinish": "Başla"
 }
