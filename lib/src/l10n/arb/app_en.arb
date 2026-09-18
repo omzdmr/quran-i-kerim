@@ -123,5 +123,12 @@
   "memorizePracticeSolo": "I reviewed on my own",
   "memorizePracticePrayer": "I recited it in prayer",
   "memorizePracticeSomeone": "I recited it to someone",
-  "memorizePracticeSaved": "Practice saved"
+  "memorizePracticeSaved": "Practice saved",
+  "onboardingLanguageTitle": "Choose app language",
+  "onboardingTranslationTitle": "Choose your default translation",
+  "onboardingReadingGoalTitle": "Choose your reading goal",
+  "onboardingReciterTitle": "Choose a reciter",
+  "onboardingBack": "Back",
+  "onboardingContinue": "Continue",
+  "onboardingFinish": "Start"
 }
