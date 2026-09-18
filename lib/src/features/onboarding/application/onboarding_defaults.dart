@@ -1,4 +1,6 @@
+import '../../../data/quran_audio_catalog.dart';
 import '../../../data/translation_catalog.dart';
+import '../../plans/reading_plan.dart';
 
 /// Maps supported app UI languages to a real Quran source already present in
 /// the curated catalogue. Onboarding can use this without inventing a second
@@ -22,3 +24,20 @@ TranslationInfo? onboardingDefaultTranslationForLanguage(String languageCode) {
   final source = translationById(sourceId);
   return source != null && source.available ? source : null;
 }
+
+/// Reading goals are the real plan presets used by [ReadingPlanStore].
+/// Onboarding should start one of these instead of persisting a parallel goal.
+List<ReadingPlanPreset> get onboardingReadingPlanChoices =>
+    List<ReadingPlanPreset>.unmodifiable(ReadingPlanPreset.values);
+
+/// Reciter choices come from the same curated audio catalogue used by Reader.
+/// Only Arabic recitation entries are exposed; translation audio is a separate
+/// concern and remains independent from the UI/meal language selection.
+List<QuranAudioInfo> get onboardingReciterChoices =>
+    List<QuranAudioInfo>.unmodifiable(
+      quranAudioCatalog.where(
+        (audio) =>
+            audio.kind == QuranAudioKind.recitation &&
+            audio.sourceId == arabicOriginalSourceId,
+      ),
+    );
