@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../../../data/quran_audio_catalog.dart';
+import '../../../data/translation_catalog.dart';
 import '../../../settings/app_settings.dart';
 import '../../plans/reading_plan.dart';
 import '../../plans/reading_plan_store.dart';
