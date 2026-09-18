@@ -110,5 +110,12 @@
   "memorizePracticeSolo": "راجعتها بمفردي",
   "memorizePracticePrayer": "قرأتها في الصلاة",
   "memorizePracticeSomeone": "قرأتها لشخص آخر",
-  "memorizePracticeSaved": "تم حفظ المراجعة"
+  "memorizePracticeSaved": "تم حفظ المراجعة",
+  "onboardingLanguageTitle": "اختر لغة التطبيق",
+  "onboardingTranslationTitle": "اختر الترجمة الافتراضية",
+  "onboardingReadingGoalTitle": "اختر هدف القراءة",
+  "onboardingReciterTitle": "اختر قارئًا",
+  "onboardingBack": "رجوع",
+  "onboardingContinue": "متابعة",
+  "onboardingFinish": "ابدأ"
 }
