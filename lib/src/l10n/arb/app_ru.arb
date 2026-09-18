@@ -110,5 +110,12 @@
   "memorizePracticeSolo": "Повторил самостоятельно",
   "memorizePracticePrayer": "Прочитал в намазе",
   "memorizePracticeSomeone": "Прочитал кому-то",
-  "memorizePracticeSaved": "Повторение сохранено"
+  "memorizePracticeSaved": "Повторение сохранено",
+  "onboardingLanguage": "Язык приложения",
+  "onboardingTranslation": "Перевод по умолчанию",
+  "onboardingReadingGoal": "Цель чтения",
+  "onboardingReciter": "Выберите чтеца",
+  "onboardingBack": "Назад",
+  "onboardingContinue": "Продолжить",
+  "onboardingStart": "Начать"
 }
