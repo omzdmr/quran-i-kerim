@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:quran_modern/src/features/onboarding/application/onboarding_gate.dart';
+import 'package:quran_i_kerim/src/features/onboarding/application/onboarding_gate.dart';
 
 void main() {
   test('shows onboarding when completion state is false', () async {
