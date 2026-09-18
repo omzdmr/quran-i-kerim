@@ -111,11 +111,11 @@
   "memorizePracticePrayer": "Namazda oxudum",
   "memorizePracticeSomeone": "Birinə oxudum",
   "memorizePracticeSaved": "Təkrar qeyd edildi",
-  "onboardingLanguageTitle": "Tətbiq dili",
-  "onboardingTranslationTitle": "Standart tərcümə",
-  "onboardingReadingGoalTitle": "Oxuma hədəfi",
-  "onboardingReciterTitle": "Qari seçimi",
+  "onboardingLanguageTitle": "Tətbiq dilini seç",
+  "onboardingTranslationTitle": "Standart tərcüməni seç",
+  "onboardingReadingGoalTitle": "Oxuma hədəfini seç",
+  "onboardingReciterTitle": "Qari seç",
   "onboardingBack": "Geri",
   "onboardingContinue": "Davam et",
-  "onboardingStart": "Başla"
+  "onboardingFinish": "Başla"
 }
