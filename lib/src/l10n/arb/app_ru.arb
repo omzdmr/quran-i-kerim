@@ -111,11 +111,11 @@
   "memorizePracticePrayer": "Прочитал в намазе",
   "memorizePracticeSomeone": "Прочитал кому-то",
   "memorizePracticeSaved": "Повторение сохранено",
-  "onboardingLanguage": "Язык приложения",
-  "onboardingTranslation": "Перевод по умолчанию",
-  "onboardingReadingGoal": "Цель чтения",
-  "onboardingReciter": "Выберите чтеца",
+  "onboardingLanguageTitle": "Выберите язык приложения",
+  "onboardingTranslationTitle": "Выберите перевод по умолчанию",
+  "onboardingReadingGoalTitle": "Выберите цель чтения",
+  "onboardingReciterTitle": "Выберите чтеца",
   "onboardingBack": "Назад",
   "onboardingContinue": "Продолжить",
-  "onboardingStart": "Начать"
+  "onboardingFinish": "Начать"
 }
