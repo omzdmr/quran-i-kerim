@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:quran_i_kerim/src/data/quran_audio_catalog.dart';
 import 'package:quran_i_kerim/src/data/translation_catalog.dart';
 import 'package:quran_i_kerim/src/features/onboarding/application/onboarding_defaults.dart';
+import 'package:quran_i_kerim/src/features/plans/reading_plan.dart';
 
 void main() {
   setUp(() {
@@ -30,5 +32,26 @@ void main() {
   test('unsupported onboarding language keeps the existing safe fallback', () {
     expect(onboardingDefaultQuranSourceForLanguage('de'), englishTranslationId);
     expect(onboardingDefaultTranslationForLanguage('de')?.id, englishTranslationId);
+  });
+
+  test('reading goals reuse the real reading-plan presets', () {
+    expect(onboardingReadingPlanChoices, ReadingPlanPreset.values);
+  });
+
+  test('reciter choices reuse Arabic recitations from the audio catalog', () {
+    final choices = onboardingReciterChoices;
+    expect(choices, isNotEmpty);
+    expect(
+      choices.every(
+        (audio) =>
+            audio.kind == QuranAudioKind.recitation &&
+            audio.sourceId == arabicOriginalSourceId,
+      ),
+      isTrue,
+    );
+    expect(
+      choices.map((audio) => audio.id).toSet().length,
+      choices.length,
+    );
   });
 }
