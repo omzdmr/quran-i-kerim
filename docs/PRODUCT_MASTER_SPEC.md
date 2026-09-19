@@ -1026,3 +1026,111 @@ All-in-one breadth is acceptable only when the common path stays calm:
 - A study-focused user can resume directly into Study without being bounced through Mushaf.
 - Advanced modules remain discoverable in Keşfedin/search, not sprayed across every screen.
 
+## V18 — weekly rhythm, context profiles and study-to-review bridges
+
+### Friday / Jumuah context
+Friday can have a lightweight weekly context without replacing the normal Home.
+When the selected sources/rights permit:
+- Local mosque Jumuah times and venue information are prominent.
+- Optional sourced reminders for Surah al-Kahf, ghusl, salawat or other Friday practices only when exact source/context is inspectable.
+- Al-Kahf reading progress can reset weekly while its long-term history remains available.
+- User can resume exactly where they stopped in Al-Kahf.
+- Jumuah preparation checklist is optional and user-configurable.
+- Friday mosque visit/logbook may be private and local if the user wants it; never turned into a public streak.
+- Friday cards can begin at the user’s selected/sourced Friday boundary and disappear after Friday, without permanently crowding Home.
+- Never invent or overstate a single “golden hour” interpretation; if such timing is offered, source and scholarly interpretation must be explicit.
+
+### Prayer-time explorer beyond the five starts
+A useful prayer app may expose more than start timestamps, but these markers are jurisprudentially sensitive.
+Optional sourced markers may include:
+- Sunrise.
+- Ishraq/Duha start/end where a selected rule set defines them.
+- Solar noon / zenith / zawal interval.
+- Current prayer end boundary.
+- Islamic midnight / last third.
+- Optional prohibited/disliked voluntary-prayer windows.
+For every nontrivial marker:
+- Show selected source/method/school/context.
+- Explain that rules can differ.
+- Never display a red “haram to pray now” universal verdict from astronomy alone.
+- Allow the user to hide advanced timing markers entirely.
+
+### Context-aware notification profiles
+Users need different behavior at home, work, mosque, sleep and travel.
+Allow explicit profiles such as:
+- Home: chosen adhan/full sound.
+- Work/school: vibration or discreet tone.
+- Sleep/Fajr: alarm where platform supports it.
+- Travel: temporary profile with destination schedule.
+- Mosque: optionally suppress redundant adhan reminders while the user is at a saved mosque, only with opt-in geofence/location permission.
+Profiles may activate by:
+- Saved place/geofence, with clear permission.
+- User schedule.
+- Manual quick toggle.
+- Travel mode.
+A prominent temporary “pause non-essential reminders” action should support an expiry time so users do not forget to re-enable them.
+No profile silently changes prayer calculation method or religious content.
+
+### Settings search and control discoverability
+Because the super-app has many preferences:
+- Global search indexes settings as well as content/features.
+- A dedicated Settings search may deep-link directly to calculation method, fonts, notifications, downloads, privacy, source licenses, backup etc.
+- Search results show the current value where helpful.
+- Changing a setting never resets unrelated settings.
+- Advanced settings can remain nested without becoming undiscoverable.
+
+### Study-to-review bridge
+Anything learned in Study should be reusable in Learn without manual reconstruction.
+Where source data permits:
+- From a word/root/morphology/tafsir lesson, user can “Add to review”.
+- Review item preserves backlink to canonical ayah, exact study source/lesson/section and edition/version.
+- Vocabulary/root flashcards can show the original ayah context and return to the exact Study page.
+- User can build a private review deck from selected roots, words, phrases or sourced concepts.
+- Review cards do not contain model-invented religious explanations.
+- If source edition is removed, preserve user-authored note and canonical ayah anchor while marking the missing source.
+- Duplicate review items should merge or reference the same canonical concept rather than silently multiplying.
+
+### Custom learning collections
+Allow a user to combine study material into a focused learning set:
+- Ayahs/ranges.
+- Vocabulary/root items.
+- User notes.
+- Sourced tafsir/reference links.
+- Audio ranges.
+This becomes a private study set that can be reviewed, printed/exported or assigned by a teacher. It is not a new public-content publishing system.
+
+### Real recent-history model
+Recent history is not one global stack.
+Maintain typed recent lists such as:
+- Recent Quran reading positions.
+- Recent audio queues/surahs.
+- Recent Study pages/sources.
+- Recent searches.
+- Recent books/library positions.
+User can clear each history category independently.
+Sensitive histories such as cycle/private journal are excluded from generic recents.
+
+### Habit/routine reminders remain source-aware
+If the app offers recurring reminders for specific surahs/adhkar or weekly practices:
+- Every canonical reminder explains its source.
+- User can turn each one off independently.
+- Personal routines can be scheduled without claiming religious virtue.
+- Do not create a generic “Sunnah score” or compare users.
+
+### OS-native alarm capability, carefully
+Where current OS APIs permit true alarms (for example supported iOS AlarmKit or Android alarm APIs):
+- Offer them as an explicit stronger reminder mode, especially for Fajr/suhoor or user-selected last-call reminders.
+- Explain that system alarm behavior differs from normal notifications.
+- Ask only the permissions/capabilities actually required.
+- Fall back gracefully on unsupported OS versions.
+- Never market alarms as mathematically guaranteeing a prayer will not be missed.
+
+### Screen-time focus as a supportive tool
+If Digital Focus ships, avoid coercive religious UX:
+- User may schedule a distraction shield before/during a prayer window or Quran study block.
+- Default behavior is a calm pause/intent prompt, not “worship or your phone stays locked”.
+- Optional stricter modes are knowingly enabled by the user/parent.
+- Reading a verse is never used as a monetized unlock currency.
+- Emergency/bypass path is obvious.
+- Focus state never modifies worship completion statistics unless user explicitly logs the activity.
+
