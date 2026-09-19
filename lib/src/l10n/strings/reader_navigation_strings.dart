@@ -9,6 +9,7 @@ const readerNavigationStrings = <String, Map<String, String>>{
     'readerPageSubtitle': '1-604 arasında sayfaya git',
     'readerGoToJuz': 'Cüze git',
     'readerGoToPage': 'Sayfaya git',
+    'readerReturnToCurrentVerse': 'Okunan ayete dön',
   },
   'en': <String, String>{
     'readerGo': 'Go',
@@ -20,6 +21,7 @@ const readerNavigationStrings = <String, Map<String, String>>{
     'readerPageSubtitle': 'Go to page 1-604',
     'readerGoToJuz': 'Go to juz',
     'readerGoToPage': 'Go to page',
+    'readerReturnToCurrentVerse': 'Return to current verse',
   },
   'ar': <String, String>{
     'readerGo': 'انتقل',
@@ -31,6 +33,7 @@ const readerNavigationStrings = <String, Map<String, String>>{
     'readerPageSubtitle': 'انتقل إلى صفحة من 1 إلى 604',
     'readerGoToJuz': 'انتقل إلى الجزء',
     'readerGoToPage': 'انتقل إلى الصفحة',
+    'readerReturnToCurrentVerse': 'العودة إلى الآية الحالية',
   },
   'az': <String, String>{
     'readerGo': 'Keç',
@@ -42,6 +45,7 @@ const readerNavigationStrings = <String, Map<String, String>>{
     'readerPageSubtitle': '1-604 arası səhifəyə keç',
     'readerGoToJuz': 'Cüzə keç',
     'readerGoToPage': 'Səhifəyə keç',
+    'readerReturnToCurrentVerse': 'Oxunan ayəyə qayıt',
   },
   'ru': <String, String>{
     'readerGo': 'Перейти',
@@ -53,5 +57,6 @@ const readerNavigationStrings = <String, Map<String, String>>{
     'readerPageSubtitle': 'Перейти к странице 1-604',
     'readerGoToJuz': 'Перейти к джузу',
     'readerGoToPage': 'Перейти к странице',
+    'readerReturnToCurrentVerse': 'Вернуться к текущему аяту',
   },
 };
