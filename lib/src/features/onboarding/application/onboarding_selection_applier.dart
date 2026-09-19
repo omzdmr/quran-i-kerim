@@ -40,6 +40,16 @@ class OnboardingSelectionApplier {
         'Onboarding accepts only Arabic recitation audio.',
       );
     }
-    await _settings.setSelectedAudioSource(arabicOriginalSourceId, reciter.id);
+    // Arabic recitation is independent from the selected meal. Persist it for
+    // the Arabic source and for the currently selected Quran source so the
+    // Reader immediately resolves the onboarding choice in either mode.
+    await Future.wait([
+      _settings.setSelectedAudioSource(arabicOriginalSourceId, reciter.id),
+      if (_settings.selectedQuranSourceId != arabicOriginalSourceId)
+        _settings.setSelectedAudioSource(
+          _settings.selectedQuranSourceId,
+          reciter.id,
+        ),
+    ]);
   }
 }
