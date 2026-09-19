@@ -542,3 +542,46 @@ The same codebase can offer optional experience presets:
 - Travel/Ramadan seasonal contexts
 Presets adjust Home cards, quick actions, onboarding and suggested paths only. They must not create incompatible data silos or hide core navigation.
 
+## V13 — Islamic library and long-form learning
+
+### General Islamic Library
+Keşfedin / Kütüphane may grow beyond Quran/Hadith into a rights-cleared structured Islamic library:
+- Tafsir, Hadith, Seerah, Fiqh/usul, Aqidah, Islamic history, biographies and other scholarly categories only when source/licensing is appropriate for the ad-supported product.
+- Prefer structured text/EPUB-like content with real chapters, sections, footnotes and source metadata over image-only PDFs.
+- Book metadata: title, author, editor/translator, publisher/source, edition/version, language, school/tradition/context when relevant, rights/license and checksum.
+- Browse by title, author, category, language and publication/author metadata.
+- Full-text search in one book, selected books, an author, category or the whole installed corpus.
+- Search results always quote/link to the actual source location; no AI-generated paraphrase presented as the book.
+- Bookmarks, highlights, notes, tags and cross-links to Quran ayahs/Hadith records where a verified mapping exists.
+- Offline book packs and storage controls.
+- Reading progress and continue-reading Home cards without turning long-form reading into public competition.
+
+### Curated reading paths
+Provide optional human-curated/source-reviewed paths such as:
+- New Muslim foundations.
+- Seerah introduction.
+- Forty Hadith / selected Hadith study.
+- Quran sciences basics.
+- Arabic/Quran vocabulary.
+Paths organize licensed books/chapters/lessons already in the library. Do not let a generative model silently create a religious curriculum.
+
+### Islamic audiobook / lecture library
+Where distribution rights are GREEN:
+- Human-narrated audiobooks, lectures, khutbah archives and courses.
+- Speaker/author/publisher/source metadata.
+- Background playback, lock-screen controls, speed, sleep timer, chapters, bookmarks/timestamps, offline downloads and listening history.
+- Optional follow/notify for verified publisher/scholar channels only when the source allows redistribution/notifications.
+- Audio transcripts only when licensed or user-generated; machine transcript must be labeled.
+- No synthetic narration for copyrighted/religious books without explicit rights.
+
+### Hadith scholarly navigation later
+If a licensed structured corpus supports it:
+- Collection/book/chapter/hadith navigation.
+- Translation/commentary/takhreej/grading metadata with exact source attribution.
+- Narrator/rawi index and chain navigation as sourced data, not generated biography claims.
+- Search across matn, narrator names and references.
+- Cross-link Quran ayahs only from verified scholarly mappings.
+
+### Library licensing warning
+Open-source application code or a downloadable book file does not prove the underlying book/translation/audio is commercially redistributable. Every title/edition/audio follows the same GREEN/YELLOW/BLOCKED content-provenance gate as Quran content.
+
