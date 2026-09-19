@@ -1134,3 +1134,67 @@ If Digital Focus ships, avoid coercive religious UX:
 - Emergency/bypass path is obvious.
 - Focus state never modifies worship completion statistics unless user explicitly logs the activity.
 
+## Global-language mission — non-negotiable product pillar
+The multilingual vision is not optional polish and must not be postponed until the end. It is one of the product's defining differentiators.
+
+### Core goal
+Ship the broadest legally verified Quran meaning-language catalog realistically possible while preserving source integrity, licensing, offline use and modern UX.
+- UI language and Quran meaning/translation language remain fully independent.
+- A user may use the app UI in one language while reading one or several Quran meaning editions in other languages.
+- Multiple translation/meaning editions per language are supported with explicit translator, publisher, source, version and license identity.
+- Human spoken translations are supported when rights-cleared recordings exist. Never use TTS as a substitute for Quran/meal/tafsir audio.
+- If no rights-cleared spoken translation exists, offer Arabic recitation + written meaning rather than synthesizing speech.
+
+### Catalog architecture
+Language coverage must be data-driven, not hardcoded into app releases.
+Each catalog entry records at minimum:
+- BCP-47/ISO language tag.
+- Native name and English/Turkish discovery name.
+- Script and text direction.
+- Translation editions.
+- Human spoken-translation editions.
+- Compatible recitations if relevant.
+- Required fonts/font packs.
+- Offline package size.
+- Source, rights holder, version, checksum, attribution and GREEN/YELLOW/BLOCKED rights state.
+- Completeness/coverage status.
+Signed manifests may add/update language packs without an app release after license/content QA.
+
+### Production visibility
+- Only GREEN content can be exposed in production.
+- A language must not appear as fully available if its required edition is missing, incomplete or rights-blocked.
+- YELLOW/BLOCKED sources can remain visible to developers/source admins but not masquerade as user-ready content.
+- If an edition is withdrawn, do not silently replace it with another translator; explain the change and preserve user preference metadata where legally permitted.
+
+### Offline-first multilingual behavior
+- Text, spoken translation, recitation and font packs are independently downloadable.
+- User chooses which languages/editions/audio to store.
+- Reader/search/bookmarks for downloaded language packs work offline.
+- Download manager shows size, version, source and integrity state.
+- Updates are resumable/checksummed and must not destroy already downloaded valid packs during app upgrades.
+
+### Rendering/search quality
+- Correct RTL/LTR/mixed-direction rendering is mandatory.
+- Dynamic fonts must cover scripts such as Arabic, Cyrillic, Latin, CJK, Devanagari, Burmese, N'Ko and others as catalog coverage grows, subject to font rights.
+- Search supports language-appropriate normalization/transliteration behavior without mutating canonical source content.
+- Locale-specific punctuation, numerals, pluralization and line breaking are tested.
+- Accessibility and large-text behavior must be validated per script, not only Latin/Arabic.
+
+### UI localization growth
+Initial ARB/gen-l10n locales remain centrally managed, but UI localization should be able to expand through a human-reviewed community workflow.
+- Glossary/terminology rules for Quranic and Islamic product terms.
+- Reviewer/approval flow.
+- Screenshot/context support for translators.
+- No AI-only production UI translation.
+- Locale parity tests catch missing keys and stale translations.
+
+### Coverage QA and roadmap priority
+Maintain measurable coverage reporting:
+- Number of GREEN written meaning languages.
+- Number of GREEN spoken-translation languages.
+- Number of available editions per language.
+- Font/script readiness.
+- Offline-pack integrity.
+- Missing/blocked sources and exact reason.
+The feature roadmap must regularly advance this catalog/source architecture alongside other product work. It must not be left as a final “localization phase”.
+
