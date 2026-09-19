@@ -1,0 +1,85 @@
+name: iOS Parity
+
+on:
+  push:
+    branches: [ automation/ios-parity ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.2'
+          channel: stable
+          cache: true
+
+      - name: Show toolchain
+        run: |
+          flutter --version
+          xcodebuild -version
+
+      - name: Generate isolated iOS scaffold
+        run: flutter create --platforms=ios --org com.omzdmr --project-name quran_i_kerim .
+
+      - name: Remove generated scaffold test
+        run: |
+          if ! git ls-files --error-unmatch test/widget_test.dart >/dev/null 2>&1; then
+            rm -f test/widget_test.dart
+          fi
+
+      - name: Configure native iOS permissions and background audio
+        run: |
+          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Kur’an-ı Kerim" ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :NSLocationWhenInUseUsageDescription string Konumunuz namaz vakitleri ve kıble yönünü hesaplamak için yalnızca izin verdiğinizde kullanılır." ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string Mikrofon yalnızca kendi ezber kaydınızı oluşturmak istediğinizde kullanılır." ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string audio" ios/Runner/Info.plist
+
+      - name: Audit generated native identity
+        run: |
+          test -f ios/Runner.xcodeproj/project.pbxproj
+          test -f ios/Runner/Info.plist
+          grep -n "PRODUCT_BUNDLE_IDENTIFIER" ios/Runner.xcodeproj/project.pbxproj | sort -u
+          grep -q "NSLocationWhenInUseUsageDescription" ios/Runner/Info.plist
+          grep -q "NSMicrophoneUsageDescription" ios/Runner/Info.plist
+          grep -q "UIBackgroundModes" ios/Runner/Info.plist
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Generate localizations
+        run: flutter gen-l10n
+
+      - name: Analyze shared app without modifying it
+        run: flutter analyze lib --no-fatal-infos
+
+      - name: Run tests
+        run: flutter test
+
+      - name: Build unsigned iOS app
+        run: flutter build ios --release --no-codesign
+
+      - name: Verify unsigned app output
+        run: |
+          test -d build/ios/iphoneos/Runner.app
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" build/ios/iphoneos/Runner.app/Info.plist
+          /usr/libexec/PlistBuddy -c "Print :CFBundleDisplayName" build/ios/iphoneos/Runner.app/Info.plist
+
+      - name: Upload unsigned iOS build for parity inspection
+        uses: actions/upload-artifact@v4
+        with:
+          name: quran-i-kerim-ios-unsigned-app
+          path: build/ios/iphoneos/Runner.app
+          if-no-files-found: error
+          retention-days: 7
