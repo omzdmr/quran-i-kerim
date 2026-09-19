@@ -154,4 +154,65 @@ void main() {
       3,
     );
   });
+
+  test('catch-up target is just the next slice while plan is on track', () {
+    final target = plan(
+      completedDays: const <int>{1},
+    ).catchUpTarget(DateTime(2026, 9, 17));
+
+    expect(target, isNotNull);
+    expect(target!.firstDayNumber, 2);
+    expect(target.lastDayNumber, 2);
+    expect(target.spansMultipleDays, isFalse);
+    expect(target.startPage, readingPlanDay(ReadingPlanPreset.quran30, 2).startPage);
+    expect(target.endPage, readingPlanDay(ReadingPlanPreset.quran30, 2).endPage);
+  });
+
+  test('catch-up target spans missed work through current scheduled day', () {
+    final target = plan(
+      completedDays: const <int>{1},
+    ).catchUpTarget(DateTime(2026, 9, 20));
+
+    expect(target, isNotNull);
+    expect(target!.firstDayNumber, 2);
+    expect(target.lastDayNumber, 5);
+    expect(target.dayCount, 4);
+    expect(target.spansMultipleDays, isTrue);
+    expect(target.startPage, readingPlanDay(ReadingPlanPreset.quran30, 2).startPage);
+    expect(target.endPage, readingPlanDay(ReadingPlanPreset.quran30, 5).endPage);
+    expect(target.pageCount, target.endPage - target.startPage + 1);
+  });
+
+  test('catch-up target never asks an ahead reader to repeat completed work', () {
+    final target = plan(
+      completedDays: const <int>{1, 2, 3, 4, 5},
+    ).catchUpTarget(DateTime(2026, 9, 17));
+
+    expect(target, isNotNull);
+    expect(target!.firstDayNumber, 6);
+    expect(target.lastDayNumber, 6);
+  });
+
+  test('paused catch-up target freezes instead of growing every day', () {
+    final active = plan(
+      completedDays: const <int>{1},
+      pausedAt: DateTime(2026, 9, 18),
+    );
+    final target = active.catchUpTarget(DateTime(2026, 9, 25));
+
+    expect(target, isNotNull);
+    expect(target!.firstDayNumber, 2);
+    expect(target.lastDayNumber, 3);
+  });
+
+  test('completed plan has no catch-up target', () {
+    final completedDays = <int>{
+      for (var day = 1; day <= ReadingPlanPreset.quran30.durationDays; day++) day,
+    };
+    final target = plan(completedDays: completedDays).catchUpTarget(
+      DateTime(2026, 11, 20),
+    );
+
+    expect(target, isNull);
+  });
 }

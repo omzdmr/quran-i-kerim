@@ -88,6 +88,28 @@ class ReadingPlanScheduleStatus {
   bool get isOnTrack => !isBehind && !isAhead;
 }
 
+/// A contiguous catch-up slice from the first unfinished plan day through the
+/// current scheduled day. This does not mutate the user's plan or silently
+/// mark missed work complete; it only gives the UI a deterministic recovery
+/// target that can be opened in Reader and explicitly completed by the user.
+class ReadingPlanCatchUpTarget {
+  const ReadingPlanCatchUpTarget({
+    required this.firstDayNumber,
+    required this.lastDayNumber,
+    required this.startPage,
+    required this.endPage,
+  });
+
+  final int firstDayNumber;
+  final int lastDayNumber;
+  final int startPage;
+  final int endPage;
+
+  int get dayCount => lastDayNumber - firstDayNumber + 1;
+  int get pageCount => endPage - startPage + 1;
+  bool get spansMultipleDays => dayCount > 1;
+}
+
 class ActiveReadingPlan {
   const ActiveReadingPlan({
     required this.preset,
@@ -131,6 +153,27 @@ class ActiveReadingPlan {
   }
 
   double get progress => completedPrefixDays / preset.durationDays;
+
+  /// Returns the work needed to catch the contiguous plan schedule up through
+  /// today. When the user is on-track or ahead this is simply the next day.
+  /// While paused the frozen schedule day is respected, so pausing never grows
+  /// the recovery target in the background.
+  ReadingPlanCatchUpTarget? catchUpTarget(DateTime now) {
+    final first = nextDayNumber;
+    if (first == null) return null;
+    final status = scheduleStatus(now);
+    final last = status.calendarDayNumber < first
+        ? first
+        : status.calendarDayNumber.clamp(first, preset.durationDays).toInt();
+    final firstSlice = readingPlanDay(preset, first);
+    final lastSlice = readingPlanDay(preset, last);
+    return ReadingPlanCatchUpTarget(
+      firstDayNumber: first,
+      lastDayNumber: last,
+      startPage: firstSlice.startPage,
+      endPage: lastSlice.endPage,
+    );
+  }
 
   ReadingPlanScheduleStatus scheduleStatus(DateTime now) {
     final originalStart = readingPlanDateOnly(startedAt);
