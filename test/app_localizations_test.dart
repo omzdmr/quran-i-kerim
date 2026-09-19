@@ -17,16 +17,24 @@ void main() {
     }
   });
 
-  test('five initial interface languages are enabled', () {
+  test('six initial interface languages are enabled', () {
     final codes = AppLocalizations.supportedLocales
         .map((locale) => locale.languageCode)
         .toSet();
-    expect(codes, containsAll(<String>['tr', 'en', 'ar', 'az', 'ru']));
+    expect(codes, containsAll(<String>['tr', 'en', 'ar', 'az', 'ru', 'fr']));
   });
 
   test('Arabic interface has an Arabic Quran title', () {
     final l10n = AppLocalizations(const Locale('ar'));
     expect(l10n.appTitle, contains('القرآن'));
+  });
+
+  test('French interface resolves French core copy without fallback', () {
+    final l10n = AppLocalizations(const Locale('fr'));
+    expect(l10n.appTitle, 'Coran');
+    expect(l10n.navHome, 'Accueil');
+    expect(l10n.navDiscover, 'Découvrir');
+    expect(l10n.language, 'Langue de l’application');
   });
 
   test('primary legacy feature copy exists in every locale', () {
