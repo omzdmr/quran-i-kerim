@@ -36,6 +36,16 @@ Purpose: implement missing capabilities from PRODUCT_MASTER_SPEC.
 - Does not take over CI/regression work except to observe blockers.
 - Before landing anything, re-check current feature HEAD and CI state.
 
+### Language & Localization
+Purpose: own full-app locale expansion and multilingual infrastructure without competing with general feature work.
+- Owns `automation/localization-language`.
+- Primary write scope: `lib/src/l10n/`, localization resolver/picker, locale metadata, localization tests, localization docs, script/font/BCP-47 language metadata and language-coverage QA.
+- French (`fr`) full-app locale is the immediate priority.
+- May update shared UI strings only to route existing user-visible copy through localization; it must not redesign feature behavior or layouts.
+- Quran meaning/audio content remains subject to GREEN/YELLOW/BLOCKED rights gates; this role may wire catalog metadata/gates but must not invent rights.
+- If a locale change requires broader feature behavior changes, leave a handoff for Feature Development instead of editing unrelated feature logic.
+- Before landing, re-check feature HEAD and CI state.
+
 ### iOS Parity
 Purpose: continuously build and verify the native iOS side without competing with shared Flutter feature work.
 - Owns `automation/ios-parity`.
@@ -49,6 +59,7 @@ Purpose: continuously build and verify the native iOS side without competing wit
 ## Branch ownership
 - Integration/product branch: `feature/localization-v01`.
 - Feature staging: `automation/feature-roadmap`.
+- Language/localization staging: `automation/localization-language`.
 - iOS parity staging: `automation/ios-parity`.
 - CI/regression staging if needed: `automation/ci-regression-fix`.
 - Research should normally commit docs directly to feature with `[skip ci]`, after re-reading current HEAD.
