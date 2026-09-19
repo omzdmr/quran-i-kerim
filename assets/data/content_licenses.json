@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "policies": [
+    {
+      "assetId": "provider:quranenc:translations",
+      "contentType": "translation",
+      "sourceUrl": "https://quranenc.com/",
+      "rightsHolder": "Per-edition translator/publisher as identified by QuranEnc",
+      "licenseId": "QuranEnc Terms and Policies",
+      "permissionEvidence": "https://quranenc.com/en/home/about/terms-and-conditions",
+      "commercialAllowed": null,
+      "adsAllowed": null,
+      "redistributionAllowed": true,
+      "offlineAllowed": true,
+      "modificationAllowed": false,
+      "attributionRequired": true,
+      "attributionText": "Publisher, QuranEnc.com source and version must be shown.",
+      "derivativeAllowed": false,
+      "cacheLimit": "No explicit cache duration recorded; source requires keeping translations updated.",
+      "updateRequirement": "Update translations according to the latest version issued by QuranEnc.com.",
+      "status": "YELLOW",
+      "releaseConstraints": [
+        "Do not modify, add to, or delete translation content.",
+        "Show publisher, QuranEnc.com source, and version.",
+        "Do not include inappropriate advertisements when displaying translations.",
+        "Obtain/record explicit ad-supported commercial permission before promotion to GREEN."
+      ]
+    },
+    {
+      "assetId": "provider:islamic-network:translations",
+      "contentType": "translation",
+      "sourceUrl": "https://alquran.cloud/",
+      "rightsHolder": "Per-edition rights holder",
+      "licenseId": "UNVERIFIED_PER_EDITION",
+      "permissionEvidence": null,
+      "commercialAllowed": null,
+      "adsAllowed": null,
+      "redistributionAllowed": null,
+      "offlineAllowed": null,
+      "modificationAllowed": null,
+      "attributionRequired": true,
+      "attributionText": null,
+      "derivativeAllowed": null,
+      "cacheLimit": null,
+      "updateRequirement": null,
+      "status": "YELLOW",
+      "releaseConstraints": [
+        "Do not expose as production-eligible until edition-specific commercial/ad-supported redistribution permission is recorded."
+      ]
+    }
+  ]
+}
