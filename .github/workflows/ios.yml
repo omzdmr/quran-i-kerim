@@ -71,12 +71,12 @@ jobs:
         continue-on-error: true
         run: flutter test
 
-      # A device archive cannot be produced on CI without a real Apple team and
-      # provisioning profile. Simulator compilation is the signing-independent
-      # native parity gate and still exercises Xcode, CocoaPods/SPM and plugins.
+      # iOS Simulator supports debug/profile compilation, not release mode.
+      # This is our signing-independent native compiler/plugin gate; a real
+      # device archive remains a separate Apple signing/provisioning gate.
       - name: Build iOS simulator app
         id: ios_build
-        run: flutter build ios --simulator --release
+        run: flutter build ios --simulator --debug
 
       - name: Verify simulator app output
         run: |
