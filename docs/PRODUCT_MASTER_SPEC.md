@@ -1198,3 +1198,17 @@ Maintain measurable coverage reporting:
 - Missing/blocked sources and exact reason.
 The feature roadmap must regularly advance this catalog/source architecture alongside other product work. It must not be left as a final “localization phase”.
 
+### French full-app locale — required
+French (`fr`) is an approved full application locale, not only a Quran-meaning/content language.
+The French experience must reach the same functional parity as the existing core UI locales:
+- Add `fr` to the supported application locale resolver and locale picker.
+- Complete ARB/gen-l10n coverage for all user-visible UI strings.
+- Cover onboarding, Home, Quran/Reader, Learn, Hifz, Plans, Discover, Profile/Settings, prayer/Qibla, notifications, downloads, backup/privacy, errors, permissions, help and accessibility labels.
+- Extend all typed/feature string layers and remove any hidden five-locale assumptions.
+- Update localization parity/regression tests so French is required wherever core UI locale parity is expected.
+- Use natural French terminology reviewed for Islamic/Quran product context; do not ship raw machine-only production translation.
+- Validate French date/time, pluralization, punctuation, number formatting, search and Dynamic Type/long-string layout.
+- UI French remains independent of Quran meaning editions. A French UI user may select any GREEN content language/edition.
+- French Quran meaning editions and human spoken French translations are separate content-catalog assets and must pass the normal source/license GREEN gate.
+- French support must work offline for bundled UI strings and for any downloaded GREEN content packs.
+
