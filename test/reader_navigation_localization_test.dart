@@ -15,6 +15,7 @@ void main() {
     'readerPageSubtitle',
     'readerGoToJuz',
     'readerGoToPage',
+    'readerReturnToCurrentVerse',
   };
 
   test('reader navigation copy keeps five-locale key parity', () {
