@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../data/translation_catalog.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/generated/generated_app_localizations.dart';
 import '../application/onboarding_controller.dart';
 import '../application/onboarding_defaults.dart';
 import '../application/onboarding_host_controller.dart';
@@ -31,12 +32,13 @@ class QuranOnboardingHost extends StatelessWidget {
 
   Widget _buildStep(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final generated = GeneratedAppLocalizations.of(context)!;
     final flow = controller.flow;
     final isBusy = controller.isApplying || flow.isCompleting;
 
     final (title, options, selectedId, onSelected) = switch (flow.step) {
       OnboardingStep.language => (
-        l10n.text('onboardingLanguageTitle'),
+        generated.onboardingLanguageTitle,
         const <QuranOnboardingOption>[
           QuranOnboardingOption(
             id: 'tr',
@@ -73,13 +75,13 @@ class QuranOnboardingHost extends StatelessWidget {
         controller.selectLanguage,
       ),
       OnboardingStep.translation => (
-        l10n.text('onboardingTranslationTitle'),
+        generated.onboardingTranslationTitle,
         _translationOptions(controller.languageCode),
         controller.quranSourceId,
         controller.selectQuranSource,
       ),
       OnboardingStep.readingGoal => (
-        l10n.text('onboardingReadingGoalTitle'),
+        generated.onboardingReadingGoalTitle,
         onboardingReadingPlanChoices
             .map(
               (preset) => QuranOnboardingOption(
@@ -91,7 +93,7 @@ class QuranOnboardingHost extends StatelessWidget {
             )
             .toList(growable: false),
         controller.readingGoal.id,
-        (id) {
+        (String id) {
           final preset = onboardingReadingPlanChoices.firstWhere(
             (item) => item.id == id,
           );
@@ -99,7 +101,7 @@ class QuranOnboardingHost extends StatelessWidget {
         },
       ),
       OnboardingStep.reciter => (
-        l10n.text('onboardingReciterTitle'),
+        generated.onboardingReciterTitle,
         onboardingReciterChoices
             .map(
               (reciter) => QuranOnboardingOption(
@@ -111,7 +113,7 @@ class QuranOnboardingHost extends StatelessWidget {
             )
             .toList(growable: false),
         controller.reciter.id,
-        (id) {
+        (String id) {
           final reciter = onboardingReciterChoices.firstWhere(
             (item) => item.id == id,
           );
@@ -127,15 +129,15 @@ class QuranOnboardingHost extends StatelessWidget {
       selectedId: selectedId,
       onSelected: isBusy ? (_) {} : onSelected,
       primaryLabel: flow.isLastStep
-          ? l10n.text('onboardingFinish')
-          : l10n.text('onboardingContinue'),
+          ? generated.onboardingFinish
+          : generated.onboardingContinue,
       onPrimary: isBusy
           ? null
           : () async {
               final completed = await controller.applyCurrentAndNext();
               if (completed) onCompleted();
             },
-      secondaryLabel: flow.canGoBack ? l10n.text('onboardingBack') : null,
+      secondaryLabel: flow.canGoBack ? generated.onboardingBack : null,
       onSecondary: flow.canGoBack && !isBusy ? controller.back : null,
     );
   }
