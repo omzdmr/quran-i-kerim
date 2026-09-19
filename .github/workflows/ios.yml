@@ -64,10 +64,15 @@ jobs:
       - name: Analyze shared app without modifying it
         run: flutter analyze lib --no-fatal-infos
 
-      - name: Run tests
+      # Shared Flutter tests are useful evidence, but a shared-code regression must
+      # not prevent this isolated iOS lane from revealing native build failures.
+      - name: Run shared tests
+        id: shared_tests
+        continue-on-error: true
         run: flutter test
 
       - name: Build unsigned iOS app
+        id: ios_build
         run: flutter build ios --release --no-codesign
 
       - name: Verify unsigned app output
@@ -75,11 +80,23 @@ jobs:
           test -d build/ios/iphoneos/Runner.app
           /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" build/ios/iphoneos/Runner.app/Info.plist
           /usr/libexec/PlistBuddy -c "Print :CFBundleDisplayName" build/ios/iphoneos/Runner.app/Info.plist
+          /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes:0" build/ios/iphoneos/Runner.app/Info.plist | grep -qx audio
+          /usr/libexec/PlistBuddy -c "Print :NSLocationWhenInUseUsageDescription" build/ios/iphoneos/Runner.app/Info.plist
+          /usr/libexec/PlistBuddy -c "Print :NSMicrophoneUsageDescription" build/ios/iphoneos/Runner.app/Info.plist
 
       - name: Upload unsigned iOS build for parity inspection
+        if: steps.ios_build.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: quran-i-kerim-ios-unsigned-app
           path: build/ios/iphoneos/Runner.app
           if-no-files-found: error
           retention-days: 7
+
+      - name: Report shared-test gate separately
+        if: steps.shared_tests.outcome == 'failure'
+        run: |
+          echo "Shared Flutter tests failed on this staging snapshot."
+          echo "The native iOS build was still executed so iOS-specific failures are observable."
+          echo "Shared-code correction belongs to CI/Feature ownership; refresh/rebase before landing."
+          exit 1
