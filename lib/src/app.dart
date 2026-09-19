@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'features/onboarding/presentation/onboarding_app_root.dart';
 import 'l10n/app_localizations.dart';
 import 'l10n/generated/generated_app_localizations.dart';
 import 'settings/app_settings.dart';
-import 'shell/app_shell.dart';
 import 'theme/app_theme.dart';
 
 class QuranModernApp extends StatelessWidget {
@@ -46,7 +46,7 @@ class QuranModernApp extends StatelessWidget {
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
             ],
-            home: const AppShell(),
+            home: OnboardingAppRoot(settings: settings),
           ),
         );
       },
