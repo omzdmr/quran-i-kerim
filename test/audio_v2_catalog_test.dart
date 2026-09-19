@@ -47,6 +47,23 @@ void main() {
     expect(translation?.hasAudio, isTrue);
   });
 
+  test('Arabic reciters remain selectable with a translation active', () {
+    final available = quranAudioForSource('russian_kuliev');
+    expect(available.first.id, 'russian_kuliev_audio');
+    expect(
+      available.any((audio) => audio.id == 'arabic_recitation_husary'),
+      isTrue,
+    );
+
+    final config = readerAudioConfigFor(
+      'russian_kuliev',
+      audioId: 'arabic_recitation_husary',
+    );
+    expect(config, isNotNull);
+    expect(config!.id, 'arabic_recitation_husary');
+    expect(config.urlForVerse(1, 1), contains('/ar.husary/1.mp3'));
+  });
+
   test('selected bitrate changes URL and persistent storage identity', () {
     final config = readerAudioConfigFor(
       arabicOriginalSourceId,
