@@ -585,3 +585,126 @@ If a licensed structured corpus supports it:
 ### Library licensing warning
 Open-source application code or a downloadable book file does not prove the underlying book/translation/audio is commercially redistributable. Every title/edition/audio follows the same GREEN/YELLOW/BLOCKED content-provenance gate as Quran content.
 
+## V14 — complaint-driven polish and trust requirements
+
+These requirements come from repeated App Store/Reddit complaints and expectations. They are not optional polish if the corresponding feature ships.
+
+### Zero-friction core actions
+The user must be able to reach the three most common tasks immediately:
+- Check next/all prayer times.
+- Continue Quran from exact last state.
+- Open Qibla.
+Home should surface prayer information and continue-reading prominently. Do not insert promotional/interstitial steps before these core actions.
+Where supported, home-screen widgets, lock-screen surfaces and app shortcuts may expose the same fast paths.
+
+### Notification sovereignty
+Notification permission is a trust contract.
+- Asking for prayer notifications does NOT imply permission for donation prompts, generic motivation, marketing, content recommendations or unrelated religious reminders.
+- Every notification category is separately controllable: adhan, pre-prayer, mosque, plan, hifz review, Ramadan, fasting, daily ayah, learning, community event, app/service notices.
+- Non-essential notification categories default OFF unless explicitly selected during onboarding.
+- A notification inbox/history may show what the app scheduled/sent and why.
+- Provide a single “quiet everything except prayer” preset.
+- Seasonal modes such as Ramadan must not silently enable new notification categories.
+
+### Widget and notification health
+Widgets and prayer notifications are daily-critical surfaces and need diagnostics:
+- Last successful widget refresh.
+- Last prayer schedule generation.
+- Next scheduled notification.
+- Permission/Focus/DND/battery/exact-alarm status.
+- Timezone/location/method used.
+- Manual refresh/rebuild schedule action.
+- Detect stale widget/prayer data after timezone/DST/location changes.
+If a widget cannot refresh due to OS limits, show cached data with a stale indicator rather than blank content where safe.
+
+### No-account-required core
+Core Quran, prayer, Qibla, local plans, bookmarks and offline downloads must work without creating an account.
+- Account/cloud sync is an enhancement, not an entry ticket.
+- User can export local data before signing in.
+- Signing in or out must never silently destroy local progress.
+- Merge/restore choices are explicit.
+
+### Seasonal UI must be opt-in friendly
+Ramadan/seasonal Home adaptations are useful but must not hijack the product:
+- User can dismiss/minimize seasonal cards.
+- Do not replace the normal Home with a bloated Ramadan page.
+- Prayer time and continue-reading remain prominent.
+- Seasonal sponsorship/promo never outranks worship utility.
+
+### Hifz visual-memory support
+Serious hifz users often rely on the exact physical page layout.
+Add optional page-centric revision metadata:
+- Per-page repetition counter, manually incrementable or tied to completed practice loops.
+- Separate “read while looking” vs “recited from memory” session markers.
+- Page-specific private notes/mistake notes.
+- Visual refresh schedule for pages whose oral recall is strong but page-image confidence is weak.
+- Fixed-layout Mushaf identity must be preserved; page numbers/line layout may not silently change after an update.
+- Allow user to choose the exact Mushaf layout used for hifz and keep it pinned.
+- Hifz progress should distinguish memorized coverage from revision freshness and visual-memory confidence.
+
+### Recording library and precise review
+Own-voice recording must not become a pile of anonymous audio files.
+- Dedicated recording library by date, surah/ayah/page/range/session.
+- Rename/tag/favorite recordings.
+- Manual teacher/user mistake markers can attach a timestamp/ayah/word.
+- Tapping a marker replays a short local segment around the marker, not the entire recording from the beginning.
+- Compare current recording with a prior recording or licensed reciter A/B without grading.
+- Optional export/share of a selected recording with explicit user action.
+
+### Practice simplicity mode
+Some serious hifz users explicitly dislike gamification and feature-heavy practice screens.
+Offer a stripped-down practice preset:
+- Mushaf.
+- Hide/reveal.
+- Repeat counter.
+- Record.
+- Self-rate.
+- Next review.
+No XP, animations or unrelated cards. This is an experience preset, not a separate data model.
+
+### Per-Mushaf state
+When multiple Mushaf/riwayah/layout packs exist:
+- Bookmarks, last page, notes, zoom/text settings and hifz page references must retain the Mushaf/layout identity they were created against.
+- Switching Mushaf must never reinterpret a page-number bookmark against another layout.
+- Downloads for multiple Mushafs can queue in background with pause/cancel/resume and clear progress.
+- Content updates must preserve user anchors or migrate them by canonical ayah ID with an explicit compatibility check.
+
+### Rotation and layout continuity
+Repeated complaints show orientation changes can lose place or render the wrong page.
+- Portrait ↔ landscape preserves exact canonical reading position.
+- Font-size changes in flow Reader preserve semantic position.
+- One-page ↔ two-page tablet mode preserves the focused ayah/page.
+- Rotation/page-mode regression tests are release requirements.
+- Right/left physical page identity is preserved in two-page Mushaf mode.
+
+### Built-in manual/help is permanent
+The onboarding tour is not the only documentation.
+- “How this works” remains available from relevant screens and Help.
+- Contextual explanations for prayer methods, notification icons, Mushaf/riwayah, download packs, hifz modes and privacy states.
+- Searchable help.
+- Reset/re-run onboarding or a specific tutorial without resetting user data.
+
+### Performance budgets
+The calm design promise includes speed and battery:
+- Home/core local screens should render from local state immediately; remote catalog refresh is asynchronous.
+- No continuous location polling for prayer times.
+- Widgets, Live Activities and background tasks use conservative refresh schedules.
+- Search indexing/download hashing runs off the critical UI path.
+- Establish regression budgets for cold start, Home first meaningful paint, Reader open, memory growth during long audio and idle battery use.
+- “More features” must not make the common prayer/Quran path feel heavier.
+
+### Respectful monetization
+Repeated reviews show users tolerate funding far better than interruption.
+- Never use a forced-video-ad gate to reveal prayer times/Qibla/continue Quran.
+- No ad after every settings/login action.
+- Purchase/subscription state is cached/restored reliably; a paid/lifetime user is never repeatedly shown ads because restore temporarily failed.
+- If ad-free premium exists, failure to validate entitlement should degrade gracefully and retry, not punish the user.
+- Ad category filtering/reporting must be prominent enough to handle inappropriate creatives quickly.
+
+### Feature feedback loop
+Users value developers who actually implement sensible feedback.
+- In-app feature request/feedback entry grouped by screen/module.
+- Existing roadmap/known-issue status can be shown in simple terms where practical.
+- Allow the user to attach screenshot/log diagnostics explicitly.
+- Do not automatically attach religious activity history, notes, recordings or precise location.
+
