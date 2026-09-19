@@ -816,3 +816,85 @@ A recurring Hifz complaint is having to reselect surah/ayah every session.
 - Persist exact program, Mushaf layout, range, repetition stage, review queue and audio choices.
 - Session restore is migration-tested and works offline.
 
+## V16 — routine integrity, qada planning and source transparency
+
+### Prayer tracker states must be semantically distinct
+Do not collapse different user-entered states into one color/status.
+Support clear, user-controlled distinctions such as:
+- prayed/completed
+- completed later / qada
+- pending/missed
+- not tracked / user-chosen exemption state when appropriate
+The app does not issue a religious verdict about the user. It records the state the user selects.
+- History/calendar views must visually distinguish states without relying on color alone.
+- Accessibility labels must speak the state.
+- Stats explain exactly what each metric counts.
+- Editing historical status is easy and auditable locally.
+
+### Qada debt planning for large histories
+A user with months/years of qada should not have to create thousands of entries one by one.
+When the user explicitly chooses to use qada tracking:
+- Allow estimated/bulk initialization by date range or user-entered totals.
+- Batch-complete/edit periods or counts.
+- Show per-prayer totals and an overall total.
+- Adjustable private daily/weekly qada goal.
+- Deterministic projected completion date based on the user’s chosen pace.
+- Manual corrections and import/export.
+- Distinguish estimated historical totals from individually logged records.
+- Optional app-icon/widget remaining-count badge only with explicit opt-in because it may expose sensitive worship information.
+- No shame language, public comparison or hasanat scoring.
+
+### Arabic display profile across modules
+A user’s Arabic reading preferences should feel coherent across Quran, Dua, Adhkar, Hadith and guides where technically valid:
+- Arabic font/script preference when the content supports that script.
+- Text size, line spacing, diacritic visibility and theme.
+- Transliteration display preference.
+- Do not pretend a non-Quran Arabic text is a Quranic Mushaf script when that rendering is not semantically appropriate.
+- Module-specific override remains possible.
+- Update/migration must not reset these preferences.
+
+### Adhkar/dua routine integrity
+Users build muscle memory around routine order. Updates must not casually break it.
+- Canonical sourced morning/evening/routine packs are versioned.
+- If upstream source content/order changes, show a changelog rather than silently deleting/reordering items.
+- Preserve a user-pinned/custom order separately from canonical source order.
+- Missing/withdrawn content receives a transparent source notice.
+- Users can save their own private routine assembled from GREEN sourced items plus clearly labeled personal additions.
+- Continue/resume position within a routine may be restored locally.
+- Audio failure in one dua must not block navigating to the next item.
+- Offline routine content remains usable after app update.
+
+### Source and tradition transparency for religious library content
+Do not disguise provenance to look universally agreed when it is not.
+For Hadith, dua, fiqh guides, tafsir, seerah and similar sourced material, metadata should expose as applicable:
+- Original collection/source.
+- Hadith reference and grading/source of grading.
+- Scholar/editor/translator/commentator.
+- Madhab/school/tradition/context when materially relevant.
+- Edition/version and publisher.
+- Language/translation identity.
+The app may provide filters but must not algorithmically rank theological traditions or imply one is superior.
+No anonymous “daily hadith” or religious quote where the source cannot be inspected.
+
+### Basic source verification remains accessible
+If the app includes a Hadith/source lookup feature:
+- Basic exact-reference/source lookup should not be blocked by an immediate trial wall if the underlying licensed corpus is available locally.
+- Premium may fund advanced library tooling or additional licensed collections, but source identity/authenticity metadata for displayed content remains visible.
+- Never use a paid AI answer as the only way to inspect the source of religious content.
+
+### Cross-module Arabic rendering integrity
+The Arabic shaping integrity contract applies beyond canonical Quran text:
+- Lam-alif and common ligatures must not be broken by font/update regressions.
+- Diacritics cannot collide/disappear due to line-height clipping.
+- RTL punctuation/numerals/reference markers should remain readable.
+- Golden/reference rendering tests cover representative Quran, dua, adhkar and Hadith samples for supported fonts/scripts.
+
+### Update stability over novelty
+Repeated app-store complaints show redesigns often break long-established routines.
+Before replacing a widely used screen/flow:
+- Preserve the task path and stored user preferences.
+- Run migration/state restoration tests.
+- Prefer staged rollout/feature flag where practical.
+- Document material behavior changes in release notes/in-app changelog.
+- Do not remove a frequently used translation/script/routine merely because a new design has a different default.
+
