@@ -10,11 +10,19 @@ class ReadingPlanSnapshot {
     this.active,
     this.savedPresetIds = const <String>{},
     this.completed = const <CompletedReadingPlan>[],
+    this.redistributionTargetEndDate,
   });
 
   final ActiveReadingPlan? active;
   final Set<String> savedPresetIds;
   final List<CompletedReadingPlan> completed;
+
+  /// User-selected end date for missed-day redistribution.
+  ///
+  /// This is intentionally plan state, not derived schedule state: choosing a
+  /// recovery window must survive process death/restore without silently
+  /// marking any reading day complete.
+  final DateTime? redistributionTargetEndDate;
 }
 
 class ReadingPlanStore {
@@ -22,10 +30,6 @@ class ReadingPlanStore {
 
   static const preferenceKey = 'reading_plan_state_v1';
 
-  /// Lightweight process-local signal for surfaces that mirror plan state.
-  ///
-  /// SharedPreferences stays the source of truth. The signal only tells
-  /// already-mounted screens to reload after a plan write or backup restore.
   static final ValueNotifier<int> changes = ValueNotifier<int>(0);
 
   static void notifyExternalChange() {
@@ -71,6 +75,7 @@ class ReadingPlanStore {
       active: current.active,
       savedPresetIds: saved,
       completed: current.completed,
+      redistributionTargetEndDate: current.redistributionTargetEndDate,
     );
     await _save(next);
     return next;
@@ -84,6 +89,7 @@ class ReadingPlanStore {
       active: active.pause(now ?? DateTime.now()),
       savedPresetIds: current.savedPresetIds,
       completed: current.completed,
+      redistributionTargetEndDate: current.redistributionTargetEndDate,
     );
     await _save(next);
     return next;
@@ -95,6 +101,41 @@ class ReadingPlanStore {
     if (active == null || !active.isPaused) return current;
     final next = ReadingPlanSnapshot(
       active: active.resume(now ?? DateTime.now()),
+      savedPresetIds: current.savedPresetIds,
+      completed: current.completed,
+      redistributionTargetEndDate: current.redistributionTargetEndDate,
+    );
+    await _save(next);
+    return next;
+  }
+
+  Future<ReadingPlanSnapshot> setRedistributionTargetEndDate(
+    DateTime targetEndDate, {
+    DateTime? now,
+  }) async {
+    final current = await load();
+    final active = current.active;
+    if (active == null) return current;
+    final today = readingPlanDateOnly(now ?? DateTime.now());
+    final target = readingPlanDateOnly(targetEndDate);
+    if (target.isBefore(today)) {
+      throw ArgumentError.value(targetEndDate, 'targetEndDate', 'Must not be before today.');
+    }
+    final next = ReadingPlanSnapshot(
+      active: active,
+      savedPresetIds: current.savedPresetIds,
+      completed: current.completed,
+      redistributionTargetEndDate: target,
+    );
+    await _save(next);
+    return next;
+  }
+
+  Future<ReadingPlanSnapshot> clearRedistributionTargetEndDate() async {
+    final current = await load();
+    if (current.redistributionTargetEndDate == null) return current;
+    final next = ReadingPlanSnapshot(
+      active: current.active,
       savedPresetIds: current.savedPresetIds,
       completed: current.completed,
     );
@@ -131,6 +172,7 @@ class ReadingPlanStore {
       active: active.copyWith(completedDays: completedDays),
       savedPresetIds: current.savedPresetIds,
       completed: current.completed,
+      redistributionTargetEndDate: current.redistributionTargetEndDate,
     );
     await _save(next);
     return next;
@@ -219,10 +261,17 @@ class ReadingPlanStore {
       }
     }
 
+    DateTime? redistributionTargetEndDate;
+    if (active != null) {
+      final parsed = DateTime.tryParse(json['redistributionTargetEndDate']?.toString() ?? '');
+      if (parsed != null) redistributionTargetEndDate = readingPlanDateOnly(parsed);
+    }
+
     return ReadingPlanSnapshot(
       active: active,
       savedPresetIds: saved,
       completed: completed.take(20).toList(growable: false),
+      redistributionTargetEndDate: redistributionTargetEndDate,
     );
   }
 
@@ -239,6 +288,9 @@ class ReadingPlanStore {
               'pausedAt': active.pausedAt == null ? null : _date(active.pausedAt!),
               'pausedDays': active.pausedDays,
             },
+      'redistributionTargetEndDate': snapshot.redistributionTargetEndDate == null
+          ? null
+          : _date(snapshot.redistributionTargetEndDate!),
       'saved': snapshot.savedPresetIds.toList()..sort(),
       'completed': <Object?>[
         for (final item in snapshot.completed)
