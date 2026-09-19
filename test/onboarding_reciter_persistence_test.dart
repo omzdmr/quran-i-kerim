@@ -12,6 +12,8 @@ void main() {
     SharedPreferences.setMockInitialValues(const <String, Object>{});
   });
 
+  // Regression: the reciter step comes after the meal step, so Reader must
+  // resolve the chosen Arabic reciter without requiring Arabic reading mode.
   test('onboarding reciter follows the selected translation into Reader', () async {
     final settings = AppSettings();
     await settings.load();
