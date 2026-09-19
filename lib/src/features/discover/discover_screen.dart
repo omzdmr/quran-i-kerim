@@ -13,26 +13,7 @@ class DiscoverScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final l10n = context.l10n;
-    final cards = [
-      (
-        l10n.text('patience'),
-        const Color(0xFF6F533F),
-        Icons.hourglass_bottom_rounded,
-      ),
-      (
-        l10n.text('anxiety'),
-        const Color(0xFF8A620D),
-        Icons.psychology_alt_outlined,
-      ),
-      (l10n.text('anger'), const Color(0xFF493884), Icons.whatshot_outlined),
-      (l10n.text('hope'), const Color(0xFF7B1737), Icons.wb_sunny_outlined),
-      (l10n.text('gratitude'), const Color(0xFF795C5A), Icons.favorite_outline),
-      (l10n.text('peace'), const Color(0xFF25658A), Icons.spa_outlined),
-      (l10n.text('fear'), const Color(0xFF747113), Icons.shield_outlined),
-      (l10n.text('family'), const Color(0xFF4A7080), Icons.groups_outlined),
-    ];
 
     void openPrayer() {
       HapticFeedback.selectionClick();
@@ -81,19 +62,6 @@ class DiscoverScreen extends StatelessWidget {
             style: Theme.of(context).textTheme.headlineLarge,
           ),
           const SizedBox(height: 26),
-          TextField(
-            decoration: InputDecoration(
-              hintText: l10n.text('discoverSearchHint'),
-              prefixIcon: const Icon(Icons.search_rounded, size: 29),
-              filled: true,
-              fillColor: scheme.surfaceContainer,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(24),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-          const SizedBox(height: 18),
           _PrayerFeatureCard(
             onTap: openPrayer,
             title: l10n.text('prayerTimes'),
@@ -106,23 +74,10 @@ class DiscoverScreen extends StatelessWidget {
             onTap: openQibla,
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _Shortcut(
-                  Icons.touch_app_outlined,
-                  l10n.text('dhikrCounter'),
-                  onTap: openDhikr,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _Shortcut(
-                  Icons.nights_stay_outlined,
-                  l10n.text('morningEvening'),
-                ),
-              ),
-            ],
+          _Shortcut(
+            Icons.touch_app_outlined,
+            l10n.text('dhikrCounter'),
+            onTap: openDhikr,
           ),
           const SizedBox(height: 12),
           Row(
@@ -145,64 +100,10 @@ class DiscoverScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _Shortcut(
-                  Icons.auto_stories_outlined,
-                  l10n.text('tafsirs'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _Shortcut(
-                  Icons.headphones_outlined,
-                  l10n.text('audioQuran'),
-                  onTap: openAudioQuran,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 28),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: cards.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 1.6,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-            ),
-            itemBuilder: (context, index) {
-              final card = cards[index];
-              return Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: card.$2,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Stack(
-                  children: [
-                    Align(
-                      alignment: Alignment.bottomLeft,
-                      child: Text(
-                        card.$1,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                    Align(
-                      alignment: Alignment.topRight,
-                      child: Icon(card.$3, size: 40, color: Colors.white70),
-                    ),
-                  ],
-                ),
-              );
-            },
+          _Shortcut(
+            Icons.headphones_outlined,
+            l10n.text('audioQuran'),
+            onTap: openAudioQuran,
           ),
         ],
       ),
@@ -274,11 +175,11 @@ class _PrayerFeatureCard extends StatelessWidget {
 }
 
 class _Shortcut extends StatelessWidget {
-  const _Shortcut(this.icon, this.label, {this.onTap});
+  const _Shortcut(this.icon, this.label, {required this.onTap});
 
   final IconData icon;
   final String label;
-  final VoidCallback? onTap;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
