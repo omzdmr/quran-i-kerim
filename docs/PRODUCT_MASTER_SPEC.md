@@ -708,3 +708,111 @@ Users value developers who actually implement sensible feedback.
 - Allow the user to attach screenshot/log diagnostics explicitly.
 - Do not automatically attach religious activity history, notes, recordings or precise location.
 
+## V15 — additional complaint-derived reliability and transparency requirements
+
+### Notification deduplication and storm protection
+Prayer notifications must be idempotent.
+- Every scheduled notification has a stable logical key: prayer/date/place/profile/type.
+- Rescheduling after location, timezone, DST, method or app-update changes must cancel/replace the old logical notification instead of stacking duplicates.
+- Add a hard duplicate/storm guard so a bug cannot emit dozens of notifications for one prayer.
+- Diagnostics should show duplicate suppression events and the active schedule.
+- Regression tests cover app update, reboot, timezone change, DST change, location change and method change.
+
+### Settings persistence is sacred
+Users repeatedly report calculation methods or display choices reverting after updates.
+Persist and migration-test:
+- Prayer calculation method, Asr method, per-prayer offsets, high-latitude rule.
+- Hijri offset/moonsighting preference.
+- Quran script/font/layout/Mushaf identity.
+- Translation(s), transliteration visibility and selected reciter/audio profile.
+- Notification profile and Home customization.
+- Accessibility text size/line spacing/contrast.
+An app update may introduce a new default for new users but must not silently overwrite an existing user choice.
+
+### Qibla confidence, calibration and fallback
+A compass sensor can be wrong even when the great-circle Qibla calculation is correct. Never present raw sensor heading as unquestionable truth.
+- Separate computed Qibla bearing from live magnetic-device heading.
+- Show sensor accuracy/calibration state and warn when magnetometer data is unreliable.
+- Provide a simple calibration help flow.
+- Cross-check with map-line/static bearing view that does not depend on live compass orientation.
+- Manual location selection works without sensor access.
+- If heading jumps by a large implausible amount while location is stable, show low-confidence state rather than silently rotating 180 degrees.
+- Qibla screen can expose North/East/West reference markers without clutter.
+- Release tests include known-coordinate bearing fixtures; hardware heading itself is treated as sensor input, not religious certainty.
+
+### Hijri calendar transparency
+Hijri dates can differ by observation authority/region.
+- Always expose selected Hijri source/method and manual offset.
+- Do not silently change the user’s offset after an update.
+- Ramadan/Eid/White Days features use the same selected calendar source consistently.
+- When an official regional sighting source is available, label it by authority and last update.
+- If sources disagree, show the difference instead of pretending there is one universal observed date.
+
+### Content/source continuity across updates
+A new app/content update must not make a user’s chosen translation, Mushaf or reciter mysteriously disappear.
+- If a source is removed for rights, safety or upstream reasons, show a clear migration notice explaining that the edition is unavailable and offer rights-cleared alternatives.
+- Preserve the user’s preference metadata even when a pack is unavailable so it can be restored if rights/source return, unless legal deletion is required.
+- Never silently substitute one translator/edition/reciter for another.
+- Installed GREEN content can update only through versioned manifests/checksums and compatibility validation.
+- User notes/bookmarks remain anchored to canonical ayah IDs when an edition changes.
+
+### Religious text correction pipeline
+Reported Quran/translation/tafsir metadata errors require a high-trust correction workflow.
+- “Report content issue” attaches exact source/edition/version/surah/ayah/field.
+- Canonical Quran text changes are never accepted from ordinary crowd edits.
+- Corrections require verified upstream/source evidence and review.
+- Maintain signed/versioned content patches and change logs.
+- Translation corrections show edition/version history when possible.
+- Emergency bad-pack kill switch may disable download/use, but user receives a transparent notice.
+- Regression test verse counts, IDs, required fields and source checksums after every content update.
+
+### Playback-control ergonomics
+Accidental previous/next-ayah jumps are a real complaint.
+- Play/pause hit target must be clearly separated from previous/next.
+- Landscape, compact-player, large-text and accessibility layouts must preserve safe hit targets.
+- Destructive/navigation audio actions require deliberate taps; no overlapping invisible gesture zones.
+- Media controls include haptic/visual feedback where appropriate.
+- UI tests cover compact iPhone sizes, landscape and Dynamic Type.
+
+### Halal scanner market/factory awareness
+A product name or brand is not globally identical.
+- Evidence should key primarily by barcode/SKU plus market/country/manufacturer/factory/packaging data where available, never by fuzzy product name alone.
+- If identical branding has halal and non-halal regional variants, show the market/factory distinction prominently.
+- Do not merge conflicting barcode/database/OCR results into a single green badge.
+- If barcode evidence says certified but OCR ingredients conflict, downgrade to NEEDS VERIFICATION and show both sources.
+- Duplicate/conflicting community records are surfaced to QA, not randomly selected.
+- Show country/market and last-seen package version when known.
+- Let the user report “my package differs” and attach a product-label photo explicitly.
+
+### Halal scanner privacy and honesty
+Scanner trust requires restraint.
+- Barcode lookup should not require an account.
+- Ingredient images are processed on-device when feasible; cloud OCR requires explicit disclosure/consent and retention policy.
+- Do not collect identity/location merely to classify a grocery product.
+- Never market the scanner as “100% accurate”, “#1” or “scholar-approved” without evidence.
+- Explain the evidence tier and limitations on every result.
+- Search history/favorites remain local by default and can be cleared/exported.
+
+### Subscription and trial anti-dark-pattern rules
+Repeated complaints target apps that appear free but block the core function behind an immediate trial.
+- Never force a trial/payment screen before prayer times, Qibla or Quran.
+- Price, billing period, trial length and renewal terms are visible before purchase.
+- No deceptive close button, countdown or accidental purchase flow.
+- Restore purchase is prominent and reliable.
+- Subscription cancellation/help links are easy to find.
+- If a paid extra is unavailable, core free utility remains functional.
+
+### Simple-mode coexistence
+Some users want a super-app but only use two functions.
+Provide a user-selectable “Sade görünüm” preset:
+- Home emphasizes Continue Quran, prayer times and Qibla plus chosen quick actions.
+- Keşfedin still contains the broader super-app modules.
+- It changes presentation, not feature entitlement or data.
+- User can switch back instantly without losing state.
+
+### Progress resume must be one tap
+A recurring Hifz complaint is having to reselect surah/ayah every session.
+- Home/Learn/Hifz surfaces provide a true “continue current memorization/revision session” state.
+- Persist exact program, Mushaf layout, range, repetition stage, review queue and audio choices.
+- Session restore is migration-tested and works offline.
+
