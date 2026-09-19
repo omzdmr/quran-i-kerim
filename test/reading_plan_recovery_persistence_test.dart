@@ -13,7 +13,7 @@ void main() {
 
   test('redistribution target survives store reload without completing days', () async {
     final started = await store.start(
-      ReadingPlanPreset.thirtyDays,
+      ReadingPlanPreset.quran30,
       now: DateTime(2026, 9, 1),
     );
     expect(started.active?.completedDays, isEmpty);
@@ -32,7 +32,7 @@ void main() {
 
   test('pause and resume preserve selected redistribution window', () async {
     await store.start(
-      ReadingPlanPreset.thirtyDays,
+      ReadingPlanPreset.quran30,
       now: DateTime(2026, 9, 1),
     );
     await store.setRedistributionTargetEndDate(
@@ -51,7 +51,7 @@ void main() {
 
   test('new or stopped plan clears stale redistribution state', () async {
     await store.start(
-      ReadingPlanPreset.thirtyDays,
+      ReadingPlanPreset.quran30,
       now: DateTime(2026, 9, 1),
     );
     await store.setRedistributionTargetEndDate(
@@ -64,7 +64,7 @@ void main() {
     expect(stopped.redistributionTargetEndDate, isNull);
 
     final restarted = await store.start(
-      ReadingPlanPreset.sixtyDays,
+      ReadingPlanPreset.quran90,
       now: DateTime(2026, 9, 21),
     );
     expect(restarted.redistributionTargetEndDate, isNull);
@@ -72,7 +72,7 @@ void main() {
 
   test('past redistribution target is rejected', () async {
     await store.start(
-      ReadingPlanPreset.thirtyDays,
+      ReadingPlanPreset.quran30,
       now: DateTime(2026, 9, 1),
     );
 
