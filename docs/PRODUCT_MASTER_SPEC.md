@@ -493,3 +493,52 @@ Display the exact evidence type and source.
 - Public worship streaks or charity leaderboards.
 These create moderation, privacy, political/editorial and distraction problems that conflict with the product identity.
 
+## V12 — life-stage modes without fragmenting the app
+
+### New Muslim / Foundations mode
+Do not force a new Muslim to understand the entire super-app on day one. Provide an optional guided path that reuses existing verified modules in a sane order:
+- What to do after Shahadah / foundations, only from scholar-reviewed licensed content.
+- Wudu step by step.
+- Salah step by step: positions, what is said, transliteration, verified human audio, what is essential vs optional only when sourced and jurisprudentially labeled.
+- Prayer times and Qibla.
+- Short surahs and prayer duas with memorization aids.
+- Quran for beginners: Arabic/transliteration/meaning, how surah/ayah references work, how to use audio.
+- Basic Islamic calendar, fasting, halal-living and mosque-visit orientation.
+- Arabic/Qaida starter track.
+- Gentle 30/90/365-day learning path assembled from existing lessons; no shame, public streaks or paywall on basic worship learning.
+- User can choose “new to Islam”, “returning/relearning”, or normal experience. This changes guidance/order, not religious content.
+- In-app glossary for common Arabic/Islamic terms.
+- Progress can be hidden/reset without deleting the user’s Quran data.
+
+Optional community support:
+- Show verified local new-Muslim classes/centres when a trustworthy source exists.
+- A future mentor/imam connection must use verified organizations and explicit privacy controls; never random stranger matching.
+- No AI religious Q&A as a substitute for qualified people.
+
+### Private Muslimah worship/cycle mode
+Optional, never assumed from gender, and designed as sensitive data:
+- Period/bleeding/purity dates and user-entered notes.
+- Prayer/fasting status display based only on a clearly selected sourced jurisprudential rule set; do not silently guess madhab or issue rulings.
+- Ramadan missed-fast/qada list and scheduling.
+- Optional ghusl reminder/status.
+- Optional Umrah/Hajj travel planning dates from user-entered cycle data; no medical prediction claims.
+- If general cycle prediction/symptom logging is offered, label it health-estimate only and never medical advice.
+Privacy requirements:
+- Entire module can be disabled and removed.
+- Local-only by default, encrypted/biometric lock option.
+- No ads inside this module.
+- No analytics/ad SDK events containing cycle, purity, prayer eligibility or fasting status.
+- Backup is category-opt-in, encrypted where possible, with clear restore/delete controls.
+- No sharing to family/accountability contacts unless user explicitly exports a specific item.
+- App Home must not reveal sensitive cycle state on lock-screen-like surfaces unless user opted into that exact card/widget.
+
+### Experience presets, not separate apps
+The same codebase can offer optional experience presets:
+- Standard
+- New Muslim / Foundations
+- Hifz-focused
+- Study-focused
+- Family/parent
+- Travel/Ramadan seasonal contexts
+Presets adjust Home cards, quick actions, onboarding and suggested paths only. They must not create incompatible data silos or hide core navigation.
+
