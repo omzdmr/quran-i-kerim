@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:quran_modern/src/features/onboarding/application/onboarding_gate.dart';
-import 'package:quran_modern/src/features/onboarding/presentation/onboarding_startup_gate.dart';
+import 'package:quran_i_kerim/src/features/onboarding/application/onboarding_gate.dart';
+import 'package:quran_i_kerim/src/features/onboarding/presentation/onboarding_startup_gate.dart';
 
 void main() {
   testWidgets('shows onboarding when persisted state is incomplete',
