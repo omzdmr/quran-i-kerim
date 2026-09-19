@@ -64,32 +64,35 @@ jobs:
       - name: Analyze shared app without modifying it
         run: flutter analyze lib --no-fatal-infos
 
-      # Shared Flutter tests are useful evidence, but a shared-code regression must
-      # not prevent this isolated iOS lane from revealing native build failures.
+      # Shared tests are evidence only on this staging branch. A shared asset or
+      # feature regression must not hide the native iOS compiler result.
       - name: Run shared tests
         id: shared_tests
         continue-on-error: true
         run: flutter test
 
-      - name: Build unsigned iOS app
+      # A device archive cannot be produced on CI without a real Apple team and
+      # provisioning profile. Simulator compilation is the signing-independent
+      # native parity gate and still exercises Xcode, CocoaPods/SPM and plugins.
+      - name: Build iOS simulator app
         id: ios_build
-        run: flutter build ios --release --no-codesign
+        run: flutter build ios --simulator --release
 
-      - name: Verify unsigned app output
+      - name: Verify simulator app output
         run: |
-          test -d build/ios/iphoneos/Runner.app
-          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" build/ios/iphoneos/Runner.app/Info.plist
-          /usr/libexec/PlistBuddy -c "Print :CFBundleDisplayName" build/ios/iphoneos/Runner.app/Info.plist
-          /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes:0" build/ios/iphoneos/Runner.app/Info.plist | grep -qx audio
-          /usr/libexec/PlistBuddy -c "Print :NSLocationWhenInUseUsageDescription" build/ios/iphoneos/Runner.app/Info.plist
-          /usr/libexec/PlistBuddy -c "Print :NSMicrophoneUsageDescription" build/ios/iphoneos/Runner.app/Info.plist
+          test -d build/ios/iphonesimulator/Runner.app
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" build/ios/iphonesimulator/Runner.app/Info.plist | grep -qx com.omzdmr.quranIKerim
+          /usr/libexec/PlistBuddy -c "Print :CFBundleDisplayName" build/ios/iphonesimulator/Runner.app/Info.plist | grep -qx "Kur’an-ı Kerim"
+          /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes:0" build/ios/iphonesimulator/Runner.app/Info.plist | grep -qx audio
+          /usr/libexec/PlistBuddy -c "Print :NSLocationWhenInUseUsageDescription" build/ios/iphonesimulator/Runner.app/Info.plist
+          /usr/libexec/PlistBuddy -c "Print :NSMicrophoneUsageDescription" build/ios/iphonesimulator/Runner.app/Info.plist
 
-      - name: Upload unsigned iOS build for parity inspection
+      - name: Upload simulator build for parity inspection
         if: steps.ios_build.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
-          name: quran-i-kerim-ios-unsigned-app
-          path: build/ios/iphoneos/Runner.app
+          name: quran-i-kerim-ios-simulator-app
+          path: build/ios/iphonesimulator/Runner.app
           if-no-files-found: error
           retention-days: 7
 
@@ -97,6 +100,6 @@ jobs:
         if: steps.shared_tests.outcome == 'failure'
         run: |
           echo "Shared Flutter tests failed on this staging snapshot."
-          echo "The native iOS build was still executed so iOS-specific failures are observable."
+          echo "The signing-independent native iOS simulator build was still executed."
           echo "Shared-code correction belongs to CI/Feature ownership; refresh/rebase before landing."
           exit 1
