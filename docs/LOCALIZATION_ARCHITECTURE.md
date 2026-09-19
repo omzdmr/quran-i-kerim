@@ -11,6 +11,7 @@ Bu belge uygulama arayüz dili ile Kuran/meal içerik dilini bilinçli olarak bi
 - العربية (`ar`)
 - Azərbaycanca (`az`)
 - Русский (`ru`)
+- Français (`fr`)
 
 Kullanıcı **Cihaz dilini kullan** seçeneğini kullanabilir veya dili elle sabitleyebilir. Desteklenmeyen cihaz dilinde güvenli genel geri dönüş İngilizcedir. Arapça seçildiğinde Flutter yön sistemi RTL yerleşimi otomatik uygular; ekranlarda elle LTR varsayımı yapılmamalıdır.
 
@@ -71,7 +72,7 @@ Amaç belirli bir dil sayısını pazarlama rakamı olarak kovalamak değildir. 
 
 `feature/localization-v01` dalında:
 
-- beş arayüz dili etkinleştirildi,
+- TR/EN/AR/AZ/RU arayüz dilleri etkinleştirildi; Fransızca (`fr`) tam parity hedefi olarak onaylandı ve sıradaki locale genişletmesidir,
 - cihaz dili otomatik seçimi açıldı,
 - uygulama dili ve okuma metni ayarlarda ayrı bölümlere ayrıldı,
 - Türkçe RWD ile Arapça orijinal arasında okuma tercihi ayarlardan değiştirilebilir hale getirildi,
