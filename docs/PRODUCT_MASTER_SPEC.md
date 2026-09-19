@@ -428,3 +428,68 @@ Every entity stores source, verification status, last-updated time, location pro
 - Janazah nearby notifications are a real standalone use case but require strict privacy and mosque/organizer verification.
 - Do not add generic Islamic news as a core feature: it creates editorial/political/moderation complexity and does not serve the product’s core daily Muslim life utility + Quran learning advantage.
 
+## V11 — community infrastructure and real-world continuity
+These are approved only when they preserve the calm, non-social-feed product philosophy.
+
+### Follow a mosque
+A user may follow selected verified mosques/centres and receive:
+- Official iqamah/Jumuah/Eid timetable changes.
+- Closures, emergency/safety notices and important announcements.
+- Classes, halaqas, youth/family programmes and special events.
+- Event reminders and deep-link/RSVP when a trustworthy registration source exists.
+- Official lecture/video/audio links where rights allow.
+Notifications are granular per mosque and category. No algorithmic feed, engagement ranking or public comments.
+
+### Community events
+Keşfedin may show nearby verified community events:
+- Halaqas, Quran/Arabic classes, family/youth programmes, iftar/suhoor, Eid events, seminars and community service.
+- Every event must have organizer/source, freshness timestamp, venue and cancellation/update path.
+- User-submitted events remain clearly labeled and need verification/moderation before broad distribution.
+- Calendar add/export and reminders are allowed.
+
+### Volunteering opportunities
+Where mosques/registered charities publish trustworthy opportunities, show an opt-in volunteer board:
+- Event logistics, food distribution, teaching support, mosque operations, charity/community-service roles.
+- Role source, organizer, time/location, requirements and safeguarding checks when relevant.
+- Applications should initially deep-link to the official organizer. Do not become an employment/identity-verification platform by accident.
+- Never imply religious merit scoring or public volunteer leaderboards.
+
+### Mosque admin interoperability, not mandatory backend
+Long term, verified mosque admins may claim/update profiles, but the consumer app must also consume public/authorized sources and remain useful without our own universal mosque backend.
+Any admin system needs:
+- Strong mosque identity verification.
+- Role-based access and audit history.
+- Draft/publish, duplicate detection, expiry, cancellation and rollback for time-sensitive announcements/events.
+- Data export and clear ownership.
+Core Quran/prayer remains independent.
+
+### Donations and fundraising
+Mosque/community donation campaigns can be surfaced only from verified official sources.
+- Prefer verified external links/payment providers initially.
+- Show organizer/campaign identity and destination.
+- No custody of user funds, recurring billing, Gift Aid/tax processing or donor CRM until separately approved for legal/security/compliance.
+- Do not rank mosques/charities by donations or turn giving into competition.
+
+### Ramadan continuity
+Keep a year-scoped Ramadan archive:
+- Fasts logged, Quran/khatm progress, personal goals, private reflections, Tarawih/Qiyam if tracked, and user-owned statistics.
+- New Ramadan starts a new period without deleting prior years.
+- Historical Ramadan data stays local/private and never feeds ad profiling.
+- Last 10 Nights mode is time-limited seasonal UI, not permanent Home clutter.
+
+### Local service discovery boundaries
+The super-app may reduce the need for separate directories, but labels must stay semantically correct:
+- A mosque/event/teacher being verified does not imply endorsement of every religious opinion.
+- A business being Muslim-owned does not imply halal certification.
+- A restaurant being community-recommended does not imply official certification.
+- A certification being valid does not imply nutritional/health quality.
+Display the exact evidence type and source.
+
+### Community content deliberately excluded by default
+- Generic Islamic news feed.
+- Public posts/comments/follower graph.
+- Stranger direct messaging.
+- Viral/recommendation engagement algorithms.
+- Public worship streaks or charity leaderboards.
+These create moderation, privacy, political/editorial and distraction problems that conflict with the product identity.
+
