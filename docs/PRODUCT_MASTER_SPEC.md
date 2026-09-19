@@ -898,3 +898,131 @@ Before replacing a widely used screen/flow:
 - Document material behavior changes in release notes/in-app changelog.
 - Do not remove a frequently used translation/script/routine merely because a new design has a different default.
 
+## V17 — context-resume, khatm history, routines and focused-device integration
+
+### Resume the exact task, not just the ayah
+“Continue” must restore the user’s real context.
+Persist recent work sessions with canonical position plus mode-specific state:
+- Reader/Mushaf: layout, ayah/page, selected translation layers, text size/theme.
+- Advanced Study: exact study tab/source/lesson/ayah, not a fallback jump to Mushaf.
+- Hifz: range, repetition stage, review queue, Mushaf identity, audio settings.
+- Audio: reciter, queue/range, playback position/profile.
+- Learn: course/lesson/step/quiz state.
+Home may show one primary Continue card plus a compact recent-history list (for example the last 3–5 distinct contexts) so study users do not lose their place when they switch between reading, listening and study.
+Session restore must work offline and survive updates.
+
+### Khatm archive and annual targets
+Users explicitly ask to count completed khatms over a year.
+- Store each completed khatm as a dated record with plan/source, start/end date, digital/manual coverage metadata and optional private note.
+- Year/month filtering and yearly target such as “3 khatms this year”.
+- Show current pace and remaining amount without public competition or hasanat scoring.
+- Never infer completion from fast scrolling alone.
+- User can correct/archive/delete records.
+- Ramadan khatm can be categorized separately without fragmenting the general archive.
+
+### Physical Mushaf / off-device reading integration
+A user may read on paper and still want one coherent plan.
+- Manual log by page, juz, hizb or canonical ayah range.
+- Clearly mark these entries as user-reported/off-device.
+- Manual reading can advance a chosen khatm/goal only when the user explicitly adds it.
+- Avoid double counting if the same range was read digitally and manually; show source breakdown rather than pretending perfect certainty.
+- Optional quick-entry shortcut/widget for “I read pages X–Y on paper”.
+
+### Custom Quran reading/routine lists
+Collections can become ordered reading routines when the user chooses:
+- Arbitrary ayah ranges across different surahs.
+- Whole surahs.
+- User-defined order.
+- Optional repeat/audio profile per item.
+- Examples may include personal daily wird, revision set, selected salah surahs or sourced ruqyah set, but the app must clearly distinguish a user-created list from a canonical/source-curated routine.
+- Resume within a list, mark complete, duplicate/edit/reorder/export.
+- Curated religious routines require verified sources; arbitrary user lists are simply user organization, not religious endorsement.
+
+### Bookmark/tag navigation integrity
+Every tag/highlight/note/search result that references an ayah must navigate back to the exact canonical ayah and relevant saved context where possible.
+- A tag is not merely a label; it remains a navigable reference.
+- Deleted/migrated content cannot leave silent dead links.
+- Cross-source notes anchor to canonical ayah IDs and show the original edition context.
+
+### Hifz repetition is fully user-controlled
+Do not force a memorization algorithm’s repetition count on every session.
+- Repeat count includes 1 and user-defined values within safe UI limits.
+- Modes: single ayah, ayah-by-ayah range, cumulative pattern, whole selected block, whole surah/juz where practical, no-repeat continuous listening.
+- User can save practice presets.
+- Reverse-order revision remains optional.
+- A broken repeat state must never trap playback on one ayah; state-machine regression tests required.
+
+### Goal pacing and target-date flexibility
+For reading/hifz/study plans:
+- Optional target date.
+- Daily pace derived from remaining work and available days.
+- Ahead/behind indicator with neutral language.
+- Backdate a plan/start point and preserve already-completed work.
+- Extend/continue a goal after its original target without erasing progress.
+- Custom surah/range order.
+- Progress weighting should use meaningful units such as ayah/page/time as appropriate rather than treating very short and very long surahs as equal by default.
+- Missed-day redistribution remains user-controlled and transparent.
+
+### Prayer-window visibility and last-call reminders
+When the selected jurisprudential/calculation source supports it, prayer UI may expose:
+- Start time.
+- End/window boundary used by the app.
+- Time remaining in the current prayer window.
+- Optional “last call” reminder/alarm X minutes before the selected window ends.
+The app must explain the source/rule used for boundaries and must not present disputed jurisprudential details as universal.
+- Per-prayer last-call toggles.
+- iOS uses system alarm capabilities such as AlarmKit only where officially supported and permitted; otherwise use the best documented notification path.
+- Android uses platform-appropriate exact-alarm/notification capabilities under current OS policy.
+- Respect user choice between notification, sound, full adhan and alarm where platform rules allow.
+
+### Watch / wearable standalone essentials
+A wearable should remain useful when the phone is unavailable.
+Where platform permits:
+- Cache/sync at least several days to one month of prayer schedules.
+- Compute prayer times locally from a saved place/method if safe and tested.
+- Next-prayer countdown and complications/widgets.
+- Qibla bearing using the wearable’s sensors with the same accuracy/calibration warnings as phone.
+- Dhikr counter and selected offline adhkar.
+- Prayer tracker / qada quick marking.
+- Audio remote controls; standalone Quran audio only if storage/battery/licensing make sense.
+- Watch changes sync back to the user-owned data store when connectivity returns.
+No dependency on a live server for basic wearable prayer times.
+
+### Widget gallery and preview
+Because widgets are highly requested but easy to make confusing:
+- Provide an in-app Widget Gallery/preview using the user’s actual local prayer/Quran state where platform APIs permit.
+- Categories: next prayer, full-day prayer schedule, countdown, Quran/ayah, continue reading, hifz review, dhikr/fasting seasonal where appropriate.
+- Explain privacy visibility for lock-screen widgets before enabling sensitive states.
+- Widget style/configuration should reuse app design tokens and not become a second inconsistent design system.
+
+### Subscription family sharing
+If paid extras/subscriptions exist:
+- Support Apple/Google family-sharing mechanisms where the store/product type permits and terms are clear.
+- Do not require each family member to buy the same entitlement if the selected plan is explicitly sold as family-shareable.
+- Family entitlement is billing only; private Quran notes, prayer, fasting, cycle, hifz and journal data remain isolated unless separately shared.
+- Restore-purchase logic must handle family entitlement changes gracefully.
+
+### Optional Digital Focus / distraction control
+A super-app may help users protect prayer/study time without turning Quran into punishment.
+Possible opt-in tools, only with official OS APIs:
+- Temporarily shield user-selected distracting apps during a scheduled Quran study session or chosen prayer window.
+- “Mindful pause” before opening selected apps: user may choose a short breathing/Quran/dhikr prompt, but completing worship must not be gamified as a compulsory moral score.
+- Easy/compassionate mode and emergency bypass to avoid hostile lock-in.
+- No hidden monitoring of other-app content.
+- Screen Time / FamilyControls / Digital Wellbeing permissions explained clearly.
+- Child/family controls require parent authorization and must not leak religious activity.
+This is optional focus infrastructure, never required for Quran/prayer functionality.
+
+### Modern navigation expectations
+User complaints about tapping through many pages imply:
+- Every long surah/study corpus has direct ayah/page/juz/hizb navigation where the source supports it.
+- Recent searches and recent study positions are available locally.
+- Navigation actions respond immediately; blank intermediate pages/freezes are regressions.
+- English/localized numerals may be optionally displayed alongside Arabic ayah numerals for users learning the script, without altering canonical text.
+
+### Product principle reinforced
+All-in-one breadth is acceptable only when the common path stays calm:
+- A user who only wants Quran + prayer + Qibla can live almost entirely in Home, Quran and a compact prayer surface.
+- A study-focused user can resume directly into Study without being bounced through Mushaf.
+- Advanced modules remain discoverable in Keşfedin/search, not sprayed across every screen.
+
