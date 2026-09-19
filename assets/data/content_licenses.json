@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "policies": [
+    {
+      "assetId": "provider:quranenc:translations",
+      "contentType": "translation",
+      "sourceUrl": "https://quranenc.com/",
+      "rightsHolder": "Per-edition translator/publisher as identified by QuranEnc",
+      "licenseId": "QuranEnc Terms and Policies",
+      "permissionEvidence": "https://quranenc.com/en/home/about/terms-and-conditions",
+      "commercialAllowed": true,
+      "adsAllowed": true,
+      "redistributionAllowed": true,
+      "offlineAllowed": true,
+      "modificationAllowed": false,
+      "attributionRequired": true,
+      "attributionText": "Publisher and QuranEnc.com source must be shown with version information.",
+      "derivativeAllowed": false,
+      "cacheLimit": "No explicit cache duration stated; keep content updated to latest source version.",
+      "updateRequirement": "Update translations according to the latest version issued by QuranEnc.com.",
+      "status": "GREEN",
+      "releaseConstraints": [
+        "Do not modify, add to, or delete translation content.",
+        "Show publisher, QuranEnc.com source, and version.",
+        "Do not place inappropriate advertisements when displaying Quran translations."
+      ]
+    },
+    {
+      "assetId": "provider:islamic-network:translations",
+      "contentType": "translation",
+      "sourceUrl": "https://alquran.cloud/",
+      "rightsHolder": "Per-edition rights holder",
+      "licenseId": "UNVERIFIED_PER_EDITION",
+      "permissionEvidence": null,
+      "commercialAllowed": false,
+      "adsAllowed": false,
+      "redistributionAllowed": false,
+      "offlineAllowed": false,
+      "modificationAllowed": false,
+      "attributionRequired": true,
+      "attributionText": null,
+      "derivativeAllowed": false,
+      "cacheLimit": null,
+      "updateRequirement": null,
+      "status": "YELLOW",
+      "releaseConstraints": [
+        "Do not expose in production catalogue until edition-specific commercial/ad-supported redistribution permission is recorded."
+      ]
+    }
+  ]
+}
