@@ -69,6 +69,27 @@ void main() {
     );
   });
 
+  testWidgets('Essential mode never shrinks a larger platform text scale', (tester) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'reader_experience_preset_v1': 'essential',
+    });
+    final settings = AppSettings();
+    await settings.load();
+
+    await tester.pumpWidget(QuranModernApp(settings: settings));
+    await tester.pump();
+
+    final mediaQueries = tester.widgetList<MediaQuery>(find.byType(MediaQuery));
+    expect(
+      mediaQueries.any(
+        (widget) => widget.data.textScaler.scale(16) / 16 >= 2,
+      ),
+      isTrue,
+    );
+  });
+
   testWidgets('app enforces the preset minimum interface scale', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{
       'reader_experience_preset_v1': 'essential',
