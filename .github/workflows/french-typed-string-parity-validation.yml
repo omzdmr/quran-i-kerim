@@ -1,0 +1,81 @@
+name: French typed string parity validation
+
+on:
+  push:
+    branches: [ manual/french-typed-string-parity ]
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.2'
+          channel: stable
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Format localization slice
+        run: |
+          dart format \
+            lib/src/l10n/strings/backup_strings.dart \
+            lib/src/l10n/strings/home_quick_action_strings.dart \
+            lib/src/l10n/strings/home_recent_reading_strings.dart \
+            lib/src/l10n/strings/home_verse_strings.dart \
+            lib/src/l10n/strings/learn_catalog_strings.dart \
+            lib/src/l10n/strings/learn_reference_strings.dart \
+            lib/src/l10n/strings/learn_strings.dart \
+            lib/src/l10n/strings/prayer_notification_diagnostics_strings.dart \
+            lib/src/l10n/strings/prayer_notification_strings.dart \
+            lib/src/l10n/strings/reader_audio_transport_strings.dart \
+            lib/src/l10n/strings/reader_media_strings.dart \
+            lib/src/l10n/strings/reader_navigation_strings.dart \
+            lib/src/l10n/strings/reader_note_strings.dart \
+            test/french_typed_string_parity_test.dart
+
+      - name: Persist formatter output
+        run: |
+          TARGETS=(
+            lib/src/l10n/strings/backup_strings.dart
+            lib/src/l10n/strings/home_quick_action_strings.dart
+            lib/src/l10n/strings/home_recent_reading_strings.dart
+            lib/src/l10n/strings/home_verse_strings.dart
+            lib/src/l10n/strings/learn_catalog_strings.dart
+            lib/src/l10n/strings/learn_reference_strings.dart
+            lib/src/l10n/strings/learn_strings.dart
+            lib/src/l10n/strings/prayer_notification_diagnostics_strings.dart
+            lib/src/l10n/strings/prayer_notification_strings.dart
+            lib/src/l10n/strings/reader_audio_transport_strings.dart
+            lib/src/l10n/strings/reader_media_strings.dart
+            lib/src/l10n/strings/reader_navigation_strings.dart
+            lib/src/l10n/strings/reader_note_strings.dart
+            test/french_typed_string_parity_test.dart
+          )
+          if git diff --quiet -- "${TARGETS[@]}"; then
+            echo "Formatter made no target-file changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${TARGETS[@]}"
+          git commit -m "style(l10n): format French typed strings [skip ci]"
+          git push origin HEAD:manual/french-typed-string-parity
+
+      - name: Run French typed parity test
+        run: timeout 180s flutter test test/french_typed_string_parity_test.dart --reporter expanded
+
+      - name: Run general feature parity test
+        run: timeout 120s flutter test test/feature_strings_test.dart --reporter expanded
+
+      - name: Run Plans parity test
+        run: timeout 120s flutter test test/plan_strings_test.dart --reporter expanded
