@@ -25,6 +25,13 @@ class ReadingPlanSnapshot {
   int completedInYear(int year) =>
       completed.where((item) => item.completedAt.year == year).length;
 
+  int completedInYearBySource(int year, KhatmCompletionSource source) =>
+      completed
+          .where(
+            (item) => item.completedAt.year == year && item.source == source,
+          )
+          .length;
+
   int remainingForYear(int year) {
     final target = yearlyKhatmTarget;
     if (target == null) return 0;
@@ -104,6 +111,77 @@ class ReadingPlanStore {
       throw RangeError.index(index, current.completed, 'index');
     }
     final completed = current.completed.toList(growable: true)..removeAt(index);
+    final next = ReadingPlanSnapshot(
+      active: current.active,
+      savedPresetIds: current.savedPresetIds,
+      completed: List<CompletedReadingPlan>.unmodifiable(completed),
+      yearlyKhatmTarget: current.yearlyKhatmTarget,
+      redistributionTargetEndDate: current.redistributionTargetEndDate,
+    );
+    await _save(next);
+    return next;
+  }
+
+  Future<ReadingPlanSnapshot> addManualCompletedKhatm({
+    DateTime? startedAt,
+    required DateTime completedAt,
+    String? note,
+    DateTime? now,
+  }) async {
+    final current = await load();
+    final today = readingPlanDateOnly(now ?? DateTime.now());
+    final end = readingPlanDateOnly(completedAt);
+    final start = startedAt == null ? null : readingPlanDateOnly(startedAt);
+    _validateManualKhatmDates(start: start, end: end, today: today);
+
+    final history = <CompletedReadingPlan>[
+      CompletedReadingPlan(
+        startedAt: start,
+        completedAt: end,
+        source: KhatmCompletionSource.manualOffDevice,
+        note: _normalizeNote(note),
+      ),
+      ...current.completed,
+    ];
+    final next = ReadingPlanSnapshot(
+      active: current.active,
+      savedPresetIds: current.savedPresetIds,
+      completed: List<CompletedReadingPlan>.unmodifiable(history),
+      yearlyKhatmTarget: current.yearlyKhatmTarget,
+      redistributionTargetEndDate: current.redistributionTargetEndDate,
+    );
+    await _save(next);
+    return next;
+  }
+
+  Future<ReadingPlanSnapshot> updateManualCompletedKhatmAt(
+    int index, {
+    DateTime? startedAt,
+    required DateTime completedAt,
+    String? note,
+    DateTime? now,
+  }) async {
+    final current = await load();
+    if (index < 0 || index >= current.completed.length) {
+      throw RangeError.index(index, current.completed, 'index');
+    }
+    final existing = current.completed[index];
+    if (!existing.isManualOffDevice) {
+      throw StateError('Only manual/off-device khatm records can be edited.');
+    }
+
+    final today = readingPlanDateOnly(now ?? DateTime.now());
+    final end = readingPlanDateOnly(completedAt);
+    final start = startedAt == null ? null : readingPlanDateOnly(startedAt);
+    _validateManualKhatmDates(start: start, end: end, today: today);
+
+    final completed = current.completed.toList(growable: true);
+    completed[index] = CompletedReadingPlan(
+      startedAt: start,
+      completedAt: end,
+      source: KhatmCompletionSource.manualOffDevice,
+      note: _normalizeNote(note),
+    );
     final next = ReadingPlanSnapshot(
       active: current.active,
       savedPresetIds: current.savedPresetIds,
@@ -364,20 +442,33 @@ class ReadingPlanStore {
     if (rawCompleted is List) {
       for (final item in rawCompleted) {
         if (item is! Map) continue;
+        final source = KhatmCompletionSource.fromId(item['source']?.toString());
         final preset = ReadingPlanPreset.fromId(item['preset']?.toString());
-        final startedAt = DateTime.tryParse(
+        final parsedStart = DateTime.tryParse(
           item['startedAt']?.toString() ?? '',
         );
-        final completedAt = DateTime.tryParse(
+        final parsedCompleted = DateTime.tryParse(
           item['completedAt']?.toString() ?? '',
         );
-        if (preset == null || startedAt == null || completedAt == null)
+        if (parsedCompleted == null) continue;
+
+        final startedAt = parsedStart == null
+            ? null
+            : readingPlanDateOnly(parsedStart);
+        final completedAt = readingPlanDateOnly(parsedCompleted);
+        if (startedAt != null && startedAt.isAfter(completedAt)) continue;
+        if (source == KhatmCompletionSource.readingPlan &&
+            (preset == null || startedAt == null)) {
           continue;
+        }
+
         completed.add(
           CompletedReadingPlan(
-            preset: preset,
-            startedAt: readingPlanDateOnly(startedAt),
-            completedAt: readingPlanDateOnly(completedAt),
+            preset: source == KhatmCompletionSource.readingPlan ? preset : null,
+            startedAt: startedAt,
+            completedAt: completedAt,
+            source: source,
+            note: _decodeNote(item['note']?.toString()),
           ),
         );
       }
@@ -436,14 +527,57 @@ class ReadingPlanStore {
       'completed': <Object?>[
         for (final item in snapshot.completed)
           <String, Object?>{
-            'preset': item.preset.id,
-            'startedAt': _date(item.startedAt),
+            'source': item.source.id,
+            'preset': item.preset?.id,
+            'startedAt': item.startedAt == null ? null : _date(item.startedAt!),
             'completedAt': _date(item.completedAt),
+            'note': item.note,
           },
       ],
     };
     await prefs.setString(preferenceKey, jsonEncode(json));
     notifyExternalChange();
+  }
+
+  void _validateManualKhatmDates({
+    required DateTime? start,
+    required DateTime end,
+    required DateTime today,
+  }) {
+    if (end.isAfter(today)) {
+      throw ArgumentError.value(
+        end,
+        'completedAt',
+        'Must not be in the future.',
+      );
+    }
+    if (start != null && start.isAfter(end)) {
+      throw ArgumentError.value(
+        start,
+        'startedAt',
+        'Must not be after the completion date.',
+      );
+    }
+  }
+
+  String? _decodeNote(String? value) {
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty) return null;
+    if (trimmed.length <= 300) return trimmed;
+    return trimmed.substring(0, 300);
+  }
+
+  String? _normalizeNote(String? value) {
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty) return null;
+    if (trimmed.length > 300) {
+      throw ArgumentError.value(
+        value,
+        'note',
+        'Must be at most 300 characters.',
+      );
+    }
+    return trimmed;
   }
 
   String _date(DateTime value) {

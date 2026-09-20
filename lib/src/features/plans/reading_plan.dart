@@ -195,8 +195,8 @@ class ActiveReadingPlan {
     final livePauseDays = pauseDate == null
         ? 0
         : today.difference(pauseDate).inDays > 0
-            ? today.difference(pauseDate).inDays
-            : 0;
+        ? today.difference(pauseDate).inDays
+        : 0;
 
     return ReadingPlanScheduleStatus(
       calendarDayNumber: calendarDay,
@@ -225,7 +225,9 @@ class ActiveReadingPlan {
     final pauseDate = pausedAt;
     if (pauseDate == null) return this;
     final resumeDate = readingPlanDateOnly(now);
-    final pausedFor = resumeDate.difference(readingPlanDateOnly(pauseDate)).inDays;
+    final pausedFor = resumeDate
+        .difference(readingPlanDateOnly(pauseDate))
+        .inDays;
     return ActiveReadingPlan(
       preset: preset,
       startedAt: startedAt,
@@ -243,16 +245,53 @@ class ActiveReadingPlan {
   );
 }
 
+enum KhatmCompletionSource {
+  readingPlan,
+  manualOffDevice;
+
+  String get id => switch (this) {
+    readingPlan => 'readingPlan',
+    manualOffDevice => 'manualOffDevice',
+  };
+
+  static KhatmCompletionSource fromId(String? id) => switch (id) {
+    'manualOffDevice' => KhatmCompletionSource.manualOffDevice,
+    _ => KhatmCompletionSource.readingPlan,
+  };
+}
+
 class CompletedReadingPlan {
   const CompletedReadingPlan({
-    required this.preset,
-    required this.startedAt,
     required this.completedAt,
+    this.preset,
+    this.startedAt,
+    this.source = KhatmCompletionSource.readingPlan,
+    this.note,
   });
 
-  final ReadingPlanPreset preset;
-  final DateTime startedAt;
+  final ReadingPlanPreset? preset;
+  final DateTime? startedAt;
   final DateTime completedAt;
+  final KhatmCompletionSource source;
+  final String? note;
+
+  bool get isManualOffDevice => source == KhatmCompletionSource.manualOffDevice;
+
+  CompletedReadingPlan copyWith({
+    DateTime? startedAt,
+    bool clearStartedAt = false,
+    DateTime? completedAt,
+    String? note,
+    bool clearNote = false,
+  }) {
+    return CompletedReadingPlan(
+      preset: preset,
+      startedAt: clearStartedAt ? null : (startedAt ?? this.startedAt),
+      completedAt: completedAt ?? this.completedAt,
+      source: source,
+      note: clearNote ? null : (note ?? this.note),
+    );
+  }
 }
 
 DateTime readingPlanDateOnly(DateTime value) =>

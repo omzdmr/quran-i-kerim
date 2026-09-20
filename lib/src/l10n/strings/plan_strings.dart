@@ -57,6 +57,29 @@ const planStrings = <String, Map<String, String>>{
     'plansArchiveDeleteBodyV1':
         'Bu tamamlanma kaydı arşivden silinecek ve yıllık sayım güncellenecek.',
     'plansArchiveDeleteActionV1': 'Kaydı sil',
+    'plansArchiveEditActionV1': 'Kaydı düzenle',
+    'plansManualKhatmAddV1': 'Manuel hatim ekle',
+    'plansManualKhatmEditV1': 'Manuel hatmi düzenle',
+    'plansManualKhatmDialogTitleV1': 'Cihaz dışı hatim ekle',
+    'plansManualKhatmExplanationV1':
+        'Basılı mushaf veya uygulama dışında tamamladığın hatmi kendin kaydedebilirsin. Bu kayıt açıkça manuel olarak işaretlenir.',
+    'plansManualKhatmCompletedDateV1': 'Tamamlanma tarihi',
+    'plansManualKhatmStartDateV1': 'Başlangıç tarihi',
+    'plansManualKhatmStartOptionalV1': 'İsteğe bağlı',
+    'plansManualKhatmClearStartV1': 'Başlangıç tarihini kaldır',
+    'plansManualKhatmNoteV1': 'Özel not',
+    'plansManualKhatmNoteHintV1': 'İsteğe bağlı, yalnızca sana ait bir not',
+    'plansManualKhatmDateErrorV1':
+        'Başlangıç tarihi tamamlanma tarihinden sonra olamaz.',
+    'plansManualKhatmSaveV1': 'Hatmi kaydet',
+    'plansManualKhatmAddedV1': 'Manuel hatim arşive eklendi.',
+    'plansManualKhatmUpdatedV1': 'Manuel hatim güncellendi.',
+    'plansManualKhatmArchiveTitleV1': 'Manuel hatim',
+    'plansManualKhatmSourceV1': 'Manuel • cihaz dışı',
+    'plansPlanKhatmSourceV1': 'Uygulama okuma planı',
+    'plansKhatmStartedOnV1': 'Başlangıç: {date}',
+    'plansYearlyKhatmSourceBreakdownV1':
+        '{plan} uygulama planı • {manual} manuel',
   },
   'en': <String, String>{
     'plansSearchHintV1': 'Search plans',
@@ -117,6 +140,28 @@ const planStrings = <String, Map<String, String>>{
     'plansArchiveDeleteBodyV1':
         'This completion record will be removed from the archive and yearly totals will update.',
     'plansArchiveDeleteActionV1': 'Delete record',
+    'plansArchiveEditActionV1': 'Edit record',
+    'plansManualKhatmAddV1': 'Add manual khatm',
+    'plansManualKhatmEditV1': 'Edit manual khatm',
+    'plansManualKhatmDialogTitleV1': 'Add off-device khatm',
+    'plansManualKhatmExplanationV1':
+        'Record a khatm completed with a physical Mushaf or outside the app. It will be clearly marked as user-reported.',
+    'plansManualKhatmCompletedDateV1': 'Completion date',
+    'plansManualKhatmStartDateV1': 'Start date',
+    'plansManualKhatmStartOptionalV1': 'Optional',
+    'plansManualKhatmClearStartV1': 'Clear start date',
+    'plansManualKhatmNoteV1': 'Private note',
+    'plansManualKhatmNoteHintV1': 'Optional note stored only with your record',
+    'plansManualKhatmDateErrorV1':
+        'The start date cannot be after the completion date.',
+    'plansManualKhatmSaveV1': 'Save khatm',
+    'plansManualKhatmAddedV1': 'Manual khatm added to the archive.',
+    'plansManualKhatmUpdatedV1': 'Manual khatm updated.',
+    'plansManualKhatmArchiveTitleV1': 'Manual khatm',
+    'plansManualKhatmSourceV1': 'Manual • off-device',
+    'plansPlanKhatmSourceV1': 'App reading plan',
+    'plansKhatmStartedOnV1': 'Started: {date}',
+    'plansYearlyKhatmSourceBreakdownV1': '{plan} app-plan • {manual} manual',
   },
   'ar': <String, String>{
     'plansSearchHintV1': 'ابحث في الخطط',
@@ -175,6 +220,29 @@ const planStrings = <String, Map<String, String>>{
     'plansArchiveDeleteBodyV1':
         'سيُحذف سجل الإكمال من الأرشيف وسيتم تحديث مجموع السنة.',
     'plansArchiveDeleteActionV1': 'حذف السجل',
+    'plansArchiveEditActionV1': 'تعديل السجل',
+    'plansManualKhatmAddV1': 'إضافة ختمة يدوية',
+    'plansManualKhatmEditV1': 'تعديل الختمة اليدوية',
+    'plansManualKhatmDialogTitleV1': 'إضافة ختمة خارج الجهاز',
+    'plansManualKhatmExplanationV1':
+        'يمكنك تسجيل ختمة أكملتها من مصحف ورقي أو خارج التطبيق. سيظهر بوضوح أنها مدخلة يدويًا.',
+    'plansManualKhatmCompletedDateV1': 'تاريخ الإكمال',
+    'plansManualKhatmStartDateV1': 'تاريخ البدء',
+    'plansManualKhatmStartOptionalV1': 'اختياري',
+    'plansManualKhatmClearStartV1': 'إزالة تاريخ البدء',
+    'plansManualKhatmNoteV1': 'ملاحظة خاصة',
+    'plansManualKhatmNoteHintV1': 'ملاحظة اختيارية خاصة بهذا السجل',
+    'plansManualKhatmDateErrorV1':
+        'لا يمكن أن يكون تاريخ البدء بعد تاريخ الإكمال.',
+    'plansManualKhatmSaveV1': 'حفظ الختمة',
+    'plansManualKhatmAddedV1': 'تمت إضافة الختمة اليدوية إلى الأرشيف.',
+    'plansManualKhatmUpdatedV1': 'تم تحديث الختمة اليدوية.',
+    'plansManualKhatmArchiveTitleV1': 'ختمة يدوية',
+    'plansManualKhatmSourceV1': 'يدوي • خارج الجهاز',
+    'plansPlanKhatmSourceV1': 'خطة قراءة داخل التطبيق',
+    'plansKhatmStartedOnV1': 'البدء: {date}',
+    'plansYearlyKhatmSourceBreakdownV1':
+        '{plan} من خطط التطبيق • {manual} يدوية',
   },
   'az': <String, String>{
     'plansSearchHintV1': 'Plan axtar',
@@ -234,6 +302,29 @@ const planStrings = <String, Map<String, String>>{
     'plansArchiveDeleteBodyV1':
         'Bu tamamlanma qeydi arxivdən silinəcək və illik say yenilənəcək.',
     'plansArchiveDeleteActionV1': 'Qeydi sil',
+    'plansArchiveEditActionV1': 'Qeydi düzəlt',
+    'plansManualKhatmAddV1': 'Əl ilə xətm əlavə et',
+    'plansManualKhatmEditV1': 'Əl ilə xətmi düzəlt',
+    'plansManualKhatmDialogTitleV1': 'Cihazdan kənar xətm əlavə et',
+    'plansManualKhatmExplanationV1':
+        'Kağız Mushafla və ya tətbiqdən kənarda tamamladığınız xətmi özünüz qeyd edə bilərsiniz. Qeyd açıq şəkildə əl ilə daxil edilmiş kimi göstərilir.',
+    'plansManualKhatmCompletedDateV1': 'Tamamlanma tarixi',
+    'plansManualKhatmStartDateV1': 'Başlanğıc tarixi',
+    'plansManualKhatmStartOptionalV1': 'İstəyə bağlı',
+    'plansManualKhatmClearStartV1': 'Başlanğıc tarixini sil',
+    'plansManualKhatmNoteV1': 'Şəxsi qeyd',
+    'plansManualKhatmNoteHintV1': 'Bu qeydə aid istəyə bağlı şəxsi qeyd',
+    'plansManualKhatmDateErrorV1':
+        'Başlanğıc tarixi tamamlanma tarixindən sonra ola bilməz.',
+    'plansManualKhatmSaveV1': 'Xətmi saxla',
+    'plansManualKhatmAddedV1': 'Əl ilə xətm arxivə əlavə edildi.',
+    'plansManualKhatmUpdatedV1': 'Əl ilə xətm yeniləndi.',
+    'plansManualKhatmArchiveTitleV1': 'Əl ilə xətm',
+    'plansManualKhatmSourceV1': 'Əl ilə • cihazdan kənar',
+    'plansPlanKhatmSourceV1': 'Tətbiq oxu planı',
+    'plansKhatmStartedOnV1': 'Başlanğıc: {date}',
+    'plansYearlyKhatmSourceBreakdownV1':
+        '{plan} tətbiq planı • {manual} əl ilə',
   },
   'ru': <String, String>{
     'plansSearchHintV1': 'Поиск планов',
@@ -294,5 +385,28 @@ const planStrings = <String, Map<String, String>>{
     'plansArchiveDeleteBodyV1':
         'Запись о завершении будет удалена из архива, а годовой итог обновится.',
     'plansArchiveDeleteActionV1': 'Удалить запись',
+    'plansArchiveEditActionV1': 'Изменить запись',
+    'plansManualKhatmAddV1': 'Добавить хатм вручную',
+    'plansManualKhatmEditV1': 'Изменить ручной хатм',
+    'plansManualKhatmDialogTitleV1': 'Добавить хатм вне приложения',
+    'plansManualKhatmExplanationV1':
+        'Можно записать хатм, завершённый по бумажному Мусхафу или вне приложения. Такая запись будет явно помечена как введённая вручную.',
+    'plansManualKhatmCompletedDateV1': 'Дата завершения',
+    'plansManualKhatmStartDateV1': 'Дата начала',
+    'plansManualKhatmStartOptionalV1': 'Необязательно',
+    'plansManualKhatmClearStartV1': 'Убрать дату начала',
+    'plansManualKhatmNoteV1': 'Личная заметка',
+    'plansManualKhatmNoteHintV1':
+        'Необязательная заметка только для этой записи',
+    'plansManualKhatmDateErrorV1':
+        'Дата начала не может быть позже даты завершения.',
+    'plansManualKhatmSaveV1': 'Сохранить хатм',
+    'plansManualKhatmAddedV1': 'Ручной хатм добавлен в архив.',
+    'plansManualKhatmUpdatedV1': 'Ручной хатм обновлён.',
+    'plansManualKhatmArchiveTitleV1': 'Ручной хатм',
+    'plansManualKhatmSourceV1': 'Вручную • вне приложения',
+    'plansPlanKhatmSourceV1': 'План чтения в приложении',
+    'plansKhatmStartedOnV1': 'Начало: {date}',
+    'plansYearlyKhatmSourceBreakdownV1': '{plan} из планов • {manual} вручную',
   },
 };
