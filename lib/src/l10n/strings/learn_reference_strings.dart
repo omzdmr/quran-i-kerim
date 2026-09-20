@@ -74,6 +74,28 @@ const learnReferenceStrings = <String, Map<String, String>>{
     'learnReferenceMethodSummaryV1': 'Как текст интерфейса отделяется от религиозного содержимого, полученного из источников.',
     'learnReferenceMethodBodyV1': 'Вводные фразы, навигация, повторение и итог в разделе обучения описывают только ход урока. Арабский текст аята приходит из источника Корана, а смысл — из выбранного пакета перевода. Шаг с пояснением появляется только при наличии примечания от самого поставщика; иначе пояснение не создаётся. Шаг с хадисом не добавляется без отдельного проверенного источника хадисов.',
   },
+  'fr': <String, String>{
+    'learnReferenceSectionTitleV1': 'Références',
+    'learnReferenceSectionBodyV1':
+        'Découvrez l’origine du texte coranique, des traductions et du contenu d’apprentissage, ainsi que la manière dont les sources sont préservées dans l’application.',
+    'learnReferenceCategoryV1': 'SOURCE',
+    'learnReferenceOpenSourceV1': 'Ouvrir la source officielle',
+    'learnReferenceTanzilTitleV1': 'Source du texte coranique',
+    'learnReferenceTanzilSummaryV1':
+        'La source, la licence et le lien de mise à jour du texte arabe.',
+    'learnReferenceTanzilBodyV1':
+        'Le texte arabe du Coran dans l’application provient des données Tanzil Project Simple (Plain) utilisées par le package quran. Le texte est affiché sans modification. Tanzil est indiqué comme source et l’application renvoie vers la source officielle afin de pouvoir suivre les mises à jour. Le texte coranique Tanzil est distribué sous licence Creative Commons Attribution 3.0.',
+    'learnReferenceQuranEncTitleV1': 'Sources des traductions et des notes',
+    'learnReferenceQuranEncSummaryV1':
+        'Pourquoi les métadonnées d’éditeur, de source et de version sont conservées pour les traductions QuranEnc.',
+    'learnReferenceQuranEncBodyV1':
+        'Le texte des traductions et les notes rédigées par le fournisseur QuranEnc ne sont pas réécrits par l’application. Les packs conservent l’éditeur, la source QuranEnc.com et les métadonnées de version. QuranEnc exige que les traductions republiées restent inchangées, indiquent l’éditeur et la source, précisent la version et soient tenues à jour.',
+    'learnReferenceMethodTitleV1': 'Sources des leçons',
+    'learnReferenceMethodSummaryV1':
+        'Comment les textes de navigation rédigés par l’application restent séparés du contenu religieux sourcé.',
+    'learnReferenceMethodBodyV1':
+        'Les introductions, la navigation, les révisions et les résumés des leçons décrivent uniquement le déroulement de la leçon. Le texte arabe des versets provient de la source coranique et leur sens provient du pack de traduction sélectionné. Une étape d’explication apparaît uniquement si le fournisseur a fourni sa propre note ; sinon, aucune explication n’est générée. Aucune étape de hadith n’est ajoutée sans source de hadith distincte et vérifiée.',
+  },
 };
 
 String learnReferenceText(String languageCode, String key) =>
