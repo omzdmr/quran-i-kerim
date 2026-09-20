@@ -30,6 +30,10 @@ const planStrings = <String, Map<String, String>>{
     'plansScheduleAheadV1': '{count} gün ileride',
     'plansScheduleDayV1': 'Takvim günü {day} / {total}',
     'plansScheduledEndV1': 'Planlanan bitiş: {date}',
+    'plansRecoveryTitleV1': 'Telafi okuması',
+    'plansRecoveryBodyV1': '{days} günlük birikim için {pages} sayfalık telafi bölümü hazır.',
+    'plansRecoveryOpenV1': 'Telafiyi aç',
+    'plansRecoveryCompleteV1': 'Telafiyi tamamlandı işaretle',
   },
   'en': <String, String>{
     'plansSearchHintV1': 'Search plans',
@@ -62,6 +66,10 @@ const planStrings = <String, Map<String, String>>{
     'plansScheduleAheadV1': '{count} days ahead',
     'plansScheduleDayV1': 'Schedule day {day} of {total}',
     'plansScheduledEndV1': 'Planned finish: {date}',
+    'plansRecoveryTitleV1': 'Catch-up reading',
+    'plansRecoveryBodyV1': 'A {pages}-page catch-up section is ready for {days} missed days.',
+    'plansRecoveryOpenV1': 'Open catch-up',
+    'plansRecoveryCompleteV1': 'Mark catch-up complete',
   },
   'ar': <String, String>{
     'plansSearchHintV1': 'ابحث في الخطط',
@@ -94,6 +102,10 @@ const planStrings = <String, Map<String, String>>{
     'plansScheduleAheadV1': 'متقدم {count} يومًا',
     'plansScheduleDayV1': 'اليوم المجدول {day} من {total}',
     'plansScheduledEndV1': 'النهاية المخططة: {date}',
+    'plansRecoveryTitleV1': 'تعويض الأيام الفائتة',
+    'plansRecoveryBodyV1': 'تم تجهيز {pages} صفحة لتعويض {days} أيام فائتة.',
+    'plansRecoveryOpenV1': 'افتح قراءة التعويض',
+    'plansRecoveryCompleteV1': 'اعتبر التعويض مكتملًا',
   },
   'az': <String, String>{
     'plansSearchHintV1': 'Plan axtar',
@@ -126,6 +138,10 @@ const planStrings = <String, Map<String, String>>{
     'plansScheduleAheadV1': '{count} gün irəlidə',
     'plansScheduleDayV1': 'Cədvəl günü {day} / {total}',
     'plansScheduledEndV1': 'Planlaşdırılan bitiş: {date}',
+    'plansRecoveryTitleV1': 'Buraxılan günləri tamamla',
+    'plansRecoveryBodyV1': '{days} buraxılmış gün üçün {pages} səhifəlik tamamlama bölümü hazırdır.',
+    'plansRecoveryOpenV1': 'Tamamlama oxusunu aç',
+    'plansRecoveryCompleteV1': 'Tamamlamanı bitmiş say',
   },
   'ru': <String, String>{
     'plansSearchHintV1': 'Поиск планов',
@@ -158,5 +174,9 @@ const planStrings = <String, Map<String, String>>{
     'plansScheduleAheadV1': 'Опережение на {count} дн.',
     'plansScheduleDayV1': 'День графика {day} из {total}',
     'plansScheduledEndV1': 'Плановое завершение: {date}',
+    'plansRecoveryTitleV1': 'Наверстать чтение',
+    'plansRecoveryBodyV1': 'Для {days} пропущенных дней подготовлен блок на {pages} стр.',
+    'plansRecoveryOpenV1': 'Открыть наверстывание',
+    'plansRecoveryCompleteV1': 'Отметить наверстывание завершённым',
   },
 };

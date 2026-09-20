@@ -5,6 +5,8 @@ import '../../l10n/app_localizations.dart';
 import '../../navigation/app_navigation.dart';
 import '../reader/reader_navigation.dart';
 import 'reading_plan.dart';
+import 'reading_plan_recovery_coordinator.dart';
+import 'reading_plan_recovery_destination.dart';
 import 'reading_plan_store.dart';
 
 enum _PlansTab { mine, find, saved, completed }
@@ -20,9 +22,12 @@ class _PlansScreenState extends State<PlansScreen> {
   static const _presets = ReadingPlanPreset.values;
 
   final ReadingPlanStore _store = const ReadingPlanStore();
+  final ReadingPlanRecoveryCoordinator _recoveryCoordinator =
+      const ReadingPlanRecoveryCoordinator();
   final TextEditingController _searchController = TextEditingController();
 
   ReadingPlanSnapshot _snapshot = const ReadingPlanSnapshot();
+  ReadingPlanRecoveryDestination? _recoveryDestination;
   _PlansTab _tab = _PlansTab.find;
   bool _loading = true;
   bool _busy = false;
@@ -48,9 +53,13 @@ class _PlansScreenState extends State<PlansScreen> {
 
   Future<void> _load({bool selectActiveTab = true}) async {
     final snapshot = await _store.load();
+    final recovery = snapshot.active == null
+        ? null
+        : await _recoveryCoordinator.currentDestination();
     if (!mounted) return;
     setState(() {
       _snapshot = snapshot;
+      _recoveryDestination = recovery;
       _loading = false;
       if (selectActiveTab && snapshot.active != null) _tab = _PlansTab.mine;
     });
@@ -144,12 +153,18 @@ class _PlansScreenState extends State<PlansScreen> {
   Future<void> _completeNextDay() async {
     final active = _snapshot.active;
     if (_busy || active?.nextDay == null || active!.isPaused) return;
-    final finishing =
-        active.completedPrefixDays + 1 >= active.preset.durationDays;
+    final now = DateTime.now();
+    final schedule = active.scheduleStatus(now);
+    final catchUp = schedule.isBehind ? active.catchUpTarget(now) : null;
+    final completeThroughDay = catchUp?.lastDayNumber;
+    final finishing = (completeThroughDay ?? active.completedPrefixDays + 1) >=
+        active.preset.durationDays;
     HapticFeedback.mediumImpact();
     setState(() => _busy = true);
     try {
-      final snapshot = await _store.completeNextDay();
+      final snapshot = completeThroughDay == null
+          ? await _store.completeNextDay(now: now)
+          : await _store.completeThroughDay(completeThroughDay, now: now);
       if (!mounted) return;
       setState(() {
         _snapshot = snapshot;
@@ -162,6 +177,16 @@ class _PlansScreenState extends State<PlansScreen> {
   }
 
   void _openNextDay() {
+    final recovery = _recoveryDestination;
+    if (recovery != null) {
+      HapticFeedback.selectionClick();
+      AppNavigation.instance.openReader(
+        surah: recovery.surah,
+        ayah: recovery.ayah,
+      );
+      return;
+    }
+
     final day = _snapshot.active?.nextDay;
     if (day == null) return;
     final target = firstVerseForPage(day.startPage);
@@ -300,8 +325,12 @@ class _PlansScreenState extends State<PlansScreen> {
         ),
       );
     }
+    final now = DateTime.now();
+    final schedule = active.scheduleStatus(now);
+    final catchUpTarget = schedule.isBehind ? active.catchUpTarget(now) : null;
     return _ActivePlanCard(
       active: active,
+      catchUpTarget: catchUpTarget,
       busy: _busy,
       onRead: _openNextDay,
       onComplete: _completeNextDay,
@@ -493,6 +522,7 @@ class _PresetCard extends StatelessWidget {
 class _ActivePlanCard extends StatelessWidget {
   const _ActivePlanCard({
     required this.active,
+    required this.catchUpTarget,
     required this.busy,
     required this.onRead,
     required this.onComplete,
@@ -501,6 +531,7 @@ class _ActivePlanCard extends StatelessWidget {
   });
 
   final ActiveReadingPlan active;
+  final ReadingPlanCatchUpTarget? catchUpTarget;
   final bool busy;
   final VoidCallback onRead;
   final VoidCallback onComplete;
@@ -634,6 +665,40 @@ class _ActivePlanCard extends StatelessWidget {
               ],
             ),
           ),
+          if (catchUpTarget?.spansMultipleDays ?? false) ...[
+            const SizedBox(height: 14),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(13),
+              decoration: BoxDecoration(
+                color: scheme.tertiaryContainer.withValues(alpha: .55),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    value('plansRecoveryTitleV1'),
+                    style: TextStyle(
+                      color: scheme.onTertiaryContainer,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    value('plansRecoveryBodyV1')
+                        .replaceAll('{days}', '${catchUpTarget!.dayCount}')
+                        .replaceAll('{pages}', '${catchUpTarget!.pageCount}'),
+                    style: TextStyle(
+                      color: scheme.onSurfaceVariant,
+                      fontSize: 12,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           LinearProgressIndicator(value: active.progress.clamp(0, 1)),
           const SizedBox(height: 8),
@@ -647,7 +712,13 @@ class _ActivePlanCard extends StatelessWidget {
             child: FilledButton.icon(
               onPressed: busy ? null : onRead,
               icon: const Icon(Icons.menu_book_rounded),
-              label: Text(l10n.text('plansReadTodayV1')),
+              label: Text(
+                l10n.text(
+                  (catchUpTarget?.spansMultipleDays ?? false)
+                      ? 'plansRecoveryOpenV1'
+                      : 'plansReadTodayV1',
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -656,7 +727,13 @@ class _ActivePlanCard extends StatelessWidget {
             child: FilledButton.tonalIcon(
               onPressed: busy || active.isPaused ? null : onComplete,
               icon: const Icon(Icons.check_circle_outline_rounded),
-              label: Text(l10n.text('plansMarkDoneV1')),
+              label: Text(
+                l10n.text(
+                  (catchUpTarget?.spansMultipleDays ?? false)
+                      ? 'plansRecoveryCompleteV1'
+                      : 'plansMarkDoneV1',
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 8),

@@ -178,6 +178,57 @@ class ReadingPlanStore {
     return next;
   }
 
+  Future<ReadingPlanSnapshot> completeThroughDay(
+    int dayNumber, {
+    DateTime? now,
+  }) async {
+    final current = await load();
+    final active = current.active;
+    if (active == null || active.isPaused) return current;
+
+    final firstUnfinished = active.nextDayNumber;
+    if (firstUnfinished == null) return current;
+    if (dayNumber < firstUnfinished || dayNumber > active.preset.durationDays) {
+      throw RangeError.range(
+        dayNumber,
+        firstUnfinished,
+        active.preset.durationDays,
+        'dayNumber',
+      );
+    }
+
+    final completedDays = active.completedDays.toSet();
+    for (var day = firstUnfinished; day <= dayNumber; day++) {
+      completedDays.add(day);
+    }
+
+    if (completedDays.length >= active.preset.durationDays) {
+      final history = <CompletedReadingPlan>[
+        CompletedReadingPlan(
+          preset: active.preset,
+          startedAt: active.startedAt,
+          completedAt: readingPlanDateOnly(now ?? DateTime.now()),
+        ),
+        ...current.completed,
+      ];
+      final next = ReadingPlanSnapshot(
+        savedPresetIds: current.savedPresetIds,
+        completed: history.take(20).toList(growable: false),
+      );
+      await _save(next);
+      return next;
+    }
+
+    final next = ReadingPlanSnapshot(
+      active: active.copyWith(completedDays: completedDays),
+      savedPresetIds: current.savedPresetIds,
+      completed: current.completed,
+      redistributionTargetEndDate: current.redistributionTargetEndDate,
+    );
+    await _save(next);
+    return next;
+  }
+
   Future<ReadingPlanSnapshot> stopActive() async {
     final current = await load();
     if (current.active == null) return current;
