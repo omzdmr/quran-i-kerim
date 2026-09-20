@@ -177,6 +177,23 @@ void main() {
     expect(prefs.getString('reading_plan_state_v1'), isNotNull);
   });
 
+  test('Essential Reader preset survives a current backup round trip', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'reader_experience_preset_v1': 'essential',
+    });
+
+    final sections = await adapter.captureSections();
+    expect(
+      (sections['preferences'] as Map)['reader_experience_preset_v1'],
+      'essential',
+    );
+
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    await adapter.restoreSections(sections);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('reader_experience_preset_v1'), 'essential');
+  });
+
   test('version five restore preserves the new Reader preset', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{
       'reader_experience_preset_v1': 'essential',

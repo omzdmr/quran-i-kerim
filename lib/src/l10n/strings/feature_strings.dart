@@ -11,7 +11,7 @@ const featureStrings = <String, Map<String, String>>{
     'arabicTextSourceSubtitle': 'Tanzil.net · çevrimdışı ve değiştirilmeden',
     'readerAppearance': 'Okuma görünümü',
     'essentialReaderTitle': 'Temel / Büyük Yazılı Okuyucu',
-    'essentialReaderSubtitle': 'Daha büyük yazı ve dokunma alanlarıyla sade bir okuma görünümü. Kayıtların ve özel ayarların değişmez.',
+    'essentialReaderSubtitle': 'Daha büyük yazı ve dokunma alanlarıyla sade bir okuma görünümü. Kayıtların ve özel ayarların değişmeden kalır.',
     'moreActions': 'Diğer işlemler',
     'textSize': 'Metin boyutu',
     'quranTranslationPreview': 'Kuran meali',

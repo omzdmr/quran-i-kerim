@@ -956,9 +956,17 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
             settings.essentialReaderEnabled ? 28 : 22,
             _selectedAyahs.isEmpty ? 118 : 78,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: settings.essentialReaderEnabled
+                    ? 720
+                    : double.infinity,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
               _surahHeader(surah, settings),
               _verseMetadataStrip(),
               if (translationError && !settings.readerUsesArabic)
@@ -1026,7 +1034,9 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                     );
                   },
                 ),
-            ],
+                ],
+              ),
+            ),
           ),
         ),
       ),

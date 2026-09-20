@@ -50,6 +50,21 @@ void main() {
     expect(prefs.getString('reader_experience_preset_v1'), 'standard');
   });
 
+  test('essential preset never shrinks an already larger custom size', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'reader_experience_preset_v1': 'essential',
+      'reader_text_size': 38.0,
+      'reader_line_spacing': 'relaxed',
+    });
+
+    final settings = AppSettings();
+    await settings.load();
+
+    expect(settings.readerTextSize, 38);
+    expect(settings.readerContentTextSize, 38);
+    expect(settings.readerLineSpacing, ReaderLineSpacing.relaxed);
+  });
+
   test('unknown stored preset safely falls back to standard', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{
       'reader_experience_preset_v1': 'future-mode',
