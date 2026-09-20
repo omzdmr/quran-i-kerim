@@ -128,6 +128,18 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceHizbLabelV1': 'Hizb {hizb}',
     'plansOffDeviceAyahRangeLabelV1': 'Ayet {start}–{end}',
     'plansOffDeviceCanonicalRangeV1': 'Kanonik kapsama: {start}–{end}',
+    'plansOffDeviceImpactActionV1': 'Plan etkisini gör',
+    'plansOffDeviceImpactTitleV1': 'Plan etkisi',
+    'plansOffDeviceImpactSummaryV1':
+        'Plan günleri {first}–{last} • {days} gün • {pages} sayfa eşleşiyor',
+    'plansOffDeviceImpactRemainingV1': '{days} kalan plan günü • {pages} sayfa',
+    'plansOffDeviceImpactCompletedV1':
+        '{days} tamamlanmış plan günü • {pages} sayfa',
+    'plansOffDeviceImpactWarningV1':
+        'Bu yalnızca bir önizlemedir. Kayıt plan ilerlemesini değiştirmez. Tamamlanmış plan günlerinde bu okumanın dijital okumayla tekrar olup olmadığını uygulama bilemez. Gösterilen sayfa sayısı, özellikle ayet aralığı kayıtlarında, tam okunan sayfa miktarı değil kaydın dokunduğu Mushaf sayfa aralığıdır.',
+    'plansOffDeviceImpactDayV1': 'Gün {day}',
+    'plansOffDeviceImpactCompletedStatusV1': 'Tamamlanmış',
+    'plansOffDeviceImpactRemainingStatusV1': 'Kalan',
   },
   'en': <String, String>{
     'plansSearchHintV1': 'Search plans',
@@ -258,6 +270,19 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceHizbLabelV1': 'Hizb {hizb}',
     'plansOffDeviceAyahRangeLabelV1': 'Ayahs {start}–{end}',
     'plansOffDeviceCanonicalRangeV1': 'Canonical coverage: {start}–{end}',
+    'plansOffDeviceImpactActionV1': 'Preview plan impact',
+    'plansOffDeviceImpactTitleV1': 'Plan impact',
+    'plansOffDeviceImpactSummaryV1':
+        'Plan days {first}–{last} • {days} days • {pages} pages overlap',
+    'plansOffDeviceImpactRemainingV1':
+        '{days} remaining plan days • {pages} pages',
+    'plansOffDeviceImpactCompletedV1':
+        '{days} completed plan days • {pages} pages',
+    'plansOffDeviceImpactWarningV1':
+        'This is only a preview. The record does not change plan progress. On completed plan days, the app cannot know whether this reading duplicates digital reading. Page counts show the Mushaf page span touched by the record, not necessarily the amount of full pages read, especially for ayah-range entries.',
+    'plansOffDeviceImpactDayV1': 'Day {day}',
+    'plansOffDeviceImpactCompletedStatusV1': 'Completed',
+    'plansOffDeviceImpactRemainingStatusV1': 'Remaining',
   },
   'ar': <String, String>{
     'plansSearchHintV1': 'ابحث في الخطط',
@@ -387,6 +412,19 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceHizbLabelV1': 'الحزب {hizb}',
     'plansOffDeviceAyahRangeLabelV1': 'الآيات {start}–{end}',
     'plansOffDeviceCanonicalRangeV1': 'النطاق المعياري: {start}–{end}',
+    'plansOffDeviceImpactActionV1': 'عرض تأثير الخطة',
+    'plansOffDeviceImpactTitleV1': 'تأثير الخطة',
+    'plansOffDeviceImpactSummaryV1':
+        'أيام الخطة {first}–{last} • {days} يومًا • {pages} صفحة متداخلة',
+    'plansOffDeviceImpactRemainingV1':
+        '{days} أيام متبقية من الخطة • {pages} صفحة',
+    'plansOffDeviceImpactCompletedV1':
+        '{days} أيام مكتملة من الخطة • {pages} صفحة',
+    'plansOffDeviceImpactWarningV1':
+        'هذه معاينة فقط ولا تغيّر تقدم الخطة. في أيام الخطة المكتملة لا يمكن للتطبيق معرفة ما إذا كانت هذه القراءة تكرر قراءة رقمية. عدد الصفحات المعروض يعبّر عن نطاق صفحات المصحف الذي يلامسه السجل، وليس بالضرورة عدد الصفحات الكاملة المقروءة، خصوصًا عند إدخال نطاق من الآيات.',
+    'plansOffDeviceImpactDayV1': 'اليوم {day}',
+    'plansOffDeviceImpactCompletedStatusV1': 'مكتمل',
+    'plansOffDeviceImpactRemainingStatusV1': 'متبقٍ',
   },
   'az': <String, String>{
     'plansSearchHintV1': 'Plan axtar',
@@ -517,6 +555,19 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceHizbLabelV1': 'Hizb {hizb}',
     'plansOffDeviceAyahRangeLabelV1': 'Ayə {start}–{end}',
     'plansOffDeviceCanonicalRangeV1': 'Kanonik aralıq: {start}–{end}',
+    'plansOffDeviceImpactActionV1': 'Plan təsirini göstər',
+    'plansOffDeviceImpactTitleV1': 'Plan təsiri',
+    'plansOffDeviceImpactSummaryV1':
+        'Plan günləri {first}–{last} • {days} gün • {pages} səhifə üst-üstə düşür',
+    'plansOffDeviceImpactRemainingV1':
+        '{days} qalan plan günü • {pages} səhifə',
+    'plansOffDeviceImpactCompletedV1':
+        '{days} tamamlanmış plan günü • {pages} səhifə',
+    'plansOffDeviceImpactWarningV1':
+        'Bu yalnız önbaxışdır və plan irəliləyişini dəyişmir. Tamamlanmış plan günlərində bu oxunun rəqəmsal oxunu təkrarlayıb-təkrarlamadığını tətbiq müəyyən edə bilməz. Göstərilən səhifə sayı, xüsusilə ayə aralığı qeydlərində, tam oxunmuş səhifə miqdarı deyil, qeydin toxunduğu Mushaf səhifə aralığıdır.',
+    'plansOffDeviceImpactDayV1': 'Gün {day}',
+    'plansOffDeviceImpactCompletedStatusV1': 'Tamamlanıb',
+    'plansOffDeviceImpactRemainingStatusV1': 'Qalan',
   },
   'ru': <String, String>{
     'plansSearchHintV1': 'Поиск планов',
@@ -648,5 +699,17 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceHizbLabelV1': 'Хизб {hizb}',
     'plansOffDeviceAyahRangeLabelV1': 'Аяты {start}–{end}',
     'plansOffDeviceCanonicalRangeV1': 'Канонический диапазон: {start}–{end}',
+    'plansOffDeviceImpactActionV1': 'Показать влияние на план',
+    'plansOffDeviceImpactTitleV1': 'Влияние на план',
+    'plansOffDeviceImpactSummaryV1':
+        'Дни плана {first}–{last} • {days} дн. • пересечение: {pages} стр.',
+    'plansOffDeviceImpactRemainingV1':
+        '{days} незавершённых дней • {pages} стр.',
+    'plansOffDeviceImpactCompletedV1': '{days} завершённых дней • {pages} стр.',
+    'plansOffDeviceImpactWarningV1':
+        'Это только предварительный просмотр, запись не меняет прогресс плана. Для уже завершённых дней приложение не может определить, дублирует ли эта запись цифровое чтение. Число страниц показывает диапазон страниц Мусхафа, которого касается запись, а не обязательно количество полностью прочитанных страниц, особенно для диапазона аятов.',
+    'plansOffDeviceImpactDayV1': 'День {day}',
+    'plansOffDeviceImpactCompletedStatusV1': 'Завершён',
+    'plansOffDeviceImpactRemainingStatusV1': 'Осталось',
   },
 };

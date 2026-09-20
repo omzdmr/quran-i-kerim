@@ -308,6 +308,102 @@ class OffDevicePageReadingSession {
       hasCanonicalAyahRange ? '$endSurah:$endAyah' : null;
 }
 
+class OffDevicePlanImpactSegment {
+  const OffDevicePlanImpactSegment({
+    required this.dayNumber,
+    required this.startPage,
+    required this.endPage,
+    required this.completed,
+  });
+
+  final int dayNumber;
+  final int startPage;
+  final int endPage;
+  final bool completed;
+
+  int get pageCount => endPage - startPage + 1;
+}
+
+class OffDevicePlanImpact {
+  const OffDevicePlanImpact({required this.segments});
+
+  final List<OffDevicePlanImpactSegment> segments;
+
+  int get firstDayNumber => segments.first.dayNumber;
+  int get lastDayNumber => segments.last.dayNumber;
+  int get touchedDayCount => segments.length;
+
+  List<int> get completedDayNumbers => List<int>.unmodifiable(
+    segments.where((item) => item.completed).map((item) => item.dayNumber),
+  );
+
+  List<int> get remainingDayNumbers => List<int>.unmodifiable(
+    segments.where((item) => !item.completed).map((item) => item.dayNumber),
+  );
+
+  int get completedDayCount => segments.where((item) => item.completed).length;
+  int get remainingDayCount => segments.where((item) => !item.completed).length;
+
+  int get completedPageCount => segments
+      .where((item) => item.completed)
+      .fold(0, (sum, item) => sum + item.pageCount);
+
+  int get remainingPageCount => segments
+      .where((item) => !item.completed)
+      .fold(0, (sum, item) => sum + item.pageCount);
+
+  int get overlapPageCount =>
+      segments.fold(0, (sum, item) => sum + item.pageCount);
+
+  bool get touchesCompletedDays => completedDayCount > 0;
+  bool get touchesRemainingDays => remainingDayCount > 0;
+}
+
+/// Read-only projection of an off-device reading onto the active plan.
+///
+/// This function never mutates [active] and never credits progress. It only
+/// intersects the session's already-normalized Mushaf page coverage with each
+/// plan day so the UI can explain what an explicit future credit action would
+/// touch.
+OffDevicePlanImpact previewOffDevicePlanImpact(
+  ActiveReadingPlan active,
+  OffDevicePageReadingSession session,
+) {
+  final segments = <OffDevicePlanImpactSegment>[];
+
+  for (
+    var dayNumber = 1;
+    dayNumber <= active.preset.durationDays;
+    dayNumber++
+  ) {
+    final day = readingPlanDay(active.preset, dayNumber);
+    final overlapStart = day.startPage > session.startPage
+        ? day.startPage
+        : session.startPage;
+    final overlapEnd = day.endPage < session.endPage
+        ? day.endPage
+        : session.endPage;
+    if (overlapStart > overlapEnd) continue;
+
+    segments.add(
+      OffDevicePlanImpactSegment(
+        dayNumber: dayNumber,
+        startPage: overlapStart,
+        endPage: overlapEnd,
+        completed: active.completedDays.contains(dayNumber),
+      ),
+    );
+  }
+
+  if (segments.isEmpty) {
+    throw StateError('Off-device reading does not intersect the active plan.');
+  }
+
+  return OffDevicePlanImpact(
+    segments: List<OffDevicePlanImpactSegment>.unmodifiable(segments),
+  );
+}
+
 enum KhatmCompletionSource {
   readingPlan,
   manualOffDevice;
