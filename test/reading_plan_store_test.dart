@@ -1190,5 +1190,4 @@ void main() {
     expect(archived.offDeviceCreditedDayCount, 1);
     expect(archived.appCompletedDayCount, 29);
   });
-
 }

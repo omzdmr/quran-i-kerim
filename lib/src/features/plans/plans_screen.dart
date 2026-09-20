@@ -2247,9 +2247,9 @@ class _CompletedPlanCard extends StatelessWidget {
             children: [
               Text(
                 l10n.text('plansKhatmCreditDetailsTitleV1'),
-                style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+                style: Theme.of(
+                  sheetContext,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 12),
               for (
@@ -2282,10 +2282,7 @@ class _CompletedPlanCard extends StatelessWidget {
                                 '{start}',
                                 event.sourceCanonicalStartKey!,
                               )
-                              .replaceAll(
-                                '{end}',
-                                event.sourceCanonicalEndKey!,
-                              )
+                              .replaceAll('{end}', event.sourceCanonicalEndKey!)
                         : null;
                     return ListTile(
                       contentPadding: EdgeInsets.zero,
@@ -2328,6 +2325,7 @@ class _CompletedPlanCard extends StatelessWidget {
       ),
     );
   }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -2385,10 +2383,7 @@ class _CompletedPlanCard extends StatelessWidget {
               l10n
                   .text('plansKhatmCreditBreakdownV1')
                   .replaceAll('{app}', '${item.appCompletedDayCount}')
-                  .replaceAll(
-                    '{manual}',
-                    '${item.offDeviceCreditedDayCount}',
-                  ),
+                  .replaceAll('{manual}', '${item.offDeviceCreditedDayCount}'),
               style: TextStyle(
                 color: scheme.onSurfaceVariant,
                 fontWeight: FontWeight.w600,

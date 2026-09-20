@@ -493,11 +493,9 @@ class CompletedReadingPlan {
   bool get isManualOffDevice => source == KhatmCompletionSource.manualOffDevice;
   bool get hasOffDeviceCredits => offDeviceCredits.isNotEmpty;
 
-  Set<int> get offDeviceCreditedDayNumbers => Set<int>.unmodifiable(
-    <int>{
-      for (final event in offDeviceCredits) ...event.dayNumbers,
-    },
-  );
+  Set<int> get offDeviceCreditedDayNumbers => Set<int>.unmodifiable(<int>{
+    for (final event in offDeviceCredits) ...event.dayNumbers,
+  });
 
   int get offDeviceCreditedDayCount => offDeviceCreditedDayNumbers.length;
 
