@@ -71,47 +71,37 @@ Recent Plans work:
 
 ## Latest completed feature slice
 
-Explicit off-device → active-plan credit is implemented on top of the
-read-only impact preview:
+Completed-plan off-device credit provenance is preserved and exposed:
 
-- Logging or previewing an off-device record never changes plan progress.
-- The preview now identifies which unfinished plan days are fully covered and
-  which are only partially covered.
-- Full-day eligibility is checked against canonical Quran start/end references,
-  not merely page overlap. An ayah-range entry that touches a plan page without
-  covering the complete plan day cannot be credited.
-- Already-completed plan days are excluded from credit, so overlapping manual
-  and digital reading is never counted twice.
-- A user must first choose the credit action in the impact preview and then
-  confirm a second dialog before any plan day is marked complete.
-- Paused plans cannot receive off-device credit until resumed.
-- Each confirmed credit creates an independent
-  `OffDevicePlanCreditEvent` snapshot inside active `reading_plan_state_v1`,
-  including source date/input/page/canonical coverage and credited day numbers.
-- Editing or deleting the original off-device reading after confirmation does
-  not undo credited progress or its active-plan credit event.
-- A deleted/changed source record cannot be newly credited through a stale UI
-  reference because the store verifies that the source record still exists.
-- Credit can complete the reading plan; normal completed-plan archive behavior
-  then takes over.
-- Credit-event audit detail currently belongs to the active plan. When a plan is
-  fully completed, the existing completed-plan archive keeps the completion but
-  not the per-credit event list. Preserve/extend that provenance deliberately
-  before presenting long-term credit history.
-- Turkish, English, Arabic, Azerbaijani and Russian credit-flow copy remains in
+- A completed app reading plan now retains the immutable
+  `OffDevicePlanCreditEvent` snapshots that contributed to its progress.
+- Provenance is carried into the completed archive whether the plan finishes via
+  a normal next-day/through-day completion or the final explicit off-device
+  credit action.
+- The completed archive shows a read-only source breakdown:
+  in-app completed plan days versus explicitly credited off-device plan days.
+- A read-only source-details sheet exposes credited date, source reading date,
+  Mushaf page span and canonical ayah range for each retained credit event.
+- Editing or deleting the original off-device reading log still does not rewrite
+  already confirmed plan progress or archived provenance.
+- Legacy completed-plan rows without provenance remain valid and load with an
+  empty credit list.
+- Malformed provenance rows are sanitized independently instead of discarding
+  the completed khatm record.
+- Existing `reading_plan_state_v1` remains the persistence/backup unit; no new
+  backend, account or preference key was introduced.
+- Turkish, English, Arabic, Azerbaijani and Russian provenance copy remains in
   localization key parity.
+- The strict credit rule is unchanged: partial overlaps stay informational and
+  already-completed days cannot receive duplicate credit.
 
-Focused plan-credit validation run `35522662840`:
-- bundled content setup, dependency resolution and localization generation
-  passed;
-- formatter completed and its output was persisted to the feature branch;
-- `reading_plan_store_test.dart` passed, including full-day, partial-edge,
-  partial-ayah, duplicate-completed, paused-plan, deleted-source and
-  source-deletion-after-credit cases;
-- `reading_plan_test.dart` passed;
-- `plan_strings_test.dart` localization key parity passed;
-- the focused analyzer remains a non-gating probe because this repository
-  repeatedly stalls in analyzer/import tooling without diagnostics.
+Focused completed-provenance validation run `35527406849` passed:
+- bundled content setup, dependency resolution and localization generation;
+- formatter on all changed source/test files;
+- `reading_plan_store_test.dart`, including normal-finish, final-credit,
+  legacy-row and malformed-provenance cases;
+- `reading_plan_test.dart`;
+- `plan_strings_test.dart` localization key parity.
 
 ## Validation status
 
@@ -127,12 +117,12 @@ Recent full Android validation has a repeatable tooling problem:
 - Treat this as CI/analyzer tooling unless a concrete analyzer diagnostic or
   failing test says otherwise. Do not relabel a timeout as an app regression.
 
-The impact-preview integration head before the explicit-credit slice was
-`7bbcdfdd7e027bdc15e4d9d170733bc82aec2759`.
-Android APK run #549 for that head started normally; newer full Android runs
-continue to be evaluated separately from focused feature validation because the
-main analyzer step has repeatedly stalled without a diagnostic. Inspect the
-newest integrated Actions run before calling the full Android pipeline green.
+The explicit-credit integration head before this provenance slice was
+`84d45530ef966c3d95f0328f97e71f4fdd18eabf`.
+Android APK run #550 for that head completed setup/content/dependency/l10n steps
+and remains in `Analyze app code`, matching the repository's repeated analyzer
+stall. Inspect the newest integrated Actions run before calling the full Android
+pipeline green.
 
 ## Safe continuation checklist
 
@@ -150,24 +140,27 @@ newest integrated Actions run before calling the full Android pipeline green.
 
 ## Immediate next step
 
-Preserve and expose off-device credit provenance without changing its strict
-credit rule:
+Start the required full French application locale as a dedicated localization
+workstream, without mixing partial French into unrelated feature commits:
 
-- Extend completed-plan archive data so a khatm finished with confirmed
-  off-device credits can retain a compact summary/provenance after the active
-  plan is cleared.
-- Keep the detailed source reading independent; do not make completed archive
-  validity depend on the original off-device log still existing.
-- Surface a read-only source breakdown/history where useful, but do not add
-  undo-by-edit semantics that silently rewrite already confirmed progress.
-- Keep partial overlaps informational. Do not invent partial-day progress until
-  a separate explicit partial-progress model and UX exist.
-- Keep completed-day overlap non-creditable.
-- Preserve local-first storage and backup compatibility; migrate older
-  completed archive rows without provenance as valid legacy records.
-- Keep the full French UI localization requirement as a separate localization
-  workstream rather than scattering partial French strings through feature
-  commits.
+- Before editing, inspect any existing localization-language branch/work and the
+  current locale resolver/picker so already-completed French work is not
+  duplicated or overwritten.
+- Add `fr` as a supported application locale independently from Quran meaning
+  language selection.
+- Extend ARB/gen-l10n and every typed/feature string layer; remove hidden
+  five-locale assumptions.
+- Cover the full UI surface: onboarding, Home, Quran/Reader, Learn/Hifz, Plans,
+  Discover, Profile/Settings, prayer/Qibla, notifications, downloads,
+  backup/privacy, errors, permissions, help and accessibility labels.
+- Update parity/regression tests so French is required wherever the existing
+  core UI locales are required.
+- Keep production French human-reviewed/natural for Quran/Islamic product
+  terminology; do not ship raw machine-only translation.
+- Validate offline behavior, date/time/plural formatting and long-string layout.
+- Keep French Quran meaning/audio editions as separate content-catalog assets
+  subject to normal source/license gates.
+
 
 
 Do not restart already completed recovery, notification diagnostics,
