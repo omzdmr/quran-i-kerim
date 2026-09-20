@@ -476,6 +476,7 @@ class CompletedReadingPlan {
     this.startedAt,
     this.source = KhatmCompletionSource.readingPlan,
     this.note,
+    this.offDeviceCredits = const <OffDevicePlanCreditEvent>[],
   });
 
   final ReadingPlanPreset? preset;
@@ -484,7 +485,26 @@ class CompletedReadingPlan {
   final KhatmCompletionSource source;
   final String? note;
 
+  /// Immutable provenance snapshots for plan days that were explicitly
+  /// credited from off-device reading before this plan was completed.
+  final List<OffDevicePlanCreditEvent> offDeviceCredits;
+
   bool get isManualOffDevice => source == KhatmCompletionSource.manualOffDevice;
+
+  int get offDeviceCreditEventCount => offDeviceCredits.length;
+
+  int get offDeviceCreditedDayCount {
+    final days = <int>{};
+    for (final event in offDeviceCredits) {
+      days.addAll(event.dayNumbers);
+    }
+    return days.length;
+  }
+
+  Set<OffDeviceReadingInputKind> get offDeviceCreditInputKinds =>
+      Set<OffDeviceReadingInputKind>.unmodifiable(
+        offDeviceCredits.map((event) => event.sourceInputKind),
+      );
 
   CompletedReadingPlan copyWith({
     DateTime? startedAt,
@@ -492,6 +512,7 @@ class CompletedReadingPlan {
     DateTime? completedAt,
     String? note,
     bool clearNote = false,
+    List<OffDevicePlanCreditEvent>? offDeviceCredits,
   }) {
     return CompletedReadingPlan(
       preset: preset,
@@ -499,6 +520,7 @@ class CompletedReadingPlan {
       completedAt: completedAt ?? this.completedAt,
       source: source,
       note: clearNote ? null : (note ?? this.note),
+      offDeviceCredits: offDeviceCredits ?? this.offDeviceCredits,
     );
   }
 }
