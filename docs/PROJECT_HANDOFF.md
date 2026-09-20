@@ -58,8 +58,9 @@ Recent Plans work:
 - Commit `5c4b3b9` added manual/off-device completed-khatm records with
   optional start date/private note and clear source labels.
 - Commit `9995ee6` added physical-Mushaf/off-device page reading sessions.
-- The structured-input slice extends those sessions with page/juz/ayah-range
-  entry and canonical ayah coverage while preserving the same local storage.
+- The structured-input slice extends those sessions with
+  page/juz/Hizb/ayah-range entry and canonical ayah coverage while preserving
+  the same local storage.
 - Old khatm archive records without source metadata migrate as app reading-plan
   records.
 - Manual khatm records and off-device page sessions live inside
@@ -70,43 +71,44 @@ Recent Plans work:
 
 ## Latest completed feature slice
 
-Structured physical-Mushaf/off-device reading input now extends the existing
-page-session foundation:
+Structured physical-Mushaf/off-device reading input now supports all planned
+coverage entry modes in this slice:
 
 - Plans → My Plans keeps the same user-reported off-device reading card.
-- A reading can now be entered as Madinah Mushaf pages, a juz number (1–30), or
-  a canonical surah/ayah range.
+- A reading can be entered as Madinah Mushaf pages, juz 1–30, Hizb 1–60, or a
+  canonical surah/ayah range.
 - Every accepted input is normalized to canonical start/end ayah coverage while
   retaining derived page coverage for existing plan/page logic.
-- Existing page-only records remain backward compatible: missing input metadata
-  defaults to page mode and canonical ayah coverage is derived on load.
-- Users can edit a record and switch its input type without losing the reading
+- Existing page-only persisted records remain backward compatible; missing
+  input metadata defaults to page mode and canonical ayah coverage is derived
+  on load.
+- Hizb boundaries come from verified Tanzil Quran Metadata. The bundled
+  `quran_partition_metadata.dart` retains Tanzil attribution and the upstream
+  CC BY 3.0 license notice. The 60 Hizb starts are derived from the source's
+  240 quarter boundaries; no Hizb boundary was guessed.
+- Hizb 1 is normalized to 1:1–2:74, Hizb 60 to 87:1–114:6, and each intermediate
+  Hizb ends immediately before the next verified Hizb start.
+- Users can edit a record and switch input type without losing the reading
   date/private note.
-- Invalid juz numbers, surah/ayah references, reversed ayah ranges, invalid page
-  ranges and future dates are rejected.
+- Invalid page, juz, Hizb, surah/ayah and reversed ranges are rejected. Invalid
+  persisted Hizb rows are skipped without discarding the rest of the snapshot.
 - Off-device records remain explicitly user-reported and never advance, finish
   or rewrite an active reading plan automatically.
 - The UI states that overlap with digital reading is not inferred.
 - Storage remains inside `reading_plan_state_v1`; no new backend, account or
   backup preference key was introduced.
-- Turkish, English, Arabic, Azerbaijani and Russian copy was updated for all
-  three input modes.
+- Turkish, English, Arabic, Azerbaijani and Russian Plans copy remains in key
+  parity for all four entry modes.
 
-Focused validation run `35520001196` reached the meaningful checks:
-- `reading_plan_store_test.dart`: 36/36 tests passed.
-- `plan_strings_test.dart`: localization key parity passed.
-- Formatter reported all five changed source/test files clean.
-- A direct `flutter build bundle --debug` then produced no diagnostic and hit
-  the explicit 180-second timeout. The earlier direct Plans-screen import probe
-  behaved the same way. This matches the repository's existing Flutter
-  analyze/compile tooling stall; do not call it an app regression without an
-  actual compiler diagnostic.
-
-Hizb input is intentionally not implemented yet. The current `quran: ^1.4.1`
-dependency exposes documented page/juz/surah/ayah metadata but no verified Hizb
-boundary API. Do not invent Hizb boundaries; add them only from a verified,
-rights-compatible metadata source.
-
+Focused Hizb validation run `35520996296`:
+- bundled content generation/validation passed;
+- formatter check passed on the six changed source/test files;
+- `reading_plan_store_test.dart`: 41/41 tests passed;
+- `plan_strings_test.dart`: localization key parity passed;
+- a focused `dart analyze` emitted no diagnostic but hit its explicit
+  120-second timeout (exit 124), matching the repository's existing analyzer
+  stall. Do not classify that timeout as an app regression without a concrete
+  analyzer/compiler diagnostic.
 ## Validation status
 
 The last known fully green full Android workflow is run `35498316886` for
@@ -121,12 +123,12 @@ Recent full Android validation has a repeatable tooling problem:
 - Treat this as CI/analyzer tooling unless a concrete analyzer diagnostic or
   failing test says otherwise. Do not relabel a timeout as an app regression.
 
-Structured-input code-bearing head before handoff-only commits:
-`1cb20ea0dee7472c1743971170050d8ac0ab3195`.
-Android APK runs #545/#546 for the preceding manual-khatm/page-session heads
-remain subject to the same long `flutter analyze lib --no-fatal-infos` stall.
-Inspect the newest integrated Actions run before calling the full Android
-pipeline green.
+The structured-input integration head before the sourced-Hizb slice was
+`2fffffed84906f44a07d41c3f5240fb878f56398`.
+Android APK run #547 for that head reached `Analyze app code` after content,
+dependency and localization setup succeeded, then remained subject to the same
+long analyzer behavior. Inspect the newest integrated Actions run before
+calling the full Android pipeline green.
 
 ## Safe continuation checklist
 
@@ -154,8 +156,8 @@ Build on canonical off-device coverage without silently changing plan progress:
   confirmation after that preview; logging alone must never advance the plan.
 - Keep the original off-device record independent so correcting/deleting a log
   does not silently rewrite previously confirmed plan progress.
-- Defer Hizb input until a verified, rights-compatible boundary dataset is
-  selected.
+- Hizb input is now complete for this slice; do not replace its sourced Tanzil
+  boundaries with inferred or hand-authored values.
 - Keep the full French UI localization requirement as its separate localization
   workstream rather than scattering partial French strings through feature
   commits.

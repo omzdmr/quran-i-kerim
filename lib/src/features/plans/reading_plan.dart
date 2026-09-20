@@ -248,16 +248,19 @@ class ActiveReadingPlan {
 enum OffDeviceReadingInputKind {
   page,
   juz,
+  hizb,
   ayahRange;
 
   String get id => switch (this) {
     page => 'page',
     juz => 'juz',
+    hizb => 'hizb',
     ayahRange => 'ayahRange',
   };
 
   static OffDeviceReadingInputKind fromId(String? id) => switch (id) {
     'juz' => OffDeviceReadingInputKind.juz,
+    'hizb' => OffDeviceReadingInputKind.hizb,
     'ayahRange' => OffDeviceReadingInputKind.ayahRange,
     _ => OffDeviceReadingInputKind.page,
   };
@@ -270,6 +273,7 @@ class OffDevicePageReadingSession {
     required this.endPage,
     this.inputKind = OffDeviceReadingInputKind.page,
     this.juzNumber,
+    this.hizbNumber,
     this.startSurah,
     this.startAyah,
     this.endSurah,
@@ -282,6 +286,7 @@ class OffDevicePageReadingSession {
   final int endPage;
   final OffDeviceReadingInputKind inputKind;
   final int? juzNumber;
+  final int? hizbNumber;
   final int? startSurah;
   final int? startAyah;
   final int? endSurah;
