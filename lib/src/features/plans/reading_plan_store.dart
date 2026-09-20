@@ -891,10 +891,7 @@ class ReadingPlanStore {
     );
   }
 
-  _CanonicalOffDeviceCoverage _coverageForPages(
-    int startPage,
-    int endPage,
-  ) {
+  _CanonicalOffDeviceCoverage _coverageForPages(int startPage, int endPage) {
     _validateOffDevicePageRange(startPage: startPage, endPage: endPage);
     final startData = quran.getPageData(startPage);
     final endData = quran.getPageData(endPage);

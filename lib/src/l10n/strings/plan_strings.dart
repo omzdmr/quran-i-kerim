@@ -622,7 +622,6 @@ const planStrings = <String, Map<String, String>>{
         'Укажите корректные начальный и конечный аяты; начало не может быть после конца.',
     'plansOffDeviceJuzLabelV1': 'Джуз {juz}',
     'plansOffDeviceAyahRangeLabelV1': 'Аяты {start}–{end}',
-    'plansOffDeviceCanonicalRangeV1':
-        'Канонический диапазон: {start}–{end}',
+    'plansOffDeviceCanonicalRangeV1': 'Канонический диапазон: {start}–{end}',
   },
 };

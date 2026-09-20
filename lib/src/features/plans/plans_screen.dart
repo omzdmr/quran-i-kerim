@@ -411,16 +411,14 @@ class _PlansScreenState extends State<PlansScreen> {
                           (kind) => DropdownMenuItem(
                             value: kind,
                             child: Text(
-                              l10n.text(
-                                switch (kind) {
-                                  OffDeviceReadingInputKind.page =>
-                                    'plansOffDeviceInputPageV1',
-                                  OffDeviceReadingInputKind.juz =>
-                                    'plansOffDeviceInputJuzV1',
-                                  OffDeviceReadingInputKind.ayahRange =>
-                                    'plansOffDeviceInputAyahV1',
-                                },
-                              ),
+                              l10n.text(switch (kind) {
+                                OffDeviceReadingInputKind.page =>
+                                  'plansOffDeviceInputPageV1',
+                                OffDeviceReadingInputKind.juz =>
+                                  'plansOffDeviceInputJuzV1',
+                                OffDeviceReadingInputKind.ayahRange =>
+                                  'plansOffDeviceInputAyahV1',
+                              }),
                             ),
                           ),
                         )
@@ -535,16 +533,14 @@ class _PlansScreenState extends State<PlansScreen> {
                   ),
                   if (!valid)
                     Text(
-                      l10n.text(
-                        switch (inputKind) {
-                          OffDeviceReadingInputKind.page =>
-                            'plansOffDeviceRangeErrorV1',
-                          OffDeviceReadingInputKind.juz =>
-                            'plansOffDeviceJuzErrorV1',
-                          OffDeviceReadingInputKind.ayahRange =>
-                            'plansOffDeviceAyahErrorV1',
-                        },
-                      ),
+                      l10n.text(switch (inputKind) {
+                        OffDeviceReadingInputKind.page =>
+                          'plansOffDeviceRangeErrorV1',
+                        OffDeviceReadingInputKind.juz =>
+                          'plansOffDeviceJuzErrorV1',
+                        OffDeviceReadingInputKind.ayahRange =>
+                          'plansOffDeviceAyahErrorV1',
+                      }),
                       style: TextStyle(
                         color: Theme.of(dialogContext).colorScheme.error,
                       ),
@@ -600,50 +596,53 @@ class _PlansScreenState extends State<PlansScreen> {
     setState(() => _busy = true);
     try {
       final Future<ReadingPlanSnapshot> operation = switch (result.inputKind) {
-        OffDeviceReadingInputKind.page => existing == null
-            ? _store.addOffDevicePageSession(
-                startPage: result.startPage!,
-                endPage: result.endPage!,
-                readAt: result.readAt,
-                note: result.note,
-              )
-            : _store.updateOffDevicePageSessionAt(
-                existingIndex,
-                startPage: result.startPage!,
-                endPage: result.endPage!,
-                readAt: result.readAt,
-                note: result.note,
-              ),
-        OffDeviceReadingInputKind.juz => existing == null
-            ? _store.addOffDeviceJuzSession(
-                juzNumber: result.juzNumber!,
-                readAt: result.readAt,
-                note: result.note,
-              )
-            : _store.updateOffDeviceJuzSessionAt(
-                existingIndex,
-                juzNumber: result.juzNumber!,
-                readAt: result.readAt,
-                note: result.note,
-              ),
-        OffDeviceReadingInputKind.ayahRange => existing == null
-            ? _store.addOffDeviceAyahRangeSession(
-                startSurah: result.startSurah!,
-                startAyah: result.startAyah!,
-                endSurah: result.endSurah!,
-                endAyah: result.endAyah!,
-                readAt: result.readAt,
-                note: result.note,
-              )
-            : _store.updateOffDeviceAyahRangeSessionAt(
-                existingIndex,
-                startSurah: result.startSurah!,
-                startAyah: result.startAyah!,
-                endSurah: result.endSurah!,
-                endAyah: result.endAyah!,
-                readAt: result.readAt,
-                note: result.note,
-              ),
+        OffDeviceReadingInputKind.page =>
+          existing == null
+              ? _store.addOffDevicePageSession(
+                  startPage: result.startPage!,
+                  endPage: result.endPage!,
+                  readAt: result.readAt,
+                  note: result.note,
+                )
+              : _store.updateOffDevicePageSessionAt(
+                  existingIndex,
+                  startPage: result.startPage!,
+                  endPage: result.endPage!,
+                  readAt: result.readAt,
+                  note: result.note,
+                ),
+        OffDeviceReadingInputKind.juz =>
+          existing == null
+              ? _store.addOffDeviceJuzSession(
+                  juzNumber: result.juzNumber!,
+                  readAt: result.readAt,
+                  note: result.note,
+                )
+              : _store.updateOffDeviceJuzSessionAt(
+                  existingIndex,
+                  juzNumber: result.juzNumber!,
+                  readAt: result.readAt,
+                  note: result.note,
+                ),
+        OffDeviceReadingInputKind.ayahRange =>
+          existing == null
+              ? _store.addOffDeviceAyahRangeSession(
+                  startSurah: result.startSurah!,
+                  startAyah: result.startAyah!,
+                  endSurah: result.endSurah!,
+                  endAyah: result.endAyah!,
+                  readAt: result.readAt,
+                  note: result.note,
+                )
+              : _store.updateOffDeviceAyahRangeSessionAt(
+                  existingIndex,
+                  startSurah: result.startSurah!,
+                  startAyah: result.startAyah!,
+                  endSurah: result.endSurah!,
+                  endAyah: result.endAyah!,
+                  readAt: result.readAt,
+                  note: result.note,
+                ),
       };
       final snapshot = await operation;
       if (!mounted) return;
@@ -1631,25 +1630,25 @@ class _OffDeviceReadingCard extends StatelessWidget {
                       color: scheme.onSecondaryContainer,
                     ),
                   ),
-                  title: Text(
-                    switch (session.inputKind) {
-                      OffDeviceReadingInputKind.page => l10n
+                  title: Text(switch (session.inputKind) {
+                    OffDeviceReadingInputKind.page =>
+                      l10n
                           .text('plansOffDevicePagesV1')
                           .replaceAll('{start}', '${session.startPage}')
                           .replaceAll('{end}', '${session.endPage}'),
-                      OffDeviceReadingInputKind.juz => l10n
+                    OffDeviceReadingInputKind.juz =>
+                      l10n
                           .text('plansOffDeviceJuzLabelV1')
                           .replaceAll('{juz}', '${session.juzNumber}'),
-                      OffDeviceReadingInputKind.ayahRange => l10n
+                    OffDeviceReadingInputKind.ayahRange =>
+                      l10n
                           .text('plansOffDeviceAyahRangeLabelV1')
                           .replaceAll(
                             '{start}',
                             session.canonicalStartKey ?? '?',
                           )
                           .replaceAll('{end}', session.canonicalEndKey ?? '?'),
-                    },
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
+                  }, style: const TextStyle(fontWeight: FontWeight.w700)),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
