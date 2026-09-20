@@ -475,6 +475,122 @@ class ReadingPlanStore {
     return next;
   }
 
+  OffDevicePlanCreditPreview previewOffDevicePlanCredit(
+    ActiveReadingPlan active,
+    OffDevicePageReadingSession session,
+  ) {
+    final impact = previewOffDevicePlanImpact(active, session);
+    final creditable = <int>[];
+    final partial = <int>[];
+
+    for (final dayNumber in impact.remainingDayNumbers) {
+      final day = readingPlanDay(active.preset, dayNumber);
+      final dayCoverage = _coverageForPages(day.startPage, day.endPage);
+      final coversCanonicalDay =
+          session.hasCanonicalAyahRange &&
+          _compareQuranReference(
+                session.startSurah!,
+                session.startAyah!,
+                dayCoverage.startSurah,
+                dayCoverage.startAyah,
+              ) <=
+              0 &&
+          _compareQuranReference(
+                session.endSurah!,
+                session.endAyah!,
+                dayCoverage.endSurah,
+                dayCoverage.endAyah,
+              ) >=
+              0;
+
+      if (coversCanonicalDay) {
+        creditable.add(dayNumber);
+      } else {
+        partial.add(dayNumber);
+      }
+    }
+
+    return OffDevicePlanCreditPreview(
+      impact: impact,
+      creditableDayNumbers: List<int>.unmodifiable(creditable),
+      partialRemainingDayNumbers: List<int>.unmodifiable(partial),
+    );
+  }
+
+  Future<ReadingPlanSnapshot> creditOffDeviceSessionToActivePlan(
+    OffDevicePageReadingSession session, {
+    DateTime? now,
+  }) async {
+    final current = await load();
+    final active = current.active;
+    if (active == null) {
+      throw StateError('An active reading plan is required.');
+    }
+    if (active.isPaused) {
+      throw StateError('A paused reading plan cannot be credited.');
+    }
+    if (!current.offDevicePageSessions.any(
+      (item) => _sameOffDeviceSession(item, session),
+    )) {
+      throw StateError('The off-device reading record no longer exists.');
+    }
+
+    final preview = previewOffDevicePlanCredit(active, session);
+    if (!preview.canCredit) {
+      throw StateError('No fully covered unfinished plan day can be credited.');
+    }
+
+    final creditedAt = readingPlanDateOnly(now ?? DateTime.now());
+    final completedDays = active.completedDays.toSet()
+      ..addAll(preview.creditableDayNumbers);
+    final credits = <OffDevicePlanCreditEvent>[
+      ...active.offDeviceCredits,
+      OffDevicePlanCreditEvent(
+        creditedAt: creditedAt,
+        sourceReadAt: session.readAt,
+        sourceInputKind: session.inputKind,
+        sourceStartPage: session.startPage,
+        sourceEndPage: session.endPage,
+        sourceCanonicalStartKey: session.canonicalStartKey,
+        sourceCanonicalEndKey: session.canonicalEndKey,
+        dayNumbers: List<int>.unmodifiable(preview.creditableDayNumbers),
+      ),
+    ];
+
+    if (completedDays.length >= active.preset.durationDays) {
+      final history = <CompletedReadingPlan>[
+        CompletedReadingPlan(
+          preset: active.preset,
+          startedAt: active.startedAt,
+          completedAt: creditedAt,
+        ),
+        ...current.completed,
+      ];
+      final next = ReadingPlanSnapshot(
+        savedPresetIds: current.savedPresetIds,
+        completed: List<CompletedReadingPlan>.unmodifiable(history),
+        offDevicePageSessions: current.offDevicePageSessions,
+        yearlyKhatmTarget: current.yearlyKhatmTarget,
+      );
+      await _save(next);
+      return next;
+    }
+
+    final next = ReadingPlanSnapshot(
+      active: active.copyWith(
+        completedDays: completedDays,
+        offDeviceCredits: List<OffDevicePlanCreditEvent>.unmodifiable(credits),
+      ),
+      savedPresetIds: current.savedPresetIds,
+      completed: current.completed,
+      offDevicePageSessions: current.offDevicePageSessions,
+      yearlyKhatmTarget: current.yearlyKhatmTarget,
+      redistributionTargetEndDate: current.redistributionTargetEndDate,
+    );
+    await _save(next);
+    return next;
+  }
+
   Future<ReadingPlanSnapshot> setYearlyKhatmTarget(int? target) async {
     if (target != null && (target < 1 || target > 99)) {
       throw RangeError.range(target, 1, 99, 'target');
@@ -710,10 +826,65 @@ class ReadingPlanStore {
             if (!normalized.isBefore(normalizedStart)) pausedAt = normalized;
           }
         }
+        final offDeviceCredits = <OffDevicePlanCreditEvent>[];
+        final rawCredits = rawActive['offDeviceCredits'];
+        if (rawCredits is List) {
+          for (final item in rawCredits) {
+            if (item is! Map) continue;
+            final creditedAt = DateTime.tryParse(
+              item['creditedAt']?.toString() ?? '',
+            );
+            final sourceReadAt = DateTime.tryParse(
+              item['sourceReadAt']?.toString() ?? '',
+            );
+            final sourceStartPage = _intValue(item['sourceStartPage']);
+            final sourceEndPage = _intValue(item['sourceEndPage']);
+            final rawCreditDays = item['dayNumbers'];
+            if (creditedAt == null ||
+                sourceReadAt == null ||
+                sourceStartPage == null ||
+                sourceEndPage == null ||
+                sourceStartPage < 1 ||
+                sourceEndPage > madinahMushafPageCount ||
+                sourceStartPage > sourceEndPage ||
+                rawCreditDays is! List) {
+              continue;
+            }
+            final creditDays = <int>{};
+            for (final rawDay in rawCreditDays) {
+              final day = _intValue(rawDay);
+              if (day != null && day >= 1 && day <= preset.durationDays) {
+                creditDays.add(day);
+              }
+            }
+            if (creditDays.isEmpty) continue;
+            final orderedDays = creditDays.toList()..sort();
+            offDeviceCredits.add(
+              OffDevicePlanCreditEvent(
+                creditedAt: readingPlanDateOnly(creditedAt),
+                sourceReadAt: readingPlanDateOnly(sourceReadAt),
+                sourceInputKind: OffDeviceReadingInputKind.fromId(
+                  item['sourceInputKind']?.toString(),
+                ),
+                sourceStartPage: sourceStartPage,
+                sourceEndPage: sourceEndPage,
+                sourceCanonicalStartKey:
+                    item['sourceCanonicalStartKey']?.toString(),
+                sourceCanonicalEndKey:
+                    item['sourceCanonicalEndKey']?.toString(),
+                dayNumbers: List<int>.unmodifiable(orderedDays),
+              ),
+            );
+          }
+        }
+
         active = ActiveReadingPlan(
           preset: preset,
           startedAt: normalizedStart,
           completedDays: completedDays,
+          offDeviceCredits: List<OffDevicePlanCreditEvent>.unmodifiable(
+            offDeviceCredits,
+          ),
           pausedAt: pausedAt,
           pausedDays: pausedDays,
         );
@@ -880,6 +1051,19 @@ class ReadingPlanStore {
                   ? null
                   : _date(active.pausedAt!),
               'pausedDays': active.pausedDays,
+              'offDeviceCredits': <Object?>[
+                for (final credit in active.offDeviceCredits)
+                  <String, Object?>{
+                    'creditedAt': _date(credit.creditedAt),
+                    'sourceReadAt': _date(credit.sourceReadAt),
+                    'sourceInputKind': credit.sourceInputKind.id,
+                    'sourceStartPage': credit.sourceStartPage,
+                    'sourceEndPage': credit.sourceEndPage,
+                    'sourceCanonicalStartKey': credit.sourceCanonicalStartKey,
+                    'sourceCanonicalEndKey': credit.sourceCanonicalEndKey,
+                    'dayNumbers': credit.dayNumbers,
+                  },
+              ],
             },
       'offDevicePageSessions': <Object?>[
         for (final item in snapshot.offDevicePageSessions)
@@ -1051,6 +1235,31 @@ class ReadingPlanStore {
       endSurah: endSurah,
       endAyah: endAyah,
     );
+  }
+
+  int _compareQuranReference(
+    int leftSurah,
+    int leftAyah,
+    int rightSurah,
+    int rightAyah,
+  ) {
+    if (leftSurah != rightSurah) return leftSurah.compareTo(rightSurah);
+    return leftAyah.compareTo(rightAyah);
+  }
+
+  bool _sameOffDeviceSession(
+    OffDevicePageReadingSession left,
+    OffDevicePageReadingSession right,
+  ) {
+    return left.readAt == right.readAt &&
+        left.inputKind == right.inputKind &&
+        left.startPage == right.startPage &&
+        left.endPage == right.endPage &&
+        left.juzNumber == right.juzNumber &&
+        left.hizbNumber == right.hizbNumber &&
+        left.canonicalStartKey == right.canonicalStartKey &&
+        left.canonicalEndKey == right.canonicalEndKey &&
+        left.note == right.note;
   }
 
   void _validateAyahReference(int surah, int ayah, String field) {
