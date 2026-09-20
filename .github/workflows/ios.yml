@@ -101,9 +101,11 @@ jobs:
       # device archive remains a separate Apple signing/provisioning gate.
       - name: Build iOS simulator app
         id: ios_build
+        continue-on-error: true
         run: flutter build ios --simulator --debug
 
       - name: Verify simulator app output
+        if: steps.ios_build.outcome == 'success'
         run: |
           test -d build/ios/iphonesimulator/Runner.app
           /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" build/ios/iphonesimulator/Runner.app/Info.plist | grep -qx com.omzdmr.quranIKerim
@@ -121,10 +123,23 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Report shared-test gate separately
-        if: steps.shared_tests.outcome == 'failure'
+      - name: Report independent parity gates
+        if: always()
         run: |
-          echo "Shared Flutter tests failed on this staging snapshot."
-          echo "The signing-independent native iOS simulator build was still executed."
-          echo "Shared-code correction belongs to CI/Feature ownership; refresh/rebase before landing."
-          exit 1
+          failed=0
+
+          if [[ "${{ steps.shared_tests.outcome }}" != "success" ]]; then
+            echo "::error::Shared Flutter tests failed on this staging snapshot."
+            echo "Shared-code correction belongs to CI/Feature ownership; refresh/rebase before landing."
+            failed=1
+          fi
+
+          if [[ "${{ steps.ios_build.outcome }}" != "success" ]]; then
+            echo "::error::The signing-independent iOS simulator build failed."
+            echo "The earlier native Swift type-check remains an independent result."
+            failed=1
+          fi
+
+          if [[ "$failed" -ne 0 ]]; then
+            exit 1
+          fi
