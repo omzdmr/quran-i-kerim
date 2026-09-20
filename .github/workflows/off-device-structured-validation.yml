@@ -43,8 +43,15 @@ jobs:
 
       - name: Persist formatter output
         run: |
-          if git diff --quiet; then
-            echo "Formatter made no changes."
+          TARGETS=(
+            lib/src/features/plans/reading_plan.dart
+            lib/src/features/plans/reading_plan_store.dart
+            lib/src/features/plans/plans_screen.dart
+            lib/src/l10n/strings/plan_strings.dart
+            test/reading_plan_store_test.dart
+          )
+          if git diff --quiet -- "${TARGETS[@]}"; then
+            echo "Formatter made no target-file changes."
             exit 0
           fi
           git config user.name "github-actions[bot]"
