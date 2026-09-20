@@ -71,44 +71,41 @@ Recent Plans work:
 
 ## Latest completed feature slice
 
-Structured physical-Mushaf/off-device reading input now supports all planned
-coverage entry modes in this slice:
+Read-only off-device → active-plan impact preview is implemented on top of the
+structured page/juz/Hizb/ayah-range records:
 
-- Plans → My Plans keeps the same user-reported off-device reading card.
-- A reading can be entered as Madinah Mushaf pages, juz 1–30, Hizb 1–60, or a
-  canonical surah/ayah range.
-- Every accepted input is normalized to canonical start/end ayah coverage while
-  retaining derived page coverage for existing plan/page logic.
-- Existing page-only persisted records remain backward compatible; missing
-  input metadata defaults to page mode and canonical ayah coverage is derived
-  on load.
-- Hizb boundaries come from verified Tanzil Quran Metadata. The bundled
-  `quran_partition_metadata.dart` retains Tanzil attribution and the upstream
-  CC BY 3.0 license notice. The 60 Hizb starts are derived from the source's
-  240 quarter boundaries; no Hizb boundary was guessed.
-- Hizb 1 is normalized to 1:1–2:74, Hizb 60 to 87:1–114:6, and each intermediate
-  Hizb ends immediately before the next verified Hizb start.
-- Users can edit a record and switch input type without losing the reading
-  date/private note.
-- Invalid page, juz, Hizb, surah/ayah and reversed ranges are rejected. Invalid
-  persisted Hizb rows are skipped without discarding the rest of the snapshot.
-- Off-device records remain explicitly user-reported and never advance, finish
-  or rewrite an active reading plan automatically.
-- The UI states that overlap with digital reading is not inferred.
-- Storage remains inside `reading_plan_state_v1`; no new backend, account or
-  backup preference key was introduced.
-- Turkish, English, Arabic, Azerbaijani and Russian Plans copy remains in key
-  parity for all four entry modes.
+- When an active reading plan exists, each off-device record exposes a
+  "preview plan impact" action. The action is hidden when there is no active
+  plan.
+- The preview intersects the record's normalized Mushaf page span with the
+  active plan's day/page schedule without mutating plan state.
+- It shows the exact touched plan days and the intersecting page span for each
+  day, split into already-completed versus still-remaining plan days.
+- The preview explicitly warns that it does not credit or advance the plan and
+  that overlap with completed digital reading cannot be inferred as fact.
+- For ayah-range entries, the UI now clarifies that page counts describe the
+  Mushaf page span touched by the record, not necessarily a count of fully read
+  pages.
+- The calculation is input-type agnostic, so page, juz, sourced Hizb and
+  canonical ayah-range records all use the same normalized impact path.
+- The original off-device record remains independent; previewing it writes no
+  state and creates no hidden linkage to plan progress.
+- Turkish, English, Arabic, Azerbaijani and Russian impact-preview copy remains
+  in localization key parity.
 
-Focused Hizb validation run `35520996296`:
-- bundled content generation/validation passed;
-- formatter check passed on the six changed source/test files;
-- `reading_plan_store_test.dart`: 41/41 tests passed;
-- `plan_strings_test.dart`: localization key parity passed;
-- a focused `dart analyze` emitted no diagnostic but hit its explicit
-  120-second timeout (exit 124), matching the repository's existing analyzer
-  stall. Do not classify that timeout as an app regression without a concrete
-  analyzer/compiler diagnostic.
+Focused impact validation:
+- Run `35522014627` formatted the slice, then
+  `reading_plan_test.dart` passed 9/9 and `plan_strings_test.dart` passed.
+- Its direct `PlansScreen` widget probe reached only the test-loader phase and
+  timed out after 180 seconds with no tests run and no compiler diagnostic,
+  matching the repository's known PlansScreen/analyzer tooling stall.
+- That hanging widget probe was removed from the final slice so it cannot block
+  a future full `flutter test` run.
+- Follow-up run `35522207601` passed formatting, the reading-plan model tests
+  and localization parity on the cleaned slice. The focused analyzer remains a
+  non-gating probe because this repository repeatedly stalls there without a
+  diagnostic.
+
 ## Validation status
 
 The last known fully green full Android workflow is run `35498316886` for
@@ -123,10 +120,10 @@ Recent full Android validation has a repeatable tooling problem:
 - Treat this as CI/analyzer tooling unless a concrete analyzer diagnostic or
   failing test says otherwise. Do not relabel a timeout as an app regression.
 
-The structured-input integration head before the sourced-Hizb slice was
-`2fffffed84906f44a07d41c3f5240fb878f56398`.
-Android APK run #547 for that head reached `Analyze app code` after content,
-dependency and localization setup succeeded, then remained subject to the same
+The sourced-Hizb integration head before the impact-preview slice was
+`83a56ddf8a757fb1ddbd09effe6bbc4ea9b74100`.
+Android APK run #548 for that head completed content, dependency and
+localization setup and then remained in `Analyze app code`, matching the same
 long analyzer behavior. Inspect the newest integrated Actions run before
 calling the full Android pipeline green.
 
@@ -146,21 +143,24 @@ calling the full Android pipeline green.
 
 ## Immediate next step
 
-Build on canonical off-device coverage without silently changing plan progress:
+Build the explicit user-confirmed credit flow on top of the read-only preview:
 
-- Add a read-only impact preview that can compare a logged off-device record
-  with the current plan's remaining coverage.
-- Show exactly which planned day/page span would be affected and surface
-  overlap/duplicate uncertainty instead of guessing.
-- Any future "credit this reading to my plan" action must require an explicit
-  confirmation after that preview; logging alone must never advance the plan.
-- Keep the original off-device record independent so correcting/deleting a log
-  does not silently rewrite previously confirmed plan progress.
-- Hizb input is now complete for this slice; do not replace its sourced Tanzil
-  boundaries with inferred or hand-authored values.
+- Never credit a plan merely because an off-device record exists or is
+  previewed.
+- From the preview, allow an explicit "credit this reading to my plan" action
+  only after showing exactly which still-unfinished plan days would be affected.
+- Do not silently complete a plan day from a partial overlap. Define a strict,
+  testable rule for full-day coverage first; partial coverage must remain
+  informational until a separate partial-progress model exists.
+- Record any future credit as its own plan-progress event/reference so editing
+  or deleting the original off-device log cannot silently rewrite already
+  confirmed plan progress.
+- Completed-day overlap must remain a warning only, never a second credit.
+- Keep Hizb boundaries sourced from the retained Tanzil metadata.
 - Keep the full French UI localization requirement as its separate localization
   workstream rather than scattering partial French strings through feature
   commits.
+
 
 Do not restart already completed recovery, notification diagnostics,
 recent-reading, Home quick-actions, khatm archive or page-session work unless a
