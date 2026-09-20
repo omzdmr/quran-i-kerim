@@ -43,30 +43,38 @@ class HomeQuickActionsSection extends StatelessWidget {
     switch (action) {
       case HomeQuickAction.quran:
         AppNavigation.instance.openQuran();
+        return;
       case HomeQuickAction.prayer:
         Navigator.of(context).push(
           MaterialPageRoute<void>(builder: (_) => const PrayerScreen()),
         );
+        return;
       case HomeQuickAction.qibla:
         Navigator.of(context).push(
           MaterialPageRoute<void>(builder: (_) => const QiblaLauncherScreen()),
         );
+        return;
       case HomeQuickAction.dhikr:
         Navigator.of(context).push(
           MaterialPageRoute<void>(builder: (_) => const DhikrCounterScreen()),
         );
+        return;
       case HomeQuickAction.plans:
         AppNavigation.instance.openPlans();
+        return;
       case HomeQuickAction.downloads:
         Navigator.of(context).push(
           MaterialPageRoute<void>(builder: (_) => const DownloadsScreen()),
         );
+        return;
       case HomeQuickAction.discover:
         AppNavigation.instance.openDiscover();
+        return;
       case HomeQuickAction.settings:
         Navigator.of(context).push(
           MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
         );
+        return;
     }
   }
 
@@ -299,7 +307,10 @@ class _QuickActionEditorState extends State<_QuickActionEditor> {
                 ),
           ),
           const SizedBox(height: 8),
-          Flexible(
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(context).height * .52,
+            ),
             child: ListView(
               shrinkWrap: true,
               children: [
