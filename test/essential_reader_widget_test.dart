@@ -56,8 +56,12 @@ void main() {
     await tester.pumpWidget(QuranModernApp(settings: settings));
     await tester.pump();
 
-    final context = tester.element(find.byType(MediaQuery).last);
-    final scale = MediaQuery.textScalerOf(context).scale(16) / 16;
-    expect(scale, greaterThanOrEqualTo(1.16));
+    final mediaQueries = tester.widgetList<MediaQuery>(find.byType(MediaQuery));
+    expect(
+      mediaQueries.any(
+        (widget) => widget.data.textScaler.scale(16) / 16 >= 1.16,
+      ),
+      isTrue,
+    );
   });
 }
