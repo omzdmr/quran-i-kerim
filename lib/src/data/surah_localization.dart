@@ -1,0 +1,65 @@
+import 'package:quran/quran.dart' as quran;
+
+// Azerbaijani conventional display names, kept locally so the reader remains
+// offline-first and does not depend on a network lookup for navigation labels.
+const _azSurahNames = <String>[
+  'Fatihə','Bəqərə','Ali-İmran','Nisa','Maidə','Ənam','Əraf','Ənfal','Tövbə','Yunus','Hud','Yusuf','Rəd','İbrahim','Hicr','Nəhl','İsra','Kəhf','Məryəm','Taha','Ənbiya','Həcc','Muminun','Nur','Fürqan','Şüəra','Nəml','Qəsəs','Ənkəbut','Rum','Loğman','Səcdə','Əhzab','Səbə','Fatir','Yasin','Saffat','Sad','Zümər','Mumin','Füssilət','Şura','Züxrüf','Düxan','Casiyə','Əhqaf','Mühəmməd','Fəth','Hücürat','Qaf','Zariyat','Tur','Nəcm','Qəmər','Rəhman','Vaqiə','Hədid','Mücadilə','Həşr','Mümtəhinə','Səff','Cümə','Münafiqun','Təğabün','Talaq','Təhrim','Mülk','Qələm','Haqqə','Məaric','Nuh','Cinn','Müzzəmmil','Müddəssir','Qiyamət','İnsan','Mürsəlat','Nəbə','Naziat','Əbəsə','Təkvir','İnfitar','Mütəffifin','İnşiqaq','Büruc','Tariq','Əla','Ğaşiyə','Fəcr','Bələd','Şəms','Leyl','Züha','İnşirah','Tin','Ələq','Qədr','Bəyyinə','Zilzal','Adiyat','Qariə','Təkasür','Əsr','Hüməzə','Fil','Qüreyş','Maun','Kövsər','Kafirun','Nəsr','Məsəd','İxlas','Fələq','Nas',
+];
+
+// QuranEnc Chinese (Muhammad Suleiman) navigation names. Keeping these in the
+// APK avoids a network request simply to render a surah title.
+const _zhSurahNames = <String>[
+  '法谛海','百格勒','阿黎仪姆兰','尼萨仪','马以代','艾奈阿姆','艾尔拉弗','安法勒','讨白','优努斯','呼德','优素福','赖尔得','易卜拉欣','希只尔','奈哈勒','伊斯拉','凯海府','麦尔彦','塔哈','安比雅','哈知','慕米农','努尔','弗尔干','抒尔拉','奈木勒','改赛素','安凯逋特','鲁姆','鲁格曼','赛直德','艾哈萨卜','赛伯邑','法颓尔','雅辛','萨法特','萨德','助迈尔','阿斐尔','奉绥来特','舒拉','助赫鲁弗','睹罕','查西叶','艾哈戛弗','穆罕默德','费特哈','侯吉拉特','戛弗','达里雅特','突尔','奈智姆','改买尔','安赖哈曼','瓦格尔','哈迪德','穆扎迪莱','哈什尔','慕姆太哈奈','蒜弗','主麻','莫拿非古乃','台昂卜尼','特俩格','台哈列姆','姆勒克','改赖姆','哈盖','买阿列支','努哈','精尼','孟赞密鲁','孟荡西尔','格雅迈','印萨尼','姆尔赛拉特','奈白易','那寂阿特','阿百塞','太克威尔','引斐塔尔','穆团斐弗乃','引史卡格','补鲁智','塔里格','艾尔拉','阿史叶','斐智尔','白赖德','晒姆斯','赖以里','堵哈','晒尔哈','梯尼','阿赖格','盖德尔','佰以奈','宰利宰莱','阿底雅特','戛里尔','太卡素尔','阿斯尔','胡买宰','斐里','古莱什','马欧尼','考赛尔','卡斐伦','奈斯尔','麦瑟迪','以赫拉斯','法赖格','拿斯',
+];
+
+// Persian display names from QuranEnc's Persian translation navigation data.
+// These are source-backed labels, not machine-generated translations.
+const _faSurahNames = <String>[
+  'فاتحه','بقره','آل عمران','نساء','مائده','انعام','اعراف','انفال','توبه','یونس','هود','یوسف','رعد','ابراهیم','حجر','نحل','اسراء','کهف','مریم','طه','انبیاء','حج','مؤمنون','نور','فرقان','شعراء','نمل','قصص','عنکبوت','روم','لقمان','سجده','احزاب','سبأ','فاطر','یس','صافات','ص','زُمَر','غافر','فصلت','شوریٰ','زُخرُف','دُخان','جاثیه','احقاف','محمد','فتح','حُجُرات','ق','ذاریات','طور','نجم','قمر','الرحمان','واقعه','حدید','مجادله','حشر','ممتحنه','صف','جمعه','منافقون','تغابن','طلاق','تحریم','مُلک','قلم','حاقه','معارج','نوح','جن','مزمل','مدثر','قیامت','انسان','مرسلات','نبأ','نازعات','عبس','تکویر','انفطار','مطففین','انشقاق','بروج','طارق','اعلی','غاشیه','فجر','بلد','شمس','لیل','ضحی','شرح','تین','علق','قدر','بینه','زلزله','عادیات','قارعه','تکاثر','عصر','هُمَزه','فیل','قریش','ماعون','کوثر','کافرون','نصر','مسد','اخلاص','فلق','ناس',
+];
+
+// QuranEnc Tamil (Omar Sharif, abridged) navigation labels. The spelling is
+// kept exactly as published by the source rather than machine-transliterated.
+const _taSurahNames = <String>[
+  'அல்பாதிஹா','அல்பகரா','ஆலஇம்ரான்','அந்நிஸா','அல்மாயிதா','அல்அன்ஆம்','அல்அஃராப்','அல்அன்பால்','அத்தவ்பா','யூனுஸ்','ஹூத்','யூஸுப்','அர்ரஃத்','இப்ராஹீம்','அஅல்ஹிஜ்ர்','அந்நஹ்ல்','அல்இஸ்ரா','அல்கஹ்ப்','மர்யம்','தாஹா','அல்அன்பியா','அல்ஹஜ்','அல்முஃமினூன்','அந்நூர்','அல்புர்கான்','அஷ்ஷுஅரா','அந்நம்ல்','அல்கஸஸ்','அல்அன்கபூத்','அர்ரூம்','லுக்மான்','அஸ்ஸஜதா','அல்அஹ்ஸாப்','ஸபஉ','பாதிர்','யாஸீன்','அஸ்ஸாபாத்','ஸாத்','அஸ்ஸுமர்','ஆஃபிர்','புஸ்ஸிலத்','அஷ்ஷூரா','அஸ்ஸுக்ருப்','அத்துகான்','அல்ஜாஸியா','அல்அஹ்காப்','முஹம்மத்','அல்பத்ஹ்','அல்ஹுஜராத்','காஃப்','அத்தாரியாத்','அத்தூர்','அந்நஜ்ம்','அல்கமர்','அர்ரஹ்மான்','அல்வாகிஆ','அல்ஹதீத்','அல்முஜாதலா','அல்ஹஷ்ர்','அல்மும்தஹினா','அஸ்ஸப்','அல்ஜும்ஆ','அல்முனாபிகூன்','அத்தகாபுன்','அத்தலாக்','அத்தஹ்ரீம்','அல்முல்க்','அல்கலம்','அல்ஹாக்கா','அல்மஆரிஜ்','நூஹ்','அல்ஜின்','அல்முஸ்ஸம்மில்','அல்முத்தஸ்ஸிர்','அல்கியாமா','அல்இன்ஸான்','அல்முர்ஸலாத்','அந்நபஃ','அந்நாஸிஆத்','அபஸ','அத்தக்வீர்','அல்இன்பிதார்','அல்முதப்பிபீன்','அல்இன்ஷிகாக்','அல்புரூஜ்','அத்தாரிக்','அல்அஃலா','அல்காஷியா','அல்பஜ்ர்','அல்பலத்','அஷ்ஷம்ஸ்','அல்லைல்','அழ்ழுஹா','அஷ்ஷரஹ்','அத்தீன்','அல்அலக்','அல்கத்ர்','அல்பையினாஹ்','அஸ்ஸல்ஸலாஹ்','அல்ஆதியாத்','அல்காரிஆ','அத்தகாஸுர்','அல்அஸ்ர்','அல்ஹுமஸா','அல்பீல்','குரைஷ்','அல்மாஊன்','அல்கவ்ஸர்','அல்காபிரூன்','அந்நஸ்ர்','அல்மஸத்','அல்இக்லாஸ்','அல்பலக்','அந்நாஸ்',
+];
+
+const _nonLatinFallbackLanguages = <String>{
+  'ar','ur','ps','ku','prs','ug','bn','hi','si','as','te','ml','nqo',
+  'km','ne','th','gu','am','kn','ka','my','pa','ko','lo','mr',
+};
+
+String localizedSurahName(int surahNumber, String languageCode) {
+  final safe = surahNumber.clamp(1, 114).toInt();
+  final language = languageCode.toLowerCase();
+  return switch (language) {
+    'ar' => quran.getSurahNameArabic(safe),
+    'tr' => quran.getSurahNameTurkish(safe),
+    'az' => _azSurahNames[safe - 1],
+    'ru' => quran.getSurahNameRussian(safe),
+    'fr' => quran.getSurahNameFrench(safe),
+    'zh' => _zhSurahNames[safe - 1],
+    'fa' => _faSurahNames[safe - 1],
+    'ta' => _taSurahNames[safe - 1],
+    _ when _nonLatinFallbackLanguages.contains(language) =>
+      quran.getSurahNameArabic(safe),
+    _ => quran.getSurahName(safe),
+  };
+}
+
+List<String> surahSearchAliases(int surahNumber, String languageCode) {
+  final safe = surahNumber.clamp(1, 114).toInt();
+  return <String>{
+    localizedSurahName(safe, languageCode),
+    quran.getSurahName(safe),
+    quran.getSurahNameEnglish(safe),
+    quran.getSurahNameTurkish(safe),
+    quran.getSurahNameFrench(safe),
+    quran.getSurahNameRussian(safe),
+    quran.getSurahNameArabic(safe),
+    _azSurahNames[safe - 1],
+    _zhSurahNames[safe - 1],
+    _faSurahNames[safe - 1],
+    _taSurahNames[safe - 1],
+  }.toList(growable: false);
+}

@@ -1,0 +1,152 @@
+import 'dart:ui';
+
+import 'package:audio_service/audio_service.dart';
+
+import '../../l10n/app_locale_resolver.dart';
+import '../../l10n/app_localizations.dart';
+
+/// Bridges the reader's existing audio engine to Android/iOS system media
+/// controls. Audio files remain owned by ReaderAudioController, preserving the
+/// local-first cache/offline architecture.
+class ReaderMediaSession extends BaseAudioHandler {
+  ReaderMediaSession._(this._copy);
+
+  static ReaderMediaSession? instance;
+
+  final AppLocalizations _copy;
+  Future<void> Function()? _onPlay;
+  Future<void> Function()? _onPause;
+  Future<void> Function()? _onPrevious;
+  Future<void> Function()? _onNext;
+  Future<void> Function(Duration position)? _onSeek;
+  Future<void> Function()? _onStop;
+  String? _lastMediaKey;
+
+  static Future<void> initialize() async {
+    if (instance != null) return;
+    final locale = await AppLocaleResolver.currentLocale();
+    final copy = AppLocalizations(locale);
+    await AudioService.init(
+      builder: () {
+        final handler = ReaderMediaSession._(copy);
+        instance = handler;
+        return handler;
+      },
+      config: AudioServiceConfig(
+        androidNotificationChannelId: 'com.omzdmr.quran_i_kerim.audio',
+        androidNotificationChannelName: copy.readerMediaChannel,
+        androidNotificationIcon: 'drawable/ic_stat_quran',
+        androidNotificationOngoing: true,
+        androidStopForegroundOnPause: false,
+        notificationColor: const Color(0xFF0B3D2E),
+      ),
+    );
+  }
+
+  void attach({
+    required Future<void> Function() onPlay,
+    required Future<void> Function() onPause,
+    required Future<void> Function() onPrevious,
+    required Future<void> Function() onNext,
+    required Future<void> Function(Duration position) onSeek,
+    required Future<void> Function() onStop,
+  }) {
+    _onPlay = onPlay;
+    _onPause = onPause;
+    _onPrevious = onPrevious;
+    _onNext = onNext;
+    _onSeek = onSeek;
+    _onStop = onStop;
+  }
+
+  void clear() {
+    _lastMediaKey = null;
+    mediaItem.add(null);
+    playbackState.add(
+      playbackState.value.copyWith(
+        controls: const <MediaControl>[],
+        playing: false,
+        processingState: AudioProcessingState.idle,
+      ),
+    );
+  }
+
+  void detach() {
+    _onPlay = null;
+    _onPause = null;
+    _onPrevious = null;
+    _onNext = null;
+    _onSeek = null;
+    _onStop = null;
+    clear();
+  }
+
+  void publish({
+    required int surah,
+    required int ayah,
+    required int verseCount,
+    required String sourceTitle,
+    required Duration position,
+    required Duration duration,
+    required bool playing,
+    required bool loading,
+    required double speed,
+  }) {
+    final mediaKey = '$surah:$ayah:$sourceTitle';
+    if (_lastMediaKey != mediaKey) {
+      _lastMediaKey = mediaKey;
+      mediaItem.add(
+        MediaItem(
+          id: 'quran:$surah:$ayah',
+          album: sourceTitle,
+          title: _copy.readerMediaTitle(surah, ayah),
+          artist: _copy.readerMediaArtist(sourceTitle, ayah, verseCount),
+          duration: duration > Duration.zero ? duration : null,
+        ),
+      );
+    } else if (duration > Duration.zero && mediaItem.value?.duration != duration) {
+      final current = mediaItem.value;
+      if (current != null) mediaItem.add(current.copyWith(duration: duration));
+    }
+
+    playbackState.add(
+      PlaybackState(
+        controls: <MediaControl>[
+          MediaControl.skipToPrevious,
+          playing ? MediaControl.pause : MediaControl.play,
+          MediaControl.skipToNext,
+        ],
+        systemActions: const <MediaAction>{MediaAction.seek},
+        androidCompactActionIndices: const <int>[0, 1, 2],
+        processingState:
+            loading ? AudioProcessingState.loading : AudioProcessingState.ready,
+        playing: playing,
+        updatePosition: position,
+        bufferedPosition: duration,
+        speed: speed,
+      ),
+    );
+  }
+
+  @override
+  Future<void> play() async => _onPlay?.call();
+
+  @override
+  Future<void> pause() async => _onPause?.call();
+
+  @override
+  Future<void> skipToPrevious() async => _onPrevious?.call();
+
+  @override
+  Future<void> skipToNext() async => _onNext?.call();
+
+  @override
+  Future<void> seek(Duration position) async => _onSeek?.call(position);
+
+  @override
+  Future<void> stop() async {
+    await _onStop?.call();
+    clear();
+    await super.stop();
+  }
+}

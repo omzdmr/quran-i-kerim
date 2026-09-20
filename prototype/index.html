@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Kur’an-ı Kerim Prototype</title>
+<style>
+:root{--bg:#0d0e0d;--card:#211f1f;--text:#f6f6f3;--muted:#aaa;--accent:#70c9a9}
+*{box-sizing:border-box}body{margin:0;background:#000;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.phone{width:min(430px,100%);min-height:100vh;margin:auto;background:var(--bg);position:relative;padding:calc(env(safe-area-inset-top) + 22px) 18px 120px}
+.tabs{display:flex;gap:28px;font-size:24px;font-weight:800}.tabs span{color:#666}.tabs .active{color:#fff}.line{width:82px;height:4px;background:var(--accent);margin-top:10px;border-radius:8px}
+.hello{display:flex;align-items:center;margin:34px 0 22px}.hello h1{font-size:34px;margin:0;flex:1}.hello b{font-size:20px}
+.card{background:var(--card);border-radius:26px;margin:0 0 16px;padding:20px}.verse{height:310px;background:linear-gradient(145deg,#354b43,#1f2925);display:flex;flex-direction:column}
+.verse h4{margin:0;color:#ddd;font-size:16px}.verse h3{font-size:21px;margin:7px 0}.arabic{font-family:serif;font-size:30px;direction:rtl;text-align:right;margin:auto 0 8px}.meal{font-family:serif;font-size:20px;line-height:1.4;margin:0 0 16px}
+.actions{display:grid;grid-template-columns:repeat(4,1fr);font-size:11px;text-align:center}.actions b{display:block;font-size:22px;margin-bottom:4px}
+.info{display:flex;gap:18px}.info main{flex:1}.ey{color:var(--muted);font-size:14px}.info h2{font-size:24px;line-height:1.25;margin:8px 0 16px}.btn{display:inline-block;background:#4b4949;border-radius:22px;padding:9px 16px;font-weight:700}.side{width:86px;display:grid;place-items:center;font-size:42px}
+.more{font-size:32px;margin:34px 0 18px}.nav{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);width:min(390px,calc(100% - 36px));height:72px;border:1px solid #494949;background:rgba(39,39,39,.94);backdrop-filter:blur(18px);border-radius:36px;display:grid;grid-template-columns:repeat(5,1fr);padding:5px}.nav button{background:transparent;border:0;color:#fff;border-radius:30px;font-size:10px}.nav button.active{background:#4b4b4b}.nav b{display:block;font-size:25px;margin-bottom:2px}
+</style></head>
+<body><div class="phone">
+<div class="tabs"><div><span class="active">Bugün</span><div class="line"></div></div><span>Topluluk</span></div>
+<div class="hello"><h1>Günaydın</h1><b>⚡ 12　♧</b></div>
+<section class="card verse"><h4>Günün Ayeti</h4><h3>İnşirah 94:6 · DİB</h3><div class="arabic">إِنَّ مَعَ الْعُسْرِ يُسْرًا</div><p class="meal">Meal metni burada seçilen çeviriye göre gösterilecek.</p><div class="actions"><span><b>♡</b>Kaydet</span><span><b>◯</b>Not</span><span><b>⇧</b>Paylaş</span><span><b>•••</b>Daha fazla</span></div></section>
+<section class="card info"><main><div class="ey">Hoş geldiniz</div><h2>Kuran ile bağlantı kurmanın dört yolunu keşfedelim.</h2><span class="btn">Devam</span></main><div class="side">◉</div></section>
+<section class="card info"><main><div class="ey">Bugünün 5 Dakikası</div><h2>Bugün Kuran ile biraz zaman geçirin.</h2><span class="btn">▶ 4–6 dakika</span></main><div class="side">✦</div></section>
+<h2 class="more">Sizin için daha fazlası</h2>
+<section class="card info"><main><div class="ey">Başlayacak bir yere mi ihtiyacınız var?</div><h2>Kuran’da zaman geçirmenize yardımcı olacak bir plan seçin.</h2><span class="btn">Planlar Bul</span></main><div class="side">⌁</div></section>
+<nav class="nav"><button class="active"><b>⌂</b>Ana Sayfa</button><button><b>▤</b>Kuran</button><button><b>☑</b>Planlar</button><button><b>⌕</b>Keşfedin</button><button><b>◉</b>Siz</button></nav>
+</div></body></html>
