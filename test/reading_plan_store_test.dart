@@ -412,4 +412,24 @@ void main() {
     expect(loaded.remainingForYear(2026), 2);
   });
 
+
+  test('oversized persisted manual notes are truncated without dropping archive', () async {
+    final longNote = List<String>.filled(350, 'n').join();
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      ReadingPlanStore.preferenceKey:
+          '{"active":null,"saved":[],"completed":['
+          '{"source":"manualOffDevice","completedAt":"2026-09-20","note":"$longNote"}'
+          ']}',
+    });
+
+    final loaded = await store.load();
+
+    expect(loaded.completed, hasLength(1));
+    expect(loaded.completed.single.note, hasLength(300));
+    expect(
+      loaded.completed.single.source,
+      KhatmCompletionSource.manualOffDevice,
+    );
+  });
+
 }
