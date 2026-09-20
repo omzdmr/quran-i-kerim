@@ -3,6 +3,7 @@ name: French core locale validation
 on:
   push:
     branches: [ manual/french-core-locale ]
+  workflow_dispatch:
 
 permissions:
   contents: write
