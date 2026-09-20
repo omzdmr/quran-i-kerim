@@ -152,6 +152,7 @@ class ReadingPlanStore {
       active: current.active,
       savedPresetIds: current.savedPresetIds,
       completed: List<CompletedReadingPlan>.unmodifiable(history),
+      offDevicePageSessions: current.offDevicePageSessions,
       yearlyKhatmTarget: current.yearlyKhatmTarget,
       redistributionTargetEndDate: current.redistributionTargetEndDate,
     );
