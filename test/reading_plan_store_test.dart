@@ -445,4 +445,190 @@ void main() {
       );
     },
   );
+
+  test(
+    'off-device page session persists without advancing active plan',
+    () async {
+      await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 20));
+
+      final after = await store.addOffDevicePageSession(
+        startPage: 120,
+        endPage: 135,
+        readAt: DateTime(2026, 9, 20, 21),
+        note: '  Paper Mushaf  ',
+        now: DateTime(2026, 9, 20, 22),
+      );
+
+      expect(after.active?.nextDayNumber, 1);
+      expect(after.active?.completedDays, isEmpty);
+      expect(after.offDevicePageSessions, hasLength(1));
+      final session = after.offDevicePageSessions.single;
+      expect(session.startPage, 120);
+      expect(session.endPage, 135);
+      expect(session.pageCount, 16);
+      expect(session.readAt, DateTime(2026, 9, 20));
+      expect(session.note, 'Paper Mushaf');
+
+      final reloaded = await const ReadingPlanStore().load();
+      expect(reloaded.offDevicePageSessions.single.startPage, 120);
+      expect(reloaded.active?.nextDayNumber, 1);
+    },
+  );
+
+  test(
+    'off-device session validates page range date and note length',
+    () async {
+      await expectLater(
+        store.addOffDevicePageSession(
+          startPage: 0,
+          endPage: 5,
+          readAt: DateTime(2026, 9, 20),
+          now: DateTime(2026, 9, 20),
+        ),
+        throwsRangeError,
+      );
+      await expectLater(
+        store.addOffDevicePageSession(
+          startPage: 10,
+          endPage: 605,
+          readAt: DateTime(2026, 9, 20),
+          now: DateTime(2026, 9, 20),
+        ),
+        throwsRangeError,
+      );
+      await expectLater(
+        store.addOffDevicePageSession(
+          startPage: 20,
+          endPage: 10,
+          readAt: DateTime(2026, 9, 20),
+          now: DateTime(2026, 9, 20),
+        ),
+        throwsArgumentError,
+      );
+      await expectLater(
+        store.addOffDevicePageSession(
+          startPage: 10,
+          endPage: 20,
+          readAt: DateTime(2026, 9, 21),
+          now: DateTime(2026, 9, 20),
+        ),
+        throwsArgumentError,
+      );
+      await expectLater(
+        store.addOffDevicePageSession(
+          startPage: 10,
+          endPage: 20,
+          readAt: DateTime(2026, 9, 20),
+          note: List<String>.filled(301, 'x').join(),
+          now: DateTime(2026, 9, 20),
+        ),
+        throwsArgumentError,
+      );
+
+      expect((await store.load()).offDevicePageSessions, isEmpty);
+    },
+  );
+
+  test('off-device session can be corrected and removed', () async {
+    await store.addOffDevicePageSession(
+      startPage: 100,
+      endPage: 110,
+      readAt: DateTime(2026, 9, 18),
+      note: 'first',
+      now: DateTime(2026, 9, 20),
+    );
+
+    var after = await store.updateOffDevicePageSessionAt(
+      0,
+      startPage: 101,
+      endPage: 115,
+      readAt: DateTime(2026, 9, 19),
+      note: 'corrected',
+      now: DateTime(2026, 9, 20),
+    );
+
+    expect(after.offDevicePageSessions.single.startPage, 101);
+    expect(after.offDevicePageSessions.single.endPage, 115);
+    expect(after.offDevicePageSessions.single.readAt, DateTime(2026, 9, 19));
+    expect(after.offDevicePageSessions.single.note, 'corrected');
+
+    after = await store.removeOffDevicePageSessionAt(0);
+    expect(after.offDevicePageSessions, isEmpty);
+  });
+
+  test('off-device sessions survive unrelated plan mutations', () async {
+    await store.addOffDevicePageSession(
+      startPage: 1,
+      endPage: 12,
+      readAt: DateTime(2026, 9, 18),
+      now: DateTime(2026, 9, 20),
+    );
+    await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 20));
+    await store.toggleSaved(ReadingPlanPreset.quran90);
+    await store.pauseActive(now: DateTime(2026, 9, 20));
+
+    final loaded = await store.load();
+    expect(loaded.offDevicePageSessions, hasLength(1));
+    expect(loaded.offDevicePageSessions.single.startPage, 1);
+    expect(loaded.active?.isPaused, isTrue);
+    expect(loaded.savedPresetIds, contains('quran90'));
+  });
+
+  test(
+    'persisted off-device sessions sanitize invalid rows without losing valid rows',
+    () async {
+      final longNote = List<String>.filled(350, 'n').join();
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        ReadingPlanStore.preferenceKey:
+            '{"active":null,"saved":[],"completed":[],"offDevicePageSessions":['
+            '{"readAt":"2026-09-10","startPage":20,"endPage":25,"note":"$longNote"},'
+            '{"readAt":"bad","startPage":1,"endPage":2},'
+            '{"readAt":"2026-09-10","startPage":0,"endPage":2},'
+            '{"readAt":"2026-09-10","startPage":30,"endPage":20}'
+            ']}',
+      });
+
+      final loaded = await store.load();
+
+      expect(loaded.offDevicePageSessions, hasLength(1));
+      final session = loaded.offDevicePageSessions.single;
+      expect(session.startPage, 20);
+      expect(session.endPage, 25);
+      expect(session.note, hasLength(300));
+    },
+  );
+
+  test('invalid off-device session indices do not mutate state', () async {
+    await expectLater(
+      store.updateOffDevicePageSessionAt(
+        0,
+        startPage: 1,
+        endPage: 2,
+        readAt: DateTime(2026, 9, 20),
+        now: DateTime(2026, 9, 20),
+      ),
+      throwsRangeError,
+    );
+    await expectLater(store.removeOffDevicePageSessionAt(0), throwsRangeError);
+    expect((await store.load()).offDevicePageSessions, isEmpty);
+  });
+
+  test('manual khatm archiving preserves off-device page sessions', () async {
+    await store.addOffDevicePageSession(
+      startPage: 50,
+      endPage: 60,
+      readAt: DateTime(2026, 9, 18),
+      now: DateTime(2026, 9, 20),
+    );
+
+    final after = await store.addManualCompletedKhatm(
+      completedAt: DateTime(2026, 9, 20),
+      now: DateTime(2026, 9, 20),
+    );
+
+    expect(after.completed, hasLength(1));
+    expect(after.offDevicePageSessions, hasLength(1));
+    expect(after.offDevicePageSessions.single.startPage, 50);
+    expect(after.offDevicePageSessions.single.endPage, 60);
+  });
 }

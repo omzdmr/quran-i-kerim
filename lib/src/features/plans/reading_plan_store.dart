@@ -10,6 +10,7 @@ class ReadingPlanSnapshot {
     this.active,
     this.savedPresetIds = const <String>{},
     this.completed = const <CompletedReadingPlan>[],
+    this.offDevicePageSessions = const <OffDevicePageReadingSession>[],
     this.yearlyKhatmTarget,
     this.redistributionTargetEndDate,
   });
@@ -17,6 +18,7 @@ class ReadingPlanSnapshot {
   final ActiveReadingPlan? active;
   final Set<String> savedPresetIds;
   final List<CompletedReadingPlan> completed;
+  final List<OffDevicePageReadingSession> offDevicePageSessions;
 
   /// Optional user-owned yearly khatm target. This is deliberately a private,
   /// local preference rather than a streak or social score.
@@ -84,6 +86,7 @@ class ReadingPlanStore {
       ),
       savedPresetIds: current.savedPresetIds,
       completed: current.completed,
+      offDevicePageSessions: current.offDevicePageSessions,
       yearlyKhatmTarget: current.yearlyKhatmTarget,
     );
     await _save(next);
@@ -98,6 +101,7 @@ class ReadingPlanStore {
       active: current.active,
       savedPresetIds: saved,
       completed: current.completed,
+      offDevicePageSessions: current.offDevicePageSessions,
       yearlyKhatmTarget: current.yearlyKhatmTarget,
       redistributionTargetEndDate: current.redistributionTargetEndDate,
     );
@@ -115,6 +119,7 @@ class ReadingPlanStore {
       active: current.active,
       savedPresetIds: current.savedPresetIds,
       completed: List<CompletedReadingPlan>.unmodifiable(completed),
+      offDevicePageSessions: current.offDevicePageSessions,
       yearlyKhatmTarget: current.yearlyKhatmTarget,
       redistributionTargetEndDate: current.redistributionTargetEndDate,
     );
@@ -147,6 +152,7 @@ class ReadingPlanStore {
       active: current.active,
       savedPresetIds: current.savedPresetIds,
       completed: List<CompletedReadingPlan>.unmodifiable(history),
+      offDevicePageSessions: current.offDevicePageSessions,
       yearlyKhatmTarget: current.yearlyKhatmTarget,
       redistributionTargetEndDate: current.redistributionTargetEndDate,
     );
@@ -186,6 +192,110 @@ class ReadingPlanStore {
       active: current.active,
       savedPresetIds: current.savedPresetIds,
       completed: List<CompletedReadingPlan>.unmodifiable(completed),
+      offDevicePageSessions: current.offDevicePageSessions,
+      yearlyKhatmTarget: current.yearlyKhatmTarget,
+      redistributionTargetEndDate: current.redistributionTargetEndDate,
+    );
+    await _save(next);
+    return next;
+  }
+
+  Future<ReadingPlanSnapshot> addOffDevicePageSession({
+    required int startPage,
+    required int endPage,
+    required DateTime readAt,
+    String? note,
+    DateTime? now,
+  }) async {
+    final current = await load();
+    final date = readingPlanDateOnly(readAt);
+    final today = readingPlanDateOnly(now ?? DateTime.now());
+    _validateOffDevicePageSession(
+      startPage: startPage,
+      endPage: endPage,
+      readAt: date,
+      today: today,
+    );
+
+    final sessions = <OffDevicePageReadingSession>[
+      OffDevicePageReadingSession(
+        readAt: date,
+        startPage: startPage,
+        endPage: endPage,
+        note: _normalizeNote(note),
+      ),
+      ...current.offDevicePageSessions,
+    ];
+    final next = ReadingPlanSnapshot(
+      active: current.active,
+      savedPresetIds: current.savedPresetIds,
+      completed: current.completed,
+      offDevicePageSessions: List<OffDevicePageReadingSession>.unmodifiable(
+        sessions,
+      ),
+      yearlyKhatmTarget: current.yearlyKhatmTarget,
+      redistributionTargetEndDate: current.redistributionTargetEndDate,
+    );
+    await _save(next);
+    return next;
+  }
+
+  Future<ReadingPlanSnapshot> updateOffDevicePageSessionAt(
+    int index, {
+    required int startPage,
+    required int endPage,
+    required DateTime readAt,
+    String? note,
+    DateTime? now,
+  }) async {
+    final current = await load();
+    if (index < 0 || index >= current.offDevicePageSessions.length) {
+      throw RangeError.index(index, current.offDevicePageSessions, 'index');
+    }
+    final date = readingPlanDateOnly(readAt);
+    final today = readingPlanDateOnly(now ?? DateTime.now());
+    _validateOffDevicePageSession(
+      startPage: startPage,
+      endPage: endPage,
+      readAt: date,
+      today: today,
+    );
+
+    final sessions = current.offDevicePageSessions.toList(growable: true);
+    sessions[index] = OffDevicePageReadingSession(
+      readAt: date,
+      startPage: startPage,
+      endPage: endPage,
+      note: _normalizeNote(note),
+    );
+    final next = ReadingPlanSnapshot(
+      active: current.active,
+      savedPresetIds: current.savedPresetIds,
+      completed: current.completed,
+      offDevicePageSessions: List<OffDevicePageReadingSession>.unmodifiable(
+        sessions,
+      ),
+      yearlyKhatmTarget: current.yearlyKhatmTarget,
+      redistributionTargetEndDate: current.redistributionTargetEndDate,
+    );
+    await _save(next);
+    return next;
+  }
+
+  Future<ReadingPlanSnapshot> removeOffDevicePageSessionAt(int index) async {
+    final current = await load();
+    if (index < 0 || index >= current.offDevicePageSessions.length) {
+      throw RangeError.index(index, current.offDevicePageSessions, 'index');
+    }
+    final sessions = current.offDevicePageSessions.toList(growable: true)
+      ..removeAt(index);
+    final next = ReadingPlanSnapshot(
+      active: current.active,
+      savedPresetIds: current.savedPresetIds,
+      completed: current.completed,
+      offDevicePageSessions: List<OffDevicePageReadingSession>.unmodifiable(
+        sessions,
+      ),
       yearlyKhatmTarget: current.yearlyKhatmTarget,
       redistributionTargetEndDate: current.redistributionTargetEndDate,
     );
@@ -203,6 +313,7 @@ class ReadingPlanStore {
       active: current.active,
       savedPresetIds: current.savedPresetIds,
       completed: current.completed,
+      offDevicePageSessions: current.offDevicePageSessions,
       yearlyKhatmTarget: target,
       redistributionTargetEndDate: current.redistributionTargetEndDate,
     );
@@ -218,6 +329,7 @@ class ReadingPlanStore {
       active: active.pause(now ?? DateTime.now()),
       savedPresetIds: current.savedPresetIds,
       completed: current.completed,
+      offDevicePageSessions: current.offDevicePageSessions,
       yearlyKhatmTarget: current.yearlyKhatmTarget,
       redistributionTargetEndDate: current.redistributionTargetEndDate,
     );
@@ -233,6 +345,7 @@ class ReadingPlanStore {
       active: active.resume(now ?? DateTime.now()),
       savedPresetIds: current.savedPresetIds,
       completed: current.completed,
+      offDevicePageSessions: current.offDevicePageSessions,
       yearlyKhatmTarget: current.yearlyKhatmTarget,
       redistributionTargetEndDate: current.redistributionTargetEndDate,
     );
@@ -260,6 +373,7 @@ class ReadingPlanStore {
       active: active,
       savedPresetIds: current.savedPresetIds,
       completed: current.completed,
+      offDevicePageSessions: current.offDevicePageSessions,
       yearlyKhatmTarget: current.yearlyKhatmTarget,
       redistributionTargetEndDate: target,
     );
@@ -274,6 +388,7 @@ class ReadingPlanStore {
       active: current.active,
       savedPresetIds: current.savedPresetIds,
       completed: current.completed,
+      offDevicePageSessions: current.offDevicePageSessions,
       yearlyKhatmTarget: current.yearlyKhatmTarget,
     );
     await _save(next);
@@ -300,6 +415,7 @@ class ReadingPlanStore {
       final next = ReadingPlanSnapshot(
         savedPresetIds: current.savedPresetIds,
         completed: List<CompletedReadingPlan>.unmodifiable(history),
+        offDevicePageSessions: current.offDevicePageSessions,
         yearlyKhatmTarget: current.yearlyKhatmTarget,
       );
       await _save(next);
@@ -310,6 +426,7 @@ class ReadingPlanStore {
       active: active.copyWith(completedDays: completedDays),
       savedPresetIds: current.savedPresetIds,
       completed: current.completed,
+      offDevicePageSessions: current.offDevicePageSessions,
       yearlyKhatmTarget: current.yearlyKhatmTarget,
       redistributionTargetEndDate: current.redistributionTargetEndDate,
     );
@@ -353,6 +470,7 @@ class ReadingPlanStore {
       final next = ReadingPlanSnapshot(
         savedPresetIds: current.savedPresetIds,
         completed: List<CompletedReadingPlan>.unmodifiable(history),
+        offDevicePageSessions: current.offDevicePageSessions,
         yearlyKhatmTarget: current.yearlyKhatmTarget,
       );
       await _save(next);
@@ -363,6 +481,7 @@ class ReadingPlanStore {
       active: active.copyWith(completedDays: completedDays),
       savedPresetIds: current.savedPresetIds,
       completed: current.completed,
+      offDevicePageSessions: current.offDevicePageSessions,
       yearlyKhatmTarget: current.yearlyKhatmTarget,
       redistributionTargetEndDate: current.redistributionTargetEndDate,
     );
@@ -376,6 +495,7 @@ class ReadingPlanStore {
     final next = ReadingPlanSnapshot(
       savedPresetIds: current.savedPresetIds,
       completed: current.completed,
+      offDevicePageSessions: current.offDevicePageSessions,
       yearlyKhatmTarget: current.yearlyKhatmTarget,
     );
     await _save(next);
@@ -474,6 +594,37 @@ class ReadingPlanStore {
       }
     }
 
+    final offDevicePageSessions = <OffDevicePageReadingSession>[];
+    final rawSessions = json['offDevicePageSessions'];
+    if (rawSessions is List) {
+      for (final item in rawSessions) {
+        if (item is! Map) continue;
+        final startPage = item['startPage'] is int
+            ? item['startPage'] as int
+            : int.tryParse('${item['startPage'] ?? ''}');
+        final endPage = item['endPage'] is int
+            ? item['endPage'] as int
+            : int.tryParse('${item['endPage'] ?? ''}');
+        final readAt = DateTime.tryParse(item['readAt']?.toString() ?? '');
+        if (startPage == null ||
+            endPage == null ||
+            readAt == null ||
+            startPage < 1 ||
+            endPage > madinahMushafPageCount ||
+            startPage > endPage) {
+          continue;
+        }
+        offDevicePageSessions.add(
+          OffDevicePageReadingSession(
+            readAt: readingPlanDateOnly(readAt),
+            startPage: startPage,
+            endPage: endPage,
+            note: _decodeNote(item['note']?.toString()),
+          ),
+        );
+      }
+    }
+
     DateTime? redistributionTargetEndDate;
     if (active != null) {
       final parsed = DateTime.tryParse(
@@ -498,6 +649,9 @@ class ReadingPlanStore {
       active: active,
       savedPresetIds: saved,
       completed: List<CompletedReadingPlan>.unmodifiable(completed),
+      offDevicePageSessions: List<OffDevicePageReadingSession>.unmodifiable(
+        offDevicePageSessions,
+      ),
       yearlyKhatmTarget: yearlyKhatmTarget,
       redistributionTargetEndDate: redistributionTargetEndDate,
     );
@@ -518,6 +672,15 @@ class ReadingPlanStore {
                   : _date(active.pausedAt!),
               'pausedDays': active.pausedDays,
             },
+      'offDevicePageSessions': <Object?>[
+        for (final item in snapshot.offDevicePageSessions)
+          <String, Object?>{
+            'readAt': _date(item.readAt),
+            'startPage': item.startPage,
+            'endPage': item.endPage,
+            'note': item.note,
+          },
+      ],
       'yearlyKhatmTarget': snapshot.yearlyKhatmTarget,
       'redistributionTargetEndDate':
           snapshot.redistributionTargetEndDate == null
@@ -537,6 +700,30 @@ class ReadingPlanStore {
     };
     await prefs.setString(preferenceKey, jsonEncode(json));
     notifyExternalChange();
+  }
+
+  void _validateOffDevicePageSession({
+    required int startPage,
+    required int endPage,
+    required DateTime readAt,
+    required DateTime today,
+  }) {
+    if (startPage < 1 || startPage > madinahMushafPageCount) {
+      throw RangeError.range(startPage, 1, madinahMushafPageCount, 'startPage');
+    }
+    if (endPage < 1 || endPage > madinahMushafPageCount) {
+      throw RangeError.range(endPage, 1, madinahMushafPageCount, 'endPage');
+    }
+    if (startPage > endPage) {
+      throw ArgumentError.value(
+        endPage,
+        'endPage',
+        'Must not be before startPage.',
+      );
+    }
+    if (readAt.isAfter(today)) {
+      throw ArgumentError.value(readAt, 'readAt', 'Must not be in the future.');
+    }
   }
 
   void _validateManualKhatmDates({

@@ -245,6 +245,22 @@ class ActiveReadingPlan {
   );
 }
 
+class OffDevicePageReadingSession {
+  const OffDevicePageReadingSession({
+    required this.readAt,
+    required this.startPage,
+    required this.endPage,
+    this.note,
+  });
+
+  final DateTime readAt;
+  final int startPage;
+  final int endPage;
+  final String? note;
+
+  int get pageCount => endPage - startPage + 1;
+}
+
 enum KhatmCompletionSource {
   readingPlan,
   manualOffDevice;

@@ -13,6 +13,20 @@ enum _PlansTab { mine, find, saved, completed }
 
 enum _ArchiveAction { edit, delete }
 
+class _OffDevicePageDraft {
+  const _OffDevicePageDraft({
+    required this.startPage,
+    required this.endPage,
+    required this.readAt,
+    this.note,
+  });
+
+  final int startPage;
+  final int endPage;
+  final DateTime readAt;
+  final String? note;
+}
+
 class _ManualKhatmDraft {
   const _ManualKhatmDraft({
     required this.completedAt,
@@ -228,6 +242,215 @@ class _PlansScreenState extends State<PlansScreen> {
       final snapshot = await _store.removeCompletedAt(index);
       if (!mounted) return;
       setState(() => _snapshot = snapshot);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _removeOffDevicePageSession(
+    OffDevicePageReadingSession session,
+  ) async {
+    if (_busy) return;
+    final index = _snapshot.offDevicePageSessions.indexOf(session);
+    if (index < 0) return;
+    final confirmed = await _confirm(
+      titleKey: 'plansOffDeviceDeleteTitleV1',
+      bodyKey: 'plansOffDeviceDeleteBodyV1',
+      actionKey: 'plansOffDeviceDeleteV1',
+    );
+    if (!confirmed || !mounted) return;
+
+    HapticFeedback.mediumImpact();
+    setState(() => _busy = true);
+    try {
+      final snapshot = await _store.removeOffDevicePageSessionAt(index);
+      if (!mounted) return;
+      setState(() => _snapshot = snapshot);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _editOffDevicePageSession([
+    OffDevicePageReadingSession? existing,
+  ]) async {
+    if (_busy) return;
+    final l10n = context.l10n;
+    final startController = TextEditingController(
+      text: existing?.startPage.toString() ?? '',
+    );
+    final endController = TextEditingController(
+      text: existing?.endPage.toString() ?? '',
+    );
+    final noteController = TextEditingController(text: existing?.note ?? '');
+    var readAt = existing?.readAt ?? readingPlanDateOnly(DateTime.now());
+    var startPage = existing?.startPage;
+    var endPage = existing?.endPage;
+
+    final result = await showDialog<_OffDevicePageDraft>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          final material = MaterialLocalizations.of(dialogContext);
+          final valid =
+              startPage != null &&
+              endPage != null &&
+              startPage! >= 1 &&
+              endPage! <= madinahMushafPageCount &&
+              startPage! <= endPage!;
+
+          Future<void> pickDate() async {
+            final picked = await showDatePicker(
+              context: dialogContext,
+              initialDate: readAt,
+              firstDate: DateTime(1900),
+              lastDate: readingPlanDateOnly(DateTime.now()),
+            );
+            if (picked != null) {
+              setDialogState(() => readAt = readingPlanDateOnly(picked));
+            }
+          }
+
+          return AlertDialog(
+            title: Text(
+              l10n.text(
+                existing == null
+                    ? 'plansOffDeviceAddTitleV1'
+                    : 'plansOffDeviceEditTitleV1',
+              ),
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(l10n.text('plansOffDeviceExplanationV1')),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: startController,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: <TextInputFormatter>[
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(3),
+                          ],
+                          decoration: InputDecoration(
+                            labelText: l10n.text('plansOffDeviceStartPageV1'),
+                          ),
+                          onChanged: (value) => setDialogState(
+                            () => startPage = int.tryParse(value),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: endController,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: <TextInputFormatter>[
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(3),
+                          ],
+                          decoration: InputDecoration(
+                            labelText: l10n.text('plansOffDeviceEndPageV1'),
+                          ),
+                          onChanged: (value) => setDialogState(
+                            () => endPage = int.tryParse(value),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.text('plansOffDevicePageHelperV1'),
+                    style: Theme.of(dialogContext).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 8),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.event_rounded),
+                    title: Text(l10n.text('plansOffDeviceReadDateV1')),
+                    subtitle: Text(material.formatMediumDate(readAt)),
+                    onTap: pickDate,
+                  ),
+                  TextField(
+                    controller: noteController,
+                    minLines: 2,
+                    maxLines: 4,
+                    maxLength: 300,
+                    decoration: InputDecoration(
+                      labelText: l10n.text('plansOffDeviceNoteV1'),
+                      hintText: l10n.text('plansOffDeviceNoteHintV1'),
+                    ),
+                  ),
+                  if (!valid)
+                    Text(
+                      l10n.text('plansOffDeviceRangeErrorV1'),
+                      style: TextStyle(
+                        color: Theme.of(dialogContext).colorScheme.error,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: Text(material.cancelButtonLabel),
+              ),
+              FilledButton(
+                onPressed: valid
+                    ? () => Navigator.of(dialogContext).pop(
+                        _OffDevicePageDraft(
+                          startPage: startPage!,
+                          endPage: endPage!,
+                          readAt: readAt,
+                          note: noteController.text,
+                        ),
+                      )
+                    : null,
+                child: Text(l10n.text('plansOffDeviceSaveV1')),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    startController.dispose();
+    endController.dispose();
+    noteController.dispose();
+    if (!mounted || result == null) return;
+
+    final existingIndex = existing == null
+        ? -1
+        : _snapshot.offDevicePageSessions.indexOf(existing);
+    if (existing != null && existingIndex < 0) return;
+
+    HapticFeedback.selectionClick();
+    setState(() => _busy = true);
+    try {
+      final snapshot = existing == null
+          ? await _store.addOffDevicePageSession(
+              startPage: result.startPage,
+              endPage: result.endPage,
+              readAt: result.readAt,
+              note: result.note,
+            )
+          : await _store.updateOffDevicePageSessionAt(
+              existingIndex,
+              startPage: result.startPage,
+              endPage: result.endPage,
+              readAt: result.readAt,
+              note: result.note,
+            );
+      if (!mounted) return;
+      setState(() => _snapshot = snapshot);
+      _snack(
+        existing == null ? 'plansOffDeviceAddedV1' : 'plansOffDeviceUpdatedV1',
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -587,8 +810,9 @@ class _PlansScreenState extends State<PlansScreen> {
 
   Widget _buildMine() {
     final active = _snapshot.active;
+    Widget planSection;
     if (active == null) {
-      return _EmptyState(
+      planSection = _EmptyState(
         icon: Icons.menu_book_outlined,
         text: context.l10n.text('plansEmptyActiveV1'),
         action: FilledButton(
@@ -596,18 +820,35 @@ class _PlansScreenState extends State<PlansScreen> {
           child: Text(context.l10n.text('findPlans')),
         ),
       );
+    } else {
+      final now = DateTime.now();
+      final schedule = active.scheduleStatus(now);
+      final catchUpTarget = schedule.isBehind
+          ? active.catchUpTarget(now)
+          : null;
+      planSection = _ActivePlanCard(
+        active: active,
+        catchUpTarget: catchUpTarget,
+        busy: _busy,
+        onRead: _openNextDay,
+        onComplete: _completeNextDay,
+        onPauseResume: _togglePause,
+        onStop: _stop,
+      );
     }
-    final now = DateTime.now();
-    final schedule = active.scheduleStatus(now);
-    final catchUpTarget = schedule.isBehind ? active.catchUpTarget(now) : null;
-    return _ActivePlanCard(
-      active: active,
-      catchUpTarget: catchUpTarget,
-      busy: _busy,
-      onRead: _openNextDay,
-      onComplete: _completeNextDay,
-      onPauseResume: _togglePause,
-      onStop: _stop,
+
+    return Column(
+      children: [
+        planSection,
+        const SizedBox(height: 16),
+        _OffDeviceReadingCard(
+          sessions: _snapshot.offDevicePageSessions,
+          busy: _busy,
+          onAdd: () => _editOffDevicePageSession(),
+          onEdit: _editOffDevicePageSession,
+          onDelete: _removeOffDevicePageSession,
+        ),
+      ],
     );
   }
 
@@ -1122,6 +1363,128 @@ class _ActivePlanCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _OffDeviceReadingCard extends StatelessWidget {
+  const _OffDeviceReadingCard({
+    required this.sessions,
+    required this.busy,
+    required this.onAdd,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final List<OffDevicePageReadingSession> sessions;
+  final bool busy;
+  final VoidCallback onAdd;
+  final ValueChanged<OffDevicePageReadingSession> onEdit;
+  final ValueChanged<OffDevicePageReadingSession> onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.menu_book_rounded, color: scheme.primary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    l10n.text('plansOffDeviceSectionTitleV1'),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.text('plansOffDeviceSectionBodyV1'),
+              style: TextStyle(color: scheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.tonalIcon(
+              onPressed: busy ? null : onAdd,
+              icon: const Icon(Icons.add_rounded),
+              label: Text(l10n.text('plansOffDeviceAddV1')),
+            ),
+            if (sessions.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              for (final session in sessions) ...[
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: CircleAvatar(
+                    backgroundColor: scheme.secondaryContainer,
+                    child: Icon(
+                      Icons.auto_stories_outlined,
+                      color: scheme.onSecondaryContainer,
+                    ),
+                  ),
+                  title: Text(
+                    l10n
+                        .text('plansOffDevicePagesV1')
+                        .replaceAll('{start}', '${session.startPage}')
+                        .replaceAll('{end}', '${session.endPage}'),
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        MaterialLocalizations.of(
+                          context,
+                        ).formatMediumDate(session.readAt),
+                      ),
+                      Text(
+                        l10n
+                            .text('plansOffDevicePageCountV1')
+                            .replaceAll('{count}', '${session.pageCount}'),
+                      ),
+                      if (session.note != null)
+                        Text(
+                          session.note!,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                    ],
+                  ),
+                  trailing: PopupMenuButton<_ArchiveAction>(
+                    enabled: !busy,
+                    onSelected: (action) {
+                      if (action == _ArchiveAction.edit) {
+                        onEdit(session);
+                      } else {
+                        onDelete(session);
+                      }
+                    },
+                    itemBuilder: (context) => <PopupMenuEntry<_ArchiveAction>>[
+                      PopupMenuItem<_ArchiveAction>(
+                        value: _ArchiveAction.edit,
+                        child: Text(l10n.text('plansArchiveEditActionV1')),
+                      ),
+                      PopupMenuItem<_ArchiveAction>(
+                        value: _ArchiveAction.delete,
+                        child: Text(l10n.text('plansOffDeviceDeleteV1')),
+                      ),
+                    ],
+                  ),
+                ),
+                if (session != sessions.last) const Divider(height: 16),
+              ],
+            ],
+          ],
+        ),
       ),
     );
   }
