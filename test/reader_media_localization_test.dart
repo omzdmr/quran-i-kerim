@@ -7,7 +7,7 @@ void main() {
   test('reader media copy keeps locale key parity', () {
     final expected = readerMediaStrings['en']!.keys.toSet();
 
-    for (final locale in const ['tr', 'en', 'ar', 'az', 'ru']) {
+    for (final locale in const ['tr', 'en', 'ar', 'az', 'ru', 'fr']) {
       expect(readerMediaStrings[locale]!.keys.toSet(), expected);
     }
   });
