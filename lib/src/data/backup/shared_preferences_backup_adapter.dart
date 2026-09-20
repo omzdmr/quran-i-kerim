@@ -54,6 +54,7 @@ class SharedPreferencesBackupAdapter {
     'audio_download_wifi_only_v1',
     'audio_download_ask_mobile_v1',
     'audio_after_surah_v1',
+    'home_quick_actions_v1',
   };
 
   static const Set<String> dhikrKeys = <String>{
