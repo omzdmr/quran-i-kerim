@@ -1,0 +1,30 @@
+name: French backup localization validation
+
+on:
+  push:
+    branches: [ manual/french-backup-strings ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.2'
+          channel: stable
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Check formatting
+        run: |
+          dart format --output=none --set-exit-if-changed             lib/src/l10n/strings/backup_strings.dart             test/backup_strings_test.dart
+
+      - name: Run backup localization test
+        run: timeout 120s flutter test test/backup_strings_test.dart --reporter expanded
