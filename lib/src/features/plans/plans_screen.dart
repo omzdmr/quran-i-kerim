@@ -262,6 +262,210 @@ class _PlansScreenState extends State<PlansScreen> {
     }
   }
 
+  Future<void> _showOffDevicePlanImpact(
+    OffDevicePageReadingSession session,
+  ) async {
+    final active = _snapshot.active;
+    if (active == null) return;
+    final impact = previewOffDevicePlanImpact(active, session);
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        final l10n = sheetContext.l10n;
+        final scheme = Theme.of(sheetContext).colorScheme;
+        final summary = l10n
+            .text('plansOffDeviceImpactSummaryV1')
+            .replaceAll('{first}', '${impact.firstDayNumber}')
+            .replaceAll('{last}', '${impact.lastDayNumber}')
+            .replaceAll('{days}', '${impact.touchedDayCount}')
+            .replaceAll('{pages}', '${impact.overlapPageCount}');
+        final remaining = l10n
+            .text('plansOffDeviceImpactRemainingV1')
+            .replaceAll('{days}', '${impact.remainingDayCount}')
+            .replaceAll('{pages}', '${impact.remainingPageCount}');
+        final completed = l10n
+            .text('plansOffDeviceImpactCompletedV1')
+            .replaceAll('{days}', '${impact.completedDayCount}')
+            .replaceAll('{pages}', '${impact.completedPageCount}');
+
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    l10n.text('plansOffDeviceImpactTitleV1'),
+                    style: Theme.of(sheetContext).textTheme.headlineSmall
+                        ?.copyWith(fontWeight: FontWeight.w900),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    l10n.text(active.preset.titleKey),
+                    style: TextStyle(
+                      color: scheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: scheme.primaryContainer.withValues(alpha: .45),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          summary,
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(remaining),
+                        if (impact.touchesCompletedDays) ...[
+                          const SizedBox(height: 3),
+                          Text(completed),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: scheme.tertiaryContainer.withValues(alpha: .45),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.info_outline_rounded,
+                          color: scheme.onTertiaryContainer,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            l10n.text('plansOffDeviceImpactWarningV1'),
+                            style: TextStyle(
+                              color: scheme.onTertiaryContainer,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  for (final segment in impact.segments) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 11,
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: scheme.outlineVariant.withValues(alpha: .65),
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 19,
+                            backgroundColor: segment.completed
+                                ? scheme.surfaceContainerHighest
+                                : scheme.secondaryContainer,
+                            foregroundColor: segment.completed
+                                ? scheme.onSurfaceVariant
+                                : scheme.onSecondaryContainer,
+                            child: Text(
+                              '${segment.dayNumber}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  l10n
+                                      .text('plansOffDeviceImpactDayV1')
+                                      .replaceAll(
+                                        '{day}',
+                                        '${segment.dayNumber}',
+                                      ),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  l10n
+                                      .text('plansPagesV1')
+                                      .replaceAll(
+                                        '{start}',
+                                        '${segment.startPage}',
+                                      )
+                                      .replaceAll(
+                                        '{end}',
+                                        '${segment.endPage}',
+                                      ),
+                                  style: TextStyle(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            l10n.text(
+                              segment.completed
+                                  ? 'plansOffDeviceImpactCompletedStatusV1'
+                                  : 'plansOffDeviceImpactRemainingStatusV1',
+                            ),
+                            style: TextStyle(
+                              color: segment.completed
+                                  ? scheme.onSurfaceVariant
+                                  : scheme.primary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  const SizedBox(height: 4),
+                  TextButton(
+                    onPressed: () => Navigator.of(sheetContext).pop(),
+                    child: Text(
+                      MaterialLocalizations.of(
+                        sheetContext,
+                      ).closeButtonLabel,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _removeOffDevicePageSession(
     OffDevicePageReadingSession session,
   ) async {
@@ -1083,6 +1287,7 @@ class _PlansScreenState extends State<PlansScreen> {
           sessions: _snapshot.offDevicePageSessions,
           busy: _busy,
           onAdd: () => _editOffDevicePageSession(),
+          onPreview: active == null ? null : _showOffDevicePlanImpact,
           onEdit: _editOffDevicePageSession,
           onDelete: _removeOffDevicePageSession,
         ),
@@ -1611,6 +1816,7 @@ class _OffDeviceReadingCard extends StatelessWidget {
     required this.sessions,
     required this.busy,
     required this.onAdd,
+    this.onPreview,
     required this.onEdit,
     required this.onDelete,
   });
@@ -1618,6 +1824,7 @@ class _OffDeviceReadingCard extends StatelessWidget {
   final List<OffDevicePageReadingSession> sessions;
   final bool busy;
   final VoidCallback onAdd;
+  final ValueChanged<OffDevicePageReadingSession>? onPreview;
   final ValueChanged<OffDevicePageReadingSession> onEdit;
   final ValueChanged<OffDevicePageReadingSession> onDelete;
 
@@ -1724,6 +1931,25 @@ class _OffDeviceReadingCard extends StatelessWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
+                      if (onPreview != null) ...[
+                        const SizedBox(height: 4),
+                        Align(
+                          alignment: AlignmentDirectional.centerStart,
+                          child: TextButton.icon(
+                            onPressed: busy
+                                ? null
+                                : () => onPreview!(session),
+                            icon: const Icon(Icons.route_outlined, size: 18),
+                            label: Text(
+                              l10n.text('plansOffDeviceImpactActionV1'),
+                            ),
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                   trailing: PopupMenuButton<_ArchiveAction>(
