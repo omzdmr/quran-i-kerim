@@ -1,0 +1,54 @@
+name: French Plans parity validation
+
+on:
+  push:
+    branches: [ manual/french-plans-feature-strings ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.2'
+          channel: stable
+          cache: true
+
+      - name: Check formatting
+        run: |
+          dart format --output=none --set-exit-if-changed \
+            lib/src/l10n/strings/plan_strings.dart \
+            test/plan_strings_test.dart
+
+      - name: Verify English French Plans parity
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          text = Path("lib/src/l10n/strings/plan_strings.dart").read_text(encoding="utf-8")
+          def block(lang):
+              marker = f"'{lang}': <String, String>{{"
+              start = text.find(marker)
+              assert start >= 0, f"missing {lang}"
+              indices = []
+              for other in ("tr","en","ar","az","ru","fr"):
+                  if other == lang:
+                      continue
+                  i = text.find(f"'{other}': <String, String>{{", start + len(marker))
+                  if i >= 0:
+                      indices.append(i)
+              end = min(indices) if indices else text.rfind("};")
+              return text[start:end]
+          def keys(lang):
+              return set(re.findall(r"^\s*'([^']+)'\s*:", block(lang), re.M))
+          en = keys("en")
+          fr = keys("fr")
+          assert en == fr, f"missing={sorted(en-fr)} extra={sorted(fr-en)}"
+          assert len(fr) >= 140, len(fr)
+          print(f"French Plans parity OK: {len(fr)} keys")
+          PY
