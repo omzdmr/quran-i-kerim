@@ -155,6 +155,16 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceCreditConfirmActionV1': 'Plana işle',
     'plansOffDeviceCreditedV1': '{days} plan günü işlendi.',
     'plansOffDeviceCreditUnavailableV1': 'Bu okuma artık plana işlenemiyor.',
+    'plansKhatmCreditBreakdownV1':
+        'Uygulama içi: {app} gün • cihaz dışı: {manual} gün',
+    'plansKhatmCreditDetailsActionV1': 'Kaynak ayrıntıları',
+    'plansKhatmCreditDetailsTitleV1': 'Cihaz dışı katkılar',
+    'plansKhatmCreditEventTitleV1':
+        '{days} plan günü cihaz dışı okumadan işlendi',
+    'plansKhatmCreditEventCreditedOnV1': 'Plana işlendi: {date}',
+    'plansKhatmCreditEventReadOnV1': 'Okuma tarihi: {date}',
+    'plansKhatmCreditEventPagesV1': 'Sayfa {start}–{end}',
+    'plansKhatmCreditEventRangeV1': 'Ayet aralığı: {start}–{end}',
   },
   'en': <String, String>{
     'plansSearchHintV1': 'Search plans',
@@ -314,6 +324,16 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceCreditedV1': '{days} plan day(s) credited.',
     'plansOffDeviceCreditUnavailableV1':
         'This reading can no longer be credited to the plan.',
+    'plansKhatmCreditBreakdownV1':
+        'In-app: {app} day(s) • off-device: {manual} day(s)',
+    'plansKhatmCreditDetailsActionV1': 'Source details',
+    'plansKhatmCreditDetailsTitleV1': 'Off-device contributions',
+    'plansKhatmCreditEventTitleV1':
+        '{days} plan day(s) credited from off-device reading',
+    'plansKhatmCreditEventCreditedOnV1': 'Credited on: {date}',
+    'plansKhatmCreditEventReadOnV1': 'Reading date: {date}',
+    'plansKhatmCreditEventPagesV1': 'Pages {start}–{end}',
+    'plansKhatmCreditEventRangeV1': 'Ayah range: {start}–{end}',
   },
   'ar': <String, String>{
     'plansSearchHintV1': 'ابحث في الخطط',
@@ -473,6 +493,16 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceCreditedV1': 'تم احتساب {days} من أيام الخطة.',
     'plansOffDeviceCreditUnavailableV1':
         'لم يعد من الممكن احتساب هذه القراءة في الخطة.',
+    'plansKhatmCreditBreakdownV1':
+        'داخل التطبيق: {app} يوم • خارج الجهاز: {manual} يوم',
+    'plansKhatmCreditDetailsActionV1': 'تفاصيل المصدر',
+    'plansKhatmCreditDetailsTitleV1': 'مساهمات القراءة خارج الجهاز',
+    'plansKhatmCreditEventTitleV1':
+        'تم احتساب {days} من أيام الخطة من قراءة خارج الجهاز',
+    'plansKhatmCreditEventCreditedOnV1': 'تاريخ الاحتساب: {date}',
+    'plansKhatmCreditEventReadOnV1': 'تاريخ القراءة: {date}',
+    'plansKhatmCreditEventPagesV1': 'الصفحات {start}–{end}',
+    'plansKhatmCreditEventRangeV1': 'نطاق الآيات: {start}–{end}',
   },
   'az': <String, String>{
     'plansSearchHintV1': 'Plan axtar',
@@ -634,6 +664,16 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceCreditedV1': '{days} plan günü əlavə edildi.',
     'plansOffDeviceCreditUnavailableV1':
         'Bu oxunu artıq plana əlavə etmək mümkün deyil.',
+    'plansKhatmCreditBreakdownV1':
+        'Tətbiq daxilində: {app} gün • cihazdan kənar: {manual} gün',
+    'plansKhatmCreditDetailsActionV1': 'Mənbə detalları',
+    'plansKhatmCreditDetailsTitleV1': 'Cihazdan kənar töhfələr',
+    'plansKhatmCreditEventTitleV1':
+        '{days} plan günü cihazdan kənar oxudan əlavə edildi',
+    'plansKhatmCreditEventCreditedOnV1': 'Plana əlavə edilib: {date}',
+    'plansKhatmCreditEventReadOnV1': 'Oxu tarixi: {date}',
+    'plansKhatmCreditEventPagesV1': 'Səhifə {start}–{end}',
+    'plansKhatmCreditEventRangeV1': 'Ayə aralığı: {start}–{end}',
   },
   'ru': <String, String>{
     'plansSearchHintV1': 'Поиск планов',
@@ -794,5 +834,15 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceCreditedV1': 'Зачтено дней плана: {days}.',
     'plansOffDeviceCreditUnavailableV1':
         'Это чтение больше нельзя зачесть в план.',
+    'plansKhatmCreditBreakdownV1':
+        'В приложении: {app} дн. • вне устройства: {manual} дн.',
+    'plansKhatmCreditDetailsActionV1': 'Детали источника',
+    'plansKhatmCreditDetailsTitleV1': 'Чтение вне устройства',
+    'plansKhatmCreditEventTitleV1':
+        'Зачтено дней плана из чтения вне устройства: {days}',
+    'plansKhatmCreditEventCreditedOnV1': 'Зачтено: {date}',
+    'plansKhatmCreditEventReadOnV1': 'Дата чтения: {date}',
+    'plansKhatmCreditEventPagesV1': 'Страницы {start}–{end}',
+    'plansKhatmCreditEventRangeV1': 'Диапазон аятов: {start}–{end}',
   },
 };
