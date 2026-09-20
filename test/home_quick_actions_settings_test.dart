@@ -108,6 +108,31 @@ void main() {
     expect(prefs.getStringList('home_quick_actions_v1'), selection);
   });
 
+  test('version four restore preserves newer quick-action preference', () async {
+    const currentSelection = <String>[
+      'quran',
+      'prayer',
+      'plans',
+      'settings',
+    ];
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'home_quick_actions_v1': currentSelection,
+      'theme_mode': 'dark',
+    });
+
+    const adapter = SharedPreferencesBackupAdapter();
+    await adapter.restoreSections(
+      <String, Object?>{
+        'preferences': <String, Object?>{'theme_mode': 'light'},
+      },
+      schemaVersion: 4,
+    );
+
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('theme_mode'), 'light');
+    expect(prefs.getStringList('home_quick_actions_v1'), currentSelection);
+  });
+
   test('Home quick-action strings have parity in every core locale', () {
     final expected = homeQuickActionStrings['tr']!.keys.toSet();
 
