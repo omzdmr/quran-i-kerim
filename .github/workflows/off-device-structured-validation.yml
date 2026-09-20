@@ -71,16 +71,5 @@ jobs:
       - name: Run plan localization parity test
         run: timeout 120s flutter test test/plan_strings_test.dart --reporter expanded
 
-      - name: Compile Plans screen import
-        run: |
-          cat > test/_plans_structured_compile_test.dart <<'DART'
-          import 'package:flutter_test/flutter_test.dart';
-          import 'package:quran_i_kerim/src/features/plans/plans_screen.dart';
-
-          void main() {
-            test('PlansScreen compiles', () {
-              expect(const PlansScreen(), isA<PlansScreen>());
-            });
-          }
-          DART
-          timeout 120s flutter test test/_plans_structured_compile_test.dart --reporter expanded
+      - name: Compile application bundle
+        run: timeout 180s flutter build bundle --debug
