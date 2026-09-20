@@ -136,7 +136,7 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceImpactCompletedV1':
         '{days} tamamlanmış plan günü • {pages} sayfa',
     'plansOffDeviceImpactWarningV1':
-        'Bu yalnızca bir önizlemedir. Kayıt plan ilerlemesini değiştirmez. Tamamlanmış plan günlerinde bu okumanın dijital okumayla tekrar olup olmadığını uygulama bilemez.',
+        'Bu yalnızca bir önizlemedir. Kayıt plan ilerlemesini değiştirmez. Tamamlanmış plan günlerinde bu okumanın dijital okumayla tekrar olup olmadığını uygulama bilemez. Gösterilen sayfa sayısı, özellikle ayet aralığı kayıtlarında, tam okunan sayfa miktarı değil kaydın dokunduğu Mushaf sayfa aralığıdır.',
     'plansOffDeviceImpactDayV1': 'Gün {day}',
     'plansOffDeviceImpactCompletedStatusV1': 'Tamamlanmış',
     'plansOffDeviceImpactRemainingStatusV1': 'Kalan',
@@ -279,7 +279,7 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceImpactCompletedV1':
         '{days} completed plan days • {pages} pages',
     'plansOffDeviceImpactWarningV1':
-        'This is only a preview. The record does not change plan progress. On completed plan days, the app cannot know whether this reading duplicates digital reading.',
+        'This is only a preview. The record does not change plan progress. On completed plan days, the app cannot know whether this reading duplicates digital reading. Page counts show the Mushaf page span touched by the record, not necessarily the amount of full pages read, especially for ayah-range entries.',
     'plansOffDeviceImpactDayV1': 'Day {day}',
     'plansOffDeviceImpactCompletedStatusV1': 'Completed',
     'plansOffDeviceImpactRemainingStatusV1': 'Remaining',
@@ -421,7 +421,7 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceImpactCompletedV1':
         '{days} أيام مكتملة من الخطة • {pages} صفحة',
     'plansOffDeviceImpactWarningV1':
-        'هذه معاينة فقط ولا تغيّر تقدم الخطة. في أيام الخطة المكتملة لا يمكن للتطبيق معرفة ما إذا كانت هذه القراءة تكرر قراءة رقمية.',
+        'هذه معاينة فقط ولا تغيّر تقدم الخطة. في أيام الخطة المكتملة لا يمكن للتطبيق معرفة ما إذا كانت هذه القراءة تكرر قراءة رقمية. عدد الصفحات المعروض يعبّر عن نطاق صفحات المصحف الذي يلامسه السجل، وليس بالضرورة عدد الصفحات الكاملة المقروءة، خصوصًا عند إدخال نطاق من الآيات.',
     'plansOffDeviceImpactDayV1': 'اليوم {day}',
     'plansOffDeviceImpactCompletedStatusV1': 'مكتمل',
     'plansOffDeviceImpactRemainingStatusV1': 'متبقٍ',
@@ -564,7 +564,7 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceImpactCompletedV1':
         '{days} tamamlanmış plan günü • {pages} səhifə',
     'plansOffDeviceImpactWarningV1':
-        'Bu yalnız önbaxışdır və plan irəliləyişini dəyişmir. Tamamlanmış plan günlərində bu oxunun rəqəmsal oxunu təkrarlayıb-təkrarlamadığını tətbiq müəyyən edə bilməz.',
+        'Bu yalnız önbaxışdır və plan irəliləyişini dəyişmir. Tamamlanmış plan günlərində bu oxunun rəqəmsal oxunu təkrarlayıb-təkrarlamadığını tətbiq müəyyən edə bilməz. Göstərilən səhifə sayı, xüsusilə ayə aralığı qeydlərində, tam oxunmuş səhifə miqdarı deyil, qeydin toxunduğu Mushaf səhifə aralığıdır.',
     'plansOffDeviceImpactDayV1': 'Gün {day}',
     'plansOffDeviceImpactCompletedStatusV1': 'Tamamlanıb',
     'plansOffDeviceImpactRemainingStatusV1': 'Qalan',
@@ -707,7 +707,7 @@ const planStrings = <String, Map<String, String>>{
         '{days} незавершённых дней • {pages} стр.',
     'plansOffDeviceImpactCompletedV1': '{days} завершённых дней • {pages} стр.',
     'plansOffDeviceImpactWarningV1':
-        'Это только предварительный просмотр, запись не меняет прогресс плана. Для уже завершённых дней приложение не может определить, дублирует ли эта запись цифровое чтение.',
+        'Это только предварительный просмотр, запись не меняет прогресс плана. Для уже завершённых дней приложение не может определить, дублирует ли эта запись цифровое чтение. Число страниц показывает диапазон страниц Мусхафа, которого касается запись, а не обязательно количество полностью прочитанных страниц, особенно для диапазона аятов.',
     'plansOffDeviceImpactDayV1': 'День {day}',
     'plansOffDeviceImpactCompletedStatusV1': 'Завершён',
     'plansOffDeviceImpactRemainingStatusV1': 'Осталось',
