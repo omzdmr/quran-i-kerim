@@ -60,7 +60,7 @@ jobs:
 
           def dart_map_keys(path):
               text = Path(path).read_text()
-              return set(re.findall(r"^\s*'([^']+)':", text, flags=re.M))
+              return set(re.findall(r"'([^']+)'\s*:", text))
 
           core_paths = {
               'tr': 'lib/src/l10n/strings/strings_tr.dart',
