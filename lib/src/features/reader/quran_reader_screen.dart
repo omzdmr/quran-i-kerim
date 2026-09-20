@@ -2941,6 +2941,7 @@ class _SelectionActionState extends State<_SelectionAction> {
       excludeSemantics: true,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
+        excludeFromSemantics: true,
         onTapDown: (_) => setState(() => _pressed = true),
         onTapCancel: () => setState(() => _pressed = false),
         onTapUp: (_) => setState(() => _pressed = false),
