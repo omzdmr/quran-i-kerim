@@ -10,6 +10,7 @@ class ReadingPlanSnapshot {
     this.active,
     this.savedPresetIds = const <String>{},
     this.completed = const <CompletedReadingPlan>[],
+    this.offDeviceSessions = const <OffDevicePageReadingSession>[],
     this.yearlyKhatmTarget,
     this.redistributionTargetEndDate,
   });
@@ -17,6 +18,7 @@ class ReadingPlanSnapshot {
   final ActiveReadingPlan? active;
   final Set<String> savedPresetIds;
   final List<CompletedReadingPlan> completed;
+  final List<OffDevicePageReadingSession> offDeviceSessions;
 
   /// Optional user-owned yearly khatm target. This is deliberately a private,
   /// local preference rather than a streak or social score.
@@ -72,6 +74,59 @@ class ReadingPlanStore {
     }
   }
 
+  Future<ReadingPlanSnapshot> addOffDeviceSession({
+    required DateTime readAt,
+    required int startPage,
+    required int endPage,
+    String? note,
+    DateTime? now,
+  }) async {
+    final date = readingPlanDateOnly(readAt);
+    if (startPage < 1 || endPage > 604 || endPage < startPage) {
+      throw ArgumentError('Page range must be within 1–604.');
+    }
+    if (date.isAfter(readingPlanDateOnly(now ?? DateTime.now()))) {
+      throw ArgumentError('Reading date cannot be in the future.');
+    }
+    final normalizedNote = _normalizeNote(note);
+    final current = await load();
+    return _withOffDeviceSessions(current, [
+      OffDevicePageReadingSession(
+        readAt: date,
+        startPage: startPage,
+        endPage: endPage,
+        note: normalizedNote,
+      ),
+      ...current.offDeviceSessions,
+    ]);
+  }
+
+  Future<ReadingPlanSnapshot> removeOffDeviceSessionAt(int index) async {
+    final current = await load();
+    final sessions = current.offDeviceSessions.toList();
+    if (index < 0 || index >= sessions.length) {
+      throw RangeError.index(index, sessions, 'index');
+    }
+    sessions.removeAt(index);
+    return _withOffDeviceSessions(current, sessions);
+  }
+
+  Future<ReadingPlanSnapshot> _withOffDeviceSessions(
+    ReadingPlanSnapshot current,
+    List<OffDevicePageReadingSession> sessions,
+  ) async {
+    final next = ReadingPlanSnapshot(
+      active: current.active,
+      savedPresetIds: current.savedPresetIds,
+      completed: current.completed,
+      yearlyKhatmTarget: current.yearlyKhatmTarget,
+      redistributionTargetEndDate: current.redistributionTargetEndDate,
+      offDeviceSessions: List.unmodifiable(sessions),
+    );
+    await _save(next);
+    return next;
+  }
+
   Future<ReadingPlanSnapshot> start(
     ReadingPlanPreset preset, {
     DateTime? now,
@@ -83,6 +138,7 @@ class ReadingPlanStore {
         startedAt: readingPlanDateOnly(now ?? DateTime.now()),
       ),
       savedPresetIds: current.savedPresetIds,
+      offDeviceSessions: current.offDeviceSessions,
       completed: current.completed,
       yearlyKhatmTarget: current.yearlyKhatmTarget,
     );
@@ -97,6 +153,7 @@ class ReadingPlanStore {
     final next = ReadingPlanSnapshot(
       active: current.active,
       savedPresetIds: saved,
+      offDeviceSessions: current.offDeviceSessions,
       completed: current.completed,
       yearlyKhatmTarget: current.yearlyKhatmTarget,
       redistributionTargetEndDate: current.redistributionTargetEndDate,
@@ -114,6 +171,7 @@ class ReadingPlanStore {
     final next = ReadingPlanSnapshot(
       active: current.active,
       savedPresetIds: current.savedPresetIds,
+      offDeviceSessions: current.offDeviceSessions,
       completed: List<CompletedReadingPlan>.unmodifiable(completed),
       yearlyKhatmTarget: current.yearlyKhatmTarget,
       redistributionTargetEndDate: current.redistributionTargetEndDate,
@@ -146,6 +204,7 @@ class ReadingPlanStore {
     final next = ReadingPlanSnapshot(
       active: current.active,
       savedPresetIds: current.savedPresetIds,
+      offDeviceSessions: current.offDeviceSessions,
       completed: List<CompletedReadingPlan>.unmodifiable(history),
       yearlyKhatmTarget: current.yearlyKhatmTarget,
       redistributionTargetEndDate: current.redistributionTargetEndDate,
@@ -185,6 +244,7 @@ class ReadingPlanStore {
     final next = ReadingPlanSnapshot(
       active: current.active,
       savedPresetIds: current.savedPresetIds,
+      offDeviceSessions: current.offDeviceSessions,
       completed: List<CompletedReadingPlan>.unmodifiable(completed),
       yearlyKhatmTarget: current.yearlyKhatmTarget,
       redistributionTargetEndDate: current.redistributionTargetEndDate,
@@ -202,6 +262,7 @@ class ReadingPlanStore {
     final next = ReadingPlanSnapshot(
       active: current.active,
       savedPresetIds: current.savedPresetIds,
+      offDeviceSessions: current.offDeviceSessions,
       completed: current.completed,
       yearlyKhatmTarget: target,
       redistributionTargetEndDate: current.redistributionTargetEndDate,
@@ -217,6 +278,7 @@ class ReadingPlanStore {
     final next = ReadingPlanSnapshot(
       active: active.pause(now ?? DateTime.now()),
       savedPresetIds: current.savedPresetIds,
+      offDeviceSessions: current.offDeviceSessions,
       completed: current.completed,
       yearlyKhatmTarget: current.yearlyKhatmTarget,
       redistributionTargetEndDate: current.redistributionTargetEndDate,
@@ -232,6 +294,7 @@ class ReadingPlanStore {
     final next = ReadingPlanSnapshot(
       active: active.resume(now ?? DateTime.now()),
       savedPresetIds: current.savedPresetIds,
+      offDeviceSessions: current.offDeviceSessions,
       completed: current.completed,
       yearlyKhatmTarget: current.yearlyKhatmTarget,
       redistributionTargetEndDate: current.redistributionTargetEndDate,
@@ -259,6 +322,7 @@ class ReadingPlanStore {
     final next = ReadingPlanSnapshot(
       active: active,
       savedPresetIds: current.savedPresetIds,
+      offDeviceSessions: current.offDeviceSessions,
       completed: current.completed,
       yearlyKhatmTarget: current.yearlyKhatmTarget,
       redistributionTargetEndDate: target,
@@ -273,6 +337,7 @@ class ReadingPlanStore {
     final next = ReadingPlanSnapshot(
       active: current.active,
       savedPresetIds: current.savedPresetIds,
+      offDeviceSessions: current.offDeviceSessions,
       completed: current.completed,
       yearlyKhatmTarget: current.yearlyKhatmTarget,
     );
@@ -299,6 +364,7 @@ class ReadingPlanStore {
       ];
       final next = ReadingPlanSnapshot(
         savedPresetIds: current.savedPresetIds,
+      offDeviceSessions: current.offDeviceSessions,
         completed: List<CompletedReadingPlan>.unmodifiable(history),
         yearlyKhatmTarget: current.yearlyKhatmTarget,
       );
@@ -309,6 +375,7 @@ class ReadingPlanStore {
     final next = ReadingPlanSnapshot(
       active: active.copyWith(completedDays: completedDays),
       savedPresetIds: current.savedPresetIds,
+      offDeviceSessions: current.offDeviceSessions,
       completed: current.completed,
       yearlyKhatmTarget: current.yearlyKhatmTarget,
       redistributionTargetEndDate: current.redistributionTargetEndDate,
@@ -352,6 +419,7 @@ class ReadingPlanStore {
       ];
       final next = ReadingPlanSnapshot(
         savedPresetIds: current.savedPresetIds,
+      offDeviceSessions: current.offDeviceSessions,
         completed: List<CompletedReadingPlan>.unmodifiable(history),
         yearlyKhatmTarget: current.yearlyKhatmTarget,
       );
@@ -362,6 +430,7 @@ class ReadingPlanStore {
     final next = ReadingPlanSnapshot(
       active: active.copyWith(completedDays: completedDays),
       savedPresetIds: current.savedPresetIds,
+      offDeviceSessions: current.offDeviceSessions,
       completed: current.completed,
       yearlyKhatmTarget: current.yearlyKhatmTarget,
       redistributionTargetEndDate: current.redistributionTargetEndDate,
@@ -375,6 +444,7 @@ class ReadingPlanStore {
     if (current.active == null) return current;
     final next = ReadingPlanSnapshot(
       savedPresetIds: current.savedPresetIds,
+      offDeviceSessions: current.offDeviceSessions,
       completed: current.completed,
       yearlyKhatmTarget: current.yearlyKhatmTarget,
     );
@@ -494,8 +564,28 @@ class ReadingPlanStore {
         ? parsedYearlyKhatmTarget
         : null;
 
+    final sessions = <OffDevicePageReadingSession>[];
+    final rawSessions = json['offDeviceSessions'];
+    if (rawSessions is List) {
+      for (final item in rawSessions) {
+        if (item is! Map) continue;
+        final date = DateTime.tryParse('${item['readAt'] ?? ''}');
+        final start = item['startPage'];
+        final end = item['endPage'];
+        if (date == null || start is! int || end is! int ||
+            start < 1 || end > 604 || start > end) continue;
+        sessions.add(OffDevicePageReadingSession(
+          readAt: readingPlanDateOnly(date),
+          startPage: start,
+          endPage: end,
+          note: _decodeNote(item['note']?.toString()),
+        ));
+      }
+    }
+
     return ReadingPlanSnapshot(
       active: active,
+      offDeviceSessions: List.unmodifiable(sessions),
       savedPresetIds: saved,
       completed: List<CompletedReadingPlan>.unmodifiable(completed),
       yearlyKhatmTarget: yearlyKhatmTarget,
@@ -507,6 +597,15 @@ class ReadingPlanStore {
     final prefs = await SharedPreferences.getInstance();
     final active = snapshot.active;
     final json = <String, Object?>{
+      'offDeviceSessions': [
+        for (final session in snapshot.offDeviceSessions)
+          <String, Object?>{
+            'readAt': _date(session.readAt),
+            'startPage': session.startPage,
+            'endPage': session.endPage,
+            'note': session.note,
+          },
+      ],
       'active': active == null
           ? null
           : <String, Object?>{
@@ -535,7 +634,9 @@ class ReadingPlanStore {
           },
       ],
     };
-    await prefs.setString(preferenceKey, jsonEncode(json));
+    if (!await prefs.setString(preferenceKey, jsonEncode(json))) {
+      throw StateError('Could not save reading-plan state.');
+    }
     notifyExternalChange();
   }
 

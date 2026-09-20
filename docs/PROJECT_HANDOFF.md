@@ -8,6 +8,27 @@ memory when it conflicts with the current branch.
 
 ## Current operating mode
 
+### Active handoff: off-device page sessions
+
+The owner closed the other ChatGPT session. Continue on
+`manual/off-device-sessions-complete`, based on `f1a6ca6` (the prior model-only
+off-device session commit). Do not reimplement Home quick actions.
+
+This branch adds Plans → Paper reading log: date, inclusive pages 1–604,
+optional private note, history and confirmed deletion. Entries are explicitly
+self-reported and use the 604-page Mushaf convention. They do not advance the
+active plan, yearly khatm totals or goals; repeated readings are separate.
+
+Sessions are stored inside `reading_plan_state_v1` and travel through the
+existing backup unit. Plan mutation paths preserve them. Tests cover range/date
+validation, persistence, backup round-trip, plan isolation, malformed entries,
+localization and large-text RTL form layout.
+
+Validation is pending in `Off-device reading checks`, scoped to this branch
+with a 15-minute limit. No APK was requested or launched for this slice. Do not
+call it fully validated or merge it until the targeted checks pass. Do not
+restart long analyzer/APK jobs to fill waiting time.
+
 - All scheduled Quran development automations are paused.
 - Development is manual and collaborative until the owner explicitly enables
   an automation again.

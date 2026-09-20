@@ -1,0 +1,24 @@
+name: Off-device reading checks
+on:
+  push:
+    branches: [manual/off-device-sessions-complete]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.2'
+          channel: stable
+          cache: true
+      - run: python3 tool/fetch_content.py
+      - run: flutter pub get
+      - run: flutter gen-l10n
+      - name: Check Dart syntax
+        run: dart format --output=none lib/src/features/plans/off_device_reading_screen.dart lib/src/features/plans/reading_plan_store.dart lib/src/features/plans/plans_screen.dart lib/src/l10n/strings/off_device_reading_strings.dart test/off_device_reading_test.dart test/off_device_reading_widget_test.dart
+      - name: Targeted store, backup, localization and widget tests
+        run: flutter test test/off_device_reading_test.dart test/off_device_reading_widget_test.dart test/reading_plan_store_test.dart test/plan_strings_test.dart --reporter expanded

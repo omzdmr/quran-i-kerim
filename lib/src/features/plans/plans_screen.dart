@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../../navigation/app_navigation.dart';
 import '../reader/reader_navigation.dart';
 import 'reading_plan.dart';
+import 'off_device_reading_screen.dart';
 import 'reading_plan_recovery_coordinator.dart';
 import 'reading_plan_recovery_destination.dart';
 import 'reading_plan_store.dart';
@@ -568,6 +569,14 @@ class _PlansScreenState extends State<PlansScreen> {
             )
           else
             _buildBody(),
+          const SizedBox(height: 20),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.edit_note),
+            label: Text(context.l10n.text('paperTitle')),
+            onPressed: () => Navigator.of(context).push<void>(
+              MaterialPageRoute(builder: (_) => const OffDeviceReadingScreen()),
+            ),
+          ),
         ],
       ),
     );
