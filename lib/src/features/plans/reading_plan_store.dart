@@ -1017,7 +1017,7 @@ class ReadingPlanStore {
               'pausedDays': active.pausedDays,
               'offDeviceCredits': _encodeOffDeviceCreditEvents(
                 active.offDeviceCredits,
-              ),,
+              ),
             },
       'offDevicePageSessions': <Object?>[
         for (final item in snapshot.offDevicePageSessions)
