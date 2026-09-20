@@ -173,6 +173,7 @@ HIFZ_SYSTEM.md remains algorithm source of truth:
 
 ## Accessibility
 - Truly large persistent Arabic/translation text, Dynamic Type, pinch-resize, line spacing, large touch targets.
+- Offer an optional persistent Essential/Senior/Low-vision preset over the same Reader and user data: enlarge Arabic, translation, interface text and touch targets together; keep a bounded readable line measure/reflow at maximum sizes; reduce the first control layer to Continue, Surah/Juz navigation, bookmark, play/pause and optional meaning, with advanced actions under a clearly labeled secondary action; expose full-screen, dimming, keep-awake and simple auto-scroll. The preset is reversible without data reset, is never inferred from age, and must pass maximum-text phone/tablet plus TalkBack/VoiceOver and representative older-device QA.
 - High contrast and color-blind-safe Tajweed palette.
 - Screen reader semantics, RTL/mixed-script correctness.
 - Reading ruler/line focus, Reduce Motion/E-Ink.
@@ -535,12 +536,13 @@ Privacy requirements:
 ### Experience presets, not separate apps
 The same codebase can offer optional experience presets:
 - Standard
+- Essential / Senior / Low-vision
 - New Muslim / Foundations
 - Hifz-focused
 - Study-focused
 - Family/parent
 - Travel/Ramadan seasonal contexts
-Presets adjust Home cards, quick actions, onboarding and suggested paths only. They must not create incompatible data silos or hide core navigation.
+Presets adjust Home cards, quick actions, onboarding and suggested paths only. They must not create incompatible data silos or hide core navigation. The Essential/Senior/Low-vision preset additionally simplifies Reader control density and applies the accessibility contract above, while preserving the same last-read, bookmarks, downloads, notes and backup identity.
 
 ## V13 — Islamic library and long-form learning
 
@@ -1211,4 +1213,3 @@ The French experience must reach the same functional parity as the existing core
 - UI French remains independent of Quran meaning editions. A French UI user may select any GREEN content language/edition.
 - French Quran meaning editions and human spoken French translations are separate content-catalog assets and must pass the normal source/license GREEN gate.
 - French support must work offline for bundled UI strings and for any downloaded GREEN content packs.
-
