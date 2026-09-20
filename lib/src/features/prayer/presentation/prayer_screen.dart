@@ -1,12 +1,17 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/strings/prayer_calendar_strings.dart';
+import '../application/prayer_calendar_export.dart';
 import '../application/prayer_calculator.dart';
 import '../application/prayer_location_service.dart';
 import '../application/prayer_notification_service.dart';
@@ -507,6 +512,73 @@ class _MonthlyPrayerTimesScreenState extends State<MonthlyPrayerTimesScreen> {
   final PrayerCalculator _calculator = PrayerCalculator();
   late DateTime _month;
   String _filter = 'all';
+  bool _exporting = false;
+
+  Future<void> _exportCalendar(List<PrayerDaySchedule> schedules) async {
+    if (_exporting) return;
+    final l10n = context.l10n;
+    final month = _month;
+    setState(() => _exporting = true);
+    try {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(l10n.calendarText('title')),
+          scrollable: true,
+          content: Text(
+            '${widget.city.label} · '
+            '${MaterialLocalizations.of(context).formatMonthYear(month)}\n\n'
+            '${l10n.calendarText('explanation')}',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l10n.text('cancel')),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(l10n.calendarText('share')),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+      final content = PrayerCalendarExport.build(
+        schedules: schedules,
+        calendarId: '${widget.city.label}|${widget.city.location.timeZoneId}',
+        cityLabel: widget.city.label,
+        description: '${l10n.calendarText('snapshot')}\n'
+            '${widget.city.location.timeZoneId}',
+        labels: {
+          for (final id in PrayerCalendarExport.prayerIds)
+            id: _prayerLabel(context, id),
+        },
+      );
+      final cache = await getTemporaryDirectory();
+      final directory = await cache.createTemp('prayer-calendar-');
+      final monthId = '${month.year}-${month.month.toString().padLeft(2, '0')}';
+      final file = File('${directory.path}/prayer-times-$monthId.ics');
+      await file.writeAsString(content, flush: true);
+      if (!mounted) return;
+      final box = context.findRenderObject() as RenderBox?;
+      await SharePlus.instance.share(ShareParams(
+        files: [XFile(file.path, mimeType: 'text/calendar')],
+        title: l10n.calendarText('title'),
+        sharePositionOrigin: box == null
+            ? null
+            : box.localToGlobal(Offset.zero) & box.size,
+      ));
+      // Keep the small file in OS-managed cache for asynchronous share readers.
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.calendarText('error'))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
 
   @override
   void initState() {
@@ -532,7 +604,16 @@ class _MonthlyPrayerTimesScreenState extends State<MonthlyPrayerTimesScreen> {
     ];
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.text('monthlyPrayerTimes'))),
+      appBar: AppBar(
+        title: Text(l10n.text('monthlyPrayerTimes')),
+        actions: [
+          IconButton(
+            tooltip: l10n.calendarText('title'),
+            onPressed: _exporting ? null : () => _exportCalendar(schedules),
+            icon: const Icon(Icons.ios_share_outlined),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           Padding(

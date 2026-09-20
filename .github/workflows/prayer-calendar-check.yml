@@ -1,0 +1,24 @@
+name: Prayer calendar checks
+on:
+  push:
+    branches: [manual/prayer-calendar-export]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.2'
+          channel: stable
+          cache: true
+      - run: python3 tool/fetch_content.py
+      - run: flutter pub get
+      - run: flutter gen-l10n
+      - name: Check Dart syntax
+        run: dart format --output=none lib/src/features/prayer/application/prayer_calendar_export.dart lib/src/features/prayer/presentation/prayer_screen.dart lib/src/l10n/strings/prayer_calendar_strings.dart test/prayer_calendar_export_test.dart test/prayer_calendar_export_widget_test.dart
+      - name: Calendar format, DST and sharing dialog tests
+        run: flutter test test/prayer_calendar_export_test.dart test/prayer_calendar_export_widget_test.dart test/prayer_calculator_test.dart --reporter expanded
