@@ -32,6 +32,7 @@ class _PlansScreenState extends State<PlansScreen> {
   bool _loading = true;
   bool _busy = false;
   bool _searching = false;
+  int _completedYearFilter = 0;
 
   @override
   void initState() {
@@ -193,6 +194,28 @@ class _PlansScreenState extends State<PlansScreen> {
     if (target == null) return;
     HapticFeedback.selectionClick();
     AppNavigation.instance.openReader(surah: target.surah, ayah: target.ayah);
+  }
+
+  Future<void> _removeCompleted(CompletedReadingPlan item) async {
+    if (_busy) return;
+    final index = _snapshot.completed.indexOf(item);
+    if (index < 0) return;
+    final confirmed = await _confirm(
+      titleKey: 'plansArchiveDeleteTitleV1',
+      bodyKey: 'plansArchiveDeleteBodyV1',
+      actionKey: 'plansArchiveDeleteActionV1',
+    );
+    if (!confirmed || !mounted) return;
+
+    HapticFeedback.mediumImpact();
+    setState(() => _busy = true);
+    try {
+      final snapshot = await _store.removeCompletedAt(index);
+      if (!mounted) return;
+      setState(() => _snapshot = snapshot);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   Future<void> _editYearlyKhatmTarget() async {
@@ -450,6 +473,16 @@ class _PlansScreenState extends State<PlansScreen> {
     final completedThisYear = _snapshot.completedInYear(year);
     final target = _snapshot.yearlyKhatmTarget;
     final remaining = _snapshot.remainingForYear(year);
+    final years = _snapshot.completed
+        .map((item) => item.completedAt.year)
+        .toSet()
+        .toList(growable: false)
+      ..sort((a, b) => b.compareTo(a));
+    final filtered = _completedYearFilter == 0
+        ? _snapshot.completed
+        : _snapshot.completed
+            .where((item) => item.completedAt.year == _completedYearFilter)
+            .toList(growable: false);
 
     return Column(
       children: [
@@ -462,14 +495,59 @@ class _PlansScreenState extends State<PlansScreen> {
           onEdit: _editYearlyKhatmTarget,
         ),
         const SizedBox(height: 16),
+        if (_snapshot.completed.isNotEmpty) ...[
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  context.l10n.text('plansKhatmArchiveTitleV1'),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+              ),
+              DropdownButton<int>(
+                value: _completedYearFilter,
+                onChanged: _busy
+                    ? null
+                    : (value) {
+                        if (value != null) {
+                          setState(() => _completedYearFilter = value);
+                        }
+                      },
+                items: <DropdownMenuItem<int>>[
+                  DropdownMenuItem<int>(
+                    value: 0,
+                    child: Text(context.l10n.text('plansArchiveAllYearsV1')),
+                  ),
+                  for (final archiveYear in years)
+                    DropdownMenuItem<int>(
+                      value: archiveYear,
+                      child: Text('$archiveYear'),
+                    ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+        ],
         if (_snapshot.completed.isEmpty)
           _EmptyState(
             icon: Icons.task_alt_rounded,
             text: context.l10n.text('plansEmptyCompletedV1'),
           )
+        else if (filtered.isEmpty)
+          _EmptyState(
+            icon: Icons.filter_alt_off_rounded,
+            text: context.l10n.text('plansArchiveNoResultsV1'),
+          )
         else
-          for (final item in _snapshot.completed) ...[
-            _CompletedPlanCard(item: item),
+          for (final item in filtered) ...[
+            _CompletedPlanCard(
+              item: item,
+              busy: _busy,
+              onDelete: () => _removeCompleted(item),
+            ),
             const SizedBox(height: 12),
           ],
       ],
@@ -959,9 +1037,15 @@ class _YearlyKhatmCard extends StatelessWidget {
 }
 
 class _CompletedPlanCard extends StatelessWidget {
-  const _CompletedPlanCard({required this.item});
+  const _CompletedPlanCard({
+    required this.item,
+    required this.busy,
+    required this.onDelete,
+  });
 
   final CompletedReadingPlan item;
+  final bool busy;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -981,6 +1065,11 @@ class _CompletedPlanCard extends StatelessWidget {
         style: const TextStyle(fontWeight: FontWeight.w800),
       ),
       subtitle: Text(subtitle),
+      trailing: IconButton(
+        onPressed: busy ? null : onDelete,
+        tooltip: l10n.text('plansArchiveDeleteActionV1'),
+        icon: const Icon(Icons.delete_outline_rounded),
+      ),
     );
   }
 }
