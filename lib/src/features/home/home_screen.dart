@@ -14,6 +14,7 @@ import '../plans/reading_plan_store.dart';
 import '../reader/reader_navigation.dart';
 import '../reader/reader_reading_history.dart';
 import 'home_prayer_card.dart';
+import 'home_quick_actions.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -230,6 +231,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                       const SizedBox(height: 18),
                       const HomePrayerCard(),
+                      const SizedBox(height: 22),
+                      const HomeQuickActionsSection(),
                       const SizedBox(height: 18),
                       _InfoCard(
                         eyebrow: l10n.text('todayFiveMinutes'),
