@@ -59,6 +59,11 @@ void main() {
       expect(after.active, isNull);
       expect(after.completed, hasLength(1));
       expect(after.completed.single.preset, ReadingPlanPreset.quran30);
+      expect(
+        after.completed.single.source,
+        KhatmCompletionSource.readingPlan,
+      );
+      expect(after.completed.single.startedAt, DateTime(2026, 8, 18));
       expect(after.completed.single.completedAt, DateTime(2026, 9, 16));
     },
   );
@@ -120,6 +125,12 @@ void main() {
       final loaded = await store.load();
 
       expect(loaded.completed, hasLength(22));
+      expect(
+        loaded.completed.every(
+          (item) => item.source == KhatmCompletionSource.readingPlan,
+        ),
+        isTrue,
+      );
       expect(loaded.completed.first.completedAt, DateTime(2026, 9, 1));
       expect(loaded.completed.last.completedAt, DateTime(2026, 9, 22));
     },
@@ -267,4 +278,138 @@ void main() {
       expect(loaded.completed, isEmpty);
     },
   );
+
+  test('manual off-device khatm persists source dates and private note', () async {
+    final after = await store.addManualCompletedKhatm(
+      startedAt: DateTime(2026, 8, 1, 22),
+      completedAt: DateTime(2026, 9, 20, 18),
+      note: '  Paper Mushaf at home  ',
+      now: DateTime(2026, 9, 20, 23),
+    );
+
+    expect(after.completed, hasLength(1));
+    final record = after.completed.single;
+    expect(record.source, KhatmCompletionSource.manualOffDevice);
+    expect(record.isManualOffDevice, isTrue);
+    expect(record.preset, isNull);
+    expect(record.startedAt, DateTime(2026, 8, 1));
+    expect(record.completedAt, DateTime(2026, 9, 20));
+    expect(record.note, 'Paper Mushaf at home');
+
+    final reloaded = await const ReadingPlanStore().load();
+    expect(reloaded.completed.single.source, KhatmCompletionSource.manualOffDevice);
+    expect(reloaded.completed.single.note, 'Paper Mushaf at home');
+  });
+
+  test('manual khatm accepts missing start date and clears blank notes', () async {
+    final after = await store.addManualCompletedKhatm(
+      completedAt: DateTime(2026, 9, 19),
+      note: '   ',
+      now: DateTime(2026, 9, 20),
+    );
+
+    expect(after.completed.single.startedAt, isNull);
+    expect(after.completed.single.note, isNull);
+  });
+
+  test('manual khatm rejects future completion invalid ranges and oversized notes', () async {
+    await expectLater(
+      store.addManualCompletedKhatm(
+        completedAt: DateTime(2026, 9, 21),
+        now: DateTime(2026, 9, 20),
+      ),
+      throwsArgumentError,
+    );
+    await expectLater(
+      store.addManualCompletedKhatm(
+        startedAt: DateTime(2026, 9, 20),
+        completedAt: DateTime(2026, 9, 19),
+        now: DateTime(2026, 9, 20),
+      ),
+      throwsArgumentError,
+    );
+    await expectLater(
+      store.addManualCompletedKhatm(
+        completedAt: DateTime(2026, 9, 20),
+        note: 'x' * 301,
+        now: DateTime(2026, 9, 20),
+      ),
+      throwsArgumentError,
+    );
+
+    final loaded = await store.load();
+    expect(loaded.completed, isEmpty);
+  });
+
+  test('manual khatm can be corrected without changing its source', () async {
+    await store.addManualCompletedKhatm(
+      startedAt: DateTime(2026, 7, 1),
+      completedAt: DateTime(2026, 8, 31),
+      note: 'first',
+      now: DateTime(2026, 9, 20),
+    );
+
+    final after = await store.updateManualCompletedKhatmAt(
+      0,
+      startedAt: DateTime(2026, 7, 5),
+      completedAt: DateTime(2026, 9, 2),
+      note: 'corrected',
+      now: DateTime(2026, 9, 20),
+    );
+
+    final record = after.completed.single;
+    expect(record.source, KhatmCompletionSource.manualOffDevice);
+    expect(record.startedAt, DateTime(2026, 7, 5));
+    expect(record.completedAt, DateTime(2026, 9, 2));
+    expect(record.note, 'corrected');
+  });
+
+  test('manual editor refuses to rewrite a plan-generated archive record', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      ReadingPlanStore.preferenceKey:
+          '{"active":null,"saved":[],"completed":['
+          '{"preset":"quran30","startedAt":"2026-08-01","completedAt":"2026-08-30"}'
+          ']}',
+    });
+
+    await expectLater(
+      store.updateManualCompletedKhatmAt(
+        0,
+        completedAt: DateTime(2026, 9, 1),
+        now: DateTime(2026, 9, 20),
+      ),
+      throwsStateError,
+    );
+  });
+
+  test('yearly totals include manual records and preserve source breakdown', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      ReadingPlanStore.preferenceKey:
+          '{"active":null,"saved":[],"yearlyKhatmTarget":4,"completed":['
+          '{"preset":"quran30","startedAt":"2026-01-01","completedAt":"2026-01-30"},'
+          '{"source":"manualOffDevice","startedAt":null,"completedAt":"2026-05-10","note":"paper"},'
+          '{"source":"manualOffDevice","startedAt":"2025-11-01","completedAt":"2025-12-31"}'
+          ']}',
+    });
+
+    final loaded = await store.load();
+
+    expect(loaded.completedInYear(2026), 2);
+    expect(
+      loaded.completedInYearBySource(
+        2026,
+        KhatmCompletionSource.readingPlan,
+      ),
+      1,
+    );
+    expect(
+      loaded.completedInYearBySource(
+        2026,
+        KhatmCompletionSource.manualOffDevice,
+      ),
+      1,
+    );
+    expect(loaded.remainingForYear(2026), 2);
+  });
+
 }
