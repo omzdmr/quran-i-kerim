@@ -15,6 +15,7 @@ const prayerNotificationDiagnosticsStrings =
     'notificationDiagnosticsUnavailable': 'Kullanılamıyor',
     'notificationDiagnosticsNotApplicable': 'Gerekli değil',
     'notificationDiagnosticsUnknown': 'Kontrol edilemedi',
+    'notificationDiagnosticsFailed': 'Bildirim kontrolü tamamlanamadı.',
     'notificationDiagnosticsPermissionHint':
         'Sistem bildirimi izni kapalı. Namaz bildirimleri görünmeyebilir.',
   },
@@ -33,6 +34,7 @@ const prayerNotificationDiagnosticsStrings =
     'notificationDiagnosticsUnavailable': 'Unavailable',
     'notificationDiagnosticsNotApplicable': 'Not required',
     'notificationDiagnosticsUnknown': 'Could not check',
+    'notificationDiagnosticsFailed': 'Notification check could not be completed.',
     'notificationDiagnosticsPermissionHint':
         'System notification permission is off. Prayer reminders may not appear.',
   },
@@ -51,6 +53,7 @@ const prayerNotificationDiagnosticsStrings =
     'notificationDiagnosticsUnavailable': 'غير متاح',
     'notificationDiagnosticsNotApplicable': 'غير مطلوب',
     'notificationDiagnosticsUnknown': 'تعذر الفحص',
+    'notificationDiagnosticsFailed': 'تعذر إكمال فحص التنبيهات.',
     'notificationDiagnosticsPermissionHint':
         'إذن تنبيهات النظام متوقف، لذلك قد لا تظهر تنبيهات الصلاة.',
   },
@@ -69,6 +72,7 @@ const prayerNotificationDiagnosticsStrings =
     'notificationDiagnosticsUnavailable': 'Mövcud deyil',
     'notificationDiagnosticsNotApplicable': 'Lazım deyil',
     'notificationDiagnosticsUnknown': 'Yoxlama alınmadı',
+    'notificationDiagnosticsFailed': 'Bildiriş yoxlaması tamamlana bilmədi.',
     'notificationDiagnosticsPermissionHint':
         'Sistem bildiriş icazəsi bağlıdır. Namaz bildirişləri görünməyə bilər.',
   },
@@ -87,6 +91,7 @@ const prayerNotificationDiagnosticsStrings =
     'notificationDiagnosticsUnavailable': 'Недоступен',
     'notificationDiagnosticsNotApplicable': 'Не требуется',
     'notificationDiagnosticsUnknown': 'Не удалось проверить',
+    'notificationDiagnosticsFailed': 'Не удалось завершить проверку уведомлений.',
     'notificationDiagnosticsPermissionHint':
         'Системные уведомления отключены. Напоминания о намазе могут не появляться.',
   },

@@ -97,15 +97,26 @@ class _PrayerSettingsScreenState extends State<PrayerSettingsScreen> {
     if (_checkingNotificationDiagnostics) return;
     setState(() => _checkingNotificationDiagnostics = true);
 
-    PrayerNotificationDiagnostics diagnostics;
+    PrayerNotificationDiagnostics? diagnostics;
     try {
       diagnostics = await PrayerNotificationService.diagnostics();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              context.l10n.text('notificationDiagnosticsFailed'),
+            ),
+          ),
+        );
+      }
+      return;
     } finally {
       if (mounted) {
         setState(() => _checkingNotificationDiagnostics = false);
       }
     }
-    if (!mounted) return;
+    if (!mounted || diagnostics == null) return;
 
     final l10n = context.l10n;
     final permission = diagnostics.systemPermissionGranted == null
