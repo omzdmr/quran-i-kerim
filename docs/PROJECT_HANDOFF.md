@@ -71,7 +71,20 @@ Recent Plans work:
 
 ## Latest completed feature slice
 
-French core application-locale wiring is implemented on the current integration
+French full feature-string parity is now integrated on top of the French core
+application-locale wiring, without merging stale localization branches wholesale.
+
+Integrated French feature-string work:
+- Commit `3aac833` added French Home quick actions, recent-reading and Home verse/activity copy plus parity tests.
+- Commit `0c97cce` added French Reader navigation/audio/media/note copy, prayer notification copy and Learn catalog progress copy plus parity tests.
+- Commit `100af6a` added French prayer-notification diagnostics, Learn lesson copy and Learn reference/source copy plus parity tests.
+- `feature_strings.dart` currently has exact 137/137 EN↔FR key parity and its test already requires all six core locales.
+- `plan_strings.dart` currently has exact 141/141 EN↔FR key parity and its test already requires all six core locales.
+- Backup strings already include French parity from `fe6ddc6`.
+- French remains `humanReviewRequired: true`; AI-assisted draft copy must not be represented as production human-reviewed French.
+- French UI availability remains independent from French Quran meaning/audio catalog rights.
+
+French core application-locale wiring was implemented on the current integration
 foundation without merging the stale localization automation branch wholesale:
 
 - Existing French work from `automation/localization-language` was audited and
@@ -143,30 +156,18 @@ pipeline green.
 
 ## Immediate next step
 
-Continue French parity through the feature-string layers from a fresh branch
-based on the integrated French-core head:
+French application/feature-string parity is complete at the repository level.
+Do not restart the old `manual/french-*` branches unless a concrete regression
+is found; they are historical staging branches and may be behind integration.
 
-- Reuse the already-complete French blocks from the stale localization branch
-  only when their key sets still match current code; do not replace newer files
-  wholesale.
-- Low-conflict reusable layers currently include Home verse, prayer
-  notifications, Reader navigation/media/audio/note and Learn catalog.
-- Add new French copy for layers created after the old localization branch:
-  Home quick actions, recent reading, prayer-notification diagnostics and newer
-  Learn/reference surfaces.
-- Plans requires special care: the old French block covers only 30 of the
-  current 141 keys. Translate the missing recovery, yearly-khatm,
-  manual/off-device, impact/credit and completed-provenance keys against the
-  current English semantics rather than copying the stale file.
-- Add French to every feature-string parity test and eliminate silent English
-  fallback on surfaces declared French-complete.
-- Preserve `humanReviewRequired: true` until a human language review has
-  actually happened.
-- Do not couple French UI availability to French Quran meaning/audio catalog
-  availability.
-
-
-
-Do not restart already completed recovery, notification diagnostics,
-recent-reading, Home quick-actions, khatm archive or page-session work unless a
-real regression is demonstrated.
+Next manual development should:
+1. Re-check the newest Android CI result for the current integration head and
+   classify any failure by its exact failing step.
+2. Read the current `PRODUCT_MASTER_SPEC.md` and choose the next missing
+   user-visible vertical slice rather than adding more localization scaffolding.
+3. Preserve the completed Home, Reader, Plans, notification-diagnostics,
+   khatm/page-session and French-parity work.
+4. Keep French `humanReviewRequired: true` until an actual human language
+   review is completed.
+5. Continue to separate UI-locale availability from Quran
+   meaning/audio/source-rights availability.
