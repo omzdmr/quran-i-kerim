@@ -868,10 +868,10 @@ class ReadingPlanStore {
                 ),
                 sourceStartPage: sourceStartPage,
                 sourceEndPage: sourceEndPage,
-                sourceCanonicalStartKey:
-                    item['sourceCanonicalStartKey']?.toString(),
-                sourceCanonicalEndKey:
-                    item['sourceCanonicalEndKey']?.toString(),
+                sourceCanonicalStartKey: item['sourceCanonicalStartKey']
+                    ?.toString(),
+                sourceCanonicalEndKey: item['sourceCanonicalEndKey']
+                    ?.toString(),
                 dayNumbers: List<int>.unmodifiable(orderedDays),
               ),
             );

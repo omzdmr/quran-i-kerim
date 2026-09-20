@@ -553,9 +553,7 @@ class _PlansScreenState extends State<PlansScreen> {
               ),
               FilledButton(
                 onPressed: () => Navigator.of(dialogContext).pop(true),
-                child: Text(
-                  l10n.text('plansOffDeviceCreditConfirmActionV1'),
-                ),
+                child: Text(l10n.text('plansOffDeviceCreditConfirmActionV1')),
               ),
             ],
           ),

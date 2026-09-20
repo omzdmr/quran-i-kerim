@@ -895,65 +895,71 @@ void main() {
     },
   );
 
-  test('full off-device plan day can be explicitly credited and persists', () async {
-    final day = readingPlanDay(ReadingPlanPreset.quran30, 1);
-    await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 20));
-    final logged = await store.addOffDevicePageSession(
-      startPage: day.startPage,
-      endPage: day.endPage,
-      readAt: DateTime(2026, 9, 20),
-      now: DateTime(2026, 9, 20),
-    );
-    final session = logged.offDevicePageSessions.single;
+  test(
+    'full off-device plan day can be explicitly credited and persists',
+    () async {
+      final day = readingPlanDay(ReadingPlanPreset.quran30, 1);
+      await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 20));
+      final logged = await store.addOffDevicePageSession(
+        startPage: day.startPage,
+        endPage: day.endPage,
+        readAt: DateTime(2026, 9, 20),
+        now: DateTime(2026, 9, 20),
+      );
+      final session = logged.offDevicePageSessions.single;
 
-    final preview = store.previewOffDevicePlanCredit(logged.active!, session);
-    expect(preview.creditableDayNumbers, <int>[1]);
-    expect(preview.partialRemainingDayNumbers, isEmpty);
+      final preview = store.previewOffDevicePlanCredit(logged.active!, session);
+      expect(preview.creditableDayNumbers, <int>[1]);
+      expect(preview.partialRemainingDayNumbers, isEmpty);
 
-    final credited = await store.creditOffDeviceSessionToActivePlan(
-      session,
-      now: DateTime(2026, 9, 20),
-    );
+      final credited = await store.creditOffDeviceSessionToActivePlan(
+        session,
+        now: DateTime(2026, 9, 20),
+      );
 
-    expect(credited.active?.completedDays, <int>{1});
-    expect(credited.active?.offDeviceCredits, hasLength(1));
-    final event = credited.active!.offDeviceCredits.single;
-    expect(event.dayNumbers, <int>[1]);
-    expect(event.sourceStartPage, day.startPage);
-    expect(event.sourceEndPage, day.endPage);
-    expect(event.sourceInputKind, OffDeviceReadingInputKind.page);
+      expect(credited.active?.completedDays, <int>{1});
+      expect(credited.active?.offDeviceCredits, hasLength(1));
+      final event = credited.active!.offDeviceCredits.single;
+      expect(event.dayNumbers, <int>[1]);
+      expect(event.sourceStartPage, day.startPage);
+      expect(event.sourceEndPage, day.endPage);
+      expect(event.sourceInputKind, OffDeviceReadingInputKind.page);
 
-    final reloaded = await const ReadingPlanStore().load();
-    expect(reloaded.active?.completedDays, <int>{1});
-    expect(reloaded.active?.offDeviceCredits, hasLength(1));
-    expect(reloaded.active?.offDeviceCredits.single.dayNumbers, <int>[1]);
-  });
+      final reloaded = await const ReadingPlanStore().load();
+      expect(reloaded.active?.completedDays, <int>{1});
+      expect(reloaded.active?.offDeviceCredits, hasLength(1));
+      expect(reloaded.active?.offDeviceCredits.single.dayNumbers, <int>[1]);
+    },
+  );
 
-  test('credit marks only fully covered unfinished days, not partial edges', () async {
-    final day1 = readingPlanDay(ReadingPlanPreset.quran30, 1);
-    final day3 = readingPlanDay(ReadingPlanPreset.quran30, 3);
-    await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 20));
-    final logged = await store.addOffDevicePageSession(
-      startPage: day1.endPage,
-      endPage: day3.startPage,
-      readAt: DateTime(2026, 9, 20),
-      now: DateTime(2026, 9, 20),
-    );
-    final session = logged.offDevicePageSessions.single;
+  test(
+    'credit marks only fully covered unfinished days, not partial edges',
+    () async {
+      final day1 = readingPlanDay(ReadingPlanPreset.quran30, 1);
+      final day3 = readingPlanDay(ReadingPlanPreset.quran30, 3);
+      await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 20));
+      final logged = await store.addOffDevicePageSession(
+        startPage: day1.endPage,
+        endPage: day3.startPage,
+        readAt: DateTime(2026, 9, 20),
+        now: DateTime(2026, 9, 20),
+      );
+      final session = logged.offDevicePageSessions.single;
 
-    final preview = store.previewOffDevicePlanCredit(logged.active!, session);
+      final preview = store.previewOffDevicePlanCredit(logged.active!, session);
 
-    expect(preview.creditableDayNumbers, <int>[2]);
-    expect(preview.partialRemainingDayNumbers, <int>[1, 3]);
+      expect(preview.creditableDayNumbers, <int>[2]);
+      expect(preview.partialRemainingDayNumbers, <int>[1, 3]);
 
-    final credited = await store.creditOffDeviceSessionToActivePlan(
-      session,
-      now: DateTime(2026, 9, 20),
-    );
-    expect(credited.active?.completedDays, <int>{2});
-    expect(credited.active?.nextDayNumber, 1);
-    expect(credited.active?.offDeviceCredits.single.dayNumbers, <int>[2]);
-  });
+      final credited = await store.creditOffDeviceSessionToActivePlan(
+        session,
+        now: DateTime(2026, 9, 20),
+      );
+      expect(credited.active?.completedDays, <int>{2});
+      expect(credited.active?.nextDayNumber, 1);
+      expect(credited.active?.offDeviceCredits.single.dayNumbers, <int>[2]);
+    },
+  );
 
   test('partial ayah range never receives full-day credit', () async {
     await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 20));
@@ -1032,29 +1038,32 @@ void main() {
     expect(reloaded.active?.offDeviceCredits, isEmpty);
   });
 
-  test('confirmed credit survives later deletion of the source reading log', () async {
-    final day = readingPlanDay(ReadingPlanPreset.quran30, 1);
-    await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 20));
-    final logged = await store.addOffDevicePageSession(
-      startPage: day.startPage,
-      endPage: day.endPage,
-      readAt: DateTime(2026, 9, 20),
-      note: 'paper',
-      now: DateTime(2026, 9, 20),
-    );
-    final session = logged.offDevicePageSessions.single;
-    await store.creditOffDeviceSessionToActivePlan(
-      session,
-      now: DateTime(2026, 9, 20),
-    );
+  test(
+    'confirmed credit survives later deletion of the source reading log',
+    () async {
+      final day = readingPlanDay(ReadingPlanPreset.quran30, 1);
+      await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 20));
+      final logged = await store.addOffDevicePageSession(
+        startPage: day.startPage,
+        endPage: day.endPage,
+        readAt: DateTime(2026, 9, 20),
+        note: 'paper',
+        now: DateTime(2026, 9, 20),
+      );
+      final session = logged.offDevicePageSessions.single;
+      await store.creditOffDeviceSessionToActivePlan(
+        session,
+        now: DateTime(2026, 9, 20),
+      );
 
-    final afterDelete = await store.removeOffDevicePageSessionAt(0);
+      final afterDelete = await store.removeOffDevicePageSessionAt(0);
 
-    expect(afterDelete.offDevicePageSessions, isEmpty);
-    expect(afterDelete.active?.completedDays, <int>{1});
-    expect(afterDelete.active?.offDeviceCredits, hasLength(1));
-    expect(afterDelete.active?.offDeviceCredits.single.dayNumbers, <int>[1]);
-  });
+      expect(afterDelete.offDevicePageSessions, isEmpty);
+      expect(afterDelete.active?.completedDays, <int>{1});
+      expect(afterDelete.active?.offDeviceCredits, hasLength(1));
+      expect(afterDelete.active?.offDeviceCredits.single.dayNumbers, <int>[1]);
+    },
+  );
 
   test('deleted source record cannot be newly credited', () async {
     final day = readingPlanDay(ReadingPlanPreset.quran30, 1);
@@ -1077,5 +1086,4 @@ void main() {
     );
     expect((await store.load()).active?.completedDays, isEmpty);
   });
-
 }
