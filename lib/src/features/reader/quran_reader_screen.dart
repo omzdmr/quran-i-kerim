@@ -586,8 +586,8 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
           ),
           if (audioConfig != null && _audioQuickControlsVisible)
             Positioned(
-              left: 74,
-              right: 74,
+              left: settings.essentialReaderEnabled ? 36 : 74,
+              right: settings.essentialReaderEnabled ? 36 : 74,
               bottom: 82,
               child: IgnorePointer(
                 ignoring: !showQuickAudio,
@@ -604,7 +604,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                       color: scheme.surfaceContainerHigh,
                       borderRadius: BorderRadius.circular(28),
                       child: SizedBox(
-                        height: 56,
+                        height: settings.essentialReaderEnabled ? 64 : 56,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
@@ -771,7 +771,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                   children: [
                     Expanded(
                       child: Container(
-                        height: 48,
+                        height: settings.essentialReaderEnabled ? 56 : 48,
                         decoration: BoxDecoration(
                           color: scheme.surfaceContainer,
                           borderRadius: BorderRadius.circular(24),
@@ -808,12 +808,13 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                         icon: const Icon(Icons.volume_up_outlined, size: 27),
                         tooltip: l10n.text('listen'),
                       ),
-                    IconButton(
-                      visualDensity: VisualDensity.compact,
-                      onPressed: _showSearch,
-                      icon: const Icon(Icons.search_rounded, size: 28),
-                      tooltip: l10n.text('readerSearchTooltip'),
-                    ),
+                    if (!settings.essentialReaderEnabled)
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        onPressed: _showSearch,
+                        icon: const Icon(Icons.search_rounded, size: 28),
+                        tooltip: l10n.text('readerSearchTooltip'),
+                      ),
                     IconButton(
                       visualDensity: VisualDensity.compact,
                       onPressed: _showReaderMenu,
@@ -876,9 +877,9 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
         child: SingleChildScrollView(
           controller: _scrollController,
           padding: EdgeInsets.fromLTRB(
-            22,
-            96,
-            22,
+            settings.essentialReaderEnabled ? 28 : 22,
+            settings.essentialReaderEnabled ? 108 : 96,
+            settings.essentialReaderEnabled ? 28 : 22,
             _selectedAyahs.isEmpty ? 118 : 78,
           ),
           child: Column(
@@ -901,7 +902,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                   translations: translations,
                   footnotes: footnotes,
                   mode: settings.readerMode,
-                  textSize: settings.readerTextSize,
+                  textSize: settings.readerContentTextSize,
                   lineHeight: settings.arabicLineHeight,
                   selectedAyahs: _selectedAyahs,
                   activeAudioAyah:
@@ -1100,7 +1101,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: 'serif',
-                fontSize: settings.readerTextSize,
+                fontSize: settings.readerContentTextSize,
                 height: settings.arabicLineHeight,
               ),
             ),
@@ -1176,6 +1177,16 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                   _showReadingAppearance();
                 },
               ),
+              if (AppSettingsScope.of(context).essentialReaderEnabled)
+                ListTile(
+                  leading: const Icon(Icons.search_rounded),
+                  title: Text(l10n.text('readerSearchTooltip')),
+                  subtitle: Text(l10n.text('quranSearchHint')),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _showSearch();
+                  },
+                ),
               ListTile(
                 leading: const Icon(Icons.translate_rounded),
                 title: Text(l10n.text('readingText')),
@@ -1236,6 +1247,23 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                     fontSize: 26,
                     fontWeight: FontWeight.w900,
                   ),
+                ),
+                const SizedBox(height: 12),
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  secondary: const Icon(Icons.visibility_outlined),
+                  title: Text(l10n.text('essentialReaderTitle')),
+                  subtitle: Text(l10n.text('essentialReaderSubtitle')),
+                  value: settings.essentialReaderEnabled,
+                  onChanged: (enabled) async {
+                    await settings.setReaderExperiencePreset(
+                      enabled
+                          ? ReaderExperiencePreset.essential
+                          : ReaderExperiencePreset.standard,
+                    );
+                    HapticFeedback.selectionClick();
+                    setSheetState(() {});
+                  },
                 ),
                 const SizedBox(height: 18),
                 _FontSizeControl(
@@ -2056,7 +2084,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                       textAlign: arabic ? TextAlign.right : TextAlign.left,
                       style: TextStyle(
                         fontFamily: 'serif',
-                        fontSize: settings.readerTextSize,
+                        fontSize: settings.readerContentTextSize,
                         height: arabic
                             ? settings.arabicLineHeight
                             : settings.translationLineHeight,

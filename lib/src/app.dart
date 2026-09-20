@@ -39,6 +39,20 @@ class QuranModernApp extends StatelessWidget {
               }
               return const Locale('en');
             },
+            builder: (context, child) {
+              final mediaQuery = MediaQuery.of(context);
+              final currentScale = mediaQuery.textScaler.scale(16) / 16;
+              final minimumScale = settings.minimumInterfaceTextScale;
+              final effectiveScale = currentScale < minimumScale
+                  ? minimumScale
+                  : currentScale;
+              return MediaQuery(
+                data: mediaQuery.copyWith(
+                  textScaler: TextScaler.linear(effectiveScale),
+                ),
+                child: child ?? const SizedBox.shrink(),
+              );
+            },
             localizationsDelegates: const [
               GeneratedAppLocalizations.delegate,
               AppLocalizations.delegate,

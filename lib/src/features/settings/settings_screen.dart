@@ -42,6 +42,21 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
         children: [
+          _ChoiceTile(
+            title: l10n.text('essentialReaderTitle'),
+            subtitle: l10n.text('essentialReaderSubtitle'),
+            icon: Icons.visibility_outlined,
+            selected: settings.essentialReaderEnabled,
+            onTap: () {
+              HapticFeedback.selectionClick();
+              settings.setReaderExperiencePreset(
+                settings.essentialReaderEnabled
+                    ? ReaderExperiencePreset.standard
+                    : ReaderExperiencePreset.essential,
+              );
+            },
+          ),
+          const SizedBox(height: 30),
           _SectionHeader(
             title: l10n.appearance,
             description: l10n.appearanceDescription,
@@ -289,6 +304,18 @@ class _SettingsSearchDelegate extends SearchDelegate<void> {
   final BuildContext rootContext;
 
   List<_SettingsSearchEntry> get _entries => <_SettingsSearchEntry>[
+        _SettingsSearchEntry(
+          title: l10n.text('essentialReaderTitle'),
+          subtitle: l10n.text('essentialReaderSubtitle'),
+          icon: Icons.visibility_outlined,
+          selected: settings.essentialReaderEnabled,
+          keywords: <String>[l10n.reading, l10n.appearance],
+          onTap: () => settings.setReaderExperiencePreset(
+            settings.essentialReaderEnabled
+                ? ReaderExperiencePreset.standard
+                : ReaderExperiencePreset.essential,
+          ),
+        ),
         _SettingsSearchEntry(
           title: l10n.useDeviceTheme,
           subtitle: l10n.useDeviceThemeDescription,
