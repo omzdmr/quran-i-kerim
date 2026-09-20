@@ -200,7 +200,7 @@ class ReadingPlanStore {
       ];
       final next = ReadingPlanSnapshot(
         savedPresetIds: current.savedPresetIds,
-        completed: history.take(20).toList(growable: false),
+        completed: List<CompletedReadingPlan>.unmodifiable(history),
         yearlyKhatmTarget: current.yearlyKhatmTarget,
       );
       await _save(next);
@@ -253,7 +253,7 @@ class ReadingPlanStore {
       ];
       final next = ReadingPlanSnapshot(
         savedPresetIds: current.savedPresetIds,
-        completed: history.take(20).toList(growable: false),
+        completed: List<CompletedReadingPlan>.unmodifiable(history),
         yearlyKhatmTarget: current.yearlyKhatmTarget,
       );
       await _save(next);
@@ -374,7 +374,7 @@ class ReadingPlanStore {
     return ReadingPlanSnapshot(
       active: active,
       savedPresetIds: saved,
-      completed: completed.take(20).toList(growable: false),
+      completed: List<CompletedReadingPlan>.unmodifiable(completed),
       yearlyKhatmTarget: yearlyKhatmTarget,
       redistributionTargetEndDate: redistributionTargetEndDate,
     );
