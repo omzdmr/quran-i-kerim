@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ReaderHistoryEntry {
@@ -49,6 +50,7 @@ class ReaderReadingHistoryRepository {
 
   static const String storageKey = 'reader_history_v1';
   static const int maxEntries = 50;
+  static final ValueNotifier<int> changes = ValueNotifier<int>(0);
 
   Future<List<ReaderHistoryEntry>> load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -94,10 +96,35 @@ class ReaderReadingHistoryRepository {
       storageKey,
       jsonEncode(items.map((entry) => entry.toJson()).toList(growable: false)),
     );
+    changes.value++;
   }
 
   Future<void> clear() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(storageKey);
+    changes.value++;
   }
+}
+
+/// Picks useful resume points instead of showing several neighbouring ayahs
+/// from the same reading session. A translation/source is part of the context,
+/// so the same surah can appear again when it was read with another source.
+List<ReaderHistoryEntry> selectRecentReadingContexts(
+  Iterable<ReaderHistoryEntry> entries, {
+  required int currentSurah,
+  required int currentAyah,
+  required String currentSourceId,
+  int limit = 3,
+}) {
+  if (limit <= 0) return const <ReaderHistoryEntry>[];
+
+  final selected = <ReaderHistoryEntry>[];
+  final seenContexts = <String>{'$currentSurah:$currentSourceId'};
+  for (final entry in entries) {
+    if (entry.surah == currentSurah && entry.ayah == currentAyah) continue;
+    if (!seenContexts.add('${entry.surah}:${entry.sourceId}')) continue;
+    selected.add(entry);
+    if (selected.length == limit) break;
+  }
+  return List<ReaderHistoryEntry>.unmodifiable(selected);
 }

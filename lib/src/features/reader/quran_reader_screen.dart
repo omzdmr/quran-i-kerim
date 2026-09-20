@@ -133,12 +133,27 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     _cachedTranslationFuture = null;
   }
 
-  void _handleReaderRequest() {
+  void _handleReaderRequest() async {
     if (!mounted || !_didRestorePosition) return;
     final target = AppNavigation.instance.readerRequest.value;
     if (target == null) return;
-    _jumpTo(target.surah, target.ayah);
     AppNavigation.instance.consumeReaderRequest();
+    await _openReaderTarget(target);
+  }
+
+  Future<void> _openReaderTarget(ReaderTarget target) async {
+    final settings = AppSettingsScope.of(context);
+    final sourceId = target.sourceId?.trim();
+    if (sourceId != null &&
+        sourceId.isNotEmpty &&
+        sourceId != settings.selectedQuranSourceId &&
+        await TranslationRepository.instance.isInstalled(sourceId)) {
+      await settings.setSelectedQuranSource(sourceId);
+      if (!mounted) return;
+      _invalidateTranslationFuture();
+    }
+    if (!mounted) return;
+    _jumpTo(target.surah, target.ayah);
   }
 
   void _jumpTo(int surahNumber, int ayah, {bool save = true}) {

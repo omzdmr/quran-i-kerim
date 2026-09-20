@@ -25,6 +25,75 @@ void main() {
     expect(items[1].surah, 36);
   });
 
+  test('recording a position notifies listening Home surfaces', () async {
+    final before = ReaderReadingHistoryRepository.changes.value;
+
+    await ReaderReadingHistoryRepository.instance.record(
+      surah: 18,
+      ayah: 10,
+      sourceId: 'arabic_original',
+    );
+
+    expect(ReaderReadingHistoryRepository.changes.value, before + 1);
+  });
+
+  test('recent contexts skip current position and nearby duplicates', () {
+    const entries = <ReaderHistoryEntry>[
+      ReaderHistoryEntry(
+        surah: 2,
+        ayah: 255,
+        sourceId: 'arabic_original',
+        updatedAt: 5,
+      ),
+      ReaderHistoryEntry(
+        surah: 2,
+        ayah: 254,
+        sourceId: 'arabic_original',
+        updatedAt: 4,
+      ),
+      ReaderHistoryEntry(
+        surah: 36,
+        ayah: 3,
+        sourceId: 'turkish_rwwad',
+        updatedAt: 3,
+      ),
+      ReaderHistoryEntry(
+        surah: 36,
+        ayah: 1,
+        sourceId: 'turkish_rwwad',
+        updatedAt: 2,
+      ),
+      ReaderHistoryEntry(
+        surah: 2,
+        ayah: 200,
+        sourceId: 'turkish_rwwad',
+        updatedAt: 1,
+      ),
+      ReaderHistoryEntry(
+        surah: 18,
+        ayah: 10,
+        sourceId: 'arabic_original',
+        updatedAt: 0,
+      ),
+    ];
+
+    final selected = selectRecentReadingContexts(
+      entries,
+      currentSurah: 2,
+      currentAyah: 255,
+      currentSourceId: 'arabic_original',
+    );
+
+    expect(
+      selected.map((entry) => '${entry.surah}:${entry.ayah}:${entry.sourceId}'),
+      <String>[
+        '36:3:turkish_rwwad',
+        '2:200:turkish_rwwad',
+        '18:10:arabic_original',
+      ],
+    );
+  });
+
   test('reading history caps local history size', () async {
     final repo = ReaderReadingHistoryRepository.instance;
     for (var i = 0; i < 60; i++) {

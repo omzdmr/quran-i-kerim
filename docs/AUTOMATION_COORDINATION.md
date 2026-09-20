@@ -2,6 +2,13 @@
 
 This file is the coordination contract for all scheduled work on `feature/localization-v01`.
 
+## Current status: manual development
+
+All scheduled Quran automations were paused on 2026-09-20. This document keeps
+their ownership and handoff rules for possible future reactivation, but no
+automation should be assumed active. Current contributors must read
+`docs/PROJECT_HANDOFF.md` and the latest repository/CI state before working.
+
 ## Shared source of truth
 Every automation must read these before acting:
 1. `docs/PRODUCT_MASTER_SPEC.md` — product requirements and non-negotiable decisions.

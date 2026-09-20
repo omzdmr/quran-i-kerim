@@ -1,10 +1,15 @@
 import 'package:flutter/foundation.dart';
 
 class ReaderTarget {
-  const ReaderTarget({required this.surah, required this.ayah});
+  const ReaderTarget({
+    required this.surah,
+    required this.ayah,
+    this.sourceId,
+  });
 
   final int surah;
   final int ayah;
+  final String? sourceId;
 }
 
 /// Lightweight in-app navigation coordinator.
@@ -28,11 +33,16 @@ class AppNavigation {
   final ValueNotifier<int> quranReadRequest = ValueNotifier<int>(0);
   final ValueNotifier<bool> readerSelectionActive = ValueNotifier<bool>(false);
 
-  void openReader({required int surah, required int ayah}) {
+  void openReader({
+    required int surah,
+    required int ayah,
+    String? sourceId,
+  }) {
     readerSelectionActive.value = false;
     readerRequest.value = ReaderTarget(
       surah: surah.clamp(1, 114).toInt(),
       ayah: ayah < 1 ? 1 : ayah,
+      sourceId: sourceId,
     );
     tabRequest.value = quranTabIndex;
   }

@@ -12,6 +12,7 @@ import '../../navigation/app_navigation.dart';
 import '../../settings/app_settings.dart';
 import '../plans/reading_plan_store.dart';
 import '../reader/reader_navigation.dart';
+import '../reader/reader_reading_history.dart';
 import 'home_prayer_card.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -25,12 +26,17 @@ class _HomeScreenState extends State<HomeScreen> {
   static const _communitySeenCountKey = 'community_seen_activity_count_v1';
 
   final ReadingPlanStore _readingPlanStore = const ReadingPlanStore();
+  final ReaderReadingHistoryRepository _readingHistoryRepository =
+      ReaderReadingHistoryRepository.instance;
 
   int _tab = 0;
   int _communitySeenCount = 0;
   int _readingPlanLoadGeneration = 0;
+  int _readingHistoryLoadGeneration = 0;
   bool _readingPlanLoading = true;
   ReadingPlanSnapshot _readingPlanSnapshot = const ReadingPlanSnapshot();
+  List<ReaderHistoryEntry> _recentReadingHistory =
+      const <ReaderHistoryEntry>[];
 
   static const _dailyVerseRefs = <(int, int)>[
     (94, 5),
@@ -51,13 +57,20 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     ReadingPlanStore.changes.addListener(_handleReadingPlanChanged);
+    ReaderReadingHistoryRepository.changes.addListener(
+      _loadRecentReadingHistory,
+    );
     _loadCommunitySeenCount();
     _loadReadingPlan();
+    _loadRecentReadingHistory();
   }
 
   @override
   void dispose() {
     ReadingPlanStore.changes.removeListener(_handleReadingPlanChanged);
+    ReaderReadingHistoryRepository.changes.removeListener(
+      _loadRecentReadingHistory,
+    );
     super.dispose();
   }
 
@@ -81,6 +94,13 @@ class _HomeScreenState extends State<HomeScreen> {
       _readingPlanSnapshot = snapshot;
       _readingPlanLoading = false;
     });
+  }
+
+  Future<void> _loadRecentReadingHistory() async {
+    final generation = ++_readingHistoryLoadGeneration;
+    final entries = await _readingHistoryRepository.load();
+    if (!mounted || generation != _readingHistoryLoadGeneration) return;
+    setState(() => _recentReadingHistory = entries);
   }
 
   void _openPlans() {
@@ -141,6 +161,12 @@ class _HomeScreenState extends State<HomeScreen> {
     final lastSurah = surahByNumber(settings.lastSurah);
     final l10n = context.l10n;
     final hasUnseenActivity = _activityCount(settings) > _communitySeenCount;
+    final recentReading = selectRecentReadingContexts(
+      _recentReadingHistory,
+      currentSurah: settings.lastSurah,
+      currentAyah: settings.lastAyah,
+      currentSourceId: settings.selectedQuranSourceId,
+    );
 
     return SafeArea(
       child: Column(
@@ -198,6 +224,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       _VerseCard(reference: _todayVerse),
                       const SizedBox(height: 18),
                       _ContinueCard(surah: lastSurah, ayah: settings.lastAyah),
+                      if (recentReading.isNotEmpty) ...[
+                        const SizedBox(height: 14),
+                        _RecentReadingSection(entries: recentReading),
+                      ],
                       const SizedBox(height: 18),
                       const HomePrayerCard(),
                       const SizedBox(height: 18),
@@ -569,6 +599,93 @@ class _ContinueCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _RecentReadingSection extends StatelessWidget {
+  const _RecentReadingSection({required this.entries});
+
+  final List<ReaderHistoryEntry> entries;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final scheme = Theme.of(context).colorScheme;
+    final languageCode = Localizations.localeOf(context).languageCode;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.text('homeRecentReadingTitle'),
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          l10n.text('homeRecentReadingSubtitle'),
+          style: TextStyle(color: scheme.onSurfaceVariant),
+        ),
+        const SizedBox(height: 9),
+        Material(
+          color: scheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(22),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              for (var index = 0; index < entries.length; index++) ...[
+                _RecentReadingTile(
+                  entry: entries[index],
+                  languageCode: languageCode,
+                ),
+                if (index != entries.length - 1)
+                  Divider(height: 1, color: scheme.outlineVariant),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RecentReadingTile extends StatelessWidget {
+  const _RecentReadingTile({
+    required this.entry,
+    required this.languageCode,
+  });
+
+  final ReaderHistoryEntry entry;
+  final String languageCode;
+
+  @override
+  Widget build(BuildContext context) {
+    final source = translationById(entry.sourceId);
+    final sourceCode = entry.sourceId == arabicOriginalSourceId
+        ? 'AR'
+        : source?.code;
+    final surahName = localizedSurahName(entry.surah, languageCode);
+
+    return ListTile(
+      leading: CircleAvatar(child: Text('${entry.surah}')),
+      title: Text(
+        '$surahName ${entry.surah}:${entry.ayah}',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontWeight: FontWeight.w800),
+      ),
+      subtitle: sourceCode == null ? null : Text(sourceCode),
+      trailing: const Icon(Icons.chevron_right_rounded),
+      onTap: () {
+        HapticFeedback.selectionClick();
+        AppNavigation.instance.openReader(
+          surah: entry.surah,
+          ayah: entry.ayah,
+          sourceId: entry.sourceId,
+        );
+      },
     );
   }
 }

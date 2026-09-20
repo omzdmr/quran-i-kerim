@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 
 import 'strings/backup_strings.dart';
 import 'strings/feature_strings.dart';
+import 'strings/home_recent_reading_strings.dart';
 import 'strings/home_verse_strings.dart';
 import 'strings/plan_strings.dart';
 import 'strings/prayer_notification_diagnostics_strings.dart';
@@ -49,6 +50,7 @@ class AppLocalizations {
   String? _featureValue(String key) =>
       backupStrings[locale.languageCode]?[key] ??
       featureStrings[locale.languageCode]?[key] ??
+      homeRecentReadingStrings[locale.languageCode]?[key] ??
       homeVerseStrings[locale.languageCode]?[key] ??
       planStrings[locale.languageCode]?[key] ??
       prayerNotificationDiagnosticsStrings[locale.languageCode]?[key] ??
@@ -58,6 +60,7 @@ class AppLocalizations {
       readerNoteStrings[locale.languageCode]?[key] ??
       backupStrings['en']?[key] ??
       featureStrings['en']?[key] ??
+      homeRecentReadingStrings['en']?[key] ??
       homeVerseStrings['en']?[key] ??
       planStrings['en']?[key] ??
       prayerNotificationDiagnosticsStrings['en']?[key] ??
@@ -67,6 +70,7 @@ class AppLocalizations {
       readerNoteStrings['en']?[key] ??
       backupStrings['tr']?[key] ??
       featureStrings['tr']?[key] ??
+      homeRecentReadingStrings['tr']?[key] ??
       homeVerseStrings['tr']?[key] ??
       planStrings['tr']?[key] ??
       prayerNotificationDiagnosticsStrings['tr']?[key] ??
