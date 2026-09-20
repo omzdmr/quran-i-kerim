@@ -55,9 +55,11 @@ jobs:
             git push
           fi
 
-      - name: Run focused tests
-        run: |
-          flutter test \
-            test/reading_plan_store_test.dart \
-            test/plan_strings_test.dart \
-            test/plans_screen_compile_test.dart
+      - name: Test reading plan store
+        run: timeout 90s flutter test test/reading_plan_store_test.dart --reporter expanded
+
+      - name: Test plan localization parity
+        run: timeout 90s flutter test test/plan_strings_test.dart --reporter expanded
+
+      - name: Compile plans screen
+        run: timeout 90s flutter test test/plans_screen_compile_test.dart --reporter expanded
