@@ -209,10 +209,13 @@ class PrayerNotificationService {
     }
 
     final pending = await _plugin.pendingNotificationRequests();
+    final prayerPendingCount = pending
+        .where((request) => request.payload?.startsWith('prayer:') ?? false)
+        .length;
     return PrayerNotificationDiagnostics(
       systemPermissionGranted: permissionGranted,
       exactAlarmAvailable: exactAlarmAvailable,
-      pendingCount: pending.length,
+      pendingCount: prayerPendingCount,
     );
   }
 
