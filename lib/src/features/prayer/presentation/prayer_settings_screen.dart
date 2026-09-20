@@ -30,6 +30,7 @@ class _PrayerSettingsScreenState extends State<PrayerSettingsScreen> {
   late Set<String> _notificationPrayerIds;
   late int _hijriOffsetDays;
   bool _requestingNotificationPermission = false;
+  bool _checkingNotificationDiagnostics = false;
 
   @override
   void initState() {
@@ -90,6 +91,88 @@ class _PrayerSettingsScreenState extends State<PrayerSettingsScreen> {
         ),
       );
     }
+  }
+
+  Future<void> _showNotificationDiagnostics() async {
+    if (_checkingNotificationDiagnostics) return;
+    setState(() => _checkingNotificationDiagnostics = true);
+
+    PrayerNotificationDiagnostics diagnostics;
+    try {
+      diagnostics = await PrayerNotificationService.diagnostics();
+    } finally {
+      if (mounted) {
+        setState(() => _checkingNotificationDiagnostics = false);
+      }
+    }
+    if (!mounted) return;
+
+    final l10n = context.l10n;
+    final permission = diagnostics.systemPermissionGranted == null
+        ? l10n.text('notificationDiagnosticsUnknown')
+        : diagnostics.systemPermissionGranted!
+            ? l10n.text('notificationDiagnosticsAllowed')
+            : l10n.text('notificationDiagnosticsBlocked');
+    final exact = diagnostics.exactAlarmAvailable == null
+        ? l10n.text('notificationDiagnosticsNotApplicable')
+        : diagnostics.exactAlarmAvailable!
+            ? l10n.text('notificationDiagnosticsAvailable')
+            : l10n.text('notificationDiagnosticsUnavailable');
+
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                l10n.text('notificationDiagnosticsTitle'),
+                style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+              ),
+              const SizedBox(height: 16),
+              _DiagnosticRow(
+                icon: Icons.notifications_outlined,
+                label: l10n.text('notificationDiagnosticsAppSetting'),
+                value: _notificationsEnabled
+                    ? l10n.text('notificationDiagnosticsOn')
+                    : l10n.text('notificationDiagnosticsOff'),
+              ),
+              _DiagnosticRow(
+                icon: Icons.security_rounded,
+                label: l10n.text('notificationDiagnosticsPermission'),
+                value: permission,
+              ),
+              _DiagnosticRow(
+                icon: Icons.schedule_rounded,
+                label: l10n.text('notificationDiagnosticsPending'),
+                value: '${diagnostics.pendingCount}',
+              ),
+              _DiagnosticRow(
+                icon: Icons.alarm_on_rounded,
+                label: l10n.text('notificationDiagnosticsExactAlarm'),
+                value: exact,
+              ),
+              if (diagnostics.systemPermissionGranted == false) ...[
+                const SizedBox(height: 12),
+                Text(
+                  l10n.text('notificationDiagnosticsPermissionHint'),
+                  style: TextStyle(
+                    color: Theme.of(sheetContext).colorScheme.error,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -190,6 +273,20 @@ class _PrayerSettingsScreenState extends State<PrayerSettingsScreen> {
                     ],
                   ),
                 ],
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: _checkingNotificationDiagnostics
+                      ? null
+                      : _showNotificationDiagnostics,
+                  icon: _checkingNotificationDiagnostics
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.health_and_safety_outlined),
+                  label: Text(l10n.text('notificationDiagnosticsCheck')),
+                ),
               ],
             ),
           ),
@@ -353,6 +450,46 @@ class _PrayerSettingsScreenState extends State<PrayerSettingsScreen> {
       );
     });
     HapticFeedback.selectionClick();
+  }
+}
+
+class _DiagnosticRow extends StatelessWidget {
+  const _DiagnosticRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 7),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: scheme.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: TextStyle(color: scheme.onSurfaceVariant),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

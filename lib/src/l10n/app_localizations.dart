@@ -5,6 +5,7 @@ import 'strings/backup_strings.dart';
 import 'strings/feature_strings.dart';
 import 'strings/home_verse_strings.dart';
 import 'strings/plan_strings.dart';
+import 'strings/prayer_notification_diagnostics_strings.dart';
 import 'strings/prayer_notification_strings.dart';
 import 'strings/reader_audio_transport_strings.dart';
 import 'strings/reader_media_strings.dart';
@@ -50,6 +51,7 @@ class AppLocalizations {
       featureStrings[locale.languageCode]?[key] ??
       homeVerseStrings[locale.languageCode]?[key] ??
       planStrings[locale.languageCode]?[key] ??
+      prayerNotificationDiagnosticsStrings[locale.languageCode]?[key] ??
       readerAudioTransportStrings[locale.languageCode]?[key] ??
       readerMediaStrings[locale.languageCode]?[key] ??
       readerNavigationStrings[locale.languageCode]?[key] ??
@@ -58,6 +60,7 @@ class AppLocalizations {
       featureStrings['en']?[key] ??
       homeVerseStrings['en']?[key] ??
       planStrings['en']?[key] ??
+      prayerNotificationDiagnosticsStrings['en']?[key] ??
       readerAudioTransportStrings['en']?[key] ??
       readerMediaStrings['en']?[key] ??
       readerNavigationStrings['en']?[key] ??
@@ -66,6 +69,7 @@ class AppLocalizations {
       featureStrings['tr']?[key] ??
       homeVerseStrings['tr']?[key] ??
       planStrings['tr']?[key] ??
+      prayerNotificationDiagnosticsStrings['tr']?[key] ??
       readerAudioTransportStrings['tr']?[key] ??
       readerMediaStrings['tr']?[key] ??
       readerNavigationStrings['tr']?[key] ??
