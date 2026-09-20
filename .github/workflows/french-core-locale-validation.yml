@@ -1,0 +1,82 @@
+name: French core locale validation
+
+on:
+  push:
+    branches: [ manual/french-core-locale ]
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.2'
+          channel: stable
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Generate localizations
+        run: flutter gen-l10n
+
+      - name: Format target files
+        run: |
+          dart format \
+            lib/src/l10n/app_localizations.dart \
+            lib/src/l10n/locale_metadata.dart \
+            lib/src/l10n/strings/strings_tr.dart \
+            lib/src/l10n/strings/strings_en.dart \
+            lib/src/l10n/strings/strings_ar.dart \
+            lib/src/l10n/strings/strings_az.dart \
+            lib/src/l10n/strings/strings_ru.dart \
+            lib/src/l10n/strings/strings_fr.dart \
+            lib/src/features/settings/settings_screen.dart \
+            test/app_locale_resolver_test.dart \
+            test/app_localizations_test.dart \
+            test/arb_localization_parity_test.dart \
+            test/locale_metadata_test.dart
+
+      - name: Persist formatter output
+        run: |
+          TARGETS=(
+            lib/src/l10n/app_localizations.dart
+            lib/src/l10n/locale_metadata.dart
+            lib/src/l10n/strings/strings_tr.dart
+            lib/src/l10n/strings/strings_en.dart
+            lib/src/l10n/strings/strings_ar.dart
+            lib/src/l10n/strings/strings_az.dart
+            lib/src/l10n/strings/strings_ru.dart
+            lib/src/l10n/strings/strings_fr.dart
+            lib/src/features/settings/settings_screen.dart
+            test/app_locale_resolver_test.dart
+            test/app_localizations_test.dart
+            test/arb_localization_parity_test.dart
+            test/locale_metadata_test.dart
+          )
+          if git diff --quiet -- "${TARGETS[@]}"; then
+            echo "Formatter made no target-file changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${TARGETS[@]}"
+          git commit -m "style: format French core locale [skip ci]"
+          git push origin HEAD:manual/french-core-locale
+
+      - name: Run French core locale tests
+        run: |
+          timeout 180s flutter test \
+            test/app_locale_resolver_test.dart \
+            test/app_localizations_test.dart \
+            test/arb_localization_parity_test.dart \
+            test/locale_metadata_test.dart \
+            --reporter expanded
