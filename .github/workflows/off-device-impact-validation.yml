@@ -4,6 +4,9 @@ on:
   push:
     branches: [ manual/off-device-plan-impact-preview-v2 ]
 
+permissions:
+  contents: write
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -25,14 +28,33 @@ jobs:
       - name: Fetch dependencies
         run: flutter pub get
 
-      - name: Check impact slice formatting
+      - name: Format impact slice
         run: |
-          dart format --output=none --set-exit-if-changed \
+          dart format \
             lib/src/features/plans/reading_plan.dart \
             lib/src/features/plans/plans_screen.dart \
             lib/src/l10n/strings/plan_strings.dart \
             test/reading_plan_test.dart \
             test/plans_off_device_impact_widget_test.dart
+
+      - name: Persist formatter output
+        run: |
+          TARGETS=(
+            lib/src/features/plans/reading_plan.dart
+            lib/src/features/plans/plans_screen.dart
+            lib/src/l10n/strings/plan_strings.dart
+            test/reading_plan_test.dart
+            test/plans_off_device_impact_widget_test.dart
+          )
+          if git diff --quiet -- "${TARGETS[@]}"; then
+            echo "Formatter made no target-file changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${TARGETS[@]}"
+          git commit -m "style: format off-device plan impact preview"
+          git push origin HEAD:manual/off-device-plan-impact-preview-v2
 
       - name: Run reading-plan model tests
         run: timeout 180s flutter test test/reading_plan_test.dart --reporter expanded
