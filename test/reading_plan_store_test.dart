@@ -1087,105 +1087,121 @@ void main() {
     expect((await store.load()).active?.completedDays, isEmpty);
   });
 
-  test('credit that completes a plan archives provenance and reloads it', () async {
-    await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 1));
-    await store.completeThroughDay(29, now: DateTime(2026, 9, 29));
-    final lastDay = readingPlanDay(ReadingPlanPreset.quran30, 30);
-    final logged = await store.addOffDevicePageSession(
-      startPage: lastDay.startPage,
-      endPage: lastDay.endPage,
-      readAt: DateTime(2026, 9, 30),
-      now: DateTime(2026, 9, 30),
-    );
+  test(
+    'credit that completes a plan archives provenance and reloads it',
+    () async {
+      await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 1));
+      await store.completeThroughDay(29, now: DateTime(2026, 9, 29));
+      final lastDay = readingPlanDay(ReadingPlanPreset.quran30, 30);
+      final logged = await store.addOffDevicePageSession(
+        startPage: lastDay.startPage,
+        endPage: lastDay.endPage,
+        readAt: DateTime(2026, 9, 30),
+        now: DateTime(2026, 9, 30),
+      );
 
-    final completed = await store.creditOffDeviceSessionToActivePlan(
-      logged.offDevicePageSessions.first,
-      now: DateTime(2026, 9, 30),
-    );
+      final completed = await store.creditOffDeviceSessionToActivePlan(
+        logged.offDevicePageSessions.first,
+        now: DateTime(2026, 9, 30),
+      );
 
-    expect(completed.active, isNull);
-    expect(completed.completed, hasLength(1));
-    final archive = completed.completed.single;
-    expect(archive.offDeviceCreditEventCount, 1);
-    expect(archive.offDeviceCreditedDayCount, 1);
-    expect(archive.offDeviceCredits.single.dayNumbers, <int>[30]);
-    expect(
-      archive.offDeviceCreditInputKinds,
-      <OffDeviceReadingInputKind>{OffDeviceReadingInputKind.page},
-    );
+      expect(completed.active, isNull);
+      expect(completed.completed, hasLength(1));
+      final archive = completed.completed.single;
+      expect(archive.offDeviceCreditEventCount, 1);
+      expect(archive.offDeviceCreditedDayCount, 1);
+      expect(archive.offDeviceCredits.single.dayNumbers, <int>[30]);
+      expect(archive.offDeviceCreditInputKinds, <OffDeviceReadingInputKind>{
+        OffDeviceReadingInputKind.page,
+      });
 
-    final reloaded = await const ReadingPlanStore().load();
-    expect(reloaded.completed.single.offDeviceCreditEventCount, 1);
-    expect(reloaded.completed.single.offDeviceCredits.single.dayNumbers, <int>[30]);
-  });
+      final reloaded = await const ReadingPlanStore().load();
+      expect(reloaded.completed.single.offDeviceCreditEventCount, 1);
+      expect(
+        reloaded.completed.single.offDeviceCredits.single.dayNumbers,
+        <int>[30],
+      );
+    },
+  );
 
-  test('normal completion preserves earlier off-device credit provenance', () async {
-    await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 1));
-    final firstDay = readingPlanDay(ReadingPlanPreset.quran30, 1);
-    final logged = await store.addOffDevicePageSession(
-      startPage: firstDay.startPage,
-      endPage: firstDay.endPage,
-      readAt: DateTime(2026, 9, 1),
-      now: DateTime(2026, 9, 1),
-    );
-    await store.creditOffDeviceSessionToActivePlan(
-      logged.offDevicePageSessions.first,
-      now: DateTime(2026, 9, 1),
-    );
+  test(
+    'normal completion preserves earlier off-device credit provenance',
+    () async {
+      await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 1));
+      final firstDay = readingPlanDay(ReadingPlanPreset.quran30, 1);
+      final logged = await store.addOffDevicePageSession(
+        startPage: firstDay.startPage,
+        endPage: firstDay.endPage,
+        readAt: DateTime(2026, 9, 1),
+        now: DateTime(2026, 9, 1),
+      );
+      await store.creditOffDeviceSessionToActivePlan(
+        logged.offDevicePageSessions.first,
+        now: DateTime(2026, 9, 1),
+      );
 
-    final completed = await store.completeThroughDay(
-      30,
-      now: DateTime(2026, 9, 30),
-    );
+      final completed = await store.completeThroughDay(
+        30,
+        now: DateTime(2026, 9, 30),
+      );
 
-    expect(completed.active, isNull);
-    final archive = completed.completed.single;
-    expect(archive.offDeviceCreditEventCount, 1);
-    expect(archive.offDeviceCreditedDayCount, 1);
-    expect(archive.offDeviceCredits.single.dayNumbers, <int>[1]);
-  });
+      expect(completed.active, isNull);
+      final archive = completed.completed.single;
+      expect(archive.offDeviceCreditEventCount, 1);
+      expect(archive.offDeviceCreditedDayCount, 1);
+      expect(archive.offDeviceCredits.single.dayNumbers, <int>[1]);
+    },
+  );
 
-  test('archived credit provenance survives deletion of the source log', () async {
-    await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 1));
-    final firstDay = readingPlanDay(ReadingPlanPreset.quran30, 1);
-    final logged = await store.addOffDevicePageSession(
-      startPage: firstDay.startPage,
-      endPage: firstDay.endPage,
-      readAt: DateTime(2026, 9, 1),
-      note: 'paper source',
-      now: DateTime(2026, 9, 1),
-    );
-    await store.creditOffDeviceSessionToActivePlan(
-      logged.offDevicePageSessions.first,
-      now: DateTime(2026, 9, 1),
-    );
-    await store.removeOffDevicePageSessionAt(0);
-    await store.completeThroughDay(30, now: DateTime(2026, 9, 30));
+  test(
+    'archived credit provenance survives deletion of the source log',
+    () async {
+      await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 1));
+      final firstDay = readingPlanDay(ReadingPlanPreset.quran30, 1);
+      final logged = await store.addOffDevicePageSession(
+        startPage: firstDay.startPage,
+        endPage: firstDay.endPage,
+        readAt: DateTime(2026, 9, 1),
+        note: 'paper source',
+        now: DateTime(2026, 9, 1),
+      );
+      await store.creditOffDeviceSessionToActivePlan(
+        logged.offDevicePageSessions.first,
+        now: DateTime(2026, 9, 1),
+      );
+      await store.removeOffDevicePageSessionAt(0);
+      await store.completeThroughDay(30, now: DateTime(2026, 9, 30));
 
-    final reloaded = await const ReadingPlanStore().load();
-    expect(reloaded.offDevicePageSessions, isEmpty);
-    final archive = reloaded.completed.single;
-    expect(archive.offDeviceCreditEventCount, 1);
-    expect(archive.offDeviceCredits.single.sourceReadAt, DateTime(2026, 9, 1));
-    expect(archive.offDeviceCredits.single.dayNumbers, <int>[1]);
-  });
+      final reloaded = await const ReadingPlanStore().load();
+      expect(reloaded.offDevicePageSessions, isEmpty);
+      final archive = reloaded.completed.single;
+      expect(archive.offDeviceCreditEventCount, 1);
+      expect(
+        archive.offDeviceCredits.single.sourceReadAt,
+        DateTime(2026, 9, 1),
+      );
+      expect(archive.offDeviceCredits.single.dayNumbers, <int>[1]);
+    },
+  );
 
-  test('legacy and malformed completed-plan provenance is migration tolerant', () async {
-    SharedPreferences.setMockInitialValues(<String, Object>{
-      ReadingPlanStore.preferenceKey:
-          '{"active":null,"saved":[],"completed":['
-          '{"preset":"quran30","startedAt":"2026-01-01","completedAt":"2026-01-30"},'
-          '{"preset":"quran30","startedAt":"2026-02-01","completedAt":"2026-03-02","offDeviceCredits":['
-          '{"creditedAt":"bad","sourceReadAt":"2026-02-01","sourceStartPage":1,"sourceEndPage":20,"dayNumbers":[1]}'
-          ']}'
-          ']}',
-    });
+  test(
+    'legacy and malformed completed-plan provenance is migration tolerant',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        ReadingPlanStore.preferenceKey:
+            '{"active":null,"saved":[],"completed":['
+            '{"preset":"quran30","startedAt":"2026-01-01","completedAt":"2026-01-30"},'
+            '{"preset":"quran30","startedAt":"2026-02-01","completedAt":"2026-03-02","offDeviceCredits":['
+            '{"creditedAt":"bad","sourceReadAt":"2026-02-01","sourceStartPage":1,"sourceEndPage":20,"dayNumbers":[1]}'
+            ']}'
+            ']}',
+      });
 
-    final loaded = await store.load();
+      final loaded = await store.load();
 
-    expect(loaded.completed, hasLength(2));
-    expect(loaded.completed[0].offDeviceCredits, isEmpty);
-    expect(loaded.completed[1].offDeviceCredits, isEmpty);
-  });
-
+      expect(loaded.completed, hasLength(2));
+      expect(loaded.completed[0].offDeviceCredits, isEmpty);
+      expect(loaded.completed[1].offDeviceCredits, isEmpty);
+    },
+  );
 }

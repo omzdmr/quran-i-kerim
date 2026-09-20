@@ -2256,14 +2256,12 @@ class _CompletedPlanCard extends StatelessWidget {
               );
     final creditKinds = item.offDeviceCreditInputKinds
         .map(
-          (kind) => l10n.text(
-            switch (kind) {
-              OffDeviceReadingInputKind.page => 'plansOffDeviceInputPageV1',
-              OffDeviceReadingInputKind.juz => 'plansOffDeviceInputJuzV1',
-              OffDeviceReadingInputKind.hizb => 'plansOffDeviceInputHizbV1',
-              OffDeviceReadingInputKind.ayahRange => 'plansOffDeviceInputAyahV1',
-            },
-          ),
+          (kind) => l10n.text(switch (kind) {
+            OffDeviceReadingInputKind.page => 'plansOffDeviceInputPageV1',
+            OffDeviceReadingInputKind.juz => 'plansOffDeviceInputJuzV1',
+            OffDeviceReadingInputKind.hizb => 'plansOffDeviceInputHizbV1',
+            OffDeviceReadingInputKind.ayahRange => 'plansOffDeviceInputAyahV1',
+          }),
         )
         .join(', ');
     final creditSummary = item.offDeviceCredits.isEmpty
