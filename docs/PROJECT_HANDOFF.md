@@ -87,6 +87,28 @@ primary Continue card:
 6. Update this file whenever the active feature, blocker or next concrete step
    changes.
 
+## Active feature slice
+
+Home customizable quick actions are now implemented on the integration branch:
+
+- Home shows 4–6 quick actions with six useful defaults.
+- Users can choose among Quran, prayer times, Qibla, dhikr, Plans, downloads,
+  Discover and Settings.
+- Selection is persisted in `AppSettings`, enforces the 4–6 contract and rolls
+  back if SharedPreferences persistence fails.
+- The preference is included in user-owned backups. Backup schema is now v5;
+  restores from v1–v4 preserve the newer quick-action preference instead of
+  deleting it.
+- The quick-action editor has large-text responsive layout, screen-reader
+  semantics and RTL coverage.
+- Turkish, English, Arabic, Azerbaijani and Russian copy is included.
+- Tests cover defaults, persistence, bounds, corrupted stored data,
+  backup/restore compatibility, localization parity, large text and Arabic RTL.
+
+Latest code-bearing head: `f36b32a`.
+Android validation run `35502558063` is in progress. Inspect its exact result
+before calling this slice complete; do not infer success from earlier runs.
+
 ## Validation status
 
 The full Android workflow for code-bearing head `1ac4908` passed in run
@@ -96,7 +118,8 @@ uses `[skip ci]` intentionally.
 
 ## Immediate next step
 
-Select the next user-visible requirement from `PRODUCT_MASTER_SPEC.md` and
-deliver it as one complete vertical slice. Do not restart Reading Plan Recovery,
-notification diagnostics or Home recent-reading shortcuts unless a real
-regression is present.
+Finish validation of Home customizable quick actions at code-bearing head
+`f36b32a`. If run `35502558063` is green, record the result and then select
+the next user-visible requirement from `PRODUCT_MASTER_SPEC.md`. Do not restart
+Reading Plan Recovery, notification diagnostics or Home recent-reading
+shortcuts unless a real regression is present.
