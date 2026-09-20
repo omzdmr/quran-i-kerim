@@ -637,7 +637,13 @@ class _ChoiceTile extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: Material(
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label: title,
+        hint: subtitle,
+        excludeSemantics: true,
+        child: Material(
         color: selected ? scheme.primaryContainer : scheme.surfaceContainer,
         borderRadius: BorderRadius.circular(20),
         child: InkWell(
@@ -703,6 +709,7 @@ class _ChoiceTile extends StatelessWidget {
             ),
           ),
         ),
+      ),
       ),
     );
   }
