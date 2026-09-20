@@ -77,7 +77,8 @@ jobs:
         run: flutter pub get
 
       - name: Install iOS pods from committed project
-        run: pod install --project-directory=ios
+        working-directory: ios
+        run: pod install
 
       - name: Audit committed Xcode graph
         run: |
