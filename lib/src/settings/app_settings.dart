@@ -16,6 +16,28 @@ enum VerseHighlightColor { yellow, green, blue, orange, pink }
 
 enum AudioAfterSurahBehavior { continueNext, stop }
 
+enum HomeQuickAction {
+  quran,
+  prayer,
+  qibla,
+  dhikr,
+  plans,
+  downloads,
+  discover,
+  settings,
+}
+
+const minHomeQuickActions = 4;
+const maxHomeQuickActions = 6;
+const defaultHomeQuickActions = <HomeQuickAction>[
+  HomeQuickAction.quran,
+  HomeQuickAction.prayer,
+  HomeQuickAction.qibla,
+  HomeQuickAction.dhikr,
+  HomeQuickAction.plans,
+  HomeQuickAction.downloads,
+];
+
 class AppSettings extends ChangeNotifier {
   static const _themeKey = 'theme_mode';
   static const _localeKey = 'app_locale';
@@ -30,6 +52,7 @@ class AppSettings extends ChangeNotifier {
   static const _audioWifiOnlyKey = 'audio_download_wifi_only_v1';
   static const _audioAskMobileKey = 'audio_download_ask_mobile_v1';
   static const _audioAfterSurahKey = 'audio_after_surah_v1';
+  static const _homeQuickActionsKey = 'home_quick_actions_v1';
 
   static const _arabicFontSizeKey = 'arabic_font_size';
   static const _translationFontSizeKey = 'translation_font_size';
@@ -62,6 +85,9 @@ class AppSettings extends ChangeNotifier {
   bool _audioDownloadAskOnMobile = true;
   AudioAfterSurahBehavior _audioAfterSurahBehavior =
       AudioAfterSurahBehavior.continueNext;
+  List<HomeQuickAction> _homeQuickActions = List<HomeQuickAction>.of(
+    defaultHomeQuickActions,
+  );
 
   ThemeMode get themeMode => _themeMode;
   Locale? get locale => _locale;
@@ -80,6 +106,8 @@ class AppSettings extends ChangeNotifier {
   bool get audioDownloadAskOnMobile => _audioDownloadAskOnMobile;
   AudioAfterSurahBehavior get audioAfterSurahBehavior =>
       _audioAfterSurahBehavior;
+  UnmodifiableListView<HomeQuickAction> get homeQuickActions =>
+      UnmodifiableListView<HomeQuickAction>(_homeQuickActions);
 
   ReaderDisplayMode get readerMode => readerUsesArabic
       ? ReaderDisplayMode.arabic
@@ -205,6 +233,9 @@ class AppSettings extends ChangeNotifier {
     _audioAfterSurahBehavior = prefs.getString(_audioAfterSurahKey) == 'stop'
         ? AudioAfterSurahBehavior.stop
         : AudioAfterSurahBehavior.continueNext;
+    _homeQuickActions = _decodeHomeQuickActions(
+      prefs.getStringList(_homeQuickActionsKey),
+    );
   }
 
   /// Reloads persisted settings after a backup restore and refreshes every
@@ -213,6 +244,29 @@ class AppSettings extends ChangeNotifier {
   Future<void> reloadFromStorage() async {
     await load();
     notifyListeners();
+  }
+
+  List<HomeQuickAction> _decodeHomeQuickActions(List<String>? stored) {
+    if (stored == null) return List<HomeQuickAction>.of(defaultHomeQuickActions);
+
+    final decoded = <HomeQuickAction>[];
+    for (final raw in stored) {
+      HomeQuickAction? action;
+      for (final candidate in HomeQuickAction.values) {
+        if (candidate.name == raw) {
+          action = candidate;
+          break;
+        }
+      }
+      if (action != null && !decoded.contains(action)) decoded.add(action);
+    }
+    if (decoded.length < minHomeQuickActions) {
+      return List<HomeQuickAction>.of(defaultHomeQuickActions);
+    }
+    if (decoded.length > maxHomeQuickActions) {
+      return decoded.take(maxHomeQuickActions).toList(growable: true);
+    }
+    return decoded;
   }
 
   Map<String, String> _decodeStringMap(String? encoded) {
@@ -251,6 +305,43 @@ class AppSettings extends ChangeNotifier {
   Future<void> _persistArchiveTimes() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_archiveTimesKey, jsonEncode(_archiveTimes));
+  }
+
+  Future<bool> setHomeQuickActions(Iterable<HomeQuickAction> actions) async {
+    final next = <HomeQuickAction>[];
+    for (final action in actions) {
+      if (!next.contains(action)) next.add(action);
+    }
+    if (next.length < minHomeQuickActions || next.length > maxHomeQuickActions) {
+      return false;
+    }
+    if (next.length == _homeQuickActions.length) {
+      var same = true;
+      for (var index = 0; index < next.length; index++) {
+        if (next[index] != _homeQuickActions[index]) {
+          same = false;
+          break;
+        }
+      }
+      if (same) return true;
+    }
+
+    final previous = List<HomeQuickAction>.of(_homeQuickActions);
+    _homeQuickActions = next;
+    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = await prefs.setStringList(
+        _homeQuickActionsKey,
+        next.map((action) => action.name).toList(growable: false),
+      );
+      if (saved) return true;
+    } catch (_) {
+      // Roll back below so UI never claims a preference that was not stored.
+    }
+    _homeQuickActions = previous;
+    notifyListeners();
+    return false;
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
