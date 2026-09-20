@@ -1,0 +1,53 @@
+name: Hizb Feature Validation
+
+on:
+  push:
+    branches: [ manual/off-device-hizb-input ]
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.2'
+          channel: stable
+          cache: true
+
+      - name: Fetch dependencies
+        run: flutter pub get
+
+      - name: Format Hizb slice
+        run: |
+          dart format             lib/src/data/quran_partition_metadata.dart             lib/src/features/plans/reading_plan.dart             lib/src/features/plans/reading_plan_store.dart             lib/src/features/plans/plans_screen.dart             lib/src/l10n/strings/plan_strings.dart             test/reading_plan_store_test.dart
+
+      - name: Persist formatter output
+        run: |
+          if git diff --quiet; then
+            echo "Formatter made no changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add             lib/src/data/quran_partition_metadata.dart             lib/src/features/plans/reading_plan.dart             lib/src/features/plans/reading_plan_store.dart             lib/src/features/plans/plans_screen.dart             lib/src/l10n/strings/plan_strings.dart             test/reading_plan_store_test.dart
+          git commit -m "style: format Hizb feature [skip ci]"
+          git push origin HEAD:manual/off-device-hizb-input
+
+      - name: Run reading-plan store tests
+        run: timeout 240s flutter test test/reading_plan_store_test.dart --reporter expanded
+
+      - name: Run plan localization parity test
+        run: timeout 120s flutter test test/plan_strings_test.dart --reporter expanded
+
+      - name: Probe focused analyzer
+        continue-on-error: true
+        run: |
+          timeout 120s dart analyze             lib/src/data/quran_partition_metadata.dart             lib/src/features/plans/reading_plan.dart             lib/src/features/plans/reading_plan_store.dart             lib/src/features/plans/plans_screen.dart
