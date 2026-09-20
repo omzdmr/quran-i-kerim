@@ -32,6 +32,7 @@ class _PlansScreenState extends State<PlansScreen> {
   bool _loading = true;
   bool _busy = false;
   bool _searching = false;
+  int _completedYearFilter = 0;
 
   @override
   void initState() {
@@ -157,7 +158,8 @@ class _PlansScreenState extends State<PlansScreen> {
     final schedule = active.scheduleStatus(now);
     final catchUp = schedule.isBehind ? active.catchUpTarget(now) : null;
     final completeThroughDay = catchUp?.lastDayNumber;
-    final finishing = (completeThroughDay ?? active.completedPrefixDays + 1) >=
+    final finishing =
+        (completeThroughDay ?? active.completedPrefixDays + 1) >=
         active.preset.durationDays;
     HapticFeedback.mediumImpact();
     setState(() => _busy = true);
@@ -195,6 +197,102 @@ class _PlansScreenState extends State<PlansScreen> {
     AppNavigation.instance.openReader(surah: target.surah, ayah: target.ayah);
   }
 
+  Future<void> _removeCompleted(CompletedReadingPlan item) async {
+    if (_busy) return;
+    final index = _snapshot.completed.indexOf(item);
+    if (index < 0) return;
+    final confirmed = await _confirm(
+      titleKey: 'plansArchiveDeleteTitleV1',
+      bodyKey: 'plansArchiveDeleteBodyV1',
+      actionKey: 'plansArchiveDeleteActionV1',
+    );
+    if (!confirmed || !mounted) return;
+
+    HapticFeedback.mediumImpact();
+    setState(() => _busy = true);
+    try {
+      final snapshot = await _store.removeCompletedAt(index);
+      if (!mounted) return;
+      setState(() => _snapshot = snapshot);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _editYearlyKhatmTarget() async {
+    if (_busy) return;
+    final l10n = context.l10n;
+    final controller = TextEditingController(
+      text: _snapshot.yearlyKhatmTarget?.toString() ?? '',
+    );
+    var parsedTarget = _snapshot.yearlyKhatmTarget;
+
+    final result = await showDialog<int>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          final valid =
+              parsedTarget != null && parsedTarget! >= 1 && parsedTarget! <= 99;
+          return AlertDialog(
+            title: Text(l10n.text('plansYearlyKhatmEditTitleV1')),
+            content: TextField(
+              controller: controller,
+              autofocus: true,
+              keyboardType: TextInputType.number,
+              inputFormatters: <TextInputFormatter>[
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(2),
+              ],
+              decoration: InputDecoration(
+                labelText: l10n.text('plansYearlyKhatmTargetFieldV1'),
+                helperText: l10n.text('plansYearlyKhatmTargetHelperV1'),
+              ),
+              onChanged: (value) {
+                setDialogState(() => parsedTarget = int.tryParse(value));
+              },
+              onSubmitted: (_) {
+                if (valid) Navigator.of(dialogContext).pop(parsedTarget);
+              },
+            ),
+            actions: [
+              if (_snapshot.yearlyKhatmTarget != null)
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(0),
+                  child: Text(l10n.text('plansYearlyKhatmClearTargetV1')),
+                ),
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: Text(
+                  MaterialLocalizations.of(dialogContext).cancelButtonLabel,
+                ),
+              ),
+              FilledButton(
+                onPressed: valid
+                    ? () => Navigator.of(dialogContext).pop(parsedTarget)
+                    : null,
+                child: Text(l10n.text('plansYearlyKhatmSaveTargetV1')),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    controller.dispose();
+    if (!mounted || result == null) return;
+
+    HapticFeedback.selectionClick();
+    setState(() => _busy = true);
+    try {
+      final snapshot = await _store.setYearlyKhatmTarget(
+        result == 0 ? null : result,
+      );
+      if (!mounted) return;
+      setState(() => _snapshot = snapshot);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<bool> _confirm({
     required String titleKey,
     required String bodyKey,
@@ -209,7 +307,9 @@ class _PlansScreenState extends State<PlansScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: Text(MaterialLocalizations.of(dialogContext).cancelButtonLabel),
+                child: Text(
+                  MaterialLocalizations.of(dialogContext).cancelButtonLabel,
+                ),
               ),
               FilledButton(
                 onPressed: () => Navigator.of(dialogContext).pop(true),
@@ -222,9 +322,9 @@ class _PlansScreenState extends State<PlansScreen> {
   }
 
   void _snack(String key) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(context.l10n.text(key))),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(context.l10n.text(key))));
   }
 
   List<ReadingPlanPreset> _filteredPresets({bool savedOnly = false}) {
@@ -306,9 +406,9 @@ class _PlansScreenState extends State<PlansScreen> {
       _PlansTab.mine => _buildMine(),
       _PlansTab.find => _buildPresetList(_filteredPresets()),
       _PlansTab.saved => _buildPresetList(
-          _filteredPresets(savedOnly: true),
-          emptyKey: 'plansEmptySavedV1',
-        ),
+        _filteredPresets(savedOnly: true),
+        emptyKey: 'plansEmptySavedV1',
+      ),
       _PlansTab.completed => _buildCompleted(),
     };
   }
@@ -339,10 +439,7 @@ class _PlansScreenState extends State<PlansScreen> {
     );
   }
 
-  Widget _buildPresetList(
-    List<ReadingPlanPreset> presets, {
-    String? emptyKey,
-  }) {
+  Widget _buildPresetList(List<ReadingPlanPreset> presets, {String? emptyKey}) {
     if (presets.isEmpty) {
       return _EmptyState(
         icon: Icons.search_off_rounded,
@@ -371,18 +468,88 @@ class _PlansScreenState extends State<PlansScreen> {
   }
 
   Widget _buildCompleted() {
-    if (_snapshot.completed.isEmpty) {
-      return _EmptyState(
-        icon: Icons.task_alt_rounded,
-        text: context.l10n.text('plansEmptyCompletedV1'),
-      );
-    }
+    final year = DateTime.now().year;
+    final completedThisYear = _snapshot.completedInYear(year);
+    final target = _snapshot.yearlyKhatmTarget;
+    final remaining = _snapshot.remainingForYear(year);
+    final years =
+        _snapshot.completed
+            .map((item) => item.completedAt.year)
+            .toSet()
+            .toList(growable: false)
+          ..sort((a, b) => b.compareTo(a));
+    final filtered = _completedYearFilter == 0
+        ? _snapshot.completed
+        : _snapshot.completed
+              .where((item) => item.completedAt.year == _completedYearFilter)
+              .toList(growable: false);
+
     return Column(
       children: [
-        for (final item in _snapshot.completed) ...[
-          _CompletedPlanCard(item: item),
+        _YearlyKhatmCard(
+          year: year,
+          completed: completedThisYear,
+          target: target,
+          remaining: remaining,
+          busy: _busy,
+          onEdit: _editYearlyKhatmTarget,
+        ),
+        const SizedBox(height: 16),
+        if (_snapshot.completed.isNotEmpty) ...[
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  context.l10n.text('plansKhatmArchiveTitleV1'),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              DropdownButton<int>(
+                value: _completedYearFilter,
+                onChanged: _busy
+                    ? null
+                    : (value) {
+                        if (value != null) {
+                          setState(() => _completedYearFilter = value);
+                        }
+                      },
+                items: <DropdownMenuItem<int>>[
+                  DropdownMenuItem<int>(
+                    value: 0,
+                    child: Text(context.l10n.text('plansArchiveAllYearsV1')),
+                  ),
+                  for (final archiveYear in years)
+                    DropdownMenuItem<int>(
+                      value: archiveYear,
+                      child: Text('$archiveYear'),
+                    ),
+                ],
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
         ],
+        if (_snapshot.completed.isEmpty)
+          _EmptyState(
+            icon: Icons.task_alt_rounded,
+            text: context.l10n.text('plansEmptyCompletedV1'),
+          )
+        else if (filtered.isEmpty)
+          _EmptyState(
+            icon: Icons.filter_alt_off_rounded,
+            text: context.l10n.text('plansArchiveNoResultsV1'),
+          )
+        else
+          for (final item in filtered) ...[
+            _CompletedPlanCard(
+              item: item,
+              busy: _busy,
+              onDelete: () => _removeCompleted(item),
+            ),
+            const SizedBox(height: 12),
+          ],
       ],
     );
   }
@@ -481,8 +648,8 @@ class _PresetCard extends StatelessWidget {
                     Text(
                       l10n.text(preset.titleKey),
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w900,
-                          ),
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -495,7 +662,11 @@ class _PresetCard extends StatelessWidget {
               ),
               IconButton(
                 onPressed: busy ? null : onToggleSaved,
-                icon: Icon(saved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded),
+                icon: Icon(
+                  saved
+                      ? Icons.bookmark_rounded
+                      : Icons.bookmark_border_rounded,
+                ),
                 tooltip: l10n.text(saved ? 'plansUnsaveV1' : 'plansSaveV1'),
               ),
             ],
@@ -548,51 +719,48 @@ class _ActivePlanCard extends StatelessWidget {
     if (day == null) return const SizedBox.shrink();
 
     String value(String key) => l10n.text(key);
-    final dayText = value('plansDayProgressV1')
-        .replaceAll('{day}', '${day.dayNumber}')
-        .replaceAll('{total}', '$total');
+    final dayText = value(
+      'plansDayProgressV1',
+    ).replaceAll('{day}', '${day.dayNumber}').replaceAll('{total}', '$total');
     final pagesText = value('plansPagesV1')
         .replaceAll('{start}', '${day.startPage}')
         .replaceAll('{end}', '${day.endPage}');
-    final progressText = value('plansProgressV1')
-        .replaceAll('{done}', '$done')
-        .replaceAll('{total}', '$total');
+    final progressText = value(
+      'plansProgressV1',
+    ).replaceAll('{done}', '$done').replaceAll('{total}', '$total');
     final schedule = active.scheduleStatus(DateTime.now());
     final scheduleText = active.isPaused
         ? value('plansPausedV1')
         : schedule.isBehind
-            ? value('plansScheduleBehindV1').replaceAll(
-                '{count}',
-                '${schedule.behindByDays}',
-              )
-            : schedule.isAhead
-                ? value('plansScheduleAheadV1').replaceAll(
-                    '{count}',
-                    '${schedule.aheadByDays}',
-                  )
-                : value('plansScheduleOnTrackV1');
+        ? value(
+            'plansScheduleBehindV1',
+          ).replaceAll('{count}', '${schedule.behindByDays}')
+        : schedule.isAhead
+        ? value(
+            'plansScheduleAheadV1',
+          ).replaceAll('{count}', '${schedule.aheadByDays}')
+        : value('plansScheduleOnTrackV1');
     final scheduleDayText = value('plansScheduleDayV1')
         .replaceAll('{day}', '${schedule.calendarDayNumber}')
         .replaceAll('{total}', '$total');
-    final scheduledEnd = MaterialLocalizations.of(context).formatMediumDate(
-      schedule.scheduledEndDate,
-    );
-    final scheduledEndText = value('plansScheduledEndV1').replaceAll(
-      '{date}',
-      scheduledEnd,
-    );
+    final scheduledEnd = MaterialLocalizations.of(
+      context,
+    ).formatMediumDate(schedule.scheduledEndDate);
+    final scheduledEndText = value(
+      'plansScheduledEndV1',
+    ).replaceAll('{date}', scheduledEnd);
     final statusColor = active.isPaused
         ? scheme.secondary
         : schedule.isBehind
-            ? scheme.error
-            : scheme.primary;
+        ? scheme.error
+        : scheme.primary;
     final statusIcon = active.isPaused
         ? Icons.pause_circle_outline_rounded
         : schedule.isBehind
-            ? Icons.schedule_rounded
-            : schedule.isAhead
-                ? Icons.fast_forward_rounded
-                : Icons.check_circle_outline_rounded;
+        ? Icons.schedule_rounded
+        : schedule.isAhead
+        ? Icons.fast_forward_rounded
+        : Icons.check_circle_outline_rounded;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -605,9 +773,9 @@ class _ActivePlanCard extends StatelessWidget {
         children: [
           Text(
             l10n.text(active.preset.titleKey),
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 8),
           Text(
@@ -747,9 +915,7 @@ class _ActivePlanCard extends StatelessWidget {
                     : Icons.pause_rounded,
               ),
               label: Text(
-                l10n.text(
-                  active.isPaused ? 'plansResumeV1' : 'plansPauseV1',
-                ),
+                l10n.text(active.isPaused ? 'plansResumeV1' : 'plansPauseV1'),
               ),
             ),
           ),
@@ -767,16 +933,125 @@ class _ActivePlanCard extends StatelessWidget {
   }
 }
 
+class _YearlyKhatmCard extends StatelessWidget {
+  const _YearlyKhatmCard({
+    required this.year,
+    required this.completed,
+    required this.target,
+    required this.remaining,
+    required this.busy,
+    required this.onEdit,
+  });
+
+  final int year;
+  final int completed;
+  final int? target;
+  final int remaining;
+  final bool busy;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final scheme = Theme.of(context).colorScheme;
+    final targetValue = target;
+    final title = l10n
+        .text('plansYearlyKhatmTitleV1')
+        .replaceAll('{year}', '$year');
+    final body = targetValue == null
+        ? l10n
+              .text('plansYearlyKhatmNoTargetV1')
+              .replaceAll('{done}', '$completed')
+        : remaining > 0
+        ? l10n
+              .text('plansYearlyKhatmProgressV1')
+              .replaceAll('{done}', '$completed')
+              .replaceAll('{target}', '$targetValue')
+              .replaceAll('{remaining}', '$remaining')
+        : l10n
+              .text('plansYearlyKhatmReachedV1')
+              .replaceAll('{done}', '$completed')
+              .replaceAll('{target}', '$targetValue');
+    final progress = targetValue == null
+        ? null
+        : (completed / targetValue).clamp(0.0, 1.0).toDouble();
+
+    return Semantics(
+      container: true,
+      label: '$title. $body',
+      child: Card(
+        margin: EdgeInsets.zero,
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.auto_stories_rounded, color: scheme.primary),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(body),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              if (progress != null) ...[
+                const SizedBox(height: 14),
+                LinearProgressIndicator(value: progress),
+              ],
+              const SizedBox(height: 12),
+              Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: TextButton.icon(
+                  onPressed: busy ? null : onEdit,
+                  icon: const Icon(Icons.tune_rounded),
+                  label: Text(
+                    l10n.text(
+                      targetValue == null
+                          ? 'plansYearlyKhatmSetTargetV1'
+                          : 'plansYearlyKhatmEditTargetV1',
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _CompletedPlanCard extends StatelessWidget {
-  const _CompletedPlanCard({required this.item});
+  const _CompletedPlanCard({
+    required this.item,
+    required this.busy,
+    required this.onDelete,
+  });
 
   final CompletedReadingPlan item;
+  final bool busy;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final l10n = context.l10n;
-    final date = MaterialLocalizations.of(context).formatMediumDate(item.completedAt);
+    final date = MaterialLocalizations.of(
+      context,
+    ).formatMediumDate(item.completedAt);
     final subtitle = l10n.text('plansCompletedOnV1').replaceAll('{date}', date);
     return ListTile(
       tileColor: scheme.surfaceContainer,
@@ -790,6 +1065,11 @@ class _CompletedPlanCard extends StatelessWidget {
         style: const TextStyle(fontWeight: FontWeight.w800),
       ),
       subtitle: Text(subtitle),
+      trailing: IconButton(
+        onPressed: busy ? null : onDelete,
+        tooltip: l10n.text('plansArchiveDeleteActionV1'),
+        icon: const Icon(Icons.delete_outline_rounded),
+      ),
     );
   }
 }
@@ -819,10 +1099,7 @@ class _EmptyState extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(color: scheme.onSurfaceVariant),
           ),
-          if (action != null) ...[
-            const SizedBox(height: 18),
-            action!,
-          ],
+          if (action != null) ...[const SizedBox(height: 18), action!],
         ],
       ),
     );

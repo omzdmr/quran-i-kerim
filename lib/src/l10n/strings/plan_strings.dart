@@ -19,7 +19,8 @@ const planStrings = <String, Map<String, String>>{
     'plansResumedV1': 'Plan devam ediyor.',
     'plansPausedHintV1': 'Takvim, plana devam edene kadar ilerlemez.',
     'plansReplaceTitleV1': 'Aktif plan değiştirilsin mi?',
-    'plansReplaceBodyV1': 'Mevcut planın ilerlemesi durdurulacak ve yeni plan sıfırdan başlayacak.',
+    'plansReplaceBodyV1':
+        'Mevcut planın ilerlemesi durdurulacak ve yeni plan sıfırdan başlayacak.',
     'plansStopTitleV1': 'Plan bırakılsın mı?',
     'plansStopBodyV1': 'Bu plandaki mevcut ilerleme silinecek.',
     'plansPlanCompletedV1': 'Plan tamamlandı.',
@@ -31,9 +32,31 @@ const planStrings = <String, Map<String, String>>{
     'plansScheduleDayV1': 'Takvim günü {day} / {total}',
     'plansScheduledEndV1': 'Planlanan bitiş: {date}',
     'plansRecoveryTitleV1': 'Telafi okuması',
-    'plansRecoveryBodyV1': '{days} günlük birikim için {pages} sayfalık telafi bölümü hazır.',
+    'plansRecoveryBodyV1':
+        '{days} günlük birikim için {pages} sayfalık telafi bölümü hazır.',
     'plansRecoveryOpenV1': 'Telafiyi aç',
     'plansRecoveryCompleteV1': 'Telafiyi tamamlandı işaretle',
+    'plansYearlyKhatmTitleV1': '{year} hatim hedefi',
+    'plansYearlyKhatmNoTargetV1':
+        '{done} hatim tamamlandı. İstersen bu yıl için bir hedef belirleyebilirsin.',
+    'plansYearlyKhatmProgressV1':
+        '{done} / {target} hatim tamamlandı • {remaining} kaldı',
+    'plansYearlyKhatmReachedV1':
+        '{done} / {target} hatim tamamlandı • Yıllık hedef tamamlandı',
+    'plansYearlyKhatmSetTargetV1': 'Yıllık hedef belirle',
+    'plansYearlyKhatmEditTargetV1': 'Hedefi değiştir',
+    'plansYearlyKhatmEditTitleV1': 'Yıllık hatim hedefi',
+    'plansYearlyKhatmTargetFieldV1': 'Hedef',
+    'plansYearlyKhatmTargetHelperV1': '1–99 arasında bir sayı',
+    'plansYearlyKhatmClearTargetV1': 'Hedefi kaldır',
+    'plansYearlyKhatmSaveTargetV1': 'Kaydet',
+    'plansKhatmArchiveTitleV1': 'Hatim arşivi',
+    'plansArchiveAllYearsV1': 'Tüm yıllar',
+    'plansArchiveNoResultsV1': 'Bu yıl için tamamlanmış hatim kaydı yok.',
+    'plansArchiveDeleteTitleV1': 'Hatim kaydı silinsin mi?',
+    'plansArchiveDeleteBodyV1':
+        'Bu tamamlanma kaydı arşivden silinecek ve yıllık sayım güncellenecek.',
+    'plansArchiveDeleteActionV1': 'Kaydı sil',
   },
   'en': <String, String>{
     'plansSearchHintV1': 'Search plans',
@@ -55,7 +78,8 @@ const planStrings = <String, Map<String, String>>{
     'plansResumedV1': 'Plan resumed.',
     'plansPausedHintV1': 'The schedule stays frozen until you resume the plan.',
     'plansReplaceTitleV1': 'Change the active plan?',
-    'plansReplaceBodyV1': 'Your current plan progress will stop and the new plan will start from the beginning.',
+    'plansReplaceBodyV1':
+        'Your current plan progress will stop and the new plan will start from the beginning.',
     'plansStopTitleV1': 'Stop this plan?',
     'plansStopBodyV1': 'Current progress for this plan will be deleted.',
     'plansPlanCompletedV1': 'Plan completed.',
@@ -67,9 +91,32 @@ const planStrings = <String, Map<String, String>>{
     'plansScheduleDayV1': 'Schedule day {day} of {total}',
     'plansScheduledEndV1': 'Planned finish: {date}',
     'plansRecoveryTitleV1': 'Catch-up reading',
-    'plansRecoveryBodyV1': 'A {pages}-page catch-up section is ready for {days} missed days.',
+    'plansRecoveryBodyV1':
+        'A {pages}-page catch-up section is ready for {days} missed days.',
     'plansRecoveryOpenV1': 'Open catch-up',
     'plansRecoveryCompleteV1': 'Mark catch-up complete',
+    'plansYearlyKhatmTitleV1': '{year} khatm target',
+    'plansYearlyKhatmNoTargetV1':
+        '{done} khatm completed. You can set a target for this year.',
+    'plansYearlyKhatmProgressV1':
+        '{done} of {target} khatm completed • {remaining} remaining',
+    'plansYearlyKhatmReachedV1':
+        '{done} of {target} khatm completed • Yearly target reached',
+    'plansYearlyKhatmSetTargetV1': 'Set yearly target',
+    'plansYearlyKhatmEditTargetV1': 'Edit target',
+    'plansYearlyKhatmEditTitleV1': 'Yearly khatm target',
+    'plansYearlyKhatmTargetFieldV1': 'Target',
+    'plansYearlyKhatmTargetHelperV1': 'Enter a number from 1 to 99',
+    'plansYearlyKhatmClearTargetV1': 'Remove target',
+    'plansYearlyKhatmSaveTargetV1': 'Save',
+    'plansKhatmArchiveTitleV1': 'Khatm archive',
+    'plansArchiveAllYearsV1': 'All years',
+    'plansArchiveNoResultsV1':
+        'There are no completed khatm records for this year.',
+    'plansArchiveDeleteTitleV1': 'Delete khatm record?',
+    'plansArchiveDeleteBodyV1':
+        'This completion record will be removed from the archive and yearly totals will update.',
+    'plansArchiveDeleteActionV1': 'Delete record',
   },
   'ar': <String, String>{
     'plansSearchHintV1': 'ابحث في الخطط',
@@ -91,7 +138,8 @@ const planStrings = <String, Map<String, String>>{
     'plansResumedV1': 'تم استئناف الخطة.',
     'plansPausedHintV1': 'يبقى الجدول متوقفًا حتى تستأنف الخطة.',
     'plansReplaceTitleV1': 'تغيير الخطة النشطة؟',
-    'plansReplaceBodyV1': 'سيتم إيقاف تقدم الخطة الحالية وستبدأ الخطة الجديدة من البداية.',
+    'plansReplaceBodyV1':
+        'سيتم إيقاف تقدم الخطة الحالية وستبدأ الخطة الجديدة من البداية.',
     'plansStopTitleV1': 'إيقاف هذه الخطة؟',
     'plansStopBodyV1': 'سيتم حذف التقدم الحالي لهذه الخطة.',
     'plansPlanCompletedV1': 'اكتملت الخطة.',
@@ -106,6 +154,27 @@ const planStrings = <String, Map<String, String>>{
     'plansRecoveryBodyV1': 'تم تجهيز {pages} صفحة لتعويض {days} أيام فائتة.',
     'plansRecoveryOpenV1': 'افتح قراءة التعويض',
     'plansRecoveryCompleteV1': 'اعتبر التعويض مكتملًا',
+    'plansYearlyKhatmTitleV1': 'هدف ختم القرآن لعام {year}',
+    'plansYearlyKhatmNoTargetV1':
+        'أكملت {done} ختمة. يمكنك تحديد هدف لهذا العام.',
+    'plansYearlyKhatmProgressV1':
+        'أكملت {done} من {target} ختمة • المتبقي {remaining}',
+    'plansYearlyKhatmReachedV1':
+        'أكملت {done} من {target} ختمة • تم بلوغ هدف السنة',
+    'plansYearlyKhatmSetTargetV1': 'تحديد هدف سنوي',
+    'plansYearlyKhatmEditTargetV1': 'تعديل الهدف',
+    'plansYearlyKhatmEditTitleV1': 'هدف ختم القرآن السنوي',
+    'plansYearlyKhatmTargetFieldV1': 'عدد الختمات',
+    'plansYearlyKhatmTargetHelperV1': 'رقم من 1 إلى 99',
+    'plansYearlyKhatmClearTargetV1': 'إزالة الهدف',
+    'plansYearlyKhatmSaveTargetV1': 'حفظ',
+    'plansKhatmArchiveTitleV1': 'أرشيف ختم القرآن',
+    'plansArchiveAllYearsV1': 'كل السنوات',
+    'plansArchiveNoResultsV1': 'لا توجد ختمات مكتملة مسجلة لهذه السنة.',
+    'plansArchiveDeleteTitleV1': 'حذف سجل الختمة؟',
+    'plansArchiveDeleteBodyV1':
+        'سيُحذف سجل الإكمال من الأرشيف وسيتم تحديث مجموع السنة.',
+    'plansArchiveDeleteActionV1': 'حذف السجل',
   },
   'az': <String, String>{
     'plansSearchHintV1': 'Plan axtar',
@@ -127,7 +196,8 @@ const planStrings = <String, Map<String, String>>{
     'plansResumedV1': 'Plan davam etdirildi.',
     'plansPausedHintV1': 'Planı davam etdirənədək cədvəl irəliləməyəcək.',
     'plansReplaceTitleV1': 'Aktiv plan dəyişdirilsin?',
-    'plansReplaceBodyV1': 'Cari planın irəliləyişi dayandırılacaq və yeni plan əvvəldən başlayacaq.',
+    'plansReplaceBodyV1':
+        'Cari planın irəliləyişi dayandırılacaq və yeni plan əvvəldən başlayacaq.',
     'plansStopTitleV1': 'Plan dayandırılsın?',
     'plansStopBodyV1': 'Bu plandakı cari irəliləyiş silinəcək.',
     'plansPlanCompletedV1': 'Plan tamamlandı.',
@@ -139,9 +209,31 @@ const planStrings = <String, Map<String, String>>{
     'plansScheduleDayV1': 'Cədvəl günü {day} / {total}',
     'plansScheduledEndV1': 'Planlaşdırılan bitiş: {date}',
     'plansRecoveryTitleV1': 'Buraxılan günləri tamamla',
-    'plansRecoveryBodyV1': '{days} buraxılmış gün üçün {pages} səhifəlik tamamlama bölümü hazırdır.',
+    'plansRecoveryBodyV1':
+        '{days} buraxılmış gün üçün {pages} səhifəlik tamamlama bölümü hazırdır.',
     'plansRecoveryOpenV1': 'Tamamlama oxusunu aç',
     'plansRecoveryCompleteV1': 'Tamamlamanı bitmiş say',
+    'plansYearlyKhatmTitleV1': '{year} Quran xətmi hədəfi',
+    'plansYearlyKhatmNoTargetV1':
+        '{done} xətm tamamlandı. Bu il üçün hədəf təyin edə bilərsiniz.',
+    'plansYearlyKhatmProgressV1':
+        '{done} / {target} xətm tamamlandı • {remaining} qalıb',
+    'plansYearlyKhatmReachedV1':
+        '{done} / {target} xətm tamamlandı • İllik hədəf tamamlandı',
+    'plansYearlyKhatmSetTargetV1': 'İllik hədəf təyin et',
+    'plansYearlyKhatmEditTargetV1': 'Hədəfi dəyiş',
+    'plansYearlyKhatmEditTitleV1': 'İllik Quran xətmi hədəfi',
+    'plansYearlyKhatmTargetFieldV1': 'Hədəf',
+    'plansYearlyKhatmTargetHelperV1': '1–99 arasında rəqəm',
+    'plansYearlyKhatmClearTargetV1': 'Hədəfi sil',
+    'plansYearlyKhatmSaveTargetV1': 'Saxla',
+    'plansKhatmArchiveTitleV1': 'Quran xətmi arxivi',
+    'plansArchiveAllYearsV1': 'Bütün illər',
+    'plansArchiveNoResultsV1': 'Bu il üçün tamamlanmış xətm qeydi yoxdur.',
+    'plansArchiveDeleteTitleV1': 'Xətm qeydi silinsin?',
+    'plansArchiveDeleteBodyV1':
+        'Bu tamamlanma qeydi arxivdən silinəcək və illik say yenilənəcək.',
+    'plansArchiveDeleteActionV1': 'Qeydi sil',
   },
   'ru': <String, String>{
     'plansSearchHintV1': 'Поиск планов',
@@ -161,9 +253,11 @@ const planStrings = <String, Map<String, String>>{
     'plansResumeV1': 'Продолжить план',
     'plansPausedV1': 'План приостановлен.',
     'plansResumedV1': 'План продолжен.',
-    'plansPausedHintV1': 'График не сдвигается вперёд, пока вы не продолжите план.',
+    'plansPausedHintV1':
+        'График не сдвигается вперёд, пока вы не продолжите план.',
     'plansReplaceTitleV1': 'Сменить активный план?',
-    'plansReplaceBodyV1': 'Текущий прогресс будет остановлен, а новый план начнётся с начала.',
+    'plansReplaceBodyV1':
+        'Текущий прогресс будет остановлен, а новый план начнётся с начала.',
     'plansStopTitleV1': 'Остановить этот план?',
     'plansStopBodyV1': 'Текущий прогресс этого плана будет удалён.',
     'plansPlanCompletedV1': 'План завершён.',
@@ -175,8 +269,30 @@ const planStrings = <String, Map<String, String>>{
     'plansScheduleDayV1': 'День графика {day} из {total}',
     'plansScheduledEndV1': 'Плановое завершение: {date}',
     'plansRecoveryTitleV1': 'Наверстать чтение',
-    'plansRecoveryBodyV1': 'Для {days} пропущенных дней подготовлен блок на {pages} стр.',
+    'plansRecoveryBodyV1':
+        'Для {days} пропущенных дней подготовлен блок на {pages} стр.',
     'plansRecoveryOpenV1': 'Открыть наверстывание',
     'plansRecoveryCompleteV1': 'Отметить наверстывание завершённым',
+    'plansYearlyKhatmTitleV1': 'Цель хатма на {year} год',
+    'plansYearlyKhatmNoTargetV1':
+        'Завершено хатмов: {done}. Можно задать цель на этот год.',
+    'plansYearlyKhatmProgressV1':
+        'Завершено {done} из {target} • Осталось {remaining}',
+    'plansYearlyKhatmReachedV1':
+        'Завершено {done} из {target} • Годовая цель достигнута',
+    'plansYearlyKhatmSetTargetV1': 'Задать годовую цель',
+    'plansYearlyKhatmEditTargetV1': 'Изменить цель',
+    'plansYearlyKhatmEditTitleV1': 'Годовая цель хатма',
+    'plansYearlyKhatmTargetFieldV1': 'Цель',
+    'plansYearlyKhatmTargetHelperV1': 'Число от 1 до 99',
+    'plansYearlyKhatmClearTargetV1': 'Удалить цель',
+    'plansYearlyKhatmSaveTargetV1': 'Сохранить',
+    'plansKhatmArchiveTitleV1': 'Архив хатмов',
+    'plansArchiveAllYearsV1': 'Все годы',
+    'plansArchiveNoResultsV1': 'За этот год нет завершённых записей хатма.',
+    'plansArchiveDeleteTitleV1': 'Удалить запись хатма?',
+    'plansArchiveDeleteBodyV1':
+        'Запись о завершении будет удалена из архива, а годовой итог обновится.',
+    'plansArchiveDeleteActionV1': 'Удалить запись',
   },
 };

@@ -10,12 +10,27 @@ class ReadingPlanSnapshot {
     this.active,
     this.savedPresetIds = const <String>{},
     this.completed = const <CompletedReadingPlan>[],
+    this.yearlyKhatmTarget,
     this.redistributionTargetEndDate,
   });
 
   final ActiveReadingPlan? active;
   final Set<String> savedPresetIds;
   final List<CompletedReadingPlan> completed;
+
+  /// Optional user-owned yearly khatm target. This is deliberately a private,
+  /// local preference rather than a streak or social score.
+  final int? yearlyKhatmTarget;
+
+  int completedInYear(int year) =>
+      completed.where((item) => item.completedAt.year == year).length;
+
+  int remainingForYear(int year) {
+    final target = yearlyKhatmTarget;
+    if (target == null) return 0;
+    final remaining = target - completedInYear(year);
+    return remaining > 0 ? remaining : 0;
+  }
 
   /// User-selected end date for missed-day redistribution.
   ///
@@ -62,6 +77,7 @@ class ReadingPlanStore {
       ),
       savedPresetIds: current.savedPresetIds,
       completed: current.completed,
+      yearlyKhatmTarget: current.yearlyKhatmTarget,
     );
     await _save(next);
     return next;
@@ -75,6 +91,41 @@ class ReadingPlanStore {
       active: current.active,
       savedPresetIds: saved,
       completed: current.completed,
+      yearlyKhatmTarget: current.yearlyKhatmTarget,
+      redistributionTargetEndDate: current.redistributionTargetEndDate,
+    );
+    await _save(next);
+    return next;
+  }
+
+  Future<ReadingPlanSnapshot> removeCompletedAt(int index) async {
+    final current = await load();
+    if (index < 0 || index >= current.completed.length) {
+      throw RangeError.index(index, current.completed, 'index');
+    }
+    final completed = current.completed.toList(growable: true)..removeAt(index);
+    final next = ReadingPlanSnapshot(
+      active: current.active,
+      savedPresetIds: current.savedPresetIds,
+      completed: List<CompletedReadingPlan>.unmodifiable(completed),
+      yearlyKhatmTarget: current.yearlyKhatmTarget,
+      redistributionTargetEndDate: current.redistributionTargetEndDate,
+    );
+    await _save(next);
+    return next;
+  }
+
+  Future<ReadingPlanSnapshot> setYearlyKhatmTarget(int? target) async {
+    if (target != null && (target < 1 || target > 99)) {
+      throw RangeError.range(target, 1, 99, 'target');
+    }
+    final current = await load();
+    if (current.yearlyKhatmTarget == target) return current;
+    final next = ReadingPlanSnapshot(
+      active: current.active,
+      savedPresetIds: current.savedPresetIds,
+      completed: current.completed,
+      yearlyKhatmTarget: target,
       redistributionTargetEndDate: current.redistributionTargetEndDate,
     );
     await _save(next);
@@ -89,6 +140,7 @@ class ReadingPlanStore {
       active: active.pause(now ?? DateTime.now()),
       savedPresetIds: current.savedPresetIds,
       completed: current.completed,
+      yearlyKhatmTarget: current.yearlyKhatmTarget,
       redistributionTargetEndDate: current.redistributionTargetEndDate,
     );
     await _save(next);
@@ -103,6 +155,7 @@ class ReadingPlanStore {
       active: active.resume(now ?? DateTime.now()),
       savedPresetIds: current.savedPresetIds,
       completed: current.completed,
+      yearlyKhatmTarget: current.yearlyKhatmTarget,
       redistributionTargetEndDate: current.redistributionTargetEndDate,
     );
     await _save(next);
@@ -119,12 +172,17 @@ class ReadingPlanStore {
     final today = readingPlanDateOnly(now ?? DateTime.now());
     final target = readingPlanDateOnly(targetEndDate);
     if (target.isBefore(today)) {
-      throw ArgumentError.value(targetEndDate, 'targetEndDate', 'Must not be before today.');
+      throw ArgumentError.value(
+        targetEndDate,
+        'targetEndDate',
+        'Must not be before today.',
+      );
     }
     final next = ReadingPlanSnapshot(
       active: active,
       savedPresetIds: current.savedPresetIds,
       completed: current.completed,
+      yearlyKhatmTarget: current.yearlyKhatmTarget,
       redistributionTargetEndDate: target,
     );
     await _save(next);
@@ -138,6 +196,7 @@ class ReadingPlanStore {
       active: current.active,
       savedPresetIds: current.savedPresetIds,
       completed: current.completed,
+      yearlyKhatmTarget: current.yearlyKhatmTarget,
     );
     await _save(next);
     return next;
@@ -162,7 +221,8 @@ class ReadingPlanStore {
       ];
       final next = ReadingPlanSnapshot(
         savedPresetIds: current.savedPresetIds,
-        completed: history.take(20).toList(growable: false),
+        completed: List<CompletedReadingPlan>.unmodifiable(history),
+        yearlyKhatmTarget: current.yearlyKhatmTarget,
       );
       await _save(next);
       return next;
@@ -172,6 +232,7 @@ class ReadingPlanStore {
       active: active.copyWith(completedDays: completedDays),
       savedPresetIds: current.savedPresetIds,
       completed: current.completed,
+      yearlyKhatmTarget: current.yearlyKhatmTarget,
       redistributionTargetEndDate: current.redistributionTargetEndDate,
     );
     await _save(next);
@@ -213,7 +274,8 @@ class ReadingPlanStore {
       ];
       final next = ReadingPlanSnapshot(
         savedPresetIds: current.savedPresetIds,
-        completed: history.take(20).toList(growable: false),
+        completed: List<CompletedReadingPlan>.unmodifiable(history),
+        yearlyKhatmTarget: current.yearlyKhatmTarget,
       );
       await _save(next);
       return next;
@@ -223,6 +285,7 @@ class ReadingPlanStore {
       active: active.copyWith(completedDays: completedDays),
       savedPresetIds: current.savedPresetIds,
       completed: current.completed,
+      yearlyKhatmTarget: current.yearlyKhatmTarget,
       redistributionTargetEndDate: current.redistributionTargetEndDate,
     );
     await _save(next);
@@ -235,6 +298,7 @@ class ReadingPlanStore {
     final next = ReadingPlanSnapshot(
       savedPresetIds: current.savedPresetIds,
       completed: current.completed,
+      yearlyKhatmTarget: current.yearlyKhatmTarget,
     );
     await _save(next);
     return next;
@@ -245,7 +309,9 @@ class ReadingPlanStore {
     final rawActive = json['active'];
     if (rawActive is Map) {
       final preset = ReadingPlanPreset.fromId(rawActive['preset']?.toString());
-      final startedAt = DateTime.tryParse(rawActive['startedAt']?.toString() ?? '');
+      final startedAt = DateTime.tryParse(
+        rawActive['startedAt']?.toString() ?? '',
+      );
       if (preset != null && startedAt != null) {
         final normalizedStart = readingPlanDateOnly(startedAt);
         final completedDays = <int>{};
@@ -299,9 +365,14 @@ class ReadingPlanStore {
       for (final item in rawCompleted) {
         if (item is! Map) continue;
         final preset = ReadingPlanPreset.fromId(item['preset']?.toString());
-        final startedAt = DateTime.tryParse(item['startedAt']?.toString() ?? '');
-        final completedAt = DateTime.tryParse(item['completedAt']?.toString() ?? '');
-        if (preset == null || startedAt == null || completedAt == null) continue;
+        final startedAt = DateTime.tryParse(
+          item['startedAt']?.toString() ?? '',
+        );
+        final completedAt = DateTime.tryParse(
+          item['completedAt']?.toString() ?? '',
+        );
+        if (preset == null || startedAt == null || completedAt == null)
+          continue;
         completed.add(
           CompletedReadingPlan(
             preset: preset,
@@ -314,14 +385,29 @@ class ReadingPlanStore {
 
     DateTime? redistributionTargetEndDate;
     if (active != null) {
-      final parsed = DateTime.tryParse(json['redistributionTargetEndDate']?.toString() ?? '');
-      if (parsed != null) redistributionTargetEndDate = readingPlanDateOnly(parsed);
+      final parsed = DateTime.tryParse(
+        json['redistributionTargetEndDate']?.toString() ?? '',
+      );
+      if (parsed != null)
+        redistributionTargetEndDate = readingPlanDateOnly(parsed);
     }
+
+    final rawYearlyKhatmTarget = json['yearlyKhatmTarget'];
+    final parsedYearlyKhatmTarget = rawYearlyKhatmTarget is int
+        ? rawYearlyKhatmTarget
+        : int.tryParse('${rawYearlyKhatmTarget ?? ''}');
+    final yearlyKhatmTarget =
+        parsedYearlyKhatmTarget != null &&
+            parsedYearlyKhatmTarget >= 1 &&
+            parsedYearlyKhatmTarget <= 99
+        ? parsedYearlyKhatmTarget
+        : null;
 
     return ReadingPlanSnapshot(
       active: active,
       savedPresetIds: saved,
-      completed: completed.take(20).toList(growable: false),
+      completed: List<CompletedReadingPlan>.unmodifiable(completed),
+      yearlyKhatmTarget: yearlyKhatmTarget,
       redistributionTargetEndDate: redistributionTargetEndDate,
     );
   }
@@ -336,10 +422,14 @@ class ReadingPlanStore {
               'preset': active.preset.id,
               'startedAt': _date(active.startedAt),
               'completedDays': active.completedDays.toList()..sort(),
-              'pausedAt': active.pausedAt == null ? null : _date(active.pausedAt!),
+              'pausedAt': active.pausedAt == null
+                  ? null
+                  : _date(active.pausedAt!),
               'pausedDays': active.pausedDays,
             },
-      'redistributionTargetEndDate': snapshot.redistributionTargetEndDate == null
+      'yearlyKhatmTarget': snapshot.yearlyKhatmTarget,
+      'redistributionTargetEndDate':
+          snapshot.redistributionTargetEndDate == null
           ? null
           : _date(snapshot.redistributionTargetEndDate!),
       'saved': snapshot.savedPresetIds.toList()..sort(),
