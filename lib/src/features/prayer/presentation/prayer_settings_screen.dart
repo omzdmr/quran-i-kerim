@@ -97,7 +97,7 @@ class _PrayerSettingsScreenState extends State<PrayerSettingsScreen> {
     if (_checkingNotificationDiagnostics) return;
     setState(() => _checkingNotificationDiagnostics = true);
 
-    PrayerNotificationDiagnostics? diagnostics;
+    late final PrayerNotificationDiagnostics diagnostics;
     try {
       diagnostics = await PrayerNotificationService.diagnostics();
     } catch (_) {
@@ -116,7 +116,7 @@ class _PrayerSettingsScreenState extends State<PrayerSettingsScreen> {
         setState(() => _checkingNotificationDiagnostics = false);
       }
     }
-    if (!mounted || diagnostics == null) return;
+    if (!mounted) return;
 
     final l10n = context.l10n;
     final permission = diagnostics.systemPermissionGranted == null
