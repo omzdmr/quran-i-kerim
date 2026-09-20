@@ -11,6 +11,20 @@ import 'reading_plan_store.dart';
 
 enum _PlansTab { mine, find, saved, completed }
 
+enum _ArchiveAction { edit, delete }
+
+class _ManualKhatmDraft {
+  const _ManualKhatmDraft({
+    required this.completedAt,
+    this.startedAt,
+    this.note,
+  });
+
+  final DateTime? startedAt;
+  final DateTime completedAt;
+  final String? note;
+}
+
 class PlansScreen extends StatefulWidget {
   const PlansScreen({super.key});
 
@@ -214,6 +228,159 @@ class _PlansScreenState extends State<PlansScreen> {
       final snapshot = await _store.removeCompletedAt(index);
       if (!mounted) return;
       setState(() => _snapshot = snapshot);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _editManualKhatm([CompletedReadingPlan? existing]) async {
+    if (_busy) return;
+    final l10n = context.l10n;
+    final noteController = TextEditingController(text: existing?.note ?? '');
+    var completedAt = existing?.completedAt ?? readingPlanDateOnly(DateTime.now());
+    var startedAt = existing?.startedAt;
+
+    final result = await showDialog<_ManualKhatmDraft>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          final material = MaterialLocalizations.of(dialogContext);
+          final valid = startedAt == null || !startedAt!.isAfter(completedAt);
+
+          Future<void> pickCompletedDate() async {
+            final picked = await showDatePicker(
+              context: dialogContext,
+              initialDate: completedAt,
+              firstDate: DateTime(1900),
+              lastDate: readingPlanDateOnly(DateTime.now()),
+            );
+            if (picked == null) return;
+            setDialogState(() => completedAt = readingPlanDateOnly(picked));
+          }
+
+          Future<void> pickStartedDate() async {
+            final picked = await showDatePicker(
+              context: dialogContext,
+              initialDate: startedAt ?? completedAt,
+              firstDate: DateTime(1900),
+              lastDate: completedAt,
+            );
+            if (picked == null) return;
+            setDialogState(() => startedAt = readingPlanDateOnly(picked));
+          }
+
+          return AlertDialog(
+            title: Text(
+              l10n.text(
+                existing == null
+                    ? 'plansManualKhatmDialogTitleV1'
+                    : 'plansManualKhatmEditV1',
+              ),
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    l10n.text('plansManualKhatmExplanationV1'),
+                    style: Theme.of(dialogContext).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 16),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.event_available_rounded),
+                    title: Text(l10n.text('plansManualKhatmCompletedDateV1')),
+                    subtitle: Text(material.formatMediumDate(completedAt)),
+                    onTap: pickCompletedDate,
+                  ),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.event_note_rounded),
+                    title: Text(l10n.text('plansManualKhatmStartDateV1')),
+                    subtitle: Text(
+                      startedAt == null
+                          ? l10n.text('plansManualKhatmStartOptionalV1')
+                          : material.formatMediumDate(startedAt!),
+                    ),
+                    onTap: pickStartedDate,
+                    trailing: startedAt == null
+                        ? null
+                        : IconButton(
+                            onPressed: () =>
+                                setDialogState(() => startedAt = null),
+                            tooltip: l10n.text('plansManualKhatmClearStartV1'),
+                            icon: const Icon(Icons.close_rounded),
+                          ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: noteController,
+                    minLines: 2,
+                    maxLines: 4,
+                    maxLength: 300,
+                    decoration: InputDecoration(
+                      labelText: l10n.text('plansManualKhatmNoteV1'),
+                      hintText: l10n.text('plansManualKhatmNoteHintV1'),
+                    ),
+                  ),
+                  if (!valid)
+                    Text(
+                      l10n.text('plansManualKhatmDateErrorV1'),
+                      style: TextStyle(
+                        color: Theme.of(dialogContext).colorScheme.error,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: Text(material.cancelButtonLabel),
+              ),
+              FilledButton(
+                onPressed: valid
+                    ? () => Navigator.of(dialogContext).pop(
+                        _ManualKhatmDraft(
+                          startedAt: startedAt,
+                          completedAt: completedAt,
+                          note: noteController.text,
+                        ),
+                      )
+                    : null,
+                child: Text(l10n.text('plansManualKhatmSaveV1')),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    noteController.dispose();
+    if (!mounted || result == null) return;
+
+    HapticFeedback.selectionClick();
+    setState(() => _busy = true);
+    try {
+      final snapshot = existing == null
+          ? await _store.addManualCompletedKhatm(
+              startedAt: result.startedAt,
+              completedAt: result.completedAt,
+              note: result.note,
+            )
+          : await _store.updateManualCompletedKhatmAt(
+              _snapshot.completed.indexOf(existing),
+              startedAt: result.startedAt,
+              completedAt: result.completedAt,
+              note: result.note,
+            );
+      if (!mounted) return;
+      setState(() => _snapshot = snapshot);
+      _snack(
+        existing == null
+            ? 'plansManualKhatmAddedV1'
+            : 'plansManualKhatmUpdatedV1',
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -470,6 +637,14 @@ class _PlansScreenState extends State<PlansScreen> {
   Widget _buildCompleted() {
     final year = DateTime.now().year;
     final completedThisYear = _snapshot.completedInYear(year);
+    final planCompletedThisYear = _snapshot.completedInYearBySource(
+      year,
+      KhatmCompletionSource.readingPlan,
+    );
+    final manualCompletedThisYear = _snapshot.completedInYearBySource(
+      year,
+      KhatmCompletionSource.manualOffDevice,
+    );
     final target = _snapshot.yearlyKhatmTarget;
     final remaining = _snapshot.remainingForYear(year);
     final years =
@@ -489,10 +664,21 @@ class _PlansScreenState extends State<PlansScreen> {
         _YearlyKhatmCard(
           year: year,
           completed: completedThisYear,
+          planCompleted: planCompletedThisYear,
+          manualCompleted: manualCompletedThisYear,
           target: target,
           remaining: remaining,
           busy: _busy,
           onEdit: _editYearlyKhatmTarget,
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.tonalIcon(
+            onPressed: _busy ? null : () => _editManualKhatm(),
+            icon: const Icon(Icons.add_rounded),
+            label: Text(context.l10n.text('plansManualKhatmAddV1')),
+          ),
         ),
         const SizedBox(height: 16),
         if (_snapshot.completed.isNotEmpty) ...[
@@ -546,6 +732,9 @@ class _PlansScreenState extends State<PlansScreen> {
             _CompletedPlanCard(
               item: item,
               busy: _busy,
+              onEdit: item.isManualOffDevice
+                  ? () => _editManualKhatm(item)
+                  : null,
               onDelete: () => _removeCompleted(item),
             ),
             const SizedBox(height: 12),
@@ -937,6 +1126,8 @@ class _YearlyKhatmCard extends StatelessWidget {
   const _YearlyKhatmCard({
     required this.year,
     required this.completed,
+    required this.planCompleted,
+    required this.manualCompleted,
     required this.target,
     required this.remaining,
     required this.busy,
@@ -945,6 +1136,8 @@ class _YearlyKhatmCard extends StatelessWidget {
 
   final int year;
   final int completed;
+  final int planCompleted;
+  final int manualCompleted;
   final int? target;
   final int remaining;
   final bool busy;
@@ -1002,6 +1195,16 @@ class _YearlyKhatmCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(body),
+                        const SizedBox(height: 6),
+                        Text(
+                          l10n
+                              .text('plansYearlyKhatmSourceBreakdownV1')
+                              .replaceAll('{plan}', '$planCompleted')
+                              .replaceAll('{manual}', '$manualCompleted'),
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -1039,11 +1242,13 @@ class _CompletedPlanCard extends StatelessWidget {
     required this.item,
     required this.busy,
     required this.onDelete,
+    this.onEdit,
   });
 
   final CompletedReadingPlan item;
   final bool busy;
   final VoidCallback onDelete;
+  final VoidCallback? onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -1053,22 +1258,83 @@ class _CompletedPlanCard extends StatelessWidget {
       context,
     ).formatMediumDate(item.completedAt);
     final subtitle = l10n.text('plansCompletedOnV1').replaceAll('{date}', date);
+    final title = item.isManualOffDevice
+        ? l10n.text('plansManualKhatmArchiveTitleV1')
+        : l10n.text(item.preset?.titleKey ?? 'plansKhatmArchiveTitleV1');
+    final source = l10n.text(
+      item.isManualOffDevice
+          ? 'plansManualKhatmSourceV1'
+          : 'plansPlanKhatmSourceV1',
+    );
+    final startedAt = item.startedAt;
+    final startedText = startedAt == null
+        ? null
+        : l10n
+              .text('plansKhatmStartedOnV1')
+              .replaceAll(
+                '{date}',
+                MaterialLocalizations.of(context).formatMediumDate(startedAt),
+              );
+
     return ListTile(
       tileColor: scheme.surfaceContainer,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       leading: CircleAvatar(
         backgroundColor: scheme.primaryContainer,
-        child: Icon(Icons.check_rounded, color: scheme.onPrimaryContainer),
+        child: Icon(
+          item.isManualOffDevice
+              ? Icons.menu_book_rounded
+              : Icons.check_rounded,
+          color: scheme.onPrimaryContainer,
+        ),
       ),
       title: Text(
-        l10n.text(item.preset.titleKey),
+        title,
         style: const TextStyle(fontWeight: FontWeight.w800),
       ),
-      subtitle: Text(subtitle),
-      trailing: IconButton(
-        onPressed: busy ? null : onDelete,
-        tooltip: l10n.text('plansArchiveDeleteActionV1'),
-        icon: const Icon(Icons.delete_outline_rounded),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(subtitle),
+          Text(
+            source,
+            style: TextStyle(
+              color: scheme.primary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if (startedText != null) Text(startedText),
+          if (item.note != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              item.note!,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ],
+      ),
+      trailing: PopupMenuButton<_ArchiveAction>(
+        enabled: !busy,
+        onSelected: (action) {
+          switch (action) {
+            case _ArchiveAction.edit:
+              onEdit?.call();
+            case _ArchiveAction.delete:
+              onDelete();
+          }
+        },
+        itemBuilder: (context) => <PopupMenuEntry<_ArchiveAction>>[
+          if (onEdit != null)
+            PopupMenuItem<_ArchiveAction>(
+              value: _ArchiveAction.edit,
+              child: Text(l10n.text('plansArchiveEditActionV1')),
+            ),
+          PopupMenuItem<_ArchiveAction>(
+            value: _ArchiveAction.delete,
+            child: Text(l10n.text('plansArchiveDeleteActionV1')),
+          ),
+        ],
       ),
     );
   }
