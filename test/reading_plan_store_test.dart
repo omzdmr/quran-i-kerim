@@ -604,4 +604,24 @@ void main() {
     expect((await store.load()).offDevicePageSessions, isEmpty);
   });
 
+
+  test('manual khatm archiving preserves off-device page sessions', () async {
+    await store.addOffDevicePageSession(
+      startPage: 50,
+      endPage: 60,
+      readAt: DateTime(2026, 9, 18),
+      now: DateTime(2026, 9, 20),
+    );
+
+    final after = await store.addManualCompletedKhatm(
+      completedAt: DateTime(2026, 9, 20),
+      now: DateTime(2026, 9, 20),
+    );
+
+    expect(after.completed, hasLength(1));
+    expect(after.offDevicePageSessions, hasLength(1));
+    expect(after.offDevicePageSessions.single.startPage, 50);
+    expect(after.offDevicePageSessions.single.endPage, 60);
+  });
+
 }
