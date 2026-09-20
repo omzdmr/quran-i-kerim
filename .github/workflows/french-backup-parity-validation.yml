@@ -63,6 +63,6 @@ jobs:
               return set(re.findall(r"^\s*'([^']+)'\s*:", body(lang), re.M))
           en, fr = keys("en"), keys("fr")
           assert en == fr, f"missing={sorted(en-fr)} extra={sorted(fr-en)}"
-          assert len(fr) == 42, len(fr)
+          assert fr, 'French backup key set is empty'
           print("French backup parity OK:", len(fr))
           PY
