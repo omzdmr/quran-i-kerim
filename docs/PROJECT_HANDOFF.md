@@ -47,31 +47,65 @@ memory when it conflicts with the current branch.
 
 ## Integrated progress at this handoff
 
-- Missed-day reading-plan recovery is connected to the user flow and persists
-  the chosen recovery strategy.
-- Settings search opens real settings destinations.
-- Prayer notification diagnostics shows permission, exact-alarm availability
-  and scheduled prayer-notification count. Commit `29470ca` fixed its analyzer
-  failure and its full Android workflow passed.
-- The Home prayer card exposes one concise screen-reader action.
-- Home recent-reading shortcuts were integrated in commit `7569d91`.
-- Slow hosted runners exhausted the former 30-minute Android job limit even
-  after analysis and tests passed. The limit is now 120 minutes in commit
-  `1ac4908`; validation behavior and required steps are unchanged.
+Earlier completed slices remain integrated, including missed-day plan recovery,
+Settings search, prayer notification diagnostics, Home prayer accessibility,
+recent-reading shortcuts and customizable Home quick actions.
+
+The newest Plans work is now integrated:
+
+- Commit `767c864` added full khatm archive retention, year filtering and a
+  private yearly target.
+- Commit `5c4b3b9` added manual/off-device completed-khatm records.
+- Archive records now carry source metadata. Old records without a source
+  migrate as app reading-plan records.
+- Manual records may contain an optional start date, completion date and
+  private note, and are clearly labelled user-reported/off-device.
+- Manual records can be corrected or deleted. App-generated completion records
+  cannot be rewritten through the manual editor.
+- Yearly totals include both sources while also exposing an app-plan/manual
+  breakdown.
+- Existing `reading_plan_state_v1` remains the local-first persistence and
+  backup unit; no backend/account dependency was introduced.
+- Turkish, English, Arabic, Azerbaijani and Russian Plans copy remains
+  key-parity checked.
 
 ## Latest completed feature slice
 
-Home now exposes up to three useful recent Quran-reading contexts beneath the
-primary Continue card:
+Manual/off-device khatm archive support is complete as one vertical slice:
 
-- Consecutive ayahs from the same surah/source do not flood the list.
-- The current reading context is not repeated.
-- Tapping a recent item returns to its exact surah and ayah.
-- Its saved Quran source is restored only when that offline source is still
-  installed; otherwise the current source remains active.
-- History changes notify Home immediately.
-- Turkish, English, Arabic, Azerbaijani and Russian labels plus repository and
-  selection tests are included.
+- Plans → Completed exposes “Add manual khatm”.
+- Completion date is required; start date and private note are optional.
+- Future completion dates and start-after-completion ranges are rejected.
+- Notes are limited to 300 characters for new input.
+- Legacy/corrupt overlong stored notes are migration-tolerant and truncated
+  rather than causing the whole reading-plan snapshot to be discarded.
+- Archive cards distinguish app reading plans from manual/off-device records.
+- Manual records expose edit/delete; app-generated records expose delete only.
+- The yearly target card shows total progress plus source breakdown.
+- Old archive JSON remains backward compatible.
+
+Validation branch run `35516412798` passed:
+- `reading_plan_store_test.dart`: 24/24 tests.
+- `plan_strings_test.dart`: localization key parity passed.
+- Formatter completed successfully on all changed files.
+
+## Validation status
+
+The last known fully green full Android workflow is run `35498316886` for
+code-bearing head `1ac4908`: analysis, all tests, ARM64 APK build,
+signer/application identity verification and artifact upload all passed.
+
+Recent full Android validation has a repeatable tooling problem:
+- Run `35502558063` for the Home quick-actions era was cancelled after
+  `flutter analyze lib --no-fatal-infos` ran until the 120-minute timeout.
+- Run `35510883618` for khatm archive head `767c864` showed the same
+  analyzer-hang pattern and remained in the analyze step when superseded.
+- Treat this as CI/analyzer tooling unless a concrete analyzer diagnostic or
+  failing test says otherwise. Do not relabel a timeout as an app regression.
+
+Current code-bearing head: `5c4b3b94cdfcc365f1b68d2646b4157e0b09b61c`.
+Android APK run `35516558965` (#545) started for this head. Inspect its exact
+step/result before calling the full Android pipeline green.
 
 ## Safe continuation checklist
 
@@ -82,44 +116,26 @@ primary Continue card:
    it through state/data, UI navigation, accessibility and tests where
    applicable. A model, adapter, documentation sync or test alone is not a
    finished feature.
-5. Run formatter/analyzer/relevant tests. Let Android CI validate the integrated
-   branch; classify infrastructure failures separately from code failures.
+5. Run formatter/relevant tests. Let Android CI validate the integrated branch;
+   classify infrastructure/tooling failures separately from code failures.
 6. Update this file whenever the active feature, blocker or next concrete step
    changes.
 
-## Active feature slice
-
-Home customizable quick actions are now implemented on the integration branch:
-
-- Home shows 4–6 quick actions with six useful defaults.
-- Users can choose among Quran, prayer times, Qibla, dhikr, Plans, downloads,
-  Discover and Settings.
-- Selection is persisted in `AppSettings`, enforces the 4–6 contract and rolls
-  back if SharedPreferences persistence fails.
-- The preference is included in user-owned backups. Backup schema is now v5;
-  restores from v1–v4 preserve the newer quick-action preference instead of
-  deleting it.
-- The quick-action editor has large-text responsive layout, screen-reader
-  semantics and RTL coverage.
-- Turkish, English, Arabic, Azerbaijani and Russian copy is included.
-- Tests cover defaults, persistence, bounds, corrupted stored data,
-  backup/restore compatibility, localization parity, large text and Arabic RTL.
-
-Latest code-bearing head: `f36b32a`.
-Android validation run `35502558063` is in progress. Inspect its exact result
-before calling this slice complete; do not infer success from earlier runs.
-
-## Validation status
-
-The full Android workflow for code-bearing head `1ac4908` passed in run
-`35498316886`: analysis, all tests, ARM64 APK build, signer/application
-identity verification and artifact upload. The handoff-only commit after it
-uses `[skip ci]` intentionally.
-
 ## Immediate next step
 
-Finish validation of Home customizable quick actions at code-bearing head
-`f36b32a`. If run `35502558063` is green, record the result and then select
-the next user-visible requirement from `PRODUCT_MASTER_SPEC.md`. Do not restart
-Reading Plan Recovery, notification diagnostics or Home recent-reading
-shortcuts unless a real regression is present.
+Continue the V17 physical Mushaf/off-device reading integration as the next
+separate vertical slice:
+
+- Add explicit manual reading sessions by page range first, then extend to
+  juz/hizb/canonical ayah ranges when the data contracts are ready.
+- Mark every such session as user-reported/off-device.
+- Never advance an active khatm/goal automatically; advancement must be an
+  explicit user action.
+- Preserve source breakdown and avoid claiming certainty about duplicate
+  digital/manual coverage.
+- Keep the flow local-first and backup-compatible.
+- A later quick-entry shortcut may support “I read pages X–Y on paper”.
+
+Do not restart already completed recovery, notification-diagnostics,
+recent-reading, Home quick-actions or completed-khatm archive work unless a
+real regression is demonstrated.
