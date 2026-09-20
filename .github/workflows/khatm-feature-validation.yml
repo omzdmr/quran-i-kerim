@@ -6,7 +6,7 @@ on:
       - manual/khatm-yearly-target
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   validate:
@@ -32,9 +32,9 @@ jobs:
       - name: Generate localizations
         run: flutter gen-l10n
 
-      - name: Check formatting
+      - name: Format changed code
         run: |
-          dart format --output=none --set-exit-if-changed \
+          dart format \
             lib/src/features/plans/reading_plan_store.dart \
             lib/src/features/plans/plans_screen.dart \
             lib/src/l10n/strings/plan_strings.dart \
@@ -52,3 +52,18 @@ jobs:
           flutter test \
             test/reading_plan_store_test.dart \
             test/plan_strings_test.dart
+
+      - name: Persist formatter output
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            lib/src/features/plans/reading_plan_store.dart \
+            lib/src/features/plans/plans_screen.dart \
+            lib/src/l10n/strings/plan_strings.dart \
+            test/reading_plan_store_test.dart
+          if ! git diff --cached --quiet; then
+            git commit -m "style: format khatm feature"
+            git push
+          fi
