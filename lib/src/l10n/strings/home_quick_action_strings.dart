@@ -59,4 +59,18 @@ const homeQuickActionStrings = <String, Map<String, String>>{
     'homeQuickActionsCancel': 'Отмена',
     'homeQuickActionsSaveFailed': 'Не удалось сохранить быстрые действия.',
   },
+  'fr': <String, String>{
+    'homeQuickActionsTitle': 'Actions rapides',
+    'homeQuickActionsSubtitle':
+        'Accédez à vos sections les plus utilisées en un geste',
+    'homeQuickActionsEdit': 'Modifier',
+    'homeQuickActionsCustomizeTitle': 'Modifier les actions rapides',
+    'homeQuickActionsCustomizeBody':
+        'Choisissez 4 à 6 actions à conserver sur l’écran d’accueil.',
+    'homeQuickActionsSelectedCount': '{count} sélectionnées',
+    'homeQuickActionsSave': 'Enregistrer',
+    'homeQuickActionsCancel': 'Annuler',
+    'homeQuickActionsSaveFailed':
+        'Impossible d’enregistrer les actions rapides.',
+  },
 };
