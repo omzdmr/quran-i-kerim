@@ -80,6 +80,31 @@ const planStrings = <String, Map<String, String>>{
     'plansKhatmStartedOnV1': 'Başlangıç: {date}',
     'plansYearlyKhatmSourceBreakdownV1':
         '{plan} uygulama planı • {manual} manuel',
+    'plansOffDeviceSectionTitleV1': 'Basılı mushaf / cihaz dışı okuma',
+    'plansOffDeviceSectionBodyV1':
+        'Basılı mushafta okuduğun sayfaları kaydet. Bu kayıtlar kullanıcı bildirimi olarak tutulur ve aktif planı otomatik ilerletmez.',
+    'plansOffDeviceAddV1': 'Sayfa okuması ekle',
+    'plansOffDeviceAddTitleV1': 'Cihaz dışı okuma ekle',
+    'plansOffDeviceEditTitleV1': 'Cihaz dışı okumayı düzenle',
+    'plansOffDeviceExplanationV1':
+        'Medine Mushafı sayfa numaralarını kullan. Bu kayıt, dijital okumayla aynı sayfaları okuyup okumadığını tahmin etmez.',
+    'plansOffDeviceStartPageV1': 'İlk sayfa',
+    'plansOffDeviceEndPageV1': 'Son sayfa',
+    'plansOffDevicePageHelperV1': '1–604 arasında sayfa numarası gir.',
+    'plansOffDeviceReadDateV1': 'Okuma tarihi',
+    'plansOffDeviceNoteV1': 'Özel not',
+    'plansOffDeviceNoteHintV1': 'İsteğe bağlı',
+    'plansOffDeviceRangeErrorV1':
+        'Sayfalar 1–604 arasında olmalı ve ilk sayfa son sayfadan büyük olamaz.',
+    'plansOffDeviceSaveV1': 'Okumayı kaydet',
+    'plansOffDeviceAddedV1': 'Cihaz dışı okuma kaydedildi.',
+    'plansOffDeviceUpdatedV1': 'Cihaz dışı okuma güncellendi.',
+    'plansOffDevicePagesV1': 'Sayfa {start}–{end}',
+    'plansOffDevicePageCountV1': '{count} sayfa • manuel kayıt',
+    'plansOffDeviceDeleteTitleV1': 'Okuma kaydı silinsin mi?',
+    'plansOffDeviceDeleteBodyV1':
+        'Bu cihaz dışı okuma kaydı silinecek. Aktif plan ilerlemesi değişmeyecek.',
+    'plansOffDeviceDeleteV1': 'Kaydı sil',
   },
   'en': <String, String>{
     'plansSearchHintV1': 'Search plans',
@@ -162,6 +187,31 @@ const planStrings = <String, Map<String, String>>{
     'plansPlanKhatmSourceV1': 'App reading plan',
     'plansKhatmStartedOnV1': 'Started: {date}',
     'plansYearlyKhatmSourceBreakdownV1': '{plan} app-plan • {manual} manual',
+    'plansOffDeviceSectionTitleV1': 'Physical Mushaf / off-device reading',
+    'plansOffDeviceSectionBodyV1':
+        'Log pages read from a physical Mushaf. These are user-reported records and never advance an active plan automatically.',
+    'plansOffDeviceAddV1': 'Log page reading',
+    'plansOffDeviceAddTitleV1': 'Add off-device reading',
+    'plansOffDeviceEditTitleV1': 'Edit off-device reading',
+    'plansOffDeviceExplanationV1':
+        'Use Madinah Mushaf page numbers. This record does not guess whether the same pages were also read digitally.',
+    'plansOffDeviceStartPageV1': 'Start page',
+    'plansOffDeviceEndPageV1': 'End page',
+    'plansOffDevicePageHelperV1': 'Enter page numbers from 1 to 604.',
+    'plansOffDeviceReadDateV1': 'Reading date',
+    'plansOffDeviceNoteV1': 'Private note',
+    'plansOffDeviceNoteHintV1': 'Optional',
+    'plansOffDeviceRangeErrorV1':
+        'Pages must be from 1 to 604 and the start page cannot be after the end page.',
+    'plansOffDeviceSaveV1': 'Save reading',
+    'plansOffDeviceAddedV1': 'Off-device reading saved.',
+    'plansOffDeviceUpdatedV1': 'Off-device reading updated.',
+    'plansOffDevicePagesV1': 'Pages {start}–{end}',
+    'plansOffDevicePageCountV1': '{count} pages • manual record',
+    'plansOffDeviceDeleteTitleV1': 'Delete reading record?',
+    'plansOffDeviceDeleteBodyV1':
+        'This off-device reading record will be deleted. Active-plan progress will not change.',
+    'plansOffDeviceDeleteV1': 'Delete record',
   },
   'ar': <String, String>{
     'plansSearchHintV1': 'ابحث في الخطط',
@@ -243,6 +293,31 @@ const planStrings = <String, Map<String, String>>{
     'plansKhatmStartedOnV1': 'البدء: {date}',
     'plansYearlyKhatmSourceBreakdownV1':
         '{plan} من خطط التطبيق • {manual} يدوية',
+    'plansOffDeviceSectionTitleV1': 'المصحف الورقي / القراءة خارج الجهاز',
+    'plansOffDeviceSectionBodyV1':
+        'سجّل الصفحات التي قرأتها من مصحف ورقي. هذه سجلات يضيفها المستخدم ولا تُقدّم الخطة النشطة تلقائيًا.',
+    'plansOffDeviceAddV1': 'تسجيل صفحات مقروءة',
+    'plansOffDeviceAddTitleV1': 'إضافة قراءة خارج الجهاز',
+    'plansOffDeviceEditTitleV1': 'تعديل القراءة خارج الجهاز',
+    'plansOffDeviceExplanationV1':
+        'استخدم أرقام صفحات مصحف المدينة. لا يفترض هذا السجل ما إذا كنت قد قرأت الصفحات نفسها رقميًا.',
+    'plansOffDeviceStartPageV1': 'صفحة البداية',
+    'plansOffDeviceEndPageV1': 'صفحة النهاية',
+    'plansOffDevicePageHelperV1': 'أدخل رقم صفحة من 1 إلى 604.',
+    'plansOffDeviceReadDateV1': 'تاريخ القراءة',
+    'plansOffDeviceNoteV1': 'ملاحظة خاصة',
+    'plansOffDeviceNoteHintV1': 'اختياري',
+    'plansOffDeviceRangeErrorV1':
+        'يجب أن تكون الصفحات بين 1 و604 وألا تتجاوز صفحة البداية صفحة النهاية.',
+    'plansOffDeviceSaveV1': 'حفظ القراءة',
+    'plansOffDeviceAddedV1': 'تم حفظ القراءة خارج الجهاز.',
+    'plansOffDeviceUpdatedV1': 'تم تحديث القراءة خارج الجهاز.',
+    'plansOffDevicePagesV1': 'الصفحات {start}–{end}',
+    'plansOffDevicePageCountV1': '{count} صفحة • سجل يدوي',
+    'plansOffDeviceDeleteTitleV1': 'حذف سجل القراءة؟',
+    'plansOffDeviceDeleteBodyV1':
+        'سيُحذف سجل القراءة خارج الجهاز ولن يتغير تقدم الخطة النشطة.',
+    'plansOffDeviceDeleteV1': 'حذف السجل',
   },
   'az': <String, String>{
     'plansSearchHintV1': 'Plan axtar',
@@ -325,6 +400,31 @@ const planStrings = <String, Map<String, String>>{
     'plansKhatmStartedOnV1': 'Başlanğıc: {date}',
     'plansYearlyKhatmSourceBreakdownV1':
         '{plan} tətbiq planı • {manual} əl ilə',
+    'plansOffDeviceSectionTitleV1': 'Kağız Mushaf / cihazdan kənar oxu',
+    'plansOffDeviceSectionBodyV1':
+        'Kağız Mushafdan oxuduğunuz səhifələri qeyd edin. Bu qeydlər istifadəçi tərəfindən daxil edilir və aktiv planı avtomatik irəli aparmır.',
+    'plansOffDeviceAddV1': 'Səhifə oxusunu əlavə et',
+    'plansOffDeviceAddTitleV1': 'Cihazdan kənar oxu əlavə et',
+    'plansOffDeviceEditTitleV1': 'Cihazdan kənar oxunu düzəlt',
+    'plansOffDeviceExplanationV1':
+        'Mədinə Mushafı səhifə nömrələrini istifadə edin. Qeyd eyni səhifələrin rəqəmsal oxunub-oxunmadığını təxmin etmir.',
+    'plansOffDeviceStartPageV1': 'İlk səhifə',
+    'plansOffDeviceEndPageV1': 'Son səhifə',
+    'plansOffDevicePageHelperV1': '1–604 arasında səhifə nömrəsi daxil edin.',
+    'plansOffDeviceReadDateV1': 'Oxu tarixi',
+    'plansOffDeviceNoteV1': 'Şəxsi qeyd',
+    'plansOffDeviceNoteHintV1': 'İstəyə bağlı',
+    'plansOffDeviceRangeErrorV1':
+        'Səhifələr 1–604 arasında olmalı və ilk səhifə son səhifədən böyük olmamalıdır.',
+    'plansOffDeviceSaveV1': 'Oxunu saxla',
+    'plansOffDeviceAddedV1': 'Cihazdan kənar oxu saxlanıldı.',
+    'plansOffDeviceUpdatedV1': 'Cihazdan kənar oxu yeniləndi.',
+    'plansOffDevicePagesV1': 'Səhifə {start}–{end}',
+    'plansOffDevicePageCountV1': '{count} səhifə • əl ilə qeyd',
+    'plansOffDeviceDeleteTitleV1': 'Oxu qeydi silinsin?',
+    'plansOffDeviceDeleteBodyV1':
+        'Bu cihazdan kənar oxu qeydi silinəcək. Aktiv planın irəliləyişi dəyişməyəcək.',
+    'plansOffDeviceDeleteV1': 'Qeydi sil',
   },
   'ru': <String, String>{
     'plansSearchHintV1': 'Поиск планов',
@@ -408,5 +508,30 @@ const planStrings = <String, Map<String, String>>{
     'plansPlanKhatmSourceV1': 'План чтения в приложении',
     'plansKhatmStartedOnV1': 'Начало: {date}',
     'plansYearlyKhatmSourceBreakdownV1': '{plan} из планов • {manual} вручную',
+    'plansOffDeviceSectionTitleV1': 'Бумажный Мусхаф / чтение вне приложения',
+    'plansOffDeviceSectionBodyV1':
+        'Записывайте страницы, прочитанные по бумажному Мусхафу. Эти записи вводятся пользователем и не продвигают активный план автоматически.',
+    'plansOffDeviceAddV1': 'Записать прочитанные страницы',
+    'plansOffDeviceAddTitleV1': 'Добавить чтение вне приложения',
+    'plansOffDeviceEditTitleV1': 'Изменить чтение вне приложения',
+    'plansOffDeviceExplanationV1':
+        'Используйте номера страниц Мединского Мусхафа. Запись не предполагает, читались ли те же страницы цифровым способом.',
+    'plansOffDeviceStartPageV1': 'Первая страница',
+    'plansOffDeviceEndPageV1': 'Последняя страница',
+    'plansOffDevicePageHelperV1': 'Введите номера страниц от 1 до 604.',
+    'plansOffDeviceReadDateV1': 'Дата чтения',
+    'plansOffDeviceNoteV1': 'Личная заметка',
+    'plansOffDeviceNoteHintV1': 'Необязательно',
+    'plansOffDeviceRangeErrorV1':
+        'Страницы должны быть от 1 до 604, а первая страница не может быть позже последней.',
+    'plansOffDeviceSaveV1': 'Сохранить чтение',
+    'plansOffDeviceAddedV1': 'Чтение вне приложения сохранено.',
+    'plansOffDeviceUpdatedV1': 'Чтение вне приложения обновлено.',
+    'plansOffDevicePagesV1': 'Страницы {start}–{end}',
+    'plansOffDevicePageCountV1': '{count} стр. • ручная запись',
+    'plansOffDeviceDeleteTitleV1': 'Удалить запись чтения?',
+    'plansOffDeviceDeleteBodyV1':
+        'Запись чтения вне приложения будет удалена. Прогресс активного плана не изменится.',
+    'plansOffDeviceDeleteV1': 'Удалить запись',
   },
 };
