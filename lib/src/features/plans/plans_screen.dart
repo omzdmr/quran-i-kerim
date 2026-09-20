@@ -449,9 +449,7 @@ class _PlansScreenState extends State<PlansScreen> {
       if (!mounted) return;
       setState(() => _snapshot = snapshot);
       _snack(
-        existing == null
-            ? 'plansOffDeviceAddedV1'
-            : 'plansOffDeviceUpdatedV1',
+        existing == null ? 'plansOffDeviceAddedV1' : 'plansOffDeviceUpdatedV1',
       );
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -825,7 +823,9 @@ class _PlansScreenState extends State<PlansScreen> {
     } else {
       final now = DateTime.now();
       final schedule = active.scheduleStatus(now);
-      final catchUpTarget = schedule.isBehind ? active.catchUpTarget(now) : null;
+      final catchUpTarget = schedule.isBehind
+          ? active.catchUpTarget(now)
+          : null;
       planSection = _ActivePlanCard(
         active: active,
         catchUpTarget: catchUpTarget,
@@ -1402,8 +1402,8 @@ class _OffDeviceReadingCard extends StatelessWidget {
                   child: Text(
                     l10n.text('plansOffDeviceSectionTitleV1'),
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
               ],
@@ -1442,8 +1442,9 @@ class _OffDeviceReadingCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        MaterialLocalizations.of(context)
-                            .formatMediumDate(session.readAt),
+                        MaterialLocalizations.of(
+                          context,
+                        ).formatMediumDate(session.readAt),
                       ),
                       Text(
                         l10n

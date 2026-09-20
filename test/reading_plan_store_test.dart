@@ -446,82 +446,88 @@ void main() {
     },
   );
 
-  test('off-device page session persists without advancing active plan', () async {
-    await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 20));
+  test(
+    'off-device page session persists without advancing active plan',
+    () async {
+      await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 20));
 
-    final after = await store.addOffDevicePageSession(
-      startPage: 120,
-      endPage: 135,
-      readAt: DateTime(2026, 9, 20, 21),
-      note: '  Paper Mushaf  ',
-      now: DateTime(2026, 9, 20, 22),
-    );
+      final after = await store.addOffDevicePageSession(
+        startPage: 120,
+        endPage: 135,
+        readAt: DateTime(2026, 9, 20, 21),
+        note: '  Paper Mushaf  ',
+        now: DateTime(2026, 9, 20, 22),
+      );
 
-    expect(after.active?.nextDayNumber, 1);
-    expect(after.active?.completedDays, isEmpty);
-    expect(after.offDevicePageSessions, hasLength(1));
-    final session = after.offDevicePageSessions.single;
-    expect(session.startPage, 120);
-    expect(session.endPage, 135);
-    expect(session.pageCount, 16);
-    expect(session.readAt, DateTime(2026, 9, 20));
-    expect(session.note, 'Paper Mushaf');
+      expect(after.active?.nextDayNumber, 1);
+      expect(after.active?.completedDays, isEmpty);
+      expect(after.offDevicePageSessions, hasLength(1));
+      final session = after.offDevicePageSessions.single;
+      expect(session.startPage, 120);
+      expect(session.endPage, 135);
+      expect(session.pageCount, 16);
+      expect(session.readAt, DateTime(2026, 9, 20));
+      expect(session.note, 'Paper Mushaf');
 
-    final reloaded = await const ReadingPlanStore().load();
-    expect(reloaded.offDevicePageSessions.single.startPage, 120);
-    expect(reloaded.active?.nextDayNumber, 1);
-  });
+      final reloaded = await const ReadingPlanStore().load();
+      expect(reloaded.offDevicePageSessions.single.startPage, 120);
+      expect(reloaded.active?.nextDayNumber, 1);
+    },
+  );
 
-  test('off-device session validates page range date and note length', () async {
-    await expectLater(
-      store.addOffDevicePageSession(
-        startPage: 0,
-        endPage: 5,
-        readAt: DateTime(2026, 9, 20),
-        now: DateTime(2026, 9, 20),
-      ),
-      throwsRangeError,
-    );
-    await expectLater(
-      store.addOffDevicePageSession(
-        startPage: 10,
-        endPage: 605,
-        readAt: DateTime(2026, 9, 20),
-        now: DateTime(2026, 9, 20),
-      ),
-      throwsRangeError,
-    );
-    await expectLater(
-      store.addOffDevicePageSession(
-        startPage: 20,
-        endPage: 10,
-        readAt: DateTime(2026, 9, 20),
-        now: DateTime(2026, 9, 20),
-      ),
-      throwsArgumentError,
-    );
-    await expectLater(
-      store.addOffDevicePageSession(
-        startPage: 10,
-        endPage: 20,
-        readAt: DateTime(2026, 9, 21),
-        now: DateTime(2026, 9, 20),
-      ),
-      throwsArgumentError,
-    );
-    await expectLater(
-      store.addOffDevicePageSession(
-        startPage: 10,
-        endPage: 20,
-        readAt: DateTime(2026, 9, 20),
-        note: List<String>.filled(301, 'x').join(),
-        now: DateTime(2026, 9, 20),
-      ),
-      throwsArgumentError,
-    );
+  test(
+    'off-device session validates page range date and note length',
+    () async {
+      await expectLater(
+        store.addOffDevicePageSession(
+          startPage: 0,
+          endPage: 5,
+          readAt: DateTime(2026, 9, 20),
+          now: DateTime(2026, 9, 20),
+        ),
+        throwsRangeError,
+      );
+      await expectLater(
+        store.addOffDevicePageSession(
+          startPage: 10,
+          endPage: 605,
+          readAt: DateTime(2026, 9, 20),
+          now: DateTime(2026, 9, 20),
+        ),
+        throwsRangeError,
+      );
+      await expectLater(
+        store.addOffDevicePageSession(
+          startPage: 20,
+          endPage: 10,
+          readAt: DateTime(2026, 9, 20),
+          now: DateTime(2026, 9, 20),
+        ),
+        throwsArgumentError,
+      );
+      await expectLater(
+        store.addOffDevicePageSession(
+          startPage: 10,
+          endPage: 20,
+          readAt: DateTime(2026, 9, 21),
+          now: DateTime(2026, 9, 20),
+        ),
+        throwsArgumentError,
+      );
+      await expectLater(
+        store.addOffDevicePageSession(
+          startPage: 10,
+          endPage: 20,
+          readAt: DateTime(2026, 9, 20),
+          note: List<String>.filled(301, 'x').join(),
+          now: DateTime(2026, 9, 20),
+        ),
+        throwsArgumentError,
+      );
 
-    expect((await store.load()).offDevicePageSessions, isEmpty);
-  });
+      expect((await store.load()).offDevicePageSessions, isEmpty);
+    },
+  );
 
   test('off-device session can be corrected and removed', () async {
     await store.addOffDevicePageSession(
@@ -568,26 +574,29 @@ void main() {
     expect(loaded.savedPresetIds, contains('quran90'));
   });
 
-  test('persisted off-device sessions sanitize invalid rows without losing valid rows', () async {
-    final longNote = List<String>.filled(350, 'n').join();
-    SharedPreferences.setMockInitialValues(<String, Object>{
-      ReadingPlanStore.preferenceKey:
-          '{"active":null,"saved":[],"completed":[],"offDevicePageSessions":['
-          '{"readAt":"2026-09-10","startPage":20,"endPage":25,"note":"$longNote"},'
-          '{"readAt":"bad","startPage":1,"endPage":2},'
-          '{"readAt":"2026-09-10","startPage":0,"endPage":2},'
-          '{"readAt":"2026-09-10","startPage":30,"endPage":20}'
-          ']}',
-    });
+  test(
+    'persisted off-device sessions sanitize invalid rows without losing valid rows',
+    () async {
+      final longNote = List<String>.filled(350, 'n').join();
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        ReadingPlanStore.preferenceKey:
+            '{"active":null,"saved":[],"completed":[],"offDevicePageSessions":['
+            '{"readAt":"2026-09-10","startPage":20,"endPage":25,"note":"$longNote"},'
+            '{"readAt":"bad","startPage":1,"endPage":2},'
+            '{"readAt":"2026-09-10","startPage":0,"endPage":2},'
+            '{"readAt":"2026-09-10","startPage":30,"endPage":20}'
+            ']}',
+      });
 
-    final loaded = await store.load();
+      final loaded = await store.load();
 
-    expect(loaded.offDevicePageSessions, hasLength(1));
-    final session = loaded.offDevicePageSessions.single;
-    expect(session.startPage, 20);
-    expect(session.endPage, 25);
-    expect(session.note, hasLength(300));
-  });
+      expect(loaded.offDevicePageSessions, hasLength(1));
+      final session = loaded.offDevicePageSessions.single;
+      expect(session.startPage, 20);
+      expect(session.endPage, 25);
+      expect(session.note, hasLength(300));
+    },
+  );
 
   test('invalid off-device session indices do not mutate state', () async {
     await expectLater(
@@ -603,7 +612,6 @@ void main() {
     await expectLater(store.removeOffDevicePageSessionAt(0), throwsRangeError);
     expect((await store.load()).offDevicePageSessions, isEmpty);
   });
-
 
   test('manual khatm archiving preserves off-device page sessions', () async {
     await store.addOffDevicePageSession(
@@ -623,5 +631,4 @@ void main() {
     expect(after.offDevicePageSessions.single.startPage, 50);
     expect(after.offDevicePageSessions.single.endPage, 60);
   });
-
 }

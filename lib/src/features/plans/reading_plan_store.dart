@@ -230,8 +230,9 @@ class ReadingPlanStore {
       active: current.active,
       savedPresetIds: current.savedPresetIds,
       completed: current.completed,
-      offDevicePageSessions:
-          List<OffDevicePageReadingSession>.unmodifiable(sessions),
+      offDevicePageSessions: List<OffDevicePageReadingSession>.unmodifiable(
+        sessions,
+      ),
       yearlyKhatmTarget: current.yearlyKhatmTarget,
       redistributionTargetEndDate: current.redistributionTargetEndDate,
     );
@@ -271,8 +272,9 @@ class ReadingPlanStore {
       active: current.active,
       savedPresetIds: current.savedPresetIds,
       completed: current.completed,
-      offDevicePageSessions:
-          List<OffDevicePageReadingSession>.unmodifiable(sessions),
+      offDevicePageSessions: List<OffDevicePageReadingSession>.unmodifiable(
+        sessions,
+      ),
       yearlyKhatmTarget: current.yearlyKhatmTarget,
       redistributionTargetEndDate: current.redistributionTargetEndDate,
     );
@@ -291,8 +293,9 @@ class ReadingPlanStore {
       active: current.active,
       savedPresetIds: current.savedPresetIds,
       completed: current.completed,
-      offDevicePageSessions:
-          List<OffDevicePageReadingSession>.unmodifiable(sessions),
+      offDevicePageSessions: List<OffDevicePageReadingSession>.unmodifiable(
+        sessions,
+      ),
       yearlyKhatmTarget: current.yearlyKhatmTarget,
       redistributionTargetEndDate: current.redistributionTargetEndDate,
     );
@@ -646,8 +649,9 @@ class ReadingPlanStore {
       active: active,
       savedPresetIds: saved,
       completed: List<CompletedReadingPlan>.unmodifiable(completed),
-      offDevicePageSessions:
-          List<OffDevicePageReadingSession>.unmodifiable(offDevicePageSessions),
+      offDevicePageSessions: List<OffDevicePageReadingSession>.unmodifiable(
+        offDevicePageSessions,
+      ),
       yearlyKhatmTarget: yearlyKhatmTarget,
       redistributionTargetEndDate: redistributionTargetEndDate,
     );
@@ -705,20 +709,10 @@ class ReadingPlanStore {
     required DateTime today,
   }) {
     if (startPage < 1 || startPage > madinahMushafPageCount) {
-      throw RangeError.range(
-        startPage,
-        1,
-        madinahMushafPageCount,
-        'startPage',
-      );
+      throw RangeError.range(startPage, 1, madinahMushafPageCount, 'startPage');
     }
     if (endPage < 1 || endPage > madinahMushafPageCount) {
-      throw RangeError.range(
-        endPage,
-        1,
-        madinahMushafPageCount,
-        'endPage',
-      );
+      throw RangeError.range(endPage, 1, madinahMushafPageCount, 'endPage');
     }
     if (startPage > endPage) {
       throw ArgumentError.value(
