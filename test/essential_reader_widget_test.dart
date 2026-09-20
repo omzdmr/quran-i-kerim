@@ -52,6 +52,23 @@ void main() {
     expect(settings.essentialReaderEnabled, isFalse);
   });
 
+  testWidgets('standard experience leaves the platform text scale untouched', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final settings = AppSettings();
+    await settings.load();
+
+    await tester.pumpWidget(QuranModernApp(settings: settings));
+    await tester.pump();
+
+    final mediaQueries = tester.widgetList<MediaQuery>(find.byType(MediaQuery));
+    expect(
+      mediaQueries.any(
+        (widget) => widget.data.textScaler.scale(16) / 16 >= 1.16,
+      ),
+      isFalse,
+    );
+  });
+
   testWidgets('app enforces the preset minimum interface scale', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{
       'reader_experience_preset_v1': 'essential',
