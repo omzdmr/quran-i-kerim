@@ -362,6 +362,9 @@ class _PlansScreenState extends State<PlansScreen> {
     HapticFeedback.selectionClick();
     setState(() => _busy = true);
     try {
+      final existingIndex =
+          existing == null ? -1 : _snapshot.completed.indexOf(existing);
+      if (existing != null && existingIndex < 0) return;
       final snapshot = existing == null
           ? await _store.addManualCompletedKhatm(
               startedAt: result.startedAt,
@@ -369,7 +372,7 @@ class _PlansScreenState extends State<PlansScreen> {
               note: result.note,
             )
           : await _store.updateManualCompletedKhatmAt(
-              _snapshot.completed.indexOf(existing),
+              existingIndex,
               startedAt: result.startedAt,
               completedAt: result.completedAt,
               note: result.note,
@@ -1317,11 +1320,10 @@ class _CompletedPlanCard extends StatelessWidget {
       trailing: PopupMenuButton<_ArchiveAction>(
         enabled: !busy,
         onSelected: (action) {
-          switch (action) {
-            case _ArchiveAction.edit:
-              onEdit?.call();
-            case _ArchiveAction.delete:
-              onDelete();
+          if (action == _ArchiveAction.edit) {
+            onEdit?.call();
+          } else {
+            onDelete();
           }
         },
         itemBuilder: (context) => <PopupMenuEntry<_ArchiveAction>>[
