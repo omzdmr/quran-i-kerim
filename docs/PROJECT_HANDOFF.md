@@ -71,37 +71,40 @@ Recent Plans work:
 
 ## Latest completed feature slice
 
-Completed-plan off-device credit provenance is preserved and exposed:
+French core application-locale wiring is implemented on the current integration
+foundation without merging the stale localization automation branch wholesale:
 
-- A completed app reading plan now retains the immutable
-  `OffDevicePlanCreditEvent` snapshots that contributed to its progress.
-- Provenance is carried into the completed archive whether the plan finishes via
-  a normal next-day/through-day completion or the final explicit off-device
-  credit action.
-- The completed archive shows a read-only source breakdown:
-  in-app completed plan days versus explicitly credited off-device plan days.
-- A read-only source-details sheet exposes credited date, source reading date,
-  Mushaf page span and canonical ayah range for each retained credit event.
-- Editing or deleting the original off-device reading log still does not rewrite
-  already confirmed plan progress or archived provenance.
-- Legacy completed-plan rows without provenance remain valid and load with an
-  empty credit list.
-- Malformed provenance rows are sanitized independently instead of discarding
-  the completed khatm record.
-- Existing `reading_plan_state_v1` remains the persistence/backup unit; no new
-  backend, account or preference key was introduced.
-- Turkish, English, Arabic, Azerbaijani and Russian provenance copy remains in
-  localization key parity.
-- The strict credit rule is unchanged: partial overlaps stay informational and
-  already-completed days cannot receive duplicate credit.
+- Existing French work from `automation/localization-language` was audited and
+  selectively reused instead of merging a branch that is dozens of commits
+  behind current Plans work.
+- `fr` is now a declared `AppLocalizations.supportedLocales` application
+  locale and resolves independently from Quran meaning/translation selection.
+- Device/system locale resolution can select French; an explicitly stored
+  French app locale overrides the device locale like the other supported
+  languages.
+- Settings and Settings search expose a real `FR / Français` application
+  language choice.
+- The French ARB has exact 118-key parity with the current English ARB and
+  `flutter gen-l10n` generates it successfully.
+- The core French Dart dictionary has exact 150-key parity with TR/EN/AR/AZ/RU.
+- All existing core language dictionaries now include localized labels and
+  descriptions for choosing French.
+- `locale_metadata.dart` records French as a Latin/LTR full application locale
+  while explicitly keeping `humanReviewRequired: true`. Do not represent the
+  current AI-assisted draft copy as production human-reviewed French.
+- French UI support remains separate from French Quran meaning/audio assets and
+  does not enable any unverified content source.
 
-Focused completed-provenance validation run `35527406849` passed:
-- bundled content setup, dependency resolution and localization generation;
-- formatter on all changed source/test files;
-- `reading_plan_store_test.dart`, including normal-finish, final-credit,
-  legacy-row and malformed-provenance cases;
-- `reading_plan_test.dart`;
-- `plan_strings_test.dart` localization key parity.
+Focused French-core validation:
+- Run `35528291231` passed bundled-content setup, dependency resolution,
+  `flutter gen-l10n`, 6-locale ARB parity, 6-locale core-string parity,
+  resolver/Settings wiring checks and the human-review gate.
+- Direct `flutter test` run `35527989225` loaded no test case and timed out
+  after 180 seconds at `app_locale_resolver_test.dart`; this is the same class
+  of repository Flutter loader stall seen in other focused screens/analyzer
+  runs, not a test assertion failure.
+- Keep the Flutter tests in the repository; retry them when the loader issue is
+  repaired rather than deleting coverage to make CI look green.
 
 ## Validation status
 
@@ -117,9 +120,9 @@ Recent full Android validation has a repeatable tooling problem:
 - Treat this as CI/analyzer tooling unless a concrete analyzer diagnostic or
   failing test says otherwise. Do not relabel a timeout as an app regression.
 
-The explicit-credit integration head before this provenance slice was
-`84d45530ef966c3d95f0328f97e71f4fdd18eabf`.
-Android APK run #550 for that head completed setup/content/dependency/l10n steps
+The completed-credit provenance integration head before French core work was
+`98b6212801414b4ed10fb59137c9b2cd5da479c3`.
+Android APK run #551 for that head completed setup/content/dependency/l10n steps
 and remains in `Analyze app code`, matching the repository's repeated analyzer
 stall. Inspect the newest integrated Actions run before calling the full Android
 pipeline green.
@@ -140,26 +143,27 @@ pipeline green.
 
 ## Immediate next step
 
-Start the required full French application locale as a dedicated localization
-workstream, without mixing partial French into unrelated feature commits:
+Continue French parity through the feature-string layers from a fresh branch
+based on the integrated French-core head:
 
-- Before editing, inspect any existing localization-language branch/work and the
-  current locale resolver/picker so already-completed French work is not
-  duplicated or overwritten.
-- Add `fr` as a supported application locale independently from Quran meaning
-  language selection.
-- Extend ARB/gen-l10n and every typed/feature string layer; remove hidden
-  five-locale assumptions.
-- Cover the full UI surface: onboarding, Home, Quran/Reader, Learn/Hifz, Plans,
-  Discover, Profile/Settings, prayer/Qibla, notifications, downloads,
-  backup/privacy, errors, permissions, help and accessibility labels.
-- Update parity/regression tests so French is required wherever the existing
-  core UI locales are required.
-- Keep production French human-reviewed/natural for Quran/Islamic product
-  terminology; do not ship raw machine-only translation.
-- Validate offline behavior, date/time/plural formatting and long-string layout.
-- Keep French Quran meaning/audio editions as separate content-catalog assets
-  subject to normal source/license gates.
+- Reuse the already-complete French blocks from the stale localization branch
+  only when their key sets still match current code; do not replace newer files
+  wholesale.
+- Low-conflict reusable layers currently include Home verse, prayer
+  notifications, Reader navigation/media/audio/note and Learn catalog.
+- Add new French copy for layers created after the old localization branch:
+  Home quick actions, recent reading, prayer-notification diagnostics and newer
+  Learn/reference surfaces.
+- Plans requires special care: the old French block covers only 30 of the
+  current 141 keys. Translate the missing recovery, yearly-khatm,
+  manual/off-device, impact/credit and completed-provenance keys against the
+  current English semantics rather than copying the stale file.
+- Add French to every feature-string parity test and eliminate silent English
+  fallback on surfaces declared French-complete.
+- Preserve `humanReviewRequired: true` until a human language review has
+  actually happened.
+- Do not couple French UI availability to French Quran meaning/audio catalog
+  availability.
 
 
 
