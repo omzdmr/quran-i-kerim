@@ -11,6 +11,18 @@ import '../domain/prayer_models.dart';
 import 'prayer_calculator.dart';
 import 'prayer_preferences_store.dart';
 
+class PrayerNotificationDiagnostics {
+  const PrayerNotificationDiagnostics({
+    required this.systemPermissionGranted,
+    required this.exactAlarmAvailable,
+    required this.pendingCount,
+  });
+
+  final bool? systemPermissionGranted;
+  final bool? exactAlarmAvailable;
+  final int pendingCount;
+}
+
 class PrayerNotificationService {
   PrayerNotificationService._();
 
@@ -172,6 +184,36 @@ class PrayerNotificationService {
         );
       }
     }
+  }
+
+  static Future<PrayerNotificationDiagnostics> diagnostics() async {
+    await initialize();
+
+    bool? permissionGranted;
+    bool? exactAlarmAvailable;
+
+    if (Platform.isAndroid) {
+      final android = _plugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
+      permissionGranted = await android?.areNotificationsEnabled();
+      exactAlarmAvailable = await android?.canScheduleExactNotifications();
+    } else if (Platform.isIOS) {
+      final ios = _plugin
+          .resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin
+          >();
+      final permissions = await ios?.checkPermissions();
+      permissionGranted = permissions?.isEnabled;
+    }
+
+    final pending = await _plugin.pendingNotificationRequests();
+    return PrayerNotificationDiagnostics(
+      systemPermissionGranted: permissionGranted,
+      exactAlarmAvailable: exactAlarmAvailable,
+      pendingCount: pending.length,
+    );
   }
 
   static Future<void> cancelAll() async {
