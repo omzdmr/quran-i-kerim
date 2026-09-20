@@ -18,7 +18,27 @@ class SettingsScreen extends StatelessWidget {
     final l10n = context.l10n;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.settings)),
+      appBar: AppBar(
+        title: Text(l10n.settings),
+        actions: [
+          IconButton(
+            onPressed: () {
+              HapticFeedback.selectionClick();
+              showSearch<void>(
+                context: context,
+                delegate: _SettingsSearchDelegate(
+                  settings: settings,
+                  l10n: l10n,
+                  rootContext: context,
+                ),
+              );
+            },
+            icon: const Icon(Icons.search_rounded),
+            tooltip: l10n.settings,
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
         children: [
@@ -221,6 +241,241 @@ class SettingsScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SettingsSearchEntry {
+  const _SettingsSearchEntry({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.onTap,
+    this.selected = false,
+    this.keywords = const <String>[],
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool selected;
+  final List<String> keywords;
+
+  bool matches(String query) {
+    final normalized = query.trim().toLowerCase();
+    if (normalized.isEmpty) return true;
+    return <String>[title, subtitle, ...keywords]
+        .any((value) => value.toLowerCase().contains(normalized));
+  }
+}
+
+class _SettingsSearchDelegate extends SearchDelegate<void> {
+  _SettingsSearchDelegate({
+    required this.settings,
+    required this.l10n,
+    required this.rootContext,
+  }) : super(searchFieldLabel: l10n.settings);
+
+  final AppSettings settings;
+  final AppLocalizations l10n;
+  final BuildContext rootContext;
+
+  List<_SettingsSearchEntry> get _entries => <_SettingsSearchEntry>[
+        _SettingsSearchEntry(
+          title: l10n.useDeviceTheme,
+          subtitle: l10n.useDeviceThemeDescription,
+          icon: Icons.brightness_auto_rounded,
+          selected: settings.themeMode == ThemeMode.system,
+          keywords: <String>[l10n.appearance],
+          onTap: () => settings.setThemeMode(ThemeMode.system),
+        ),
+        _SettingsSearchEntry(
+          title: l10n.lightTheme,
+          subtitle: l10n.lightThemeDescription,
+          icon: Icons.light_mode_outlined,
+          selected: settings.themeMode == ThemeMode.light,
+          keywords: <String>[l10n.appearance],
+          onTap: () => settings.setThemeMode(ThemeMode.light),
+        ),
+        _SettingsSearchEntry(
+          title: l10n.darkTheme,
+          subtitle: l10n.darkThemeDescription,
+          icon: Icons.dark_mode_outlined,
+          selected: settings.themeMode == ThemeMode.dark,
+          keywords: <String>[l10n.appearance],
+          onTap: () => settings.setThemeMode(ThemeMode.dark),
+        ),
+        _SettingsSearchEntry(
+          title: l10n.useDeviceLanguage,
+          subtitle: l10n.useDeviceLanguageDescription,
+          icon: Icons.language_rounded,
+          selected: settings.locale == null,
+          keywords: <String>[l10n.language],
+          onTap: () => settings.setLocale(null),
+        ),
+        _SettingsSearchEntry(
+          title: l10n.turkish,
+          subtitle: l10n.turkishDescription,
+          icon: Icons.translate_rounded,
+          selected: settings.locale?.languageCode == 'tr',
+          keywords: <String>[l10n.language, 'TR'],
+          onTap: () => settings.setLocale(const Locale('tr')),
+        ),
+        _SettingsSearchEntry(
+          title: l10n.english,
+          subtitle: l10n.englishDescription,
+          icon: Icons.translate_rounded,
+          selected: settings.locale?.languageCode == 'en',
+          keywords: <String>[l10n.language, 'EN'],
+          onTap: () => settings.setLocale(const Locale('en')),
+        ),
+        _SettingsSearchEntry(
+          title: l10n.arabic,
+          subtitle: l10n.arabicDescription,
+          icon: Icons.translate_rounded,
+          selected: settings.locale?.languageCode == 'ar',
+          keywords: <String>[l10n.language, 'AR'],
+          onTap: () => settings.setLocale(const Locale('ar')),
+        ),
+        _SettingsSearchEntry(
+          title: l10n.azerbaijani,
+          subtitle: l10n.azerbaijaniDescription,
+          icon: Icons.translate_rounded,
+          selected: settings.locale?.languageCode == 'az',
+          keywords: <String>[l10n.language, 'AZ'],
+          onTap: () => settings.setLocale(const Locale('az')),
+        ),
+        _SettingsSearchEntry(
+          title: l10n.russian,
+          subtitle: l10n.russianDescription,
+          icon: Icons.translate_rounded,
+          selected: settings.locale?.languageCode == 'ru',
+          keywords: <String>[l10n.language, 'RU'],
+          onTap: () => settings.setLocale(const Locale('ru')),
+        ),
+        _SettingsSearchEntry(
+          title: l10n.turkishMeal,
+          subtitle: l10n.turkishMealDescription,
+          icon: Icons.menu_book_rounded,
+          selected:
+              settings.selectedQuranSourceId == bundledTurkishTranslationId,
+          keywords: <String>[l10n.quranLanguage, l10n.languageAndTranslation],
+          onTap: () =>
+              settings.setSelectedQuranSource(bundledTurkishTranslationId),
+        ),
+        _SettingsSearchEntry(
+          title: l10n.arabicOriginal,
+          subtitle: l10n.arabicOriginalDescription,
+          icon: Icons.menu_book_rounded,
+          selected: settings.selectedQuranSourceId == arabicOriginalSourceId,
+          keywords: <String>[l10n.quranLanguage, l10n.languageAndTranslation],
+          onTap: () => settings.setSelectedQuranSource(arabicOriginalSourceId),
+        ),
+        _SettingsSearchEntry(
+          title: l10n.languageAndTranslation,
+          subtitle: l10n.quranLanguageDescription,
+          icon: Icons.travel_explore_rounded,
+          keywords: <String>[l10n.quranLanguage],
+          onTap: () => Navigator.of(rootContext).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const QuranTranslationCatalogScreen(),
+            ),
+          ),
+        ),
+        _SettingsSearchEntry(
+          title: l10n.downloads,
+          subtitle: l10n.downloadsDescription,
+          icon: Icons.download_done_rounded,
+          onTap: () => Navigator.of(rootContext).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const DownloadsScreen(),
+            ),
+          ),
+        ),
+        _SettingsSearchEntry(
+          title: l10n.text('backupTitle'),
+          subtitle: l10n.text('backupDescription'),
+          icon: Icons.cloud_sync_outlined,
+          onTap: () => Navigator.of(rootContext).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const BackupSettingsScreen(),
+            ),
+          ),
+        ),
+        _SettingsSearchEntry(
+          title: l10n.rememberPosition,
+          subtitle: l10n.rememberPositionDescription,
+          icon: Icons.history_rounded,
+          selected: true,
+          keywords: <String>[l10n.reading],
+          onTap: () {},
+        ),
+      ];
+
+  @override
+  List<Widget>? buildActions(BuildContext context) => <Widget>[
+        if (query.isNotEmpty)
+          IconButton(
+            onPressed: () => query = '',
+            icon: const Icon(Icons.close_rounded),
+          ),
+      ];
+
+  @override
+  Widget? buildLeading(BuildContext context) => IconButton(
+        onPressed: () => close(context, null),
+        icon: const BackButtonIcon(),
+      );
+
+  @override
+  Widget buildResults(BuildContext context) => _buildList(context);
+
+  @override
+  Widget buildSuggestions(BuildContext context) => _buildList(context);
+
+  Widget _buildList(BuildContext context) {
+    final matches = _entries.where((entry) => entry.matches(query)).toList();
+    if (matches.isEmpty) {
+      return Center(
+        child: Icon(
+          Icons.search_off_rounded,
+          size: 44,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+      itemCount: matches.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      itemBuilder: (context, index) {
+        final entry = matches[index];
+        return ListTile(
+          tileColor: Theme.of(context).colorScheme.surfaceContainer,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          leading: Icon(entry.icon),
+          title: Text(
+            entry.title,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+          subtitle: Text(entry.subtitle),
+          trailing: entry.selected
+              ? Icon(
+                  Icons.check_circle_rounded,
+                  color: Theme.of(context).colorScheme.primary,
+                )
+              : const Icon(Icons.chevron_right_rounded),
+          onTap: () {
+            HapticFeedback.selectionClick();
+            close(context, null);
+            entry.onTap();
+          },
+        );
+      },
     );
   }
 }
