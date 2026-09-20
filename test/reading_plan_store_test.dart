@@ -783,4 +783,107 @@ void main() {
       expect(after.active?.nextDayNumber, 1);
     },
   );
+
+  test('hizb session uses sourced canonical boundaries and does not advance plan', () async {
+    await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 20));
+
+    final after = await store.addOffDeviceHizbSession(
+      hizbNumber: 1,
+      readAt: DateTime(2026, 9, 20),
+      note: '  first hizb  ',
+      now: DateTime(2026, 9, 20),
+    );
+
+    expect(after.active?.nextDayNumber, 1);
+    expect(after.active?.completedDays, isEmpty);
+    final session = after.offDevicePageSessions.single;
+    expect(session.inputKind, OffDeviceReadingInputKind.hizb);
+    expect(session.hizbNumber, 1);
+    expect(session.canonicalStartKey, '1:1');
+    expect(session.canonicalEndKey, '2:74');
+    expect(session.startPage, 1);
+    expect(session.endPage, greaterThanOrEqualTo(session.startPage));
+    expect(session.note, 'first hizb');
+
+    final reloaded = await store.load();
+    expect(
+      reloaded.offDevicePageSessions.single.inputKind,
+      OffDeviceReadingInputKind.hizb,
+    );
+    expect(reloaded.offDevicePageSessions.single.hizbNumber, 1);
+    expect(reloaded.offDevicePageSessions.single.canonicalEndKey, '2:74');
+  });
+
+  test('last hizb ends at the final Quran ayah', () async {
+    final after = await store.addOffDeviceHizbSession(
+      hizbNumber: 60,
+      readAt: DateTime(2026, 9, 20),
+      now: DateTime(2026, 9, 20),
+    );
+
+    final session = after.offDevicePageSessions.single;
+    expect(session.canonicalStartKey, '87:1');
+    expect(session.canonicalEndKey, '114:6');
+    expect(session.endPage, madinahMushafPageCount);
+  });
+
+  test('hizb input rejects values outside 1 to 60', () async {
+    await expectLater(
+      store.addOffDeviceHizbSession(
+        hizbNumber: 0,
+        readAt: DateTime(2026, 9, 20),
+        now: DateTime(2026, 9, 20),
+      ),
+      throwsRangeError,
+    );
+    await expectLater(
+      store.addOffDeviceHizbSession(
+        hizbNumber: 61,
+        readAt: DateTime(2026, 9, 20),
+        now: DateTime(2026, 9, 20),
+      ),
+      throwsRangeError,
+    );
+    expect((await store.load()).offDevicePageSessions, isEmpty);
+  });
+
+  test('off-device session can switch to Hizb without changing plan progress', () async {
+    await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 20));
+    await store.addOffDevicePageSession(
+      startPage: 10,
+      endPage: 12,
+      readAt: DateTime(2026, 9, 20),
+      now: DateTime(2026, 9, 20),
+    );
+
+    final after = await store.updateOffDeviceHizbSessionAt(
+      0,
+      hizbNumber: 2,
+      readAt: DateTime(2026, 9, 20),
+      now: DateTime(2026, 9, 20),
+    );
+
+    final session = after.offDevicePageSessions.single;
+    expect(session.inputKind, OffDeviceReadingInputKind.hizb);
+    expect(session.hizbNumber, 2);
+    expect(session.canonicalStartKey, '2:75');
+    expect(session.canonicalEndKey, '2:141');
+    expect(after.active?.nextDayNumber, 1);
+    expect(after.active?.completedDays, isEmpty);
+  });
+
+  test('malformed persisted Hizb sessions are skipped without losing the snapshot', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      ReadingPlanStore.preferenceKey:
+          '{"active":null,"saved":["quran30"],"completed":[],"offDevicePageSessions":['
+          '{"readAt":"2026-09-20","inputKind":"hizb","hizbNumber":61}'
+          ']}',
+    });
+
+    final loaded = await store.load();
+
+    expect(loaded.savedPresetIds, contains('quran30'));
+    expect(loaded.offDevicePageSessions, isEmpty);
+  });
+
 }
