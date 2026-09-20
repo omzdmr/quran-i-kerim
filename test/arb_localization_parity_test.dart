@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('ARB locale files keep user-visible key parity', () {
-    const locales = ['en', 'tr', 'ar', 'az', 'ru'];
+    const locales = ['en', 'tr', 'ar', 'az', 'ru', 'fr'];
     Set<String>? expectedKeys;
 
     for (final locale in locales) {
