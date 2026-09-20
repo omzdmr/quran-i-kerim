@@ -674,6 +674,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                     children: [
                       Expanded(
                         child: _SelectionTray(
+                          essential: settings.essentialReaderEnabled,
                           onHighlight: _applyHighlight,
                           onBookmark: _bookmarkSelection,
                           onNote: _editSelectionNote,
@@ -682,6 +683,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                               : () => _listenSelection(audioConfig),
                           onCopy: _copySelection,
                           onCompare: _showCompareSheet,
+                          onMore: _showEssentialSelectionActions,
                         ),
                       ),
                       const SizedBox(width: 6),
@@ -703,6 +705,78 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _showEssentialSelectionActions() async {
+    final l10n = context.l10n;
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 0, 18, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                l10n.text('moreActions'),
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                children: [
+                  for (final color in VerseHighlightColor.values)
+                    _HighlightDot(
+                      color: color,
+                      onTap: () {
+                        Navigator.pop(sheetContext);
+                        _applyHighlight(color);
+                      },
+                    ),
+                ],
+              ),
+              ListTile(
+                leading: const Icon(Icons.format_color_reset_rounded),
+                title: Text(l10n.text('removeHighlight')),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _applyHighlight(null);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.note_alt_outlined),
+                title: Text(l10n.text('note')),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _editSelectionNote();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.copy_rounded),
+                title: Text(l10n.text('copy')),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _copySelection();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.compare_arrows_rounded),
+                title: Text(l10n.text('compare')),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _showCompareSheet();
+                },
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -2729,20 +2803,24 @@ class _ContinuousVerseTextState extends State<_ContinuousVerseText> {
 
 class _SelectionTray extends StatelessWidget {
   const _SelectionTray({
+    required this.essential,
     required this.onHighlight,
     required this.onBookmark,
     required this.onNote,
     required this.onListen,
     required this.onCopy,
     required this.onCompare,
+    required this.onMore,
   });
 
+  final bool essential;
   final ValueChanged<VerseHighlightColor?> onHighlight;
   final VoidCallback onBookmark;
   final VoidCallback onNote;
   final VoidCallback? onListen;
   final VoidCallback onCopy;
   final VoidCallback onCompare;
+  final VoidCallback onMore;
 
   @override
   Widget build(BuildContext context) {
@@ -2760,45 +2838,57 @@ class _SelectionTray extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
           child: Row(
             children: [
-              for (final color in VerseHighlightColor.values)
-                _HighlightDot(color: color, onTap: () => onHighlight(color)),
-              IconButton(
-                onPressed: () => onHighlight(null),
-                icon: const Icon(Icons.format_color_reset_rounded, size: 20),
-                tooltip: l10n.text('removeHighlight'),
-              ),
-              Container(
-                width: 1,
-                height: 36,
-                margin: const EdgeInsets.symmetric(horizontal: 5),
-                color: scheme.outlineVariant,
-              ),
+              if (!essential)
+                for (final color in VerseHighlightColor.values)
+                  _HighlightDot(color: color, onTap: () => onHighlight(color)),
+              if (!essential)
+                IconButton(
+                  onPressed: () => onHighlight(null),
+                  icon: const Icon(Icons.format_color_reset_rounded, size: 20),
+                  tooltip: l10n.text('removeHighlight'),
+                ),
+              if (!essential)
+                Container(
+                  width: 1,
+                  height: 36,
+                  margin: const EdgeInsets.symmetric(horizontal: 5),
+                  color: scheme.outlineVariant,
+                ),
               _SelectionAction(
                 icon: Icons.bookmark_border_rounded,
                 label: l10n.save,
                 onTap: onBookmark,
               ),
-              _SelectionAction(
-                icon: Icons.note_alt_outlined,
-                label: l10n.text('note'),
-                onTap: onNote,
-              ),
+              if (!essential)
+                _SelectionAction(
+                  icon: Icons.note_alt_outlined,
+                  label: l10n.text('note'),
+                  onTap: onNote,
+                ),
               if (onListen != null)
                 _SelectionAction(
                   icon: Icons.headphones_rounded,
                   label: l10n.text('listen'),
                   onTap: onListen!,
                 ),
-              _SelectionAction(
-                icon: Icons.copy_rounded,
-                label: l10n.text('copy'),
-                onTap: onCopy,
-              ),
-              _SelectionAction(
-                icon: Icons.compare_arrows_rounded,
-                label: l10n.text('compare'),
-                onTap: onCompare,
-              ),
+              if (!essential)
+                _SelectionAction(
+                  icon: Icons.copy_rounded,
+                  label: l10n.text('copy'),
+                  onTap: onCopy,
+                ),
+              if (!essential)
+                _SelectionAction(
+                  icon: Icons.compare_arrows_rounded,
+                  label: l10n.text('compare'),
+                  onTap: onCompare,
+                ),
+              if (essential)
+                _SelectionAction(
+                  icon: Icons.more_horiz_rounded,
+                  label: l10n.text('moreActions'),
+                  onTap: onMore,
+                ),
             ],
           ),
         ),
