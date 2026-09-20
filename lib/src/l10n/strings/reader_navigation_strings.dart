@@ -59,4 +59,16 @@ const readerNavigationStrings = <String, Map<String, String>>{
     'readerGoToPage': 'Перейти к странице',
     'readerReturnToCurrentVerse': 'Вернуться к текущему аяту',
   },
+  'fr': <String, String>{
+    'readerGo': 'Aller',
+    'readerSurah': 'Sourate',
+    'readerSurahSubtitle': 'Choisir parmi 114 sourates',
+    'readerJuz': 'Juz',
+    'readerJuzSubtitle': 'Aller au juz 1 à 30',
+    'readerPage': 'Page',
+    'readerPageSubtitle': 'Aller à la page 1 à 604',
+    'readerGoToJuz': 'Aller au juz',
+    'readerGoToPage': 'Aller à la page',
+    'readerReturnToCurrentVerse': 'Revenir au verset actuel',
+  },
 };

@@ -29,4 +29,10 @@ const Map<String, Map<String, String>> readerAudioTransportStrings = {
     'readerAudioPreviousVerse': 'Предыдущий аят',
     'readerAudioNextVerse': 'Следующий аят',
   },
+  'fr': {
+    'readerAudioPlay': 'Lire',
+    'readerAudioPause': 'Pause',
+    'readerAudioPreviousVerse': 'Verset précédent',
+    'readerAudioNextVerse': 'Verset suivant',
+  },
 };

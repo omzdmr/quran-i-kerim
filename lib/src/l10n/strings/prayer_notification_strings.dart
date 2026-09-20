@@ -29,4 +29,10 @@ const prayerNotificationStrings = <String, Map<String, String>>{
     'channel': 'Время намаза',
     'channelDescription': 'Напоминания о времени намаза',
   },
+  'fr': <String, String>{
+    'title': 'Heure de {prayer}',
+    'body': 'C’est l’heure de {prayer}.',
+    'channel': 'Horaires de prière',
+    'channelDescription': 'Rappels des horaires de prière',
+  },
 };

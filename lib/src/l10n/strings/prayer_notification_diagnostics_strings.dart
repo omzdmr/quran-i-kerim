@@ -1,5 +1,4 @@
-const prayerNotificationDiagnosticsStrings =
-    <String, Map<String, String>>{
+const prayerNotificationDiagnosticsStrings = <String, Map<String, String>>{
   'tr': <String, String>{
     'notificationDiagnosticsCheck': 'Bildirimleri kontrol et',
     'notificationDiagnosticsTitle': 'Bildirim kontrolü',
@@ -34,7 +33,8 @@ const prayerNotificationDiagnosticsStrings =
     'notificationDiagnosticsUnavailable': 'Unavailable',
     'notificationDiagnosticsNotApplicable': 'Not required',
     'notificationDiagnosticsUnknown': 'Could not check',
-    'notificationDiagnosticsFailed': 'Notification check could not be completed.',
+    'notificationDiagnosticsFailed':
+        'Notification check could not be completed.',
     'notificationDiagnosticsPermissionHint':
         'System notification permission is off. Prayer reminders may not appear.',
   },
@@ -91,8 +91,29 @@ const prayerNotificationDiagnosticsStrings =
     'notificationDiagnosticsUnavailable': 'Недоступен',
     'notificationDiagnosticsNotApplicable': 'Не требуется',
     'notificationDiagnosticsUnknown': 'Не удалось проверить',
-    'notificationDiagnosticsFailed': 'Не удалось завершить проверку уведомлений.',
+    'notificationDiagnosticsFailed':
+        'Не удалось завершить проверку уведомлений.',
     'notificationDiagnosticsPermissionHint':
         'Системные уведомления отключены. Напоминания о намазе могут не появляться.',
+  },
+  'fr': <String, String>{
+    'notificationDiagnosticsCheck': 'Vérifier les notifications',
+    'notificationDiagnosticsTitle': 'Vérification des notifications',
+    'notificationDiagnosticsAppSetting': 'Réglage de l’application',
+    'notificationDiagnosticsPermission': 'Autorisation système',
+    'notificationDiagnosticsPending': 'Notifications programmées',
+    'notificationDiagnosticsExactAlarm': 'Alarme exacte',
+    'notificationDiagnosticsOn': 'Activé',
+    'notificationDiagnosticsOff': 'Désactivé',
+    'notificationDiagnosticsAllowed': 'Autorisé',
+    'notificationDiagnosticsBlocked': 'Bloqué',
+    'notificationDiagnosticsAvailable': 'Disponible',
+    'notificationDiagnosticsUnavailable': 'Indisponible',
+    'notificationDiagnosticsNotApplicable': 'Non requis',
+    'notificationDiagnosticsUnknown': 'Vérification impossible',
+    'notificationDiagnosticsFailed':
+        'La vérification des notifications n’a pas pu être effectuée.',
+    'notificationDiagnosticsPermissionHint':
+        'L’autorisation système des notifications est désactivée. Les rappels de prière peuvent ne pas apparaître.',
   },
 };

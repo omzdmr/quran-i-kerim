@@ -34,4 +34,11 @@ const Map<String, Map<String, String>> readerNoteStrings = {
     'readerVerseNoteTooltip': 'Заметка',
     'readerVerseFootnoteTooltip': 'Сноска',
   },
+  'fr': {
+    'readerPersonalNote': 'Note personnelle',
+    'readerEditNote': 'Modifier',
+    'readerOpenArchive': 'Ouvrir dans Vous',
+    'readerVerseNoteTooltip': 'Note',
+    'readerVerseFootnoteTooltip': 'Note de bas de page',
+  },
 };
