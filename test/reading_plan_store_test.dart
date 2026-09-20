@@ -331,7 +331,7 @@ void main() {
     await expectLater(
       store.addManualCompletedKhatm(
         completedAt: DateTime(2026, 9, 20),
-        note: 'x' * 301,
+        note: List<String>.filled(301, 'x').join(),
         now: DateTime(2026, 9, 20),
       ),
       throwsArgumentError,
