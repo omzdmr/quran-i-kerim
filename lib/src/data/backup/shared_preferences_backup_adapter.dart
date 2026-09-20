@@ -239,9 +239,12 @@ class SharedPreferencesBackupAdapter {
   }
 
   Set<String> _fixedKeysForSection(String section, int schemaVersion) {
-    final keys = keysBySection[section] ?? const <String>{};
+    var keys = keysBySection[section] ?? const <String>{};
     if (schemaVersion == 1 && section == 'memorization') {
-      return keys.where((key) => key != 'memorization_target_v1').toSet();
+      keys = keys.where((key) => key != 'memorization_target_v1').toSet();
+    }
+    if (schemaVersion <= 4 && section == 'preferences') {
+      keys = keys.where((key) => key != 'home_quick_actions_v1').toSet();
     }
     return keys;
   }
