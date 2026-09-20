@@ -2934,13 +2934,18 @@ class _SelectionActionState extends State<_SelectionAction> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapCancel: () => setState(() => _pressed = false),
-      onTapUp: (_) => setState(() => _pressed = false),
+    return Semantics(
+      button: true,
+      label: widget.label,
       onTap: widget.onTap,
-      child: AnimatedScale(
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapCancel: () => setState(() => _pressed = false),
+        onTapUp: (_) => setState(() => _pressed = false),
+        onTap: widget.onTap,
+        child: AnimatedScale(
         scale: _pressed ? .94 : 1,
         duration: const Duration(milliseconds: 90),
         child: Container(
@@ -2964,6 +2969,7 @@ class _SelectionActionState extends State<_SelectionAction> {
                 ),
               ),
             ],
+          ),
           ),
         ),
       ),
