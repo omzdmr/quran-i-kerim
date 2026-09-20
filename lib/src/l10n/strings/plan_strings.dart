@@ -140,6 +140,21 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceImpactDayV1': 'Gün {day}',
     'plansOffDeviceImpactCompletedStatusV1': 'Tamamlanmış',
     'plansOffDeviceImpactRemainingStatusV1': 'Kalan',
+    'plansOffDeviceCreditTitleV1': 'Plana işle',
+    'plansOffDeviceCreditEligibleV1':
+        '{days} tam kapsanan tamamlanmamış plan günü işlenebilir.',
+    'plansOffDeviceCreditPartialV1':
+        '{days} tamamlanmamış plan günü yalnız kısmen kapsanıyor; işlenmeyecek.',
+    'plansOffDeviceCreditNoneV1': 'Tam kapsanan tamamlanmamış plan günü yok.',
+    'plansOffDeviceCreditPausedV1':
+        'Okumayı plana işlemeden önce planı devam ettir.',
+    'plansOffDeviceCreditActionV1': '{days} tam günü plana işle',
+    'plansOffDeviceCreditConfirmTitleV1': 'Bu okumayı plana işle?',
+    'plansOffDeviceCreditConfirmBodyV1':
+        '{days} tam kapsanan tamamlanmamış plan günü tamamlandı olarak işaretlenecek. Kısmi ve zaten tamamlanmış örtüşmeler değişmeyecek. Bu okuma kaydını daha sonra düzenlemek veya silmek, onaylanmış plan ilerlemesini geri almayacak.',
+    'plansOffDeviceCreditConfirmActionV1': 'Plana işle',
+    'plansOffDeviceCreditedV1': '{days} plan günü işlendi.',
+    'plansOffDeviceCreditUnavailableV1': 'Bu okuma artık plana işlenemiyor.',
   },
   'en': <String, String>{
     'plansSearchHintV1': 'Search plans',
@@ -283,6 +298,22 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceImpactDayV1': 'Day {day}',
     'plansOffDeviceImpactCompletedStatusV1': 'Completed',
     'plansOffDeviceImpactRemainingStatusV1': 'Remaining',
+    'plansOffDeviceCreditTitleV1': 'Credit to plan',
+    'plansOffDeviceCreditEligibleV1':
+        '{days} fully covered unfinished plan day(s) can be credited.',
+    'plansOffDeviceCreditPartialV1':
+        '{days} unfinished plan day(s) are only partially covered and will not be credited.',
+    'plansOffDeviceCreditNoneV1': 'No unfinished plan day is fully covered.',
+    'plansOffDeviceCreditPausedV1':
+        'Resume the plan before crediting this reading.',
+    'plansOffDeviceCreditActionV1': 'Credit {days} full day(s) to plan',
+    'plansOffDeviceCreditConfirmTitleV1': 'Credit this reading to the plan?',
+    'plansOffDeviceCreditConfirmBodyV1':
+        '{days} fully covered unfinished plan day(s) will be marked complete. Partial and already-completed overlaps will stay unchanged. Editing or deleting this reading later will not undo confirmed plan progress.',
+    'plansOffDeviceCreditConfirmActionV1': 'Credit to plan',
+    'plansOffDeviceCreditedV1': '{days} plan day(s) credited.',
+    'plansOffDeviceCreditUnavailableV1':
+        'This reading can no longer be credited to the plan.',
   },
   'ar': <String, String>{
     'plansSearchHintV1': 'ابحث في الخطط',
@@ -425,6 +456,23 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceImpactDayV1': 'اليوم {day}',
     'plansOffDeviceImpactCompletedStatusV1': 'مكتمل',
     'plansOffDeviceImpactRemainingStatusV1': 'متبقٍ',
+    'plansOffDeviceCreditTitleV1': 'احتسابها في الخطة',
+    'plansOffDeviceCreditEligibleV1':
+        'يمكن احتساب {days} من أيام الخطة غير المكتملة والمغطاة بالكامل.',
+    'plansOffDeviceCreditPartialV1':
+        'هناك {days} من أيام الخطة غير المكتملة مغطاة جزئيًا فقط ولن تُحتسب.',
+    'plansOffDeviceCreditNoneV1':
+        'لا يوجد يوم غير مكتمل من الخطة مغطى بالكامل.',
+    'plansOffDeviceCreditPausedV1': 'استأنف الخطة قبل احتساب هذه القراءة فيها.',
+    'plansOffDeviceCreditActionV1': 'احتساب {days} من الأيام الكاملة في الخطة',
+    'plansOffDeviceCreditConfirmTitleV1':
+        'هل تريد احتساب هذه القراءة في الخطة؟',
+    'plansOffDeviceCreditConfirmBodyV1':
+        'سيتم تعليم {days} من أيام الخطة غير المكتملة والمغطاة بالكامل كمكتملة. لن تتغير الأجزاء المغطاة جزئيًا أو الأيام المكتملة سابقًا. تعديل سجل القراءة أو حذفه لاحقًا لن يتراجع عن تقدم الخطة الذي أكدتَه.',
+    'plansOffDeviceCreditConfirmActionV1': 'احتسابها في الخطة',
+    'plansOffDeviceCreditedV1': 'تم احتساب {days} من أيام الخطة.',
+    'plansOffDeviceCreditUnavailableV1':
+        'لم يعد من الممكن احتساب هذه القراءة في الخطة.',
   },
   'az': <String, String>{
     'plansSearchHintV1': 'Plan axtar',
@@ -568,6 +616,24 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceImpactDayV1': 'Gün {day}',
     'plansOffDeviceImpactCompletedStatusV1': 'Tamamlanıb',
     'plansOffDeviceImpactRemainingStatusV1': 'Qalan',
+    'plansOffDeviceCreditTitleV1': 'Plana əlavə et',
+    'plansOffDeviceCreditEligibleV1':
+        '{days} tam əhatə olunan tamamlanmamış plan günü plana əlavə edilə bilər.',
+    'plansOffDeviceCreditPartialV1':
+        '{days} tamamlanmamış plan günü yalnız qismən əhatə olunur və əlavə edilməyəcək.',
+    'plansOffDeviceCreditNoneV1':
+        'Tam əhatə olunan tamamlanmamış plan günü yoxdur.',
+    'plansOffDeviceCreditPausedV1':
+        'Bu oxunu plana əlavə etməzdən əvvəl planı davam etdirin.',
+    'plansOffDeviceCreditActionV1': '{days} tam günü plana əlavə et',
+    'plansOffDeviceCreditConfirmTitleV1':
+        'Bu oxunu plana əlavə etmək istəyirsiniz?',
+    'plansOffDeviceCreditConfirmBodyV1':
+        '{days} tam əhatə olunan tamamlanmamış plan günü tamamlanmış kimi işarələnəcək. Qismən və artıq tamamlanmış üst-üstə düşmələr dəyişməyəcək. Bu oxu qeydini sonradan düzəltmək və ya silmək təsdiqlənmiş plan irəliləyişini geri almayacaq.',
+    'plansOffDeviceCreditConfirmActionV1': 'Plana əlavə et',
+    'plansOffDeviceCreditedV1': '{days} plan günü əlavə edildi.',
+    'plansOffDeviceCreditUnavailableV1':
+        'Bu oxunu artıq plana əlavə etmək mümkün deyil.',
   },
   'ru': <String, String>{
     'plansSearchHintV1': 'Поиск планов',
@@ -711,5 +777,22 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceImpactDayV1': 'День {day}',
     'plansOffDeviceImpactCompletedStatusV1': 'Завершён',
     'plansOffDeviceImpactRemainingStatusV1': 'Осталось',
+    'plansOffDeviceCreditTitleV1': 'Зачесть в план',
+    'plansOffDeviceCreditEligibleV1':
+        'Можно зачесть {days} полностью покрытых незавершённых дней плана.',
+    'plansOffDeviceCreditPartialV1':
+        '{days} незавершённых дней плана покрыты лишь частично и не будут зачтены.',
+    'plansOffDeviceCreditNoneV1':
+        'Нет полностью покрытых незавершённых дней плана.',
+    'plansOffDeviceCreditPausedV1':
+        'Возобновите план, прежде чем засчитывать это чтение.',
+    'plansOffDeviceCreditActionV1': 'Зачесть {days} полных дней в план',
+    'plansOffDeviceCreditConfirmTitleV1': 'Зачесть это чтение в план?',
+    'plansOffDeviceCreditConfirmBodyV1':
+        '{days} полностью покрытых незавершённых дней плана будут отмечены завершёнными. Частичные и уже завершённые пересечения не изменятся. Последующее изменение или удаление записи чтения не отменит подтверждённый прогресс плана.',
+    'plansOffDeviceCreditConfirmActionV1': 'Зачесть в план',
+    'plansOffDeviceCreditedV1': 'Зачтено дней плана: {days}.',
+    'plansOffDeviceCreditUnavailableV1':
+        'Это чтение больше нельзя зачесть в план.',
   },
 };

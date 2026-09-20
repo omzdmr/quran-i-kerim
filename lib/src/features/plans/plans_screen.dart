@@ -267,9 +267,10 @@ class _PlansScreenState extends State<PlansScreen> {
   ) async {
     final active = _snapshot.active;
     if (active == null) return;
-    final impact = previewOffDevicePlanImpact(active, session);
+    final creditPreview = _store.previewOffDevicePlanCredit(active, session);
+    final impact = creditPreview.impact;
 
-    await showModalBottomSheet<void>(
+    final shouldCredit = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
@@ -290,6 +291,12 @@ class _PlansScreenState extends State<PlansScreen> {
             .text('plansOffDeviceImpactCompletedV1')
             .replaceAll('{days}', '${impact.completedDayCount}')
             .replaceAll('{pages}', '${impact.completedPageCount}');
+        final eligible = l10n
+            .text('plansOffDeviceCreditEligibleV1')
+            .replaceAll('{days}', '${creditPreview.creditableDayCount}');
+        final partial = l10n
+            .text('plansOffDeviceCreditPartialV1')
+            .replaceAll('{days}', '${creditPreview.partialRemainingDayCount}');
 
         return SafeArea(
           child: Padding(
@@ -359,6 +366,52 @@ class _PlansScreenState extends State<PlansScreen> {
                             ),
                           ),
                         ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: scheme.surfaceContainerHighest.withValues(
+                        alpha: .55,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.text('plansOffDeviceCreditTitleV1'),
+                          style: const TextStyle(fontWeight: FontWeight.w900),
+                        ),
+                        const SizedBox(height: 5),
+                        if (creditPreview.canCredit)
+                          Text(eligible)
+                        else
+                          Text(l10n.text('plansOffDeviceCreditNoneV1')),
+                        if (creditPreview.partialRemainingDayCount > 0) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            partial,
+                            style: TextStyle(
+                              color: scheme.onSurfaceVariant,
+                              fontSize: 12,
+                              height: 1.35,
+                            ),
+                          ),
+                        ],
+                        if (active.isPaused) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            l10n.text('plansOffDeviceCreditPausedV1'),
+                            style: TextStyle(
+                              color: scheme.onSurfaceVariant,
+                              fontSize: 12,
+                              height: 1.35,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -449,8 +502,25 @@ class _PlansScreenState extends State<PlansScreen> {
                     const SizedBox(height: 8),
                   ],
                   const SizedBox(height: 4),
+                  if (creditPreview.canCredit) ...[
+                    FilledButton.icon(
+                      onPressed: active.isPaused
+                          ? null
+                          : () => Navigator.of(sheetContext).pop(true),
+                      icon: const Icon(Icons.check_circle_outline_rounded),
+                      label: Text(
+                        l10n
+                            .text('plansOffDeviceCreditActionV1')
+                            .replaceAll(
+                              '{days}',
+                              '${creditPreview.creditableDayCount}',
+                            ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                  ],
                   TextButton(
-                    onPressed: () => Navigator.of(sheetContext).pop(),
+                    onPressed: () => Navigator.of(sheetContext).pop(false),
                     child: Text(
                       MaterialLocalizations.of(sheetContext).closeButtonLabel,
                     ),
@@ -462,6 +532,59 @@ class _PlansScreenState extends State<PlansScreen> {
         );
       },
     );
+
+    if (!mounted || shouldCredit != true) return;
+    final l10n = context.l10n;
+    final confirmBody = l10n
+        .text('plansOffDeviceCreditConfirmBodyV1')
+        .replaceAll('{days}', '${creditPreview.creditableDayCount}');
+    final confirmed =
+        await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: Text(l10n.text('plansOffDeviceCreditConfirmTitleV1')),
+            content: Text(confirmBody),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: Text(
+                  MaterialLocalizations.of(dialogContext).cancelButtonLabel,
+                ),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(l10n.text('plansOffDeviceCreditConfirmActionV1')),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed || !mounted) return;
+
+    HapticFeedback.mediumImpact();
+    setState(() => _busy = true);
+    try {
+      final snapshot = await _store.creditOffDeviceSessionToActivePlan(session);
+      if (!mounted) return;
+      final completedPlan = snapshot.active == null;
+      setState(() {
+        _snapshot = snapshot;
+        if (completedPlan) _tab = _PlansTab.completed;
+      });
+      final message = completedPlan
+          ? l10n.text('plansPlanCompletedV1')
+          : l10n
+                .text('plansOffDeviceCreditedV1')
+                .replaceAll('{days}', '${creditPreview.creditableDayCount}');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } on StateError {
+      if (!mounted) return;
+      _snack('plansOffDeviceCreditUnavailableV1');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   Future<void> _removeOffDevicePageSession(

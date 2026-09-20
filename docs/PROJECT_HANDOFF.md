@@ -71,40 +71,47 @@ Recent Plans work:
 
 ## Latest completed feature slice
 
-Read-only off-device → active-plan impact preview is implemented on top of the
-structured page/juz/Hizb/ayah-range records:
+Explicit off-device → active-plan credit is implemented on top of the
+read-only impact preview:
 
-- When an active reading plan exists, each off-device record exposes a
-  "preview plan impact" action. The action is hidden when there is no active
-  plan.
-- The preview intersects the record's normalized Mushaf page span with the
-  active plan's day/page schedule without mutating plan state.
-- It shows the exact touched plan days and the intersecting page span for each
-  day, split into already-completed versus still-remaining plan days.
-- The preview explicitly warns that it does not credit or advance the plan and
-  that overlap with completed digital reading cannot be inferred as fact.
-- For ayah-range entries, the UI now clarifies that page counts describe the
-  Mushaf page span touched by the record, not necessarily a count of fully read
-  pages.
-- The calculation is input-type agnostic, so page, juz, sourced Hizb and
-  canonical ayah-range records all use the same normalized impact path.
-- The original off-device record remains independent; previewing it writes no
-  state and creates no hidden linkage to plan progress.
-- Turkish, English, Arabic, Azerbaijani and Russian impact-preview copy remains
-  in localization key parity.
+- Logging or previewing an off-device record never changes plan progress.
+- The preview now identifies which unfinished plan days are fully covered and
+  which are only partially covered.
+- Full-day eligibility is checked against canonical Quran start/end references,
+  not merely page overlap. An ayah-range entry that touches a plan page without
+  covering the complete plan day cannot be credited.
+- Already-completed plan days are excluded from credit, so overlapping manual
+  and digital reading is never counted twice.
+- A user must first choose the credit action in the impact preview and then
+  confirm a second dialog before any plan day is marked complete.
+- Paused plans cannot receive off-device credit until resumed.
+- Each confirmed credit creates an independent
+  `OffDevicePlanCreditEvent` snapshot inside active `reading_plan_state_v1`,
+  including source date/input/page/canonical coverage and credited day numbers.
+- Editing or deleting the original off-device reading after confirmation does
+  not undo credited progress or its active-plan credit event.
+- A deleted/changed source record cannot be newly credited through a stale UI
+  reference because the store verifies that the source record still exists.
+- Credit can complete the reading plan; normal completed-plan archive behavior
+  then takes over.
+- Credit-event audit detail currently belongs to the active plan. When a plan is
+  fully completed, the existing completed-plan archive keeps the completion but
+  not the per-credit event list. Preserve/extend that provenance deliberately
+  before presenting long-term credit history.
+- Turkish, English, Arabic, Azerbaijani and Russian credit-flow copy remains in
+  localization key parity.
 
-Focused impact validation:
-- Run `35522014627` formatted the slice, then
-  `reading_plan_test.dart` passed 9/9 and `plan_strings_test.dart` passed.
-- Its direct `PlansScreen` widget probe reached only the test-loader phase and
-  timed out after 180 seconds with no tests run and no compiler diagnostic,
-  matching the repository's known PlansScreen/analyzer tooling stall.
-- That hanging widget probe was removed from the final slice so it cannot block
-  a future full `flutter test` run.
-- Follow-up run `35522207601` passed formatting, the reading-plan model tests
-  and localization parity on the cleaned slice. The focused analyzer remains a
-  non-gating probe because this repository repeatedly stalls there without a
-  diagnostic.
+Focused plan-credit validation run `35522662840`:
+- bundled content setup, dependency resolution and localization generation
+  passed;
+- formatter completed and its output was persisted to the feature branch;
+- `reading_plan_store_test.dart` passed, including full-day, partial-edge,
+  partial-ayah, duplicate-completed, paused-plan, deleted-source and
+  source-deletion-after-credit cases;
+- `reading_plan_test.dart` passed;
+- `plan_strings_test.dart` localization key parity passed;
+- the focused analyzer remains a non-gating probe because this repository
+  repeatedly stalls in analyzer/import tooling without diagnostics.
 
 ## Validation status
 
@@ -120,12 +127,12 @@ Recent full Android validation has a repeatable tooling problem:
 - Treat this as CI/analyzer tooling unless a concrete analyzer diagnostic or
   failing test says otherwise. Do not relabel a timeout as an app regression.
 
-The sourced-Hizb integration head before the impact-preview slice was
-`83a56ddf8a757fb1ddbd09effe6bbc4ea9b74100`.
-Android APK run #548 for that head completed content, dependency and
-localization setup and then remained in `Analyze app code`, matching the same
-long analyzer behavior. Inspect the newest integrated Actions run before
-calling the full Android pipeline green.
+The impact-preview integration head before the explicit-credit slice was
+`7bbcdfdd7e027bdc15e4d9d170733bc82aec2759`.
+Android APK run #549 for that head started normally; newer full Android runs
+continue to be evaluated separately from focused feature validation because the
+main analyzer step has repeatedly stalled without a diagnostic. Inspect the
+newest integrated Actions run before calling the full Android pipeline green.
 
 ## Safe continuation checklist
 
@@ -143,21 +150,22 @@ calling the full Android pipeline green.
 
 ## Immediate next step
 
-Build the explicit user-confirmed credit flow on top of the read-only preview:
+Preserve and expose off-device credit provenance without changing its strict
+credit rule:
 
-- Never credit a plan merely because an off-device record exists or is
-  previewed.
-- From the preview, allow an explicit "credit this reading to my plan" action
-  only after showing exactly which still-unfinished plan days would be affected.
-- Do not silently complete a plan day from a partial overlap. Define a strict,
-  testable rule for full-day coverage first; partial coverage must remain
-  informational until a separate partial-progress model exists.
-- Record any future credit as its own plan-progress event/reference so editing
-  or deleting the original off-device log cannot silently rewrite already
-  confirmed plan progress.
-- Completed-day overlap must remain a warning only, never a second credit.
-- Keep Hizb boundaries sourced from the retained Tanzil metadata.
-- Keep the full French UI localization requirement as its separate localization
+- Extend completed-plan archive data so a khatm finished with confirmed
+  off-device credits can retain a compact summary/provenance after the active
+  plan is cleared.
+- Keep the detailed source reading independent; do not make completed archive
+  validity depend on the original off-device log still existing.
+- Surface a read-only source breakdown/history where useful, but do not add
+  undo-by-edit semantics that silently rewrite already confirmed progress.
+- Keep partial overlaps informational. Do not invent partial-day progress until
+  a separate explicit partial-progress model and UX exist.
+- Keep completed-day overlap non-creditable.
+- Preserve local-first storage and backup compatibility; migrate older
+  completed archive rows without provenance as valid legacy records.
+- Keep the full French UI localization requirement as a separate localization
   workstream rather than scattering partial French strings through feature
   commits.
 
