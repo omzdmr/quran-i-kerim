@@ -26,11 +26,13 @@ const enStrings = <String, String>{
   'arabic': 'العربية',
   'azerbaijani': 'Azərbaycanca',
   'russian': 'Русский',
+  'french': 'Français',
   'turkishDescription': 'Uygulamayı Türkçe kullan',
   'englishDescription': 'Use the app in English',
   'arabicDescription': 'استخدم التطبيق باللغة العربية',
   'azerbaijaniDescription': 'Tətbiqi Azərbaycan dilində istifadə et',
   'russianDescription': 'Использовать приложение на русском языке',
+  'frenchDescription': 'Use the app in French',
   'quranLanguage': 'Quran language & translation',
   'quranLanguageDescription':
       'Choose the text you read independently from the interface language. More translations will be downloadable later.',

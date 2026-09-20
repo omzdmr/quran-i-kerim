@@ -25,11 +25,13 @@ const ruStrings = <String, String>{
   'arabic': 'العربية',
   'azerbaijani': 'Azərbaycanca',
   'russian': 'Русский',
+  'french': 'Français',
   'turkishDescription': 'Uygulamayı Türkçe kullan',
   'englishDescription': 'Use the app in English',
   'arabicDescription': 'استخدم التطبيق باللغة العربية',
   'azerbaijaniDescription': 'Tətbiqi Azərbaycan dilində istifadə et',
   'russianDescription': 'Использовать приложение на русском языке',
+  'frenchDescription': 'Использовать приложение на французском языке',
   'quranLanguage': 'Язык Корана и перевод',
   'quranLanguageDescription':
       'Выбирайте текст для чтения независимо от языка интерфейса. Дополнительные переводы можно будет скачать позже.',

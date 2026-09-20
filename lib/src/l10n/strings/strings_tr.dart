@@ -23,11 +23,13 @@ const trStrings = <String, String>{
   'arabic': 'العربية',
   'azerbaijani': 'Azərbaycanca',
   'russian': 'Русский',
+  'french': 'Français',
   'turkishDescription': 'Uygulamayı Türkçe kullan',
   'englishDescription': 'Use the app in English',
   'arabicDescription': 'استخدم التطبيق باللغة العربية',
   'azerbaijaniDescription': 'Tətbiqi Azərbaycan dilində istifadə et',
   'russianDescription': 'Использовать приложение на русском языке',
+  'frenchDescription': 'Uygulamayı Fransızca kullan',
   'quranLanguage': 'Kuran dili ve meal',
   'quranLanguageDescription':
       'Okuduğunuz metni arayüz dilinden bağımsız seçin. Ek mealler daha sonra indirilebilir paketler olarak eklenecek.',

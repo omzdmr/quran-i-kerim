@@ -16,6 +16,7 @@ import 'strings/reader_note_strings.dart';
 import 'strings/strings_ar.dart';
 import 'strings/strings_az.dart';
 import 'strings/strings_en.dart';
+import 'strings/strings_fr.dart';
 import 'strings/strings_ru.dart';
 import 'strings/strings_tr.dart';
 
@@ -30,6 +31,7 @@ class AppLocalizations {
     Locale('ar'),
     Locale('az'),
     Locale('ru'),
+    Locale('fr'),
   ];
 
   static const delegate = _AppLocalizationsDelegate();
@@ -45,6 +47,7 @@ class AppLocalizations {
     'ar' => arStrings,
     'az' => azStrings,
     'ru' => ruStrings,
+    'fr' => frStrings,
     _ => trStrings,
   };
 
@@ -140,11 +143,13 @@ class AppLocalizations {
   String get arabic => _value('arabic');
   String get azerbaijani => _value('azerbaijani');
   String get russian => _value('russian');
+  String get french => _value('french');
   String get turkishDescription => _value('turkishDescription');
   String get englishDescription => _value('englishDescription');
   String get arabicDescription => _value('arabicDescription');
   String get azerbaijaniDescription => _value('azerbaijaniDescription');
   String get russianDescription => _value('russianDescription');
+  String get frenchDescription => _value('frenchDescription');
   String get quranLanguage => _value('quranLanguage');
   String get quranLanguageDescription => _value('quranLanguageDescription');
   String get arabicOriginal => _value('arabicOriginal');
