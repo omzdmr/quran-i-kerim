@@ -245,20 +245,62 @@ class ActiveReadingPlan {
   );
 }
 
+enum OffDeviceReadingInputKind {
+  page,
+  juz,
+  ayahRange;
+
+  String get id => switch (this) {
+    page => 'page',
+    juz => 'juz',
+    ayahRange => 'ayahRange',
+  };
+
+  static OffDeviceReadingInputKind fromId(String? id) => switch (id) {
+    'juz' => OffDeviceReadingInputKind.juz,
+    'ayahRange' => OffDeviceReadingInputKind.ayahRange,
+    _ => OffDeviceReadingInputKind.page,
+  };
+}
+
 class OffDevicePageReadingSession {
   const OffDevicePageReadingSession({
     required this.readAt,
     required this.startPage,
     required this.endPage,
+    this.inputKind = OffDeviceReadingInputKind.page,
+    this.juzNumber,
+    this.startSurah,
+    this.startAyah,
+    this.endSurah,
+    this.endAyah,
     this.note,
   });
 
   final DateTime readAt;
   final int startPage;
   final int endPage;
+  final OffDeviceReadingInputKind inputKind;
+  final int? juzNumber;
+  final int? startSurah;
+  final int? startAyah;
+  final int? endSurah;
+  final int? endAyah;
   final String? note;
 
   int get pageCount => endPage - startPage + 1;
+
+  bool get hasCanonicalAyahRange =>
+      startSurah != null &&
+      startAyah != null &&
+      endSurah != null &&
+      endAyah != null;
+
+  String? get canonicalStartKey =>
+      hasCanonicalAyahRange ? '$startSurah:$startAyah' : null;
+
+  String? get canonicalEndKey =>
+      hasCanonicalAyahRange ? '$endSurah:$endAyah' : null;
 }
 
 enum KhatmCompletionSource {
