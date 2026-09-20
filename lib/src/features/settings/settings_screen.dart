@@ -119,6 +119,13 @@ class SettingsScreen extends StatelessWidget {
             selected: settings.locale?.languageCode == 'ru',
             onTap: () => settings.setLocale(const Locale('ru')),
           ),
+          _LanguageChoiceTile(
+            code: 'FR',
+            title: l10n.french,
+            subtitle: l10n.frenchDescription,
+            selected: settings.locale?.languageCode == 'fr',
+            onTap: () => settings.setLocale(const Locale('fr')),
+          ),
           const SizedBox(height: 30),
           _SectionHeader(
             title: l10n.quranLanguage,
@@ -353,6 +360,14 @@ class _SettingsSearchDelegate extends SearchDelegate<void> {
           selected: settings.locale?.languageCode == 'ru',
           keywords: <String>[l10n.language, 'RU'],
           onTap: () => settings.setLocale(const Locale('ru')),
+        ),
+        _SettingsSearchEntry(
+          title: l10n.french,
+          subtitle: l10n.frenchDescription,
+          icon: Icons.translate_rounded,
+          selected: settings.locale?.languageCode == 'fr',
+          keywords: <String>[l10n.language, 'FR', 'Français'],
+          onTap: () => settings.setLocale(const Locale('fr')),
         ),
         _SettingsSearchEntry(
           title: l10n.turkishMeal,
