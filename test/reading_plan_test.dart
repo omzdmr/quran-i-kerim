@@ -25,12 +25,21 @@ void main() {
     );
 
     expect(active.nextDayNumber, 3);
-    expect(active.nextDay?.startPage, readingPlanDay(ReadingPlanPreset.quran30, 3).startPage);
+    expect(
+      active.nextDay?.startPage,
+      readingPlanDay(ReadingPlanPreset.quran30, 3).startPage,
+    );
   });
 
   test('day lookup rejects values outside the preset duration', () {
-    expect(() => readingPlanDay(ReadingPlanPreset.quran30, 0), throwsRangeError);
-    expect(() => readingPlanDay(ReadingPlanPreset.quran30, 31), throwsRangeError);
+    expect(
+      () => readingPlanDay(ReadingPlanPreset.quran30, 0),
+      throwsRangeError,
+    );
+    expect(
+      () => readingPlanDay(ReadingPlanPreset.quran30, 31),
+      throwsRangeError,
+    );
   });
 
   test('off-device impact previews exact unfinished plan-day pages', () {
@@ -144,5 +153,4 @@ void main() {
     expect(impact.remainingDayCount, 362);
     expect(impact.overlapPageCount, madinahMushafPageCount);
   });
-
 }

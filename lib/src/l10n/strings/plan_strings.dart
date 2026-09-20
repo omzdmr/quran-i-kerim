@@ -132,8 +132,7 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceImpactTitleV1': 'Plan etkisi',
     'plansOffDeviceImpactSummaryV1':
         'Plan günleri {first}–{last} • {days} gün • {pages} sayfa eşleşiyor',
-    'plansOffDeviceImpactRemainingV1':
-        '{days} kalan plan günü • {pages} sayfa',
+    'plansOffDeviceImpactRemainingV1': '{days} kalan plan günü • {pages} sayfa',
     'plansOffDeviceImpactCompletedV1':
         '{days} tamamlanmış plan günü • {pages} sayfa',
     'plansOffDeviceImpactWarningV1':
@@ -706,8 +705,7 @@ const planStrings = <String, Map<String, String>>{
         'Дни плана {first}–{last} • {days} дн. • пересечение: {pages} стр.',
     'plansOffDeviceImpactRemainingV1':
         '{days} незавершённых дней • {pages} стр.',
-    'plansOffDeviceImpactCompletedV1':
-        '{days} завершённых дней • {pages} стр.',
+    'plansOffDeviceImpactCompletedV1': '{days} завершённых дней • {pages} стр.',
     'plansOffDeviceImpactWarningV1':
         'Это только предварительный просмотр, запись не меняет прогресс плана. Для уже завершённых дней приложение не может определить, дублирует ли эта запись цифровое чтение.',
     'plansOffDeviceImpactDayV1': 'День {day}',

@@ -452,9 +452,7 @@ class _PlansScreenState extends State<PlansScreen> {
                   TextButton(
                     onPressed: () => Navigator.of(sheetContext).pop(),
                     child: Text(
-                      MaterialLocalizations.of(
-                        sheetContext,
-                      ).closeButtonLabel,
+                      MaterialLocalizations.of(sheetContext).closeButtonLabel,
                     ),
                   ),
                 ],
@@ -1936,9 +1934,7 @@ class _OffDeviceReadingCard extends StatelessWidget {
                         Align(
                           alignment: AlignmentDirectional.centerStart,
                           child: TextButton.icon(
-                            onPressed: busy
-                                ? null
-                                : () => onPreview!(session),
+                            onPressed: busy ? null : () => onPreview!(session),
                             icon: const Icon(Icons.route_outlined, size: 18),
                             label: Text(
                               l10n.text('plansOffDeviceImpactActionV1'),

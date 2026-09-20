@@ -26,44 +26,45 @@ void main() {
     );
   }
 
-  testWidgets('off-device reading opens a read-only active-plan impact preview', (
-    tester,
-  ) async {
-    const store = ReadingPlanStore();
-    final now = DateTime(2026, 9, 20);
-    await store.start(ReadingPlanPreset.quran30, now: now);
-    final day = readingPlanDay(ReadingPlanPreset.quran30, 2);
-    await store.addOffDevicePageSession(
-      startPage: day.startPage + 2,
-      endPage: day.endPage - 1,
-      readAt: now,
-      now: now,
-    );
+  testWidgets(
+    'off-device reading opens a read-only active-plan impact preview',
+    (tester) async {
+      const store = ReadingPlanStore();
+      final now = DateTime(2026, 9, 20);
+      await store.start(ReadingPlanPreset.quran30, now: now);
+      final day = readingPlanDay(ReadingPlanPreset.quran30, 2);
+      await store.addOffDevicePageSession(
+        startPage: day.startPage + 2,
+        endPage: day.endPage - 1,
+        readAt: now,
+        now: now,
+      );
 
-    await tester.pumpWidget(harness());
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(harness());
+      await tester.pumpAndSettle();
 
-    expect(find.text('Preview plan impact'), findsOneWidget);
+      expect(find.text('Preview plan impact'), findsOneWidget);
 
-    await tester.tap(find.text('Preview plan impact'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Preview plan impact'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Plan impact'), findsOneWidget);
-    expect(find.text('Day 2'), findsOneWidget);
-    expect(
-      find.text('Pages ${day.startPage + 2}–${day.endPage - 1}'),
-      findsOneWidget,
-    );
-    expect(find.text('Remaining'), findsOneWidget);
-    expect(
-      find.textContaining('The record does not change plan progress.'),
-      findsOneWidget,
-    );
+      expect(find.text('Plan impact'), findsOneWidget);
+      expect(find.text('Day 2'), findsOneWidget);
+      expect(
+        find.text('Pages ${day.startPage + 2}–${day.endPage - 1}'),
+        findsOneWidget,
+      );
+      expect(find.text('Remaining'), findsOneWidget);
+      expect(
+        find.textContaining('The record does not change plan progress.'),
+        findsOneWidget,
+      );
 
-    final snapshot = await store.load();
-    expect(snapshot.active?.completedDays, isEmpty);
-    expect(snapshot.active?.nextDayNumber, 1);
-  });
+      final snapshot = await store.load();
+      expect(snapshot.active?.completedDays, isEmpty);
+      expect(snapshot.active?.nextDayNumber, 1);
+    },
+  );
 
   testWidgets('impact action stays hidden when there is no active plan', (
     tester,

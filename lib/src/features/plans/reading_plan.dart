@@ -341,10 +341,8 @@ class OffDevicePlanImpact {
     segments.where((item) => !item.completed).map((item) => item.dayNumber),
   );
 
-  int get completedDayCount =>
-      segments.where((item) => item.completed).length;
-  int get remainingDayCount =>
-      segments.where((item) => !item.completed).length;
+  int get completedDayCount => segments.where((item) => item.completed).length;
+  int get remainingDayCount => segments.where((item) => !item.completed).length;
 
   int get completedPageCount => segments
       .where((item) => item.completed)
