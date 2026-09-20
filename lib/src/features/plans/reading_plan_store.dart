@@ -563,6 +563,9 @@ class ReadingPlanStore {
           preset: active.preset,
           startedAt: active.startedAt,
           completedAt: creditedAt,
+          offDeviceCredits: List<OffDevicePlanCreditEvent>.unmodifiable(
+            credits,
+          ),
         ),
         ...current.completed,
       ];
@@ -697,6 +700,7 @@ class ReadingPlanStore {
           preset: active.preset,
           startedAt: active.startedAt,
           completedAt: readingPlanDateOnly(now ?? DateTime.now()),
+          offDeviceCredits: active.offDeviceCredits,
         ),
         ...current.completed,
       ];
@@ -752,6 +756,7 @@ class ReadingPlanStore {
           preset: active.preset,
           startedAt: active.startedAt,
           completedAt: readingPlanDateOnly(now ?? DateTime.now()),
+          offDeviceCredits: active.offDeviceCredits,
         ),
         ...current.completed,
       ];
@@ -826,57 +831,10 @@ class ReadingPlanStore {
             if (!normalized.isBefore(normalizedStart)) pausedAt = normalized;
           }
         }
-        final offDeviceCredits = <OffDevicePlanCreditEvent>[];
-        final rawCredits = rawActive['offDeviceCredits'];
-        if (rawCredits is List) {
-          for (final item in rawCredits) {
-            if (item is! Map) continue;
-            final creditedAt = DateTime.tryParse(
-              item['creditedAt']?.toString() ?? '',
-            );
-            final sourceReadAt = DateTime.tryParse(
-              item['sourceReadAt']?.toString() ?? '',
-            );
-            final sourceStartPage = _intValue(item['sourceStartPage']);
-            final sourceEndPage = _intValue(item['sourceEndPage']);
-            final rawCreditDays = item['dayNumbers'];
-            if (creditedAt == null ||
-                sourceReadAt == null ||
-                sourceStartPage == null ||
-                sourceEndPage == null ||
-                sourceStartPage < 1 ||
-                sourceEndPage > madinahMushafPageCount ||
-                sourceStartPage > sourceEndPage ||
-                rawCreditDays is! List) {
-              continue;
-            }
-            final creditDays = <int>{};
-            for (final rawDay in rawCreditDays) {
-              final day = _intValue(rawDay);
-              if (day != null && day >= 1 && day <= preset.durationDays) {
-                creditDays.add(day);
-              }
-            }
-            if (creditDays.isEmpty) continue;
-            final orderedDays = creditDays.toList()..sort();
-            offDeviceCredits.add(
-              OffDevicePlanCreditEvent(
-                creditedAt: readingPlanDateOnly(creditedAt),
-                sourceReadAt: readingPlanDateOnly(sourceReadAt),
-                sourceInputKind: OffDeviceReadingInputKind.fromId(
-                  item['sourceInputKind']?.toString(),
-                ),
-                sourceStartPage: sourceStartPage,
-                sourceEndPage: sourceEndPage,
-                sourceCanonicalStartKey: item['sourceCanonicalStartKey']
-                    ?.toString(),
-                sourceCanonicalEndKey: item['sourceCanonicalEndKey']
-                    ?.toString(),
-                dayNumbers: List<int>.unmodifiable(orderedDays),
-              ),
-            );
-          }
-        }
+        final offDeviceCredits = _decodeOffDeviceCreditEvents(
+          rawActive['offDeviceCredits'],
+          preset,
+        );
 
         active = ActiveReadingPlan(
           preset: preset,
@@ -925,6 +883,11 @@ class ReadingPlanStore {
           continue;
         }
 
+        final completedCredits =
+            source == KhatmCompletionSource.readingPlan && preset != null
+            ? _decodeOffDeviceCreditEvents(item['offDeviceCredits'], preset)
+            : const <OffDevicePlanCreditEvent>[];
+
         completed.add(
           CompletedReadingPlan(
             preset: source == KhatmCompletionSource.readingPlan ? preset : null,
@@ -932,6 +895,7 @@ class ReadingPlanStore {
             completedAt: completedAt,
             source: source,
             note: _decodeNote(item['note']?.toString()),
+            offDeviceCredits: completedCredits,
           ),
         );
       }
@@ -1051,19 +1015,9 @@ class ReadingPlanStore {
                   ? null
                   : _date(active.pausedAt!),
               'pausedDays': active.pausedDays,
-              'offDeviceCredits': <Object?>[
-                for (final credit in active.offDeviceCredits)
-                  <String, Object?>{
-                    'creditedAt': _date(credit.creditedAt),
-                    'sourceReadAt': _date(credit.sourceReadAt),
-                    'sourceInputKind': credit.sourceInputKind.id,
-                    'sourceStartPage': credit.sourceStartPage,
-                    'sourceEndPage': credit.sourceEndPage,
-                    'sourceCanonicalStartKey': credit.sourceCanonicalStartKey,
-                    'sourceCanonicalEndKey': credit.sourceCanonicalEndKey,
-                    'dayNumbers': credit.dayNumbers,
-                  },
-              ],
+              'offDeviceCredits': _encodeOffDeviceCreditEvents(
+                active.offDeviceCredits,
+              ),,
             },
       'offDevicePageSessions': <Object?>[
         for (final item in snapshot.offDevicePageSessions)
@@ -1095,11 +1049,88 @@ class ReadingPlanStore {
             'startedAt': item.startedAt == null ? null : _date(item.startedAt!),
             'completedAt': _date(item.completedAt),
             'note': item.note,
+            'offDeviceCredits': _encodeOffDeviceCreditEvents(
+              item.offDeviceCredits,
+            ),
           },
       ],
     };
     await prefs.setString(preferenceKey, jsonEncode(json));
     notifyExternalChange();
+  }
+
+  List<OffDevicePlanCreditEvent> _decodeOffDeviceCreditEvents(
+    Object? rawCredits,
+    ReadingPlanPreset preset,
+  ) {
+    if (rawCredits is! List) return const <OffDevicePlanCreditEvent>[];
+    final decoded = <OffDevicePlanCreditEvent>[];
+    for (final item in rawCredits) {
+      if (item is! Map) continue;
+      final creditedAt = DateTime.tryParse(
+        item['creditedAt']?.toString() ?? '',
+      );
+      final sourceReadAt = DateTime.tryParse(
+        item['sourceReadAt']?.toString() ?? '',
+      );
+      final sourceStartPage = _intValue(item['sourceStartPage']);
+      final sourceEndPage = _intValue(item['sourceEndPage']);
+      final rawCreditDays = item['dayNumbers'];
+      if (creditedAt == null ||
+          sourceReadAt == null ||
+          sourceStartPage == null ||
+          sourceEndPage == null ||
+          sourceStartPage < 1 ||
+          sourceEndPage > madinahMushafPageCount ||
+          sourceStartPage > sourceEndPage ||
+          rawCreditDays is! List) {
+        continue;
+      }
+      final creditDays = <int>{};
+      for (final rawDay in rawCreditDays) {
+        final day = _intValue(rawDay);
+        if (day != null && day >= 1 && day <= preset.durationDays) {
+          creditDays.add(day);
+        }
+      }
+      if (creditDays.isEmpty) continue;
+      final orderedDays = creditDays.toList()..sort();
+      decoded.add(
+        OffDevicePlanCreditEvent(
+          creditedAt: readingPlanDateOnly(creditedAt),
+          sourceReadAt: readingPlanDateOnly(sourceReadAt),
+          sourceInputKind: OffDeviceReadingInputKind.fromId(
+            item['sourceInputKind']?.toString(),
+          ),
+          sourceStartPage: sourceStartPage,
+          sourceEndPage: sourceEndPage,
+          sourceCanonicalStartKey:
+              item['sourceCanonicalStartKey']?.toString(),
+          sourceCanonicalEndKey:
+              item['sourceCanonicalEndKey']?.toString(),
+          dayNumbers: List<int>.unmodifiable(orderedDays),
+        ),
+      );
+    }
+    return List<OffDevicePlanCreditEvent>.unmodifiable(decoded);
+  }
+
+  List<Object?> _encodeOffDeviceCreditEvents(
+    List<OffDevicePlanCreditEvent> credits,
+  ) {
+    return <Object?>[
+      for (final credit in credits)
+        <String, Object?>{
+          'creditedAt': _date(credit.creditedAt),
+          'sourceReadAt': _date(credit.sourceReadAt),
+          'sourceInputKind': credit.sourceInputKind.id,
+          'sourceStartPage': credit.sourceStartPage,
+          'sourceEndPage': credit.sourceEndPage,
+          'sourceCanonicalStartKey': credit.sourceCanonicalStartKey,
+          'sourceCanonicalEndKey': credit.sourceCanonicalEndKey,
+          'dayNumbers': credit.dayNumbers,
+        },
+    ];
   }
 
   OffDevicePageReadingSession _sessionFromCoverage({
