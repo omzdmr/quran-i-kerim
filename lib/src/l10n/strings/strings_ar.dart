@@ -23,11 +23,13 @@ const arStrings = <String, String>{
   'arabic': 'العربية',
   'azerbaijani': 'Azərbaycanca',
   'russian': 'Русский',
+  'french': 'Français',
   'turkishDescription': 'Uygulamayı Türkçe kullan',
   'englishDescription': 'Use the app in English',
   'arabicDescription': 'استخدم التطبيق باللغة العربية',
   'azerbaijaniDescription': 'Tətbiqi Azərbaycan dilində istifadə et',
   'russianDescription': 'Использовать приложение на русском языке',
+  'frenchDescription': 'استخدم التطبيق باللغة الفرنسية',
   'quranLanguage': 'لغة القرآن والترجمة',
   'quranLanguageDescription':
       'اختر النص الذي تقرؤه بشكل مستقل عن لغة الواجهة. ستتوفر ترجمات إضافية للتنزيل لاحقاً.',
