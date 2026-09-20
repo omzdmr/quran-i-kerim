@@ -25,7 +25,7 @@ void main() {
 
   test('Learn reference strings cover every catalog item in every locale', () {
     final referenceKeys = learnReferenceStrings['tr']!.keys.toSet();
-    for (final locale in <String>['tr', 'en', 'ar', 'az', 'ru']) {
+    for (final locale in <String>['tr', 'en', 'ar', 'az', 'ru', 'fr']) {
       final values = learnReferenceStrings[locale];
       expect(values, isNotNull, reason: 'Missing Learn reference strings for $locale');
       expect(
