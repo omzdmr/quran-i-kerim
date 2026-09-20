@@ -92,61 +92,73 @@ class _HomePrayerCardState extends State<HomePrayerCard> {
     final now = tz.TZDateTime.now(zone);
     final next = _nextPrayer(city);
     final remaining = next.time.difference(now);
+    final prayerName = l10n.text(next.key);
+    final clock = _clock(next.time);
+    final remainingText = _remaining(remaining, generatedL10n);
+    final semanticsLabel =
+        '${generatedL10n.nextPrayer}: $prayerName, $clock, '
+        '$remainingText ${generatedL10n.remaining}. '
+        '${city.label}, ${generatedL10n.prayerTimes}.';
 
-    return Material(
-      color: scheme.surfaceContainer,
-      borderRadius: BorderRadius.circular(24),
-      child: InkWell(
+    return Semantics(
+      button: true,
+      label: semanticsLabel,
+      excludeSemantics: true,
+      child: Material(
+        color: scheme.surfaceContainer,
         borderRadius: BorderRadius.circular(24),
-        onTap: () async {
-          await Navigator.of(
-            context,
-          ).push<void>(MaterialPageRoute(builder: (_) => const PrayerScreen()));
-          if (mounted) _load();
-        },
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 17, 18, 16),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: scheme.primaryContainer,
-                  shape: BoxShape.circle,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: () async {
+            await Navigator.of(
+              context,
+            ).push<void>(MaterialPageRoute(builder: (_) => const PrayerScreen()));
+            if (mounted) _load();
+          },
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 17, 18, 16),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: scheme.primaryContainer,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.schedule_rounded, color: scheme.primary),
                 ),
-                child: Icon(Icons.schedule_rounded, color: scheme.primary),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${generatedL10n.nextPrayer} · ${l10n.text(next.key)}',
-                      style: TextStyle(
-                        color: scheme.primary,
-                        fontWeight: FontWeight.w900,
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${generatedL10n.nextPrayer} · $prayerName',
+                        style: TextStyle(
+                          color: scheme.primary,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      '${_clock(next.time)} · ${_remaining(remaining, generatedL10n)} ${generatedL10n.remaining}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
+                      const SizedBox(height: 3),
+                      Text(
+                        '$clock · $remainingText ${generatedL10n.remaining}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${city.label} · ${generatedL10n.prayerTimes}',
-                      style: TextStyle(color: scheme.onSurfaceVariant),
-                    ),
-                  ],
+                      const SizedBox(height: 2),
+                      Text(
+                        '${city.label} · ${generatedL10n.prayerTimes}',
+                        style: TextStyle(color: scheme.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const Icon(Icons.chevron_right_rounded),
-            ],
+                const Icon(Icons.chevron_right_rounded),
+              ],
+            ),
           ),
         ),
       ),
