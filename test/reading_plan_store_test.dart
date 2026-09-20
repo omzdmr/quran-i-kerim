@@ -210,4 +210,34 @@ void main() {
     expect(loaded.remainingForYear(2025), 2);
   });
 
+
+  test('removing a completed khatm updates archive and yearly total', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      ReadingPlanStore.preferenceKey:
+          '{"active":null,"saved":[],"yearlyKhatmTarget":3,"completed":['
+          '{"preset":"quran30","startedAt":"2026-01-01","completedAt":"2026-01-30"},'
+          '{"preset":"quran90","startedAt":"2026-03-01","completedAt":"2026-05-29"}'
+          ']}',
+    });
+
+    final after = await store.removeCompletedAt(0);
+
+    expect(after.completed, hasLength(1));
+    expect(after.completed.single.preset, ReadingPlanPreset.quran90);
+    expect(after.completedInYear(2026), 1);
+    expect(after.remainingForYear(2026), 2);
+    expect(after.yearlyKhatmTarget, 3);
+  });
+
+  test('removing an invalid archive index fails without mutating data', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      ReadingPlanStore.preferenceKey:
+          '{"active":null,"saved":[],"completed":[]}',
+    });
+
+    await expectLater(store.removeCompletedAt(0), throwsRangeError);
+    final loaded = await store.load();
+    expect(loaded.completed, isEmpty);
+  });
+
 }
