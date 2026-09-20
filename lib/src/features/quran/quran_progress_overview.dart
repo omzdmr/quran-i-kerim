@@ -9,6 +9,7 @@ import '../../navigation/app_navigation.dart';
 import '../../settings/app_settings.dart';
 import '../plans/reading_plan_store.dart';
 import '../reader/reader_navigation.dart';
+import '../reader/reader_reading_history.dart';
 
 class QuranProgressOverview extends StatefulWidget {
   const QuranProgressOverview({super.key});
@@ -24,17 +25,27 @@ class _QuranProgressOverviewState extends State<QuranProgressOverview> {
   int _readingPlanLoadGeneration = 0;
   bool _readingPlanLoading = true;
   ReadingPlanSnapshot _readingPlanSnapshot = const ReadingPlanSnapshot();
+  bool _readingHistoryLoading = true;
+  int _readingHistoryLoadGeneration = 0;
+  List<ReaderHistoryEntry> _readingHistory = const <ReaderHistoryEntry>[];
 
   @override
   void initState() {
     super.initState();
     ReadingPlanStore.changes.addListener(_handleReadingPlanChanged);
+    ReaderReadingHistoryRepository.changes.addListener(
+      _handleReadingHistoryChanged,
+    );
     _loadReadingPlan();
+    _loadReadingHistory();
   }
 
   @override
   void dispose() {
     ReadingPlanStore.changes.removeListener(_handleReadingPlanChanged);
+    ReaderReadingHistoryRepository.changes.removeListener(
+      _handleReadingHistoryChanged,
+    );
     super.dispose();
   }
 
@@ -55,6 +66,20 @@ class _QuranProgressOverviewState extends State<QuranProgressOverview> {
     _loadReadingPlan();
   }
 
+  void _handleReadingHistoryChanged() {
+    _loadReadingHistory();
+  }
+
+  Future<void> _loadReadingHistory() async {
+    final generation = ++_readingHistoryLoadGeneration;
+    final entries = await ReaderReadingHistoryRepository.instance.load();
+    if (!mounted || generation != _readingHistoryLoadGeneration) return;
+    setState(() {
+      _readingHistory = entries;
+      _readingHistoryLoading = false;
+    });
+  }
+
   Future<void> _loadReadingPlan() async {
     final generation = ++_readingPlanLoadGeneration;
     final snapshot = await _readingPlanStore.load();
@@ -63,6 +88,11 @@ class _QuranProgressOverviewState extends State<QuranProgressOverview> {
       _readingPlanSnapshot = snapshot;
       _readingPlanLoading = false;
     });
+  }
+
+  void _openHistoryEntry(ReaderHistoryEntry entry) {
+    HapticFeedback.selectionClick();
+    AppNavigation.instance.openReader(surah: entry.surah, ayah: entry.ayah);
   }
 
   void _openPlans() {
@@ -104,7 +134,10 @@ class _QuranProgressOverviewState extends State<QuranProgressOverview> {
             settings: settings,
             readingPlanLoading: _readingPlanLoading,
             readingPlanSnapshot: _readingPlanSnapshot,
+            readingHistoryLoading: _readingHistoryLoading,
+            readingHistory: _readingHistory,
             onContinue: () => _continueReading(settings),
+            onOpenHistoryEntry: _openHistoryEntry,
             onOpenPlans: _openPlans,
             onReadPlan: _openReadingPlanDay,
           )
@@ -123,7 +156,10 @@ class _ReadingProgress extends StatelessWidget {
     required this.settings,
     required this.readingPlanLoading,
     required this.readingPlanSnapshot,
+    required this.readingHistoryLoading,
+    required this.readingHistory,
     required this.onContinue,
+    required this.onOpenHistoryEntry,
     required this.onOpenPlans,
     required this.onReadPlan,
   });
@@ -131,7 +167,10 @@ class _ReadingProgress extends StatelessWidget {
   final AppSettings settings;
   final bool readingPlanLoading;
   final ReadingPlanSnapshot readingPlanSnapshot;
+  final bool readingHistoryLoading;
+  final List<ReaderHistoryEntry> readingHistory;
   final VoidCallback onContinue;
+  final ValueChanged<ReaderHistoryEntry> onOpenHistoryEntry;
   final VoidCallback onOpenPlans;
   final VoidCallback onReadPlan;
 
@@ -289,6 +328,12 @@ class _ReadingProgress extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 16),
+        _RecentReadingHistoryCard(
+          loading: readingHistoryLoading,
+          entries: readingHistory.take(3).toList(growable: false),
+          onOpen: onOpenHistoryEntry,
+        ),
+        const SizedBox(height: 16),
         _ReadingPlanProgressCard(
           loading: readingPlanLoading,
           snapshot: readingPlanSnapshot,
@@ -296,6 +341,95 @@ class _ReadingProgress extends StatelessWidget {
           onReadPlan: onReadPlan,
         ),
       ],
+    );
+  }
+}
+
+class _RecentReadingHistoryCard extends StatelessWidget {
+  const _RecentReadingHistoryCard({
+    required this.loading,
+    required this.entries,
+    required this.onOpen,
+  });
+
+  final bool loading;
+  final List<ReaderHistoryEntry> entries;
+  final ValueChanged<ReaderHistoryEntry> onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
+    final languageCode = Localizations.localeOf(context).languageCode;
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.history_rounded, color: scheme.primary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  l10n.text('readerHistoryTitle'),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 5),
+          Text(
+            l10n.text('readerHistorySubtitle'),
+            style: TextStyle(color: scheme.onSurfaceVariant, height: 1.35),
+          ),
+          const SizedBox(height: 12),
+          if (loading)
+            const LinearProgressIndicator()
+          else if (entries.isEmpty)
+            Text(
+              l10n.text('readerHistoryEmpty'),
+              style: TextStyle(color: scheme.onSurfaceVariant),
+            )
+          else
+            for (var index = 0; index < entries.length; index++) ...[
+              if (index > 0) const Divider(height: 1),
+              Builder(
+                builder: (context) {
+                  final entry = entries[index];
+                  final metadata = quranVerseMetadata(entry.surah, entry.ayah);
+                  final surahName = localizedSurahName(
+                    entry.surah,
+                    languageCode,
+                  );
+                  final meta = l10n
+                      .text('readerHistoryMeta')
+                      .replaceAll('{juz}', '${metadata.juz}')
+                      .replaceAll('{page}', '${metadata.page}');
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: CircleAvatar(child: Text('${entry.surah}')),
+                    title: Text(
+                      '$surahName ${entry.surah}:${entry.ayah}',
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    subtitle: Text(meta),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => onOpen(entry),
+                  );
+                },
+              ),
+            ],
+        ],
+      ),
     );
   }
 }

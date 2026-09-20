@@ -1099,10 +1099,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   Future<void> _showReadingHistory() async {
     final entries = await ReaderReadingHistoryRepository.instance.load();
     if (!mounted) return;
-    final language = Localizations.localeOf(context).languageCode;
-    final empty = language == 'tr'
-        ? 'Henüz okuma geçmişi yok.'
-        : 'No reading history yet.';
+    final empty = context.l10n.text('readerHistoryEmpty');
     final picked = await showModalBottomSheet<ReaderHistoryEntry>(
       context: context,
       isScrollControlled: true,
@@ -1124,9 +1121,10 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                       leading: CircleAvatar(child: Text('${entry.surah}')),
                       title: Text('${_surahName(surah)} ${entry.surah}:${entry.ayah}'),
                       subtitle: Text(
-                        language == 'tr'
-                            ? 'Cüz ${metadata.juz} · Sayfa ${metadata.page}'
-                            : 'Juz ${metadata.juz} · Page ${metadata.page}',
+                        context.l10n
+                            .text('readerHistoryMeta')
+                            .replaceAll('{juz}', '${metadata.juz}')
+                            .replaceAll('{page}', '${metadata.page}'),
                       ),
                       trailing: const Icon(Icons.chevron_right_rounded),
                       onTap: () => Navigator.pop(sheetContext, entry),
@@ -1174,16 +1172,8 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.history_rounded),
-                title: Text(
-                  Localizations.localeOf(context).languageCode == 'tr'
-                      ? 'Son okunanlar'
-                      : 'Reading history',
-                ),
-                subtitle: Text(
-                  Localizations.localeOf(context).languageCode == 'tr'
-                      ? 'Son okuduğun ayetlere dön'
-                      : 'Return to recently read verses',
-                ),
+                title: Text(l10n.text('readerHistoryTitle')),
+                subtitle: Text(l10n.text('readerHistorySubtitle')),
                 onTap: () {
                   Navigator.pop(sheetContext);
                   _showReadingHistory();

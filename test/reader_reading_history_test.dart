@@ -64,6 +64,20 @@ void main() {
     expect(items.single.ayah, 255);
     expect(items.single.sourceId, 'tr_rwwad');
   });
+  test('notifies listeners after history changes', () async {
+    final repo = ReaderReadingHistoryRepository.instance;
+    var notifications = 0;
+    void listener() => notifications++;
+    ReaderReadingHistoryRepository.changes.addListener(listener);
+    addTearDown(
+      () => ReaderReadingHistoryRepository.changes.removeListener(listener),
+    );
+
+    await repo.record(surah: 1, ayah: 1, sourceId: 'arabic_original');
+    await repo.clear();
+
+    expect(notifications, 2);
+  });
 
   test('reading history recovers from malformed json', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{

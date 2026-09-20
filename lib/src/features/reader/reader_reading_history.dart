@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ReaderHistoryEntry {
@@ -49,6 +50,7 @@ class ReaderReadingHistoryRepository {
 
   static const String storageKey = 'reader_history_v1';
   static const int maxEntries = 50;
+  static final ValueNotifier<int> changes = ValueNotifier<int>(0);
 
   Future<List<ReaderHistoryEntry>> load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -94,10 +96,12 @@ class ReaderReadingHistoryRepository {
       storageKey,
       jsonEncode(items.map((entry) => entry.toJson()).toList(growable: false)),
     );
+    changes.value++;
   }
 
   Future<void> clear() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(storageKey);
+    changes.value++;
   }
 }
