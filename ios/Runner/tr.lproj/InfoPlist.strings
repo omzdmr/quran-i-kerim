@@ -1,0 +1,3 @@
+"CFBundleDisplayName" = "Kur’an-ı Kerim";
+"NSLocationWhenInUseUsageDescription" = "Konumunuz namaz vakitleri ve kıble yönünü hesaplamak için yalnızca izin verdiğinizde kullanılır.";
+"NSMicrophoneUsageDescription" = "Mikrofon yalnızca kendi ezber kaydınızı oluşturmak istediğinizde kullanılır.";
