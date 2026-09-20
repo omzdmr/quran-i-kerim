@@ -216,7 +216,7 @@ class _PlansScreenState extends State<PlansScreen> {
               controller: controller,
               autofocus: true,
               keyboardType: TextInputType.number,
-              inputFormatters: const <TextInputFormatter>[
+              inputFormatters: <TextInputFormatter>[
                 FilteringTextInputFormatter.digitsOnly,
                 LengthLimitingTextInputFormatter(2),
               ],
