@@ -13,7 +13,9 @@ void main() {
         reason: 'backup localization keys differ for $language',
       );
       expect(
-        backupStrings[language]!.values.every((value) => value.trim().isNotEmpty),
+        backupStrings[language]!.values.every(
+          (value) => value.trim().isNotEmpty,
+        ),
         isTrue,
         reason: 'backup localization contains an empty value for $language',
       );
