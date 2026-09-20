@@ -214,4 +214,56 @@ const backupStrings = <String, Map<String, String>>{
     'backupCloudReplaceConfirmBody': 'Корректные данные этого устройства будут сохранены новым снимком вместо нечитаемой облачной копии.',
     'backupCloudFailed': 'Не удалось завершить резервное копирование через Google Drive.',
   },
+  'fr': <String, String>{
+    'backupTitle': 'Sauvegarde et restauration',
+    'backupSubtitle':
+        'Sauvegardez vos notes, vos éléments enregistrés et votre progression sur l’appareil, ou exportez-les vers votre propre espace cloud.',
+    'backupCreateExport': 'Créer et exporter une sauvegarde',
+    'backupImport': 'Importer un fichier de sauvegarde',
+    'backupRecent': 'Sauvegardes sur cet appareil',
+    'backupEmpty': 'Aucune sauvegarde n’a encore été créée sur cet appareil.',
+    'backupPrivacy':
+        'La position exacte et les coordonnées, les packs du Coran et de traductions, le cache audio et les enregistrements de mémorisation ne sont pas inclus.',
+    'backupShare': 'Partager / exporter',
+    'backupRestore': 'Restaurer',
+    'backupCreated': 'Sauvegarde créée.',
+    'backupRestored': 'Sauvegarde restaurée.',
+    'backupRestoreConfirmTitle': 'Restaurer cette sauvegarde ?',
+    'backupRestoreConfirmBody':
+        'Les données de l’application présentes dans la sauvegarde remplaceront les données locales correspondantes. En cas d’échec de la restauration, l’état précédent sera rétabli.',
+    'backupInvalid': 'Ce fichier n’est pas une sauvegarde valide ou prise en charge.',
+    'backupVersionLabel': 'Version de sauvegarde {version}',
+    'backupRecordCount': '{count} enregistrements',
+    'backupOperationFailed': 'L’opération de sauvegarde n’a pas pu être terminée.',
+    'backupImportPathUnavailable': 'Impossible d’accéder au fichier sélectionné.',
+    'backupExternalHint':
+        'Lors de l’exportation, vous pouvez choisir iCloud Drive, Google Drive, Fichiers ou une autre destination proposée par votre appareil.',
+    'backupCloudTitle': 'Sauvegarde Google Drive',
+    'backupCloudSubtitle':
+        'La sauvegarde reste dans l’espace réservé à l’application de votre compte Google. Le reste de vos fichiers Drive n’est pas accessible.',
+    'backupCloudConnect': 'Connecter Google Drive',
+    'backupCloudConnectedAs': 'Connecté avec {account}',
+    'backupCloudRemoteEmpty': 'Aucune sauvegarde de l’application n’est encore disponible dans Drive.',
+    'backupCloudUpToDate': 'Les données de l’appareil et la sauvegarde cloud correspondent.',
+    'backupCloudDiverged': 'Les données de l’appareil et la sauvegarde cloud sont différentes.',
+    'backupCloudInvalid': 'La sauvegarde cloud est illisible ou non prise en charge.',
+    'backupCloudChecking': 'Vérification de la sauvegarde cloud…',
+    'backupCloudUpdatedAt': 'Dernière sauvegarde cloud : {date}',
+    'backupCloudRefresh': 'Vérifier à nouveau',
+    'backupCloudUpload': 'Sauvegarder cet appareil dans Drive',
+    'backupCloudRestore': 'Restaurer depuis Drive',
+    'backupCloudReplace': 'Remplacer la sauvegarde cloud par cet appareil',
+    'backupCloudSignOut': 'Se déconnecter du compte Google',
+    'backupCloudUploadConfirmTitle': 'Modifier la sauvegarde Drive ?',
+    'backupCloudUploadConfirmBody':
+        'Les données de cet appareil diffèrent de l’état dans le cloud et seront enregistrées comme une nouvelle sauvegarde Drive. Un historique limité des petits instantanés précédents est conservé.',
+    'backupCloudRestoreConfirmTitle': 'Restaurer la sauvegarde Drive ?',
+    'backupCloudRestoreConfirmBody':
+        'Les données de l’application stockées dans le cloud seront appliquées aux données locales de cet appareil. Vous pouvez d’abord exporter vos données actuelles si nécessaire.',
+    'backupCloudReplaceConfirmTitle': 'Remplacer la sauvegarde cloud illisible ?',
+    'backupCloudReplaceConfirmBody':
+        'Les données valides de cet appareil seront enregistrées comme un nouvel instantané à la place de la sauvegarde cloud illisible.',
+    'backupCloudFailed': 'L’opération de sauvegarde Google Drive n’a pas pu être terminée.',
+  },
+
 };
