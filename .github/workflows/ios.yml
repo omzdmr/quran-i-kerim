@@ -5,6 +5,10 @@ on:
     branches: [ automation/ios-parity ]
   workflow_dispatch:
 
+concurrency:
+  group: ios-parity-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
