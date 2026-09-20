@@ -746,10 +746,12 @@ class ReadingPlanStore {
               final endPage = _intValue(item['endPage']);
               if (startPage == null || endPage == null) continue;
               coverage = _coverageForPages(startPage, endPage);
+              break;
             case OffDeviceReadingInputKind.juz:
               juzNumber = _intValue(item['juzNumber']);
               if (juzNumber == null) continue;
               coverage = _coverageForJuz(juzNumber);
+              break;
             case OffDeviceReadingInputKind.ayahRange:
               final startSurah = _intValue(item['startSurah']);
               final startAyah = _intValue(item['startAyah']);
@@ -767,6 +769,7 @@ class ReadingPlanStore {
                 endSurah: endSurah,
                 endAyah: endAyah,
               );
+              break;
           }
 
           offDevicePageSessions.add(
@@ -1010,16 +1013,6 @@ class ReadingPlanStore {
         'Must not be before startPage.',
       );
     }
-  }
-
-  void _validateOffDevicePageSession({
-    required int startPage,
-    required int endPage,
-    required DateTime readAt,
-    required DateTime today,
-  }) {
-    _validateOffDevicePageRange(startPage: startPage, endPage: endPage);
-    _validateOffDeviceReadDate(readAt: readAt, today: today);
   }
 
   void _validateManualKhatmDates({
