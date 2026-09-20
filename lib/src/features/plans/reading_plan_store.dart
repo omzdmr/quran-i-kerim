@@ -563,6 +563,9 @@ class ReadingPlanStore {
           preset: active.preset,
           startedAt: active.startedAt,
           completedAt: creditedAt,
+          offDeviceCredits: List<OffDevicePlanCreditEvent>.unmodifiable(
+            credits,
+          ),
         ),
         ...current.completed,
       ];
@@ -697,6 +700,7 @@ class ReadingPlanStore {
           preset: active.preset,
           startedAt: active.startedAt,
           completedAt: readingPlanDateOnly(now ?? DateTime.now()),
+          offDeviceCredits: active.offDeviceCredits,
         ),
         ...current.completed,
       ];
@@ -752,6 +756,7 @@ class ReadingPlanStore {
           preset: active.preset,
           startedAt: active.startedAt,
           completedAt: readingPlanDateOnly(now ?? DateTime.now()),
+          offDeviceCredits: active.offDeviceCredits,
         ),
         ...current.completed,
       ];
@@ -925,6 +930,11 @@ class ReadingPlanStore {
           continue;
         }
 
+        final completedCredits =
+            source == KhatmCompletionSource.readingPlan && preset != null
+            ? _decodeOffDeviceCreditEvents(item['offDeviceCredits'], preset)
+            : const <OffDevicePlanCreditEvent>[];
+
         completed.add(
           CompletedReadingPlan(
             preset: source == KhatmCompletionSource.readingPlan ? preset : null,
@@ -932,6 +942,7 @@ class ReadingPlanStore {
             completedAt: completedAt,
             source: source,
             note: _decodeNote(item['note']?.toString()),
+            offDeviceCredits: completedCredits,
           ),
         );
       }
@@ -1095,6 +1106,19 @@ class ReadingPlanStore {
             'startedAt': item.startedAt == null ? null : _date(item.startedAt!),
             'completedAt': _date(item.completedAt),
             'note': item.note,
+            'offDeviceCredits': <Object?>[
+              for (final credit in item.offDeviceCredits)
+                <String, Object?>{
+                  'creditedAt': _date(credit.creditedAt),
+                  'sourceReadAt': _date(credit.sourceReadAt),
+                  'sourceInputKind': credit.sourceInputKind.id,
+                  'sourceStartPage': credit.sourceStartPage,
+                  'sourceEndPage': credit.sourceEndPage,
+                  'sourceCanonicalStartKey': credit.sourceCanonicalStartKey,
+                  'sourceCanonicalEndKey': credit.sourceCanonicalEndKey,
+                  'dayNumbers': credit.dayNumbers,
+                },
+            ],
           },
       ],
     };
@@ -1235,6 +1259,64 @@ class ReadingPlanStore {
       endSurah: endSurah,
       endAyah: endAyah,
     );
+  }
+
+  List<OffDevicePlanCreditEvent> _decodeOffDeviceCreditEvents(
+    Object? rawCredits,
+    ReadingPlanPreset preset,
+  ) {
+    if (rawCredits is! List) return const <OffDevicePlanCreditEvent>[];
+
+    final credits = <OffDevicePlanCreditEvent>[];
+    for (final item in rawCredits) {
+      if (item is! Map) continue;
+      final creditedAt = DateTime.tryParse(
+        item['creditedAt']?.toString() ?? '',
+      );
+      final sourceReadAt = DateTime.tryParse(
+        item['sourceReadAt']?.toString() ?? '',
+      );
+      final sourceStartPage = _intValue(item['sourceStartPage']);
+      final sourceEndPage = _intValue(item['sourceEndPage']);
+      final rawCreditDays = item['dayNumbers'];
+      if (creditedAt == null ||
+          sourceReadAt == null ||
+          sourceStartPage == null ||
+          sourceEndPage == null ||
+          sourceStartPage < 1 ||
+          sourceEndPage > madinahMushafPageCount ||
+          sourceStartPage > sourceEndPage ||
+          rawCreditDays is! List) {
+        continue;
+      }
+
+      final creditDays = <int>{};
+      for (final rawDay in rawCreditDays) {
+        final day = _intValue(rawDay);
+        if (day != null && day >= 1 && day <= preset.durationDays) {
+          creditDays.add(day);
+        }
+      }
+      if (creditDays.isEmpty) continue;
+
+      final orderedDays = creditDays.toList()..sort();
+      credits.add(
+        OffDevicePlanCreditEvent(
+          creditedAt: readingPlanDateOnly(creditedAt),
+          sourceReadAt: readingPlanDateOnly(sourceReadAt),
+          sourceInputKind: OffDeviceReadingInputKind.fromId(
+            item['sourceInputKind']?.toString(),
+          ),
+          sourceStartPage: sourceStartPage,
+          sourceEndPage: sourceEndPage,
+          sourceCanonicalStartKey: item['sourceCanonicalStartKey']?.toString(),
+          sourceCanonicalEndKey: item['sourceCanonicalEndKey']?.toString(),
+          dayNumbers: List<int>.unmodifiable(orderedDays),
+        ),
+      );
+    }
+
+    return List<OffDevicePlanCreditEvent>.unmodifiable(credits);
   }
 
   int _compareQuranReference(
