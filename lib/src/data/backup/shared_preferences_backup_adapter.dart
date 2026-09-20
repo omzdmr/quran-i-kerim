@@ -85,6 +85,7 @@ class SharedPreferencesBackupAdapter {
     'prayer_adjustment_isha',
     'prayer_notifications_enabled',
     'prayer_notification_ids',
+    'prayer_notification_profile',
     'prayer_hijri_offset',
   };
 

@@ -10,6 +10,20 @@ enum PrayerCalculationMethod {
 
 enum PrayerAsrMethod { standard, hanafi }
 
+enum PrayerNotificationProfile {
+  fullSound,
+  discreet,
+}
+
+extension PrayerNotificationProfileBehavior on PrayerNotificationProfile {
+  bool get playSound => this == PrayerNotificationProfile.fullSound;
+  bool get enableVibration => true;
+  String get channelId => switch (this) {
+    PrayerNotificationProfile.fullSound => 'prayer_times_full_v1',
+    PrayerNotificationProfile.discreet => 'prayer_times_discreet_v1',
+  };
+}
+
 enum PrayerHighLatitudeMethod {
   recommended,
   middleOfTheNight,

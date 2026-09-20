@@ -18,6 +18,7 @@ class PrayerSettingsSnapshot {
     this.adjustments = const PrayerMinuteAdjustments(),
     this.notificationsEnabled = false,
     this.notificationPrayerIds = defaultPrayerNotificationIds,
+    this.notificationProfile = PrayerNotificationProfile.fullSound,
     this.hijriOffsetDays = 0,
   });
 
@@ -27,6 +28,7 @@ class PrayerSettingsSnapshot {
   final PrayerMinuteAdjustments adjustments;
   final bool notificationsEnabled;
   final Set<String> notificationPrayerIds;
+  final PrayerNotificationProfile notificationProfile;
   final int hijriOffsetDays;
 
   PrayerPreferences preferencesFor(PrayerCalculationMethod cityDefault) {
@@ -86,6 +88,7 @@ class PrayerPreferencesStore {
   static const _ishaAdjustmentKey = 'prayer_adjustment_isha';
   static const _notificationsEnabledKey = 'prayer_notifications_enabled';
   static const _notificationPrayerIdsKey = 'prayer_notification_ids';
+  static const _notificationProfileKey = 'prayer_notification_profile';
   static const _hijriOffsetKey = 'prayer_hijri_offset';
   static const _deviceLatitudeKey = 'prayer_device_latitude';
   static const _deviceLongitudeKey = 'prayer_device_longitude';
@@ -132,6 +135,12 @@ class PrayerPreferencesStore {
       notificationPrayerIds: storedNotificationIds == null
           ? defaultPrayerNotificationIds
           : storedNotificationIds.toSet(),
+      notificationProfile:
+          _enumByName(
+            PrayerNotificationProfile.values,
+            prefs.getString(_notificationProfileKey),
+          ) ??
+          PrayerNotificationProfile.fullSound,
       hijriOffsetDays: (prefs.getInt(_hijriOffsetKey) ?? 0).clamp(-2, 2),
     );
   }
@@ -257,6 +266,7 @@ class PrayerPreferencesStore {
       _notificationPrayerIdsKey,
       value.notificationPrayerIds.toList()..sort(),
     );
+    await prefs.setString(_notificationProfileKey, value.notificationProfile.name);
     await prefs.setInt(_hijriOffsetKey, value.hijriOffsetDays.clamp(-2, 2));
   }
 

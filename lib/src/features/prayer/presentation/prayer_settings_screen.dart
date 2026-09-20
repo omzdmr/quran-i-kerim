@@ -28,6 +28,7 @@ class _PrayerSettingsScreenState extends State<PrayerSettingsScreen> {
   late PrayerMinuteAdjustments _adjustments;
   late bool _notificationsEnabled;
   late Set<String> _notificationPrayerIds;
+  late PrayerNotificationProfile _notificationProfile;
   late int _hijriOffsetDays;
   bool _requestingNotificationPermission = false;
   bool _checkingNotificationDiagnostics = false;
@@ -41,6 +42,7 @@ class _PrayerSettingsScreenState extends State<PrayerSettingsScreen> {
     _adjustments = widget.initial.adjustments;
     _notificationsEnabled = widget.initial.notificationsEnabled;
     _notificationPrayerIds = {...widget.initial.notificationPrayerIds};
+    _notificationProfile = widget.initial.notificationProfile;
     _hijriOffsetDays = widget.initial.hijriOffsetDays;
   }
 
@@ -51,6 +53,7 @@ class _PrayerSettingsScreenState extends State<PrayerSettingsScreen> {
     adjustments: _adjustments,
     notificationsEnabled: _notificationsEnabled,
     notificationPrayerIds: _notificationPrayerIds,
+    notificationProfile: _notificationProfile,
     hijriOffsetDays: _hijriOffsetDays,
   );
 
@@ -282,6 +285,32 @@ class _PrayerSettingsScreenState extends State<PrayerSettingsScreen> {
                           },
                         ),
                     ],
+                  ),
+                ],
+                if (_notificationsEnabled) ...[
+                  const SizedBox(height: 14),
+                  DropdownButtonFormField<PrayerNotificationProfile>(
+                    initialValue: _notificationProfile,
+                    decoration: InputDecoration(
+                      labelText: l10n.text('notificationProfileTitle'),
+                      helperText: l10n.text('notificationProfileInfo'),
+                      border: const OutlineInputBorder(),
+                    ),
+                    items: [
+                      DropdownMenuItem(
+                        value: PrayerNotificationProfile.fullSound,
+                        child: Text(l10n.text('notificationProfileFullSound')),
+                      ),
+                      DropdownMenuItem(
+                        value: PrayerNotificationProfile.discreet,
+                        child: Text(l10n.text('notificationProfileDiscreet')),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setState(() => _notificationProfile = value);
+                      HapticFeedback.selectionClick();
+                    },
                   ),
                 ],
                 const SizedBox(height: 12),

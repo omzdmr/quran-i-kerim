@@ -137,16 +137,18 @@ class PrayerNotificationService {
 
     final notificationDetails = NotificationDetails(
       android: AndroidNotificationDetails(
-        'prayer_times',
+        settings.notificationProfile.channelId,
         copy.prayerNotificationChannel,
         channelDescription: copy.prayerNotificationChannelDescription,
         importance: Importance.high,
         priority: Priority.high,
         category: AndroidNotificationCategory.reminder,
+        playSound: settings.notificationProfile.playSound,
+        enableVibration: settings.notificationProfile.enableVibration,
       ),
-      iOS: const DarwinNotificationDetails(
+      iOS: DarwinNotificationDetails(
         presentAlert: true,
-        presentSound: true,
+        presentSound: settings.notificationProfile.playSound,
       ),
     );
 

@@ -21,6 +21,7 @@ void main() {
       'prayer_asr_method': 'hanafi',
       'prayer_notifications_enabled': true,
       'prayer_notification_ids': <String>['fajr', 'isha'],
+      'prayer_notification_profile': 'discreet',
       'prayer_hijri_offset': 1,
       'reading_plan_state_v1': '{"active":{"preset":"quran30"}}',
       'prayer_city_id': '__device_location__',
@@ -40,6 +41,7 @@ void main() {
     expect(snapshot['dhikr_v2_selected'], 'subhanallah');
     expect(snapshot['prayer_asr_method'], 'hanafi');
     expect(snapshot['prayer_notification_ids'], <String>['fajr', 'isha']);
+    expect(snapshot['prayer_notification_profile'], 'discreet');
     expect(snapshot['reading_plan_state_v1'], isNotNull);
     expect(snapshot, isNot(contains('prayer_city_id')));
     for (final key in SharedPreferencesBackupAdapter.excludedPrayerLocationKeys) {
