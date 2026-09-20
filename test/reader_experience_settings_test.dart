@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:quran_i_kerim/src/data/backup/shared_preferences_backup_adapter.dart';
 import 'package:quran_i_kerim/src/settings/app_settings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -63,6 +64,24 @@ void main() {
     expect(settings.readerTextSize, 38);
     expect(settings.readerContentTextSize, 38);
     expect(settings.readerLineSpacing, ReaderLineSpacing.relaxed);
+  });
+
+  test('backup restore rehydrates the same Essential Reader experience', () async {
+    final settings = AppSettings();
+    await settings.load();
+    await settings.setReaderExperiencePreset(ReaderExperiencePreset.essential);
+
+    const adapter = SharedPreferencesBackupAdapter();
+    final sections = await adapter.captureSections();
+
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    await adapter.restoreSections(sections);
+
+    final restored = AppSettings();
+    await restored.load();
+
+    expect(restored.readerExperiencePreset, ReaderExperiencePreset.essential);
+    expect(restored.readerContentTextSize, 32);
   });
 
   test('unknown stored preset safely falls back to standard', () async {
