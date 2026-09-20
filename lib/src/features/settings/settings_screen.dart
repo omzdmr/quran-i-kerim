@@ -395,7 +395,7 @@ class _SettingsSearchDelegate extends SearchDelegate<void> {
         ),
         _SettingsSearchEntry(
           title: l10n.text('backupTitle'),
-          subtitle: l10n.text('backupDescription'),
+          subtitle: l10n.text('backupSubtitle'),
           icon: Icons.cloud_sync_outlined,
           onTap: () => Navigator.of(rootContext).push(
             MaterialPageRoute<void>(
