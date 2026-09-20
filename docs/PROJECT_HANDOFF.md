@@ -45,19 +45,21 @@ memory when it conflicts with the current branch.
 - Preserve existing visual shells unless the owner supplies a visual decision
   or a verified bug requires a change.
 
-## Integrated progress immediately before this handoff
+## Integrated progress at this handoff
 
 - Missed-day reading-plan recovery is connected to the user flow and persists
   the chosen recovery strategy.
 - Settings search opens real settings destinations.
 - Prayer notification diagnostics shows permission, exact-alarm availability
-  and scheduled prayer-notification count. Commit `29470ca` fixes its analyzer
-  failure; confirm the latest CI result rather than assuming it is green.
-- The earlier feature staging branch contains a screen-reader improvement for
-  the Home prayer card. This handoff's current feature slice reapplies it on
-  top of the latest integration branch.
+  and scheduled prayer-notification count. Commit `29470ca` fixed its analyzer
+  failure and its full Android workflow passed.
+- The Home prayer card exposes one concise screen-reader action.
+- Home recent-reading shortcuts were integrated in commit `7569d91`.
+- Slow hosted runners exhausted the former 30-minute Android job limit even
+  after analysis and tests passed. The limit is now 120 minutes in commit
+  `1ac4908`; validation behavior and required steps are unchanged.
 
-## Current feature slice in this commit
+## Latest completed feature slice
 
 Home now exposes up to three useful recent Quran-reading contexts beneath the
 primary Continue card:
@@ -85,8 +87,16 @@ primary Continue card:
 6. Update this file whenever the active feature, blocker or next concrete step
    changes.
 
+## Validation status
+
+The full Android workflow for code-bearing head `1ac4908` passed in run
+`35498316886`: analysis, all tests, ARM64 APK build, signer/application
+identity verification and artifact upload. The handoff-only commit after it
+uses `[skip ci]` intentionally.
+
 ## Immediate next step
 
-Validate this Home recent-reading slice in CI, fix only evidence-backed errors,
-then select the next visible roadmap feature. Do not restart Reading Plan
-Recovery or notification diagnostics unless a real regression is present.
+Select the next user-visible requirement from `PRODUCT_MASTER_SPEC.md` and
+deliver it as one complete vertical slice. Do not restart Reading Plan Recovery,
+notification diagnostics or Home recent-reading shortcuts unless a real
+regression is present.
