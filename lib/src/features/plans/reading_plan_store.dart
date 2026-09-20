@@ -467,7 +467,7 @@ class ReadingPlanStore {
             startedAt: startedAt,
             completedAt: completedAt,
             source: source,
-            note: _normalizeNote(item['note']?.toString()),
+            note: _decodeNote(item['note']?.toString()),
           ),
         );
       }
@@ -553,6 +553,13 @@ class ReadingPlanStore {
         'Must not be after the completion date.',
       );
     }
+  }
+
+  String? _decodeNote(String? value) {
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty) return null;
+    if (trimmed.length <= 300) return trimmed;
+    return trimmed.substring(0, 300);
   }
 
   String? _normalizeNote(String? value) {
