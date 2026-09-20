@@ -105,6 +105,24 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceDeleteBodyV1':
         'Bu cihaz dışı okuma kaydı silinecek. Aktif plan ilerlemesi değişmeyecek.',
     'plansOffDeviceDeleteV1': 'Kaydı sil',
+    'plansOffDeviceInputTypeV1': 'Giriş türü',
+    'plansOffDeviceInputPageV1': 'Sayfa',
+    'plansOffDeviceInputJuzV1': 'Cüz',
+    'plansOffDeviceInputAyahV1': 'Ayet aralığı',
+    'plansOffDeviceJuzNumberV1': 'Cüz numarası',
+    'plansOffDeviceJuzHelperV1': '1–30 arasında cüz numarası gir.',
+    'plansOffDeviceStartSurahV1': 'Başlangıç suresi',
+    'plansOffDeviceStartAyahV1': 'Başlangıç ayeti',
+    'plansOffDeviceEndSurahV1': 'Bitiş suresi',
+    'plansOffDeviceEndAyahV1': 'Bitiş ayeti',
+    'plansOffDeviceAyahHelperV1':
+        'Sure ve ayet numaralarını kullan (ör. 2:255–2:257).',
+    'plansOffDeviceJuzErrorV1': 'Cüz numarası 1–30 arasında olmalı.',
+    'plansOffDeviceAyahErrorV1':
+        'Geçerli bir başlangıç ve bitiş ayeti gir; başlangıç bitişten sonra olamaz.',
+    'plansOffDeviceJuzLabelV1': 'Cüz {juz}',
+    'plansOffDeviceAyahRangeLabelV1': 'Ayet {start}–{end}',
+    'plansOffDeviceCanonicalRangeV1': 'Kanonik kapsama: {start}–{end}',
   },
   'en': <String, String>{
     'plansSearchHintV1': 'Search plans',
@@ -212,6 +230,24 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceDeleteBodyV1':
         'This off-device reading record will be deleted. Active-plan progress will not change.',
     'plansOffDeviceDeleteV1': 'Delete record',
+    'plansOffDeviceInputTypeV1': 'Input type',
+    'plansOffDeviceInputPageV1': 'Pages',
+    'plansOffDeviceInputJuzV1': 'Juz',
+    'plansOffDeviceInputAyahV1': 'Ayah range',
+    'plansOffDeviceJuzNumberV1': 'Juz number',
+    'plansOffDeviceJuzHelperV1': 'Enter a juz number from 1 to 30.',
+    'plansOffDeviceStartSurahV1': 'Start surah',
+    'plansOffDeviceStartAyahV1': 'Start ayah',
+    'plansOffDeviceEndSurahV1': 'End surah',
+    'plansOffDeviceEndAyahV1': 'End ayah',
+    'plansOffDeviceAyahHelperV1':
+        'Use surah and ayah numbers (e.g. 2:255–2:257).',
+    'plansOffDeviceJuzErrorV1': 'Juz must be between 1 and 30.',
+    'plansOffDeviceAyahErrorV1':
+        'Enter valid start and end ayahs; the start cannot be after the end.',
+    'plansOffDeviceJuzLabelV1': 'Juz {juz}',
+    'plansOffDeviceAyahRangeLabelV1': 'Ayahs {start}–{end}',
+    'plansOffDeviceCanonicalRangeV1': 'Canonical coverage: {start}–{end}',
   },
   'ar': <String, String>{
     'plansSearchHintV1': 'ابحث في الخطط',
@@ -318,6 +354,24 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceDeleteBodyV1':
         'سيُحذف سجل القراءة خارج الجهاز ولن يتغير تقدم الخطة النشطة.',
     'plansOffDeviceDeleteV1': 'حذف السجل',
+    'plansOffDeviceInputTypeV1': 'نوع الإدخال',
+    'plansOffDeviceInputPageV1': 'صفحات',
+    'plansOffDeviceInputJuzV1': 'جزء',
+    'plansOffDeviceInputAyahV1': 'نطاق آيات',
+    'plansOffDeviceJuzNumberV1': 'رقم الجزء',
+    'plansOffDeviceJuzHelperV1': 'أدخل رقم جزء من 1 إلى 30.',
+    'plansOffDeviceStartSurahV1': 'سورة البداية',
+    'plansOffDeviceStartAyahV1': 'آية البداية',
+    'plansOffDeviceEndSurahV1': 'سورة النهاية',
+    'plansOffDeviceEndAyahV1': 'آية النهاية',
+    'plansOffDeviceAyahHelperV1':
+        'استخدم أرقام السور والآيات (مثال: 2:255–2:257).',
+    'plansOffDeviceJuzErrorV1': 'يجب أن يكون رقم الجزء بين 1 و30.',
+    'plansOffDeviceAyahErrorV1':
+        'أدخل آية بداية ونهاية صالحتين، ولا يجوز أن تكون البداية بعد النهاية.',
+    'plansOffDeviceJuzLabelV1': 'الجزء {juz}',
+    'plansOffDeviceAyahRangeLabelV1': 'الآيات {start}–{end}',
+    'plansOffDeviceCanonicalRangeV1': 'النطاق المعياري: {start}–{end}',
   },
   'az': <String, String>{
     'plansSearchHintV1': 'Plan axtar',
@@ -425,6 +479,24 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceDeleteBodyV1':
         'Bu cihazdan kənar oxu qeydi silinəcək. Aktiv planın irəliləyişi dəyişməyəcək.',
     'plansOffDeviceDeleteV1': 'Qeydi sil',
+    'plansOffDeviceInputTypeV1': 'Daxiletmə növü',
+    'plansOffDeviceInputPageV1': 'Səhifə',
+    'plansOffDeviceInputJuzV1': 'Cüz',
+    'plansOffDeviceInputAyahV1': 'Ayə aralığı',
+    'plansOffDeviceJuzNumberV1': 'Cüz nömrəsi',
+    'plansOffDeviceJuzHelperV1': '1–30 arasında cüz nömrəsi daxil edin.',
+    'plansOffDeviceStartSurahV1': 'Başlanğıc surəsi',
+    'plansOffDeviceStartAyahV1': 'Başlanğıc ayəsi',
+    'plansOffDeviceEndSurahV1': 'Son surə',
+    'plansOffDeviceEndAyahV1': 'Son ayə',
+    'plansOffDeviceAyahHelperV1':
+        'Surə və ayə nömrələrini istifadə edin (məs. 2:255–2:257).',
+    'plansOffDeviceJuzErrorV1': 'Cüz nömrəsi 1–30 arasında olmalıdır.',
+    'plansOffDeviceAyahErrorV1':
+        'Etibarlı başlanğıc və son ayə daxil edin; başlanğıc sondan sonra ola bilməz.',
+    'plansOffDeviceJuzLabelV1': 'Cüz {juz}',
+    'plansOffDeviceAyahRangeLabelV1': 'Ayə {start}–{end}',
+    'plansOffDeviceCanonicalRangeV1': 'Kanonik aralıq: {start}–{end}',
   },
   'ru': <String, String>{
     'plansSearchHintV1': 'Поиск планов',
@@ -533,5 +605,24 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceDeleteBodyV1':
         'Запись чтения вне приложения будет удалена. Прогресс активного плана не изменится.',
     'plansOffDeviceDeleteV1': 'Удалить запись',
+    'plansOffDeviceInputTypeV1': 'Тип ввода',
+    'plansOffDeviceInputPageV1': 'Страницы',
+    'plansOffDeviceInputJuzV1': 'Джуз',
+    'plansOffDeviceInputAyahV1': 'Диапазон аятов',
+    'plansOffDeviceJuzNumberV1': 'Номер джуза',
+    'plansOffDeviceJuzHelperV1': 'Введите номер джуза от 1 до 30.',
+    'plansOffDeviceStartSurahV1': 'Начальная сура',
+    'plansOffDeviceStartAyahV1': 'Начальный аят',
+    'plansOffDeviceEndSurahV1': 'Конечная сура',
+    'plansOffDeviceEndAyahV1': 'Конечный аят',
+    'plansOffDeviceAyahHelperV1':
+        'Укажите номера суры и аята (например, 2:255–2:257).',
+    'plansOffDeviceJuzErrorV1': 'Номер джуза должен быть от 1 до 30.',
+    'plansOffDeviceAyahErrorV1':
+        'Укажите корректные начальный и конечный аяты; начало не может быть после конца.',
+    'plansOffDeviceJuzLabelV1': 'Джуз {juz}',
+    'plansOffDeviceAyahRangeLabelV1': 'Аяты {start}–{end}',
+    'plansOffDeviceCanonicalRangeV1':
+        'Канонический диапазон: {start}–{end}',
   },
 };
