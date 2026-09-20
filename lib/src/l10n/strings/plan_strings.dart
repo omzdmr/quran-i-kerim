@@ -845,4 +845,183 @@ const planStrings = <String, Map<String, String>>{
     'plansKhatmCreditEventPagesV1': 'Страницы {start}–{end}',
     'plansKhatmCreditEventRangeV1': 'Диапазон аятов: {start}–{end}',
   },
+  'fr': <String, String>{
+    'plansSearchHintV1': 'Rechercher des plans',
+    'plansEmptyActiveV1': 'Vous n’avez pas encore de plan de lecture actif.',
+    'plansEmptySavedV1': 'Vous n’avez pas encore enregistré de plan.',
+    'plansEmptyCompletedV1': 'Vous n’avez pas encore terminé de plan.',
+    'plansNoResultsV1': 'Aucun plan ne correspond à cette recherche.',
+    'plansDayProgressV1': 'Jour {day} sur {total}',
+    'plansPagesV1': 'Pages {start}–{end}',
+    'plansProgressV1': '{done} jours terminés sur {total}',
+    'plansReadTodayV1': 'Lire la prochaine partie',
+    'plansMarkDoneV1': 'Terminer le prochain jour',
+    'plansSaveV1': 'Enregistrer le plan',
+    'plansUnsaveV1': 'Retirer des plans enregistrés',
+    'plansStopV1': 'Arrêter le plan',
+    'plansPauseV1': 'Mettre le plan en pause',
+    'plansResumeV1': 'Reprendre le plan',
+    'plansPausedV1': 'Plan mis en pause.',
+    'plansResumedV1': 'Plan repris.',
+    'plansPausedHintV1':
+        'Le calendrier reste figé jusqu’à la reprise du plan.',
+    'plansReplaceTitleV1': 'Changer le plan actif ?',
+    'plansReplaceBodyV1':
+        'La progression du plan actuel sera arrêtée et le nouveau plan recommencera depuis le début.',
+    'plansStopTitleV1': 'Arrêter ce plan ?',
+    'plansStopBodyV1': 'La progression actuelle de ce plan sera supprimée.',
+    'plansPlanCompletedV1': 'Plan terminé.',
+    'plansStartedV1': 'Plan commencé.',
+    'plansCompletedOnV1': 'Terminé le {date}',
+    'plansScheduleOnTrackV1': 'Dans les temps',
+    'plansScheduleBehindV1': '{count} jours de retard',
+    'plansScheduleAheadV1': '{count} jours d’avance',
+    'plansScheduleDayV1': 'Jour {day} sur {total} du calendrier',
+    'plansScheduledEndV1': 'Fin prévue : {date}',
+    'plansRecoveryTitleV1': 'Lecture de rattrapage',
+    'plansRecoveryBodyV1':
+        'Une section de rattrapage de {pages} pages est prête pour {days} jours manqués.',
+    'plansRecoveryOpenV1': 'Ouvrir le rattrapage',
+    'plansRecoveryCompleteV1': 'Marquer le rattrapage comme terminé',
+    'plansYearlyKhatmTitleV1': 'Objectif de khatm {year}',
+    'plansYearlyKhatmNoTargetV1':
+        '{done} khatm terminé. Vous pouvez définir un objectif pour cette année.',
+    'plansYearlyKhatmProgressV1':
+        '{done} khatm terminés sur {target} • {remaining} restants',
+    'plansYearlyKhatmReachedV1':
+        '{done} khatm terminés sur {target} • Objectif annuel atteint',
+    'plansYearlyKhatmSetTargetV1': 'Définir un objectif annuel',
+    'plansYearlyKhatmEditTargetV1': 'Modifier l’objectif',
+    'plansYearlyKhatmEditTitleV1': 'Objectif annuel de khatm',
+    'plansYearlyKhatmTargetFieldV1': 'Objectif',
+    'plansYearlyKhatmTargetHelperV1': 'Saisissez un nombre de 1 à 99',
+    'plansYearlyKhatmClearTargetV1': 'Supprimer l’objectif',
+    'plansYearlyKhatmSaveTargetV1': 'Enregistrer',
+    'plansKhatmArchiveTitleV1': 'Archive des khatm',
+    'plansArchiveAllYearsV1': 'Toutes les années',
+    'plansArchiveNoResultsV1':
+        'Aucun khatm terminé n’est enregistré pour cette année.',
+    'plansArchiveDeleteTitleV1': 'Supprimer cet enregistrement de khatm ?',
+    'plansArchiveDeleteBodyV1':
+        'Cet enregistrement sera retiré de l’archive et les totaux annuels seront mis à jour.',
+    'plansArchiveDeleteActionV1': 'Supprimer l’enregistrement',
+    'plansArchiveEditActionV1': 'Modifier l’enregistrement',
+    'plansManualKhatmAddV1': 'Ajouter un khatm manuel',
+    'plansManualKhatmEditV1': 'Modifier le khatm manuel',
+    'plansManualKhatmDialogTitleV1': 'Ajouter un khatm hors appareil',
+    'plansManualKhatmExplanationV1':
+        'Enregistrez un khatm terminé avec un mushaf physique ou en dehors de l’application. Il sera clairement indiqué comme déclaré par l’utilisateur.',
+    'plansManualKhatmCompletedDateV1': 'Date d’achèvement',
+    'plansManualKhatmStartDateV1': 'Date de début',
+    'plansManualKhatmStartOptionalV1': 'Facultatif',
+    'plansManualKhatmClearStartV1': 'Effacer la date de début',
+    'plansManualKhatmNoteV1': 'Note privée',
+    'plansManualKhatmNoteHintV1':
+        'Note facultative enregistrée uniquement avec cet élément',
+    'plansManualKhatmDateErrorV1':
+        'La date de début ne peut pas être postérieure à la date d’achèvement.',
+    'plansManualKhatmSaveV1': 'Enregistrer le khatm',
+    'plansManualKhatmAddedV1': 'Khatm manuel ajouté à l’archive.',
+    'plansManualKhatmUpdatedV1': 'Khatm manuel mis à jour.',
+    'plansManualKhatmArchiveTitleV1': 'Khatm manuel',
+    'plansManualKhatmSourceV1': 'Manuel • hors appareil',
+    'plansPlanKhatmSourceV1': 'Plan de lecture dans l’application',
+    'plansKhatmStartedOnV1': 'Commencé le : {date}',
+    'plansYearlyKhatmSourceBreakdownV1':
+        '{plan} via un plan • {manual} manuels',
+    'plansOffDeviceSectionTitleV1':
+        'Mushaf physique / lecture hors appareil',
+    'plansOffDeviceSectionBodyV1':
+        'Enregistrez une lecture sur mushaf physique ou hors appareil par page, juz, hizb ou plage de versets. Ces données sont déclarées par l’utilisateur et ne font jamais progresser automatiquement un plan actif.',
+    'plansOffDeviceAddV1': 'Enregistrer une lecture',
+    'plansOffDeviceAddTitleV1': 'Ajouter une lecture hors appareil',
+    'plansOffDeviceEditTitleV1': 'Modifier la lecture hors appareil',
+    'plansOffDeviceExplanationV1':
+        'Choisissez un type de saisie. L’enregistrement est normalisé vers une plage canonique de versets ; un chevauchement avec la lecture numérique n’est jamais déduit automatiquement.',
+    'plansOffDeviceStartPageV1': 'Page de début',
+    'plansOffDeviceEndPageV1': 'Page de fin',
+    'plansOffDevicePageHelperV1': 'Saisissez des pages de 1 à 604.',
+    'plansOffDeviceReadDateV1': 'Date de lecture',
+    'plansOffDeviceNoteV1': 'Note privée',
+    'plansOffDeviceNoteHintV1': 'Facultatif',
+    'plansOffDeviceRangeErrorV1':
+        'Les pages doivent être comprises entre 1 et 604 et la page de début ne peut pas être postérieure à la page de fin.',
+    'plansOffDeviceSaveV1': 'Enregistrer la lecture',
+    'plansOffDeviceAddedV1': 'Lecture hors appareil enregistrée.',
+    'plansOffDeviceUpdatedV1': 'Lecture hors appareil mise à jour.',
+    'plansOffDevicePagesV1': 'Pages {start}–{end}',
+    'plansOffDevicePageCountV1': '{count} pages • saisie manuelle',
+    'plansOffDeviceDeleteTitleV1':
+        'Supprimer cet enregistrement de lecture ?',
+    'plansOffDeviceDeleteBodyV1':
+        'Cet enregistrement de lecture hors appareil sera supprimé. La progression du plan actif ne changera pas.',
+    'plansOffDeviceDeleteV1': 'Supprimer l’enregistrement',
+    'plansOffDeviceInputTypeV1': 'Type de saisie',
+    'plansOffDeviceInputPageV1': 'Pages',
+    'plansOffDeviceInputJuzV1': 'Juz',
+    'plansOffDeviceInputHizbV1': 'Hizb',
+    'plansOffDeviceInputAyahV1': 'Plage de versets',
+    'plansOffDeviceJuzNumberV1': 'Numéro du juz',
+    'plansOffDeviceJuzHelperV1': 'Saisissez un numéro de juz de 1 à 30.',
+    'plansOffDeviceHizbNumberV1': 'Numéro du hizb',
+    'plansOffDeviceHizbHelperV1': 'Saisissez un numéro de hizb de 1 à 60.',
+    'plansOffDeviceStartSurahV1': 'Sourate de début',
+    'plansOffDeviceStartAyahV1': 'Verset de début',
+    'plansOffDeviceEndSurahV1': 'Sourate de fin',
+    'plansOffDeviceEndAyahV1': 'Verset de fin',
+    'plansOffDeviceAyahHelperV1':
+        'Utilisez les numéros de sourate et de verset (par ex. 2:255–2:257).',
+    'plansOffDeviceJuzErrorV1': 'Le juz doit être compris entre 1 et 30.',
+    'plansOffDeviceHizbErrorV1': 'Le hizb doit être compris entre 1 et 60.',
+    'plansOffDeviceAyahErrorV1':
+        'Saisissez des versets de début et de fin valides ; le début ne peut pas se situer après la fin.',
+    'plansOffDeviceJuzLabelV1': 'Juz {juz}',
+    'plansOffDeviceHizbLabelV1': 'Hizb {hizb}',
+    'plansOffDeviceAyahRangeLabelV1': 'Versets {start}–{end}',
+    'plansOffDeviceCanonicalRangeV1':
+        'Couverture canonique : {start}–{end}',
+    'plansOffDeviceImpactActionV1': 'Prévisualiser l’impact sur le plan',
+    'plansOffDeviceImpactTitleV1': 'Impact sur le plan',
+    'plansOffDeviceImpactSummaryV1':
+        'Jours du plan {first}–{last} • {days} jours • chevauchement de {pages} pages',
+    'plansOffDeviceImpactRemainingV1':
+        '{days} jours restants du plan • {pages} pages',
+    'plansOffDeviceImpactCompletedV1':
+        '{days} jours du plan déjà terminés • {pages} pages',
+    'plansOffDeviceImpactWarningV1':
+        'Il s’agit uniquement d’un aperçu. Cet enregistrement ne modifie pas la progression du plan. Pour les jours déjà terminés, l’application ne peut pas savoir si cette lecture fait doublon avec une lecture numérique. Le nombre de pages indique l’étendue des pages du mushaf touchées par l’enregistrement, pas nécessairement le nombre de pages entièrement lues, en particulier pour une plage de versets.',
+    'plansOffDeviceImpactDayV1': 'Jour {day}',
+    'plansOffDeviceImpactCompletedStatusV1': 'Terminé',
+    'plansOffDeviceImpactRemainingStatusV1': 'Restant',
+    'plansOffDeviceCreditTitleV1': 'Créditer dans le plan',
+    'plansOffDeviceCreditEligibleV1':
+        '{days} jour(s) non terminé(s) entièrement couvert(s) peuvent être crédités.',
+    'plansOffDeviceCreditPartialV1':
+        '{days} jour(s) non terminé(s) ne sont couverts que partiellement et ne seront pas crédités.',
+    'plansOffDeviceCreditNoneV1':
+        'Aucun jour non terminé n’est entièrement couvert.',
+    'plansOffDeviceCreditPausedV1':
+        'Reprenez le plan avant de créditer cette lecture.',
+    'plansOffDeviceCreditActionV1':
+        'Créditer {days} jour(s) complet(s) dans le plan',
+    'plansOffDeviceCreditConfirmTitleV1':
+        'Créditer cette lecture dans le plan ?',
+    'plansOffDeviceCreditConfirmBodyV1':
+        '{days} jour(s) non terminé(s) entièrement couvert(s) seront marqués comme terminés. Les chevauchements partiels et les jours déjà terminés resteront inchangés. Modifier ou supprimer cet enregistrement plus tard n’annulera pas la progression du plan déjà confirmée.',
+    'plansOffDeviceCreditConfirmActionV1': 'Créditer dans le plan',
+    'plansOffDeviceCreditedV1': '{days} jour(s) du plan crédité(s).',
+    'plansOffDeviceCreditUnavailableV1':
+        'Cette lecture ne peut plus être créditée dans le plan.',
+    'plansKhatmCreditBreakdownV1':
+        'Dans l’application : {app} jour(s) • hors appareil : {manual} jour(s)',
+    'plansKhatmCreditDetailsActionV1': 'Détails de la source',
+    'plansKhatmCreditDetailsTitleV1': 'Contributions hors appareil',
+    'plansKhatmCreditEventTitleV1':
+        '{days} jour(s) du plan crédité(s) depuis une lecture hors appareil',
+    'plansKhatmCreditEventCreditedOnV1': 'Crédité le : {date}',
+    'plansKhatmCreditEventReadOnV1': 'Date de lecture : {date}',
+    'plansKhatmCreditEventPagesV1': 'Pages {start}–{end}',
+    'plansKhatmCreditEventRangeV1':
+        'Plage de versets : {start}–{end}',
+  },
 };
