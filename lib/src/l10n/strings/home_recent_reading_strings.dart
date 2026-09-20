@@ -19,4 +19,8 @@ const homeRecentReadingStrings = <String, Map<String, String>>{
     'homeRecentReadingTitle': 'Недавнее чтение',
     'homeRecentReadingSubtitle': 'Вернитесь к другим недавним местам чтения',
   },
+  'fr': <String, String>{
+    'homeRecentReadingTitle': 'Lectures récentes',
+    'homeRecentReadingSubtitle': 'Reprenez à l’un de vos autres emplacements récents',
+  },
 };
