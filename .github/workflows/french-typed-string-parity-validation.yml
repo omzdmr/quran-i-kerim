@@ -22,8 +22,14 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Fetch and validate bundled content
+        run: python3 tool/fetch_content.py
+
       - name: Get dependencies
         run: flutter pub get
+
+      - name: Generate localizations
+        run: flutter gen-l10n
 
       - name: Format localization slice
         run: |
