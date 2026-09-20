@@ -24,4 +24,9 @@ const readerMediaStrings = <String, Map<String, String>>{
     'readerMediaTitle': 'Коран {surah}:{ayah}',
     'readerMediaArtist': '{source} · Аят {ayah}/{verseCount}',
   },
+  'fr': {
+    'readerMediaChannel': 'Audio du Coran',
+    'readerMediaTitle': 'Coran {surah}:{ayah}',
+    'readerMediaArtist': '{source} · Verset {ayah}/{verseCount}',
+  },
 };

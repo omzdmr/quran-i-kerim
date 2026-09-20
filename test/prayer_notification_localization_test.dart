@@ -23,6 +23,10 @@ void main() {
       AppLocalizations(const Locale('az')).prayerNotificationBody('isha'),
       'İşa vaxtı daxil oldu.',
     );
+    expect(
+      AppLocalizations(const Locale('fr')).prayerNotificationChannel,
+      'Horaires de prière',
+    );
   });
 
   test('stored app locale wins over the device locale', () {

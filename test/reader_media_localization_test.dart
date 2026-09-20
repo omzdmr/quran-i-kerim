@@ -7,7 +7,7 @@ void main() {
   test('reader media copy keeps locale key parity', () {
     final expected = readerMediaStrings['en']!.keys.toSet();
 
-    for (final locale in const ['tr', 'en', 'ar', 'az', 'ru']) {
+    for (final locale in const ['tr', 'en', 'ar', 'az', 'ru', 'fr']) {
       expect(readerMediaStrings[locale]!.keys.toSet(), expected);
     }
   });
@@ -21,6 +21,10 @@ void main() {
       ru.readerMediaArtist('Мишари Рашид', 255, 286),
       'Мишари Рашид · Аят 255/286',
     );
+
+    final fr = AppLocalizations(const Locale('fr'));
+    expect(fr.readerMediaChannel, 'Audio du Coran');
+    expect(fr.readerMediaTitle(2, 255), 'Coran 2:255');
   });
 
   test('reader media copy is available in all supported locales', () {

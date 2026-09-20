@@ -4,7 +4,7 @@ import 'package:quran_i_kerim/src/l10n/app_localizations.dart';
 import 'package:quran_i_kerim/src/l10n/strings/reader_note_strings.dart';
 
 void main() {
-  const locales = <String>['tr', 'en', 'ar', 'az', 'ru'];
+  const locales = <String>['tr', 'en', 'ar', 'az', 'ru', 'fr'];
   const requiredKeys = <String>{
     'readerPersonalNote',
     'readerEditNote',
@@ -13,7 +13,7 @@ void main() {
     'readerVerseFootnoteTooltip',
   };
 
-  test('reader note copy keeps five-locale key parity', () {
+  test('reader note copy keeps core-locale key parity', () {
     for (final locale in locales) {
       final values = readerNoteStrings[locale];
       expect(values, isNotNull, reason: 'Missing reader note locale $locale');
@@ -61,6 +61,10 @@ void main() {
     expect(
       AppLocalizations(const Locale('ru')).readerVerseNoteTooltip,
       'Заметка',
+    );
+    expect(
+      AppLocalizations(const Locale('fr')).readerPersonalNote,
+      'Note personnelle',
     );
   });
 }
