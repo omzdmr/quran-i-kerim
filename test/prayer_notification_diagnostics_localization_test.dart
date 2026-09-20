@@ -8,7 +8,7 @@ void main() {
 
     expect(
       prayerNotificationDiagnosticsStrings.keys,
-      containsAll(<String>['tr', 'en', 'ar', 'az', 'ru']),
+      containsAll(<String>['tr', 'en', 'ar', 'az', 'ru', 'fr']),
     );
 
     for (final entry in prayerNotificationDiagnosticsStrings.entries) {
