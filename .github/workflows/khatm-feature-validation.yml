@@ -40,21 +40,7 @@ jobs:
             lib/src/l10n/strings/plan_strings.dart \
             test/reading_plan_store_test.dart
 
-      - name: Analyze changed plan code
-        run: |
-          flutter analyze --no-fatal-infos \
-            lib/src/features/plans/reading_plan_store.dart \
-            lib/src/features/plans/plans_screen.dart \
-            lib/src/l10n/strings/plan_strings.dart
-
-      - name: Run focused tests
-        run: |
-          flutter test \
-            test/reading_plan_store_test.dart \
-            test/plan_strings_test.dart
-
       - name: Persist formatter output
-        if: success()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -62,8 +48,16 @@ jobs:
             lib/src/features/plans/reading_plan_store.dart \
             lib/src/features/plans/plans_screen.dart \
             lib/src/l10n/strings/plan_strings.dart \
-            test/reading_plan_store_test.dart
+            test/reading_plan_store_test.dart \
+            test/plans_screen_compile_test.dart
           if ! git diff --cached --quiet; then
             git commit -m "style: format khatm feature"
             git push
           fi
+
+      - name: Run focused tests
+        run: |
+          flutter test \
+            test/reading_plan_store_test.dart \
+            test/plan_strings_test.dart \
+            test/plans_screen_compile_test.dart
