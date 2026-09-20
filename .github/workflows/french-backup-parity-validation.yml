@@ -1,0 +1,53 @@
+name: French backup parity validation
+
+on:
+  push:
+    branches: [ manual/french-backup-feature-strings ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.2'
+          channel: stable
+          cache: true
+
+      - name: Check formatting
+        run: |
+          dart format --output=none --set-exit-if-changed \
+            lib/src/l10n/strings/backup_strings.dart \
+            test/backup_strings_test.dart
+
+      - name: Verify English French backup parity
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          text = Path("lib/src/l10n/strings/backup_strings.dart").read_text(encoding="utf-8")
+          def body(lang):
+              pattern = re.compile(rf"^\s*'{lang}'\s*:\s*(?:<String,\s*String>)?\{{", re.M)
+              m = pattern.search(text)
+              assert m, f"missing {lang}"
+              ends = []
+              for other in ("tr","en","ar","az","ru","fr"):
+                  if other == lang:
+                      continue
+                  n = re.compile(rf"^\s*'{other}'\s*:\s*(?:<String,\s*String>)?\{{", re.M).search(text, m.end())
+                  if n:
+                      ends.append(n.start())
+              end = min(ends) if ends else text.rfind("};")
+              return text[m.end():end]
+          def keys(lang):
+              return set(re.findall(r"^\s*'([^']+)'\s*:", body(lang), re.M))
+          en, fr = keys("en"), keys("fr")
+          assert en == fr, f"missing={sorted(en-fr)} extra={sorted(fr-en)}"
+          assert len(fr) == 42, len(fr)
+          print("French backup parity OK:", len(fr))
+          PY
