@@ -166,4 +166,48 @@ void main() {
     expect(loaded.active?.pausedDays, 0);
     expect(loaded.active?.startedAt, DateTime(2026, 9, 16));
   });
+
+  test('yearly khatm target persists across plan mutations and can be cleared', () async {
+    await store.setYearlyKhatmTarget(3);
+    await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 20));
+    await store.toggleSaved(ReadingPlanPreset.quran90);
+
+    var loaded = await const ReadingPlanStore().load();
+    expect(loaded.yearlyKhatmTarget, 3);
+
+    await store.setYearlyKhatmTarget(null);
+    loaded = await const ReadingPlanStore().load();
+    expect(loaded.yearlyKhatmTarget, isNull);
+  });
+
+  test('yearly khatm target rejects invalid values and sanitizes persisted data', () async {
+    expect(() => store.setYearlyKhatmTarget(0), throwsRangeError);
+    expect(() => store.setYearlyKhatmTarget(100), throwsRangeError);
+
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      ReadingPlanStore.preferenceKey:
+          '{"active":null,"saved":[],"completed":[],"yearlyKhatmTarget":150}',
+    });
+
+    final loaded = await store.load();
+    expect(loaded.yearlyKhatmTarget, isNull);
+  });
+
+  test('yearly khatm progress counts only completions in the selected year', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      ReadingPlanStore.preferenceKey:
+          '{"active":null,"saved":[],"yearlyKhatmTarget":3,"completed":['
+          '{"preset":"quran30","startedAt":"2025-12-01","completedAt":"2025-12-30"},'
+          '{"preset":"quran30","startedAt":"2026-01-01","completedAt":"2026-01-30"},'
+          '{"preset":"quran90","startedAt":"2026-03-01","completedAt":"2026-05-29"}'
+          ']}',
+    });
+
+    final loaded = await store.load();
+    expect(loaded.completedInYear(2025), 1);
+    expect(loaded.completedInYear(2026), 2);
+    expect(loaded.remainingForYear(2026), 1);
+    expect(loaded.remainingForYear(2025), 2);
+  });
+
 }
