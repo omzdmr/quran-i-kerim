@@ -4,7 +4,7 @@ import 'package:quran_i_kerim/src/l10n/app_localizations.dart';
 import 'package:quran_i_kerim/src/l10n/strings/reader_audio_transport_strings.dart';
 
 void main() {
-  const locales = <String>['tr', 'en', 'ar', 'az', 'ru'];
+  const locales = <String>['tr', 'en', 'ar', 'az', 'ru', 'fr'];
   const requiredKeys = <String>{
     'readerAudioPlay',
     'readerAudioPause',
@@ -12,7 +12,7 @@ void main() {
     'readerAudioNextVerse',
   };
 
-  test('reader audio transport copy keeps five-locale key parity', () {
+  test('reader audio transport copy keeps core-locale key parity', () {
     for (final locale in locales) {
       final values = readerAudioTransportStrings[locale];
       expect(
@@ -45,6 +45,10 @@ void main() {
     expect(
       AppLocalizations(const Locale('ru')).readerAudioPlay,
       'Воспроизвести',
+    );
+    expect(
+      AppLocalizations(const Locale('fr')).readerAudioPlay,
+      'Lire',
     );
   });
 }
