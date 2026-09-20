@@ -1,0 +1,90 @@
+name: French feature localization validation
+
+on:
+  push:
+    branches: [ manual/french-home-learn-feature-strings ]
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.2'
+          channel: stable
+          cache: true
+
+      - name: Fetch and validate bundled content
+        run: python3 tool/fetch_content.py
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Generate localizations
+        run: flutter gen-l10n
+
+      - name: Format changed localization files
+        run: |
+          dart format \
+            lib/src/l10n/strings/home_quick_action_strings.dart \
+            lib/src/l10n/strings/home_recent_reading_strings.dart \
+            lib/src/l10n/strings/home_verse_strings.dart \
+            lib/src/l10n/strings/learn_catalog_strings.dart \
+            lib/src/l10n/strings/learn_reference_strings.dart \
+            lib/src/l10n/strings/learn_strings.dart \
+            lib/src/l10n/strings/prayer_notification_diagnostics_strings.dart \
+            lib/src/l10n/strings/prayer_notification_strings.dart \
+            lib/src/l10n/strings/reader_audio_transport_strings.dart \
+            lib/src/l10n/strings/reader_media_strings.dart \
+            lib/src/l10n/strings/reader_navigation_strings.dart \
+            lib/src/l10n/strings/reader_note_strings.dart
+
+      - name: Persist formatter output
+        run: |
+          TARGETS=(
+            lib/src/l10n/strings/home_quick_action_strings.dart
+            lib/src/l10n/strings/home_recent_reading_strings.dart
+            lib/src/l10n/strings/home_verse_strings.dart
+            lib/src/l10n/strings/learn_catalog_strings.dart
+            lib/src/l10n/strings/learn_reference_strings.dart
+            lib/src/l10n/strings/learn_strings.dart
+            lib/src/l10n/strings/prayer_notification_diagnostics_strings.dart
+            lib/src/l10n/strings/prayer_notification_strings.dart
+            lib/src/l10n/strings/reader_audio_transport_strings.dart
+            lib/src/l10n/strings/reader_media_strings.dart
+            lib/src/l10n/strings/reader_navigation_strings.dart
+            lib/src/l10n/strings/reader_note_strings.dart
+          )
+          if git diff --quiet -- "${TARGETS[@]}"; then
+            echo "Formatter made no target-file changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${TARGETS[@]}"
+          git commit -m "style: format French feature strings [skip ci]"
+          git push origin HEAD:manual/french-home-learn-feature-strings
+
+      - name: Run French feature localization tests
+        run: >
+          timeout 300s flutter test
+          test/home_quick_actions_settings_test.dart
+          test/home_recent_reading_localization_test.dart
+          test/home_verse_localization_test.dart
+          test/learn_catalog_strings_test.dart
+          test/learn_reference_catalog_test.dart
+          test/learn_strings_test.dart
+          test/prayer_notification_diagnostics_localization_test.dart
+          test/reader_audio_transport_localization_test.dart
+          test/reader_media_localization_test.dart
+          test/reader_navigation_localization_test.dart
+          test/reader_note_localization_test.dart
+          --reporter expanded
