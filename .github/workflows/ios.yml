@@ -48,6 +48,15 @@ jobs:
           plutil -lint ios/Runner/Info.plist
           plutil -lint ios/Runner/PrivacyInfo.xcprivacy
           plutil -lint ios/Flutter/AppFrameworkInfo.plist
+          for locale in en tr ar az ru fr; do
+            strings_file="ios/Runner/${locale}.lproj/InfoPlist.strings"
+            test -f "$strings_file"
+            plutil -lint "$strings_file"
+            grep -q "CFBundleDisplayName" "$strings_file"
+            grep -q "NSLocationWhenInUseUsageDescription" "$strings_file"
+            grep -q "NSMicrophoneUsageDescription" "$strings_file"
+            grep -q "name = ${locale};" ios/Runner.xcodeproj/project.pbxproj
+          done
           ruby -c ios/Podfile
           grep -q "PRODUCT_BUNDLE_IDENTIFIER = com.omzdmr.quranIKerim" ios/Runner.xcodeproj/project.pbxproj
           grep -q "AudioSessionCoordinator.swift in Sources" ios/Runner.xcodeproj/project.pbxproj
@@ -117,6 +126,9 @@ jobs:
           /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes:0" build/ios/iphonesimulator/Runner.app/Info.plist | grep -qx audio
           /usr/libexec/PlistBuddy -c "Print :NSLocationWhenInUseUsageDescription" build/ios/iphonesimulator/Runner.app/Info.plist
           /usr/libexec/PlistBuddy -c "Print :NSMicrophoneUsageDescription" build/ios/iphonesimulator/Runner.app/Info.plist
+          for locale in en tr ar az ru fr; do
+            test -f "build/ios/iphonesimulator/Runner.app/${locale}.lproj/InfoPlist.strings"
+          done
 
       - name: Upload simulator build for parity inspection
         if: steps.ios_build.outcome == 'success'
