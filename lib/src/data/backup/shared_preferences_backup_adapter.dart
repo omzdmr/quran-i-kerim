@@ -55,6 +55,7 @@ class SharedPreferencesBackupAdapter {
     'audio_download_ask_mobile_v1',
     'audio_after_surah_v1',
     'home_quick_actions_v1',
+    'reader_experience_preset_v1',
   };
 
   static const Set<String> dhikrKeys = <String>{
@@ -246,6 +247,11 @@ class SharedPreferencesBackupAdapter {
     }
     if (schemaVersion <= 4 && section == 'preferences') {
       keys = keys.where((key) => key != 'home_quick_actions_v1').toSet();
+    }
+    if (schemaVersion <= 5 && section == 'preferences') {
+      keys = keys
+          .where((key) => key != 'reader_experience_preset_v1')
+          .toSet();
     }
     return keys;
   }

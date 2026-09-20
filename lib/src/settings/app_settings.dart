@@ -12,6 +12,8 @@ enum ReaderDisplayMode { arabic, arabicAndTranslation, translation }
 
 enum ReaderLineSpacing { compact, normal, relaxed }
 
+enum ReaderExperiencePreset { standard, essential }
+
 enum VerseHighlightColor { yellow, green, blue, orange, pink }
 
 enum AudioAfterSurahBehavior { continueNext, stop }
@@ -53,6 +55,7 @@ class AppSettings extends ChangeNotifier {
   static const _audioAskMobileKey = 'audio_download_ask_mobile_v1';
   static const _audioAfterSurahKey = 'audio_after_surah_v1';
   static const _homeQuickActionsKey = 'home_quick_actions_v1';
+  static const _readerExperiencePresetKey = 'reader_experience_preset_v1';
 
   static const _arabicFontSizeKey = 'arabic_font_size';
   static const _translationFontSizeKey = 'translation_font_size';
@@ -72,6 +75,8 @@ class AppSettings extends ChangeNotifier {
   String _selectedQuranSourceId = bundledTurkishTranslationId;
   bool _quranSourceWasUserSelected = false;
   ReaderLineSpacing _readerLineSpacing = ReaderLineSpacing.normal;
+  ReaderExperiencePreset _readerExperiencePreset =
+      ReaderExperiencePreset.standard;
   double _readerTextSize = 25;
   Set<String> _bookmarks = <String>{};
   Map<String, String> _notes = <String, String>{};
@@ -114,21 +119,33 @@ class AppSettings extends ChangeNotifier {
       : ReaderDisplayMode.translation;
 
   ReaderLineSpacing get readerLineSpacing => _readerLineSpacing;
+  ReaderExperiencePreset get readerExperiencePreset => _readerExperiencePreset;
+  bool get essentialReaderEnabled =>
+      _readerExperiencePreset == ReaderExperiencePreset.essential;
   double get readerTextSize => _readerTextSize;
-  double get arabicFontSize => _readerTextSize;
-  double get translationFontSize => _readerTextSize;
+  double get readerContentTextSize =>
+      essentialReaderEnabled && _readerTextSize < 32 ? 32 : _readerTextSize;
+  double get arabicFontSize => readerContentTextSize;
+  double get translationFontSize => readerContentTextSize;
+  double get minimumInterfaceTextScale => essentialReaderEnabled ? 1.16 : 1;
 
-  double get arabicLineHeight => switch (_readerLineSpacing) {
-    ReaderLineSpacing.compact => 1.62,
-    ReaderLineSpacing.normal => 1.82,
-    ReaderLineSpacing.relaxed => 2.02,
-  };
+  double get arabicLineHeight {
+    final configured = switch (_readerLineSpacing) {
+      ReaderLineSpacing.compact => 1.62,
+      ReaderLineSpacing.normal => 1.82,
+      ReaderLineSpacing.relaxed => 2.02,
+    };
+    return essentialReaderEnabled && configured < 2.02 ? 2.02 : configured;
+  }
 
-  double get translationLineHeight => switch (_readerLineSpacing) {
-    ReaderLineSpacing.compact => 1.32,
-    ReaderLineSpacing.normal => 1.48,
-    ReaderLineSpacing.relaxed => 1.66,
-  };
+  double get translationLineHeight {
+    final configured = switch (_readerLineSpacing) {
+      ReaderLineSpacing.compact => 1.32,
+      ReaderLineSpacing.normal => 1.48,
+      ReaderLineSpacing.relaxed => 1.66,
+    };
+    return essentialReaderEnabled && configured < 1.66 ? 1.66 : configured;
+  }
 
   UnmodifiableSetView<String> get bookmarkKeys =>
       UnmodifiableSetView(_bookmarks);
@@ -205,6 +222,10 @@ class AppSettings extends ChangeNotifier {
       'relaxed' => ReaderLineSpacing.relaxed,
       _ => ReaderLineSpacing.normal,
     };
+    _readerExperiencePreset =
+        prefs.getString(_readerExperiencePresetKey) == 'essential'
+        ? ReaderExperiencePreset.essential
+        : ReaderExperiencePreset.standard;
 
     if (prefs.containsKey(_readerTextSizeKey)) {
       _readerTextSize = (prefs.getDouble(_readerTextSizeKey) ?? 25)
@@ -446,6 +467,17 @@ class AppSettings extends ChangeNotifier {
         ? arabicOriginalSourceId
         : bundledTurkishTranslationId,
   );
+
+  Future<void> setReaderExperiencePreset(
+    ReaderExperiencePreset preset,
+  ) async {
+    if (_readerExperiencePreset == preset) return;
+    _readerExperiencePreset = preset;
+    notifyListeners();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_readerExperiencePresetKey, preset.name);
+  }
 
   Future<void> setReaderLineSpacing(ReaderLineSpacing spacing) async {
     if (_readerLineSpacing == spacing) return;

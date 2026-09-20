@@ -5,8 +5,8 @@
 class BackupManifest {
   const BackupManifest._();
 
-  static const int schemaVersion = 5;
-  static const Set<int> supportedVersions = <int>{1, 2, 3, 4, schemaVersion};
+  static const int schemaVersion = 6;
+  static const Set<int> supportedVersions = <int>{1, 2, 3, 4, 5, schemaVersion};
 
   static const Set<String> version1Sections = <String>{
     'reading',
@@ -34,8 +34,12 @@ class BackupManifest {
     'readingPlans',
   };
 
-  static const Set<String> includedSections = <String>{
+  static const Set<String> version5Sections = <String>{
     ...version4Sections,
+  };
+
+  static const Set<String> includedSections = <String>{
+    ...version5Sections,
   };
 
   static const Set<String> excludedSections = <String>{
@@ -56,6 +60,7 @@ class BackupManifest {
       2 => version2Sections,
       3 => version3Sections,
       4 => version4Sections,
+      5 => version5Sections,
       schemaVersion => includedSections,
       _ => const <String>{},
     };

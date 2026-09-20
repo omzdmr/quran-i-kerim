@@ -23,6 +23,7 @@ void main() {
       'prayer_notification_ids': <String>['fajr', 'isha'],
       'prayer_notification_profile': 'discreet',
       'prayer_hijri_offset': 1,
+      'reader_experience_preset_v1': 'essential',
       'reading_plan_state_v1': '{"active":{"preset":"quran30"}}',
       'prayer_city_id': '__device_location__',
       'prayer_device_latitude': 41.123456,
@@ -42,6 +43,7 @@ void main() {
     expect(snapshot['prayer_asr_method'], 'hanafi');
     expect(snapshot['prayer_notification_ids'], <String>['fajr', 'isha']);
     expect(snapshot['prayer_notification_profile'], 'discreet');
+    expect(snapshot['reader_experience_preset_v1'], 'essential');
     expect(snapshot['reading_plan_state_v1'], isNotNull);
     expect(snapshot, isNot(contains('prayer_city_id')));
     for (final key in SharedPreferencesBackupAdapter.excludedPrayerLocationKeys) {
@@ -173,6 +175,22 @@ void main() {
     expect(prefs.getString('learn_progress_v1:intro'), isNotNull);
     expect(prefs.getString('dhikr_v2_counts'), '{"subhanallah":99}');
     expect(prefs.getString('reading_plan_state_v1'), isNotNull);
+  });
+
+  test('version five restore preserves the new Reader preset', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'reader_experience_preset_v1': 'essential',
+    });
+
+    await adapter.restoreSections(
+      <String, Object?>{
+        'preferences': <String, Object?>{},
+      },
+      schemaVersion: 5,
+    );
+
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('reader_experience_preset_v1'), 'essential');
   });
 
   test('version two dynamic learning restore still works', () async {
