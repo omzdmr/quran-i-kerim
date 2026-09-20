@@ -25,11 +25,13 @@ const azStrings = <String, String>{
   'arabic': 'العربية',
   'azerbaijani': 'Azərbaycanca',
   'russian': 'Русский',
+  'french': 'Français',
   'turkishDescription': 'Uygulamayı Türkçe kullan',
   'englishDescription': 'Use the app in English',
   'arabicDescription': 'استخدم التطبيق باللغة العربية',
   'azerbaijaniDescription': 'Tətbiqi Azərbaycan dilində istifadə et',
   'russianDescription': 'Использовать приложение на русском языке',
+  'frenchDescription': 'Tətbiqi fransız dilində istifadə et',
   'quranLanguage': 'Quran dili və tərcümə',
   'quranLanguageDescription':
       'Oxuduğunuz mətni interfeys dilindən asılı olmayaraq seçin. Əlavə tərcümələr sonra endirilə biləcək.',
