@@ -2952,30 +2952,30 @@ class _SelectionActionState extends State<_SelectionAction> {
         onTapUp: (_) => setState(() => _pressed = false),
         onTap: widget.onTap,
         child: AnimatedScale(
-        scale: _pressed ? .94 : 1,
-        duration: const Duration(milliseconds: 90),
-        child: Container(
-          constraints: const BoxConstraints(minWidth: 64),
-          margin: const EdgeInsets.only(right: 5),
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
-          decoration: BoxDecoration(
-            color: scheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(widget.icon, size: 20),
-              const SizedBox(height: 2),
-              Text(
-                widget.label,
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
+          scale: _pressed ? .94 : 1,
+          duration: const Duration(milliseconds: 90),
+          child: Container(
+            constraints: const BoxConstraints(minWidth: 64),
+            margin: const EdgeInsets.only(right: 5),
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(widget.icon, size: 20),
+                const SizedBox(height: 2),
+                Text(
+                  widget.label,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
           ),
         ),
       ),
@@ -3017,14 +3017,14 @@ class _HighlightDot extends StatelessWidget {
       excludeFromSemantics: true,
       customBorder: const CircleBorder(),
       child: Padding(
-      padding: const EdgeInsets.all(3),
-      child: Container(
-        width: 32,
-        height: 32,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: _highlightMaterialColor(color),
-        ),
+        padding: const EdgeInsets.all(3),
+        child: Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: _highlightMaterialColor(color),
+          ),
         ),
       ),
     ),
