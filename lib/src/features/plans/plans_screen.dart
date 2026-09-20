@@ -2229,6 +2229,103 @@ class _CompletedPlanCard extends StatelessWidget {
   final VoidCallback onDelete;
   final VoidCallback? onEdit;
 
+  Future<void> _showCreditDetails(BuildContext context) async {
+    if (!item.hasOffDeviceCredits) return;
+    final l10n = context.l10n;
+    final material = MaterialLocalizations.of(context);
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                l10n.text('plansKhatmCreditDetailsTitleV1'),
+                style: Theme.of(
+                  sheetContext,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 12),
+              for (
+                var index = 0;
+                index < item.offDeviceCredits.length;
+                index++
+              ) ...[
+                Builder(
+                  builder: (context) {
+                    final event = item.offDeviceCredits[index];
+                    final creditedDate = material.formatMediumDate(
+                      event.creditedAt,
+                    );
+                    final readDate = material.formatMediumDate(
+                      event.sourceReadAt,
+                    );
+                    final eventTitle = l10n
+                        .text('plansKhatmCreditEventTitleV1')
+                        .replaceAll('{days}', '${event.dayNumbers.length}');
+                    final pages = l10n
+                        .text('plansKhatmCreditEventPagesV1')
+                        .replaceAll('{start}', '${event.sourceStartPage}')
+                        .replaceAll('{end}', '${event.sourceEndPage}');
+                    final canonical =
+                        event.sourceCanonicalStartKey != null &&
+                            event.sourceCanonicalEndKey != null
+                        ? l10n
+                              .text('plansKhatmCreditEventRangeV1')
+                              .replaceAll(
+                                '{start}',
+                                event.sourceCanonicalStartKey!,
+                              )
+                              .replaceAll('{end}', event.sourceCanonicalEndKey!)
+                        : null;
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.history_rounded),
+                      title: Text(
+                        eventTitle,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n
+                                .text('plansKhatmCreditEventCreditedOnV1')
+                                .replaceAll('{date}', creditedDate),
+                          ),
+                          Text(
+                            l10n
+                                .text('plansKhatmCreditEventReadOnV1')
+                                .replaceAll('{date}', readDate),
+                          ),
+                          Text(pages),
+                          if (canonical != null) Text(canonical),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                if (index != item.offDeviceCredits.length - 1)
+                  const Divider(height: 12),
+              ],
+              const SizedBox(height: 8),
+              FilledButton.tonal(
+                onPressed: () => Navigator.of(sheetContext).pop(),
+                child: Text(material.closeButtonLabel),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -2280,6 +2377,31 @@ class _CompletedPlanCard extends StatelessWidget {
             ),
           ),
           if (startedText != null) Text(startedText),
+          if (!item.isManualOffDevice && item.hasOffDeviceCredits) ...[
+            const SizedBox(height: 4),
+            Text(
+              l10n
+                  .text('plansKhatmCreditBreakdownV1')
+                  .replaceAll('{app}', '${item.appCompletedDayCount}')
+                  .replaceAll('{manual}', '${item.offDeviceCreditedDayCount}'),
+              style: TextStyle(
+                color: scheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: TextButton.icon(
+                onPressed: busy ? null : () => _showCreditDetails(context),
+                icon: const Icon(Icons.history_rounded, size: 18),
+                label: Text(l10n.text('plansKhatmCreditDetailsActionV1')),
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
+            ),
+          ],
           if (item.note != null) ...[
             const SizedBox(height: 4),
             Text(item.note!, maxLines: 3, overflow: TextOverflow.ellipsis),
