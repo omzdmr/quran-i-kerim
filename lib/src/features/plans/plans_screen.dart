@@ -195,6 +195,81 @@ class _PlansScreenState extends State<PlansScreen> {
     AppNavigation.instance.openReader(surah: target.surah, ayah: target.ayah);
   }
 
+  Future<void> _editYearlyKhatmTarget() async {
+    if (_busy) return;
+    final l10n = context.l10n;
+    final controller = TextEditingController(
+      text: _snapshot.yearlyKhatmTarget?.toString() ?? '',
+    );
+    var parsedTarget = _snapshot.yearlyKhatmTarget;
+
+    final result = await showDialog<int>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          final valid = parsedTarget != null &&
+              parsedTarget! >= 1 &&
+              parsedTarget! <= 99;
+          return AlertDialog(
+            title: Text(l10n.text('plansYearlyKhatmEditTitleV1')),
+            content: TextField(
+              controller: controller,
+              autofocus: true,
+              keyboardType: TextInputType.number,
+              inputFormatters: const <TextInputFormatter>[
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(2),
+              ],
+              decoration: InputDecoration(
+                labelText: l10n.text('plansYearlyKhatmTargetFieldV1'),
+                helperText: l10n.text('plansYearlyKhatmTargetHelperV1'),
+              ),
+              onChanged: (value) {
+                setDialogState(() => parsedTarget = int.tryParse(value));
+              },
+              onSubmitted: (_) {
+                if (valid) Navigator.of(dialogContext).pop(parsedTarget);
+              },
+            ),
+            actions: [
+              if (_snapshot.yearlyKhatmTarget != null)
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(0),
+                  child: Text(l10n.text('plansYearlyKhatmClearTargetV1')),
+                ),
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: Text(
+                  MaterialLocalizations.of(dialogContext).cancelButtonLabel,
+                ),
+              ),
+              FilledButton(
+                onPressed: valid
+                    ? () => Navigator.of(dialogContext).pop(parsedTarget)
+                    : null,
+                child: Text(l10n.text('plansYearlyKhatmSaveTargetV1')),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    controller.dispose();
+    if (!mounted || result == null) return;
+
+    HapticFeedback.selectionClick();
+    setState(() => _busy = true);
+    try {
+      final snapshot = await _store.setYearlyKhatmTarget(
+        result == 0 ? null : result,
+      );
+      if (!mounted) return;
+      setState(() => _snapshot = snapshot);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<bool> _confirm({
     required String titleKey,
     required String bodyKey,
@@ -371,18 +446,32 @@ class _PlansScreenState extends State<PlansScreen> {
   }
 
   Widget _buildCompleted() {
-    if (_snapshot.completed.isEmpty) {
-      return _EmptyState(
-        icon: Icons.task_alt_rounded,
-        text: context.l10n.text('plansEmptyCompletedV1'),
-      );
-    }
+    final year = DateTime.now().year;
+    final completedThisYear = _snapshot.completedInYear(year);
+    final target = _snapshot.yearlyKhatmTarget;
+    final remaining = _snapshot.remainingForYear(year);
+
     return Column(
       children: [
-        for (final item in _snapshot.completed) ...[
-          _CompletedPlanCard(item: item),
-          const SizedBox(height: 12),
-        ],
+        _YearlyKhatmCard(
+          year: year,
+          completed: completedThisYear,
+          target: target,
+          remaining: remaining,
+          busy: _busy,
+          onEdit: _editYearlyKhatmTarget,
+        ),
+        const SizedBox(height: 16),
+        if (_snapshot.completed.isEmpty)
+          _EmptyState(
+            icon: Icons.task_alt_rounded,
+            text: context.l10n.text('plansEmptyCompletedV1'),
+          )
+        else
+          for (final item in _snapshot.completed) ...[
+            _CompletedPlanCard(item: item),
+            const SizedBox(height: 12),
+          ],
       ],
     );
   }
@@ -762,6 +851,108 @@ class _ActivePlanCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _YearlyKhatmCard extends StatelessWidget {
+  const _YearlyKhatmCard({
+    required this.year,
+    required this.completed,
+    required this.target,
+    required this.remaining,
+    required this.busy,
+    required this.onEdit,
+  });
+
+  final int year;
+  final int completed;
+  final int? target;
+  final int remaining;
+  final bool busy;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final scheme = Theme.of(context).colorScheme;
+    final targetValue = target;
+    final title = l10n
+        .text('plansYearlyKhatmTitleV1')
+        .replaceAll('{year}', '$year');
+    final body = targetValue == null
+        ? l10n
+            .text('plansYearlyKhatmNoTargetV1')
+            .replaceAll('{done}', '$completed')
+        : remaining > 0
+            ? l10n
+                .text('plansYearlyKhatmProgressV1')
+                .replaceAll('{done}', '$completed')
+                .replaceAll('{target}', '$targetValue')
+                .replaceAll('{remaining}', '$remaining')
+            : l10n
+                .text('plansYearlyKhatmReachedV1')
+                .replaceAll('{done}', '$completed')
+                .replaceAll('{target}', '$targetValue');
+    final progress = targetValue == null
+        ? null
+        : (completed / targetValue).clamp(0.0, 1.0).toDouble();
+
+    return Semantics(
+      container: true,
+      label: '$title. $body',
+      child: Card(
+        margin: EdgeInsets.zero,
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.auto_stories_rounded, color: scheme.primary),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(body),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              if (progress != null) ...[
+                const SizedBox(height: 14),
+                LinearProgressIndicator(value: progress),
+              ],
+              const SizedBox(height: 12),
+              Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: TextButton.icon(
+                  onPressed: busy ? null : onEdit,
+                  icon: const Icon(Icons.tune_rounded),
+                  label: Text(
+                    l10n.text(
+                      targetValue == null
+                          ? 'plansYearlyKhatmSetTargetV1'
+                          : 'plansYearlyKhatmEditTargetV1',
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
