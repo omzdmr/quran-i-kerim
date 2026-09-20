@@ -1,26 +1,31 @@
 const backupStrings = <String, Map<String, String>>{
   'tr': <String, String>{
     'backupTitle': 'Yedekleme ve geri yükleme',
-    'backupSubtitle': 'Notlarınızı, kayıtlarınızı ve ilerlemenizi cihazınızda yedekleyin veya kendi bulutunuza aktarın.',
+    'backupSubtitle':
+        'Notlarınızı, kayıtlarınızı ve ilerlemenizi cihazınızda yedekleyin veya kendi bulutunuza aktarın.',
     'backupCreateExport': 'Yedek oluştur ve dışa aktar',
     'backupImport': 'Yedek dosyası içe aktar',
     'backupRecent': 'Bu cihazdaki yedekler',
     'backupEmpty': 'Henüz bu cihazda oluşturulmuş yedek yok.',
-    'backupPrivacy': 'Tam konum ve koordinatlar, Kuran/meal paketleri, ses önbelleği ve ezber kayıt sesleri yedeğe alınmaz.',
+    'backupPrivacy':
+        'Tam konum ve koordinatlar, Kuran/meal paketleri, ses önbelleği ve ezber kayıt sesleri yedeğe alınmaz.',
     'backupShare': 'Paylaş / dışa aktar',
     'backupRestore': 'Geri yükle',
     'backupCreated': 'Yedek oluşturuldu.',
     'backupRestored': 'Yedek geri yüklendi.',
     'backupRestoreConfirmTitle': 'Bu yedek geri yüklensin mi?',
-    'backupRestoreConfirmBody': 'Yedekte bulunan uygulama verileri mevcut yerel verilerin üzerine uygulanacak. İşlem hata verirse önceki durum geri alınır.',
+    'backupRestoreConfirmBody':
+        'Yedekte bulunan uygulama verileri mevcut yerel verilerin üzerine uygulanacak. İşlem hata verirse önceki durum geri alınır.',
     'backupInvalid': 'Bu dosya geçerli veya desteklenen bir yedek değil.',
     'backupVersionLabel': 'Yedek sürümü {version}',
     'backupRecordCount': '{count} kayıt',
     'backupOperationFailed': 'Yedekleme işlemi tamamlanamadı.',
     'backupImportPathUnavailable': 'Seçilen dosyaya erişilemedi.',
-    'backupExternalHint': 'Dışa aktarırken iCloud Drive, Google Drive, Dosyalar veya cihazınızın sunduğu başka bir hedefi seçebilirsiniz.',
+    'backupExternalHint':
+        'Dışa aktarırken iCloud Drive, Google Drive, Dosyalar veya cihazınızın sunduğu başka bir hedefi seçebilirsiniz.',
     'backupCloudTitle': 'Google Drive yedeği',
-    'backupCloudSubtitle': 'Yedek yalnızca Google hesabınızın uygulamaya özel alanında tutulur. Drive dosyalarınızın geri kalanına erişilmez.',
+    'backupCloudSubtitle':
+        'Yedek yalnızca Google hesabınızın uygulamaya özel alanında tutulur. Drive dosyalarınızın geri kalanına erişilmez.',
     'backupCloudConnect': 'Google Drive’a bağlan',
     'backupCloudConnectedAs': '{account} ile bağlı',
     'backupCloudRemoteEmpty': 'Drive’da henüz uygulama yedeği yok.',
@@ -35,35 +40,44 @@ const backupStrings = <String, Map<String, String>>{
     'backupCloudReplace': 'Bulut yedeğini bu cihazla değiştir',
     'backupCloudSignOut': 'Google hesabından çık',
     'backupCloudUploadConfirmTitle': 'Drive yedeği değiştirilsin mi?',
-    'backupCloudUploadConfirmBody': 'Buluttaki mevcut durumdan farklı olan bu cihaz verisi yeni bir yedek olarak Drive’a kaydedilecek. Önceki küçük snapshot’lar sınırlı bir geçmiş olarak korunur.',
+    'backupCloudUploadConfirmBody':
+        'Buluttaki mevcut durumdan farklı olan bu cihaz verisi yeni bir yedek olarak Drive’a kaydedilecek. Önceki küçük snapshot’lar sınırlı bir geçmiş olarak korunur.',
     'backupCloudRestoreConfirmTitle': 'Drive yedeği geri yüklensin mi?',
-    'backupCloudRestoreConfirmBody': 'Buluttaki uygulama verileri bu cihazdaki yerel verilerin üzerine uygulanacak. Önce mevcut verinizi dışa aktarabilirsiniz.',
-    'backupCloudReplaceConfirmTitle': 'Okunamayan bulut yedeği değiştirilsin mi?',
-    'backupCloudReplaceConfirmBody': 'Buluttaki okunamayan yedeğin yerine bu cihazın geçerli verisi yeni bir snapshot olarak kaydedilecek.',
+    'backupCloudRestoreConfirmBody':
+        'Buluttaki uygulama verileri bu cihazdaki yerel verilerin üzerine uygulanacak. Önce mevcut verinizi dışa aktarabilirsiniz.',
+    'backupCloudReplaceConfirmTitle':
+        'Okunamayan bulut yedeği değiştirilsin mi?',
+    'backupCloudReplaceConfirmBody':
+        'Buluttaki okunamayan yedeğin yerine bu cihazın geçerli verisi yeni bir snapshot olarak kaydedilecek.',
     'backupCloudFailed': 'Google Drive yedekleme işlemi tamamlanamadı.',
   },
   'en': <String, String>{
     'backupTitle': 'Backup and restore',
-    'backupSubtitle': 'Back up your notes, saved items and progress on-device or export them to your own cloud storage.',
+    'backupSubtitle':
+        'Back up your notes, saved items and progress on-device or export them to your own cloud storage.',
     'backupCreateExport': 'Create and export backup',
     'backupImport': 'Import backup file',
     'backupRecent': 'Backups on this device',
     'backupEmpty': 'No backup has been created on this device yet.',
-    'backupPrivacy': 'Exact location and coordinates, Quran/translation packs, audio cache and memorization recordings are not included.',
+    'backupPrivacy':
+        'Exact location and coordinates, Quran/translation packs, audio cache and memorization recordings are not included.',
     'backupShare': 'Share / export',
     'backupRestore': 'Restore',
     'backupCreated': 'Backup created.',
     'backupRestored': 'Backup restored.',
     'backupRestoreConfirmTitle': 'Restore this backup?',
-    'backupRestoreConfirmBody': 'App data present in the backup will be applied over the current local data. If restore fails, the previous state is rolled back.',
+    'backupRestoreConfirmBody':
+        'App data present in the backup will be applied over the current local data. If restore fails, the previous state is rolled back.',
     'backupInvalid': 'This file is not a valid or supported backup.',
     'backupVersionLabel': 'Backup version {version}',
     'backupRecordCount': '{count} records',
     'backupOperationFailed': 'The backup operation could not be completed.',
     'backupImportPathUnavailable': 'The selected file could not be accessed.',
-    'backupExternalHint': 'When exporting, you can choose iCloud Drive, Google Drive, Files or another destination offered by your device.',
+    'backupExternalHint':
+        'When exporting, you can choose iCloud Drive, Google Drive, Files or another destination offered by your device.',
     'backupCloudTitle': 'Google Drive backup',
-    'backupCloudSubtitle': 'The backup stays in your Google account’s app-specific storage. The rest of your Drive files are not accessed.',
+    'backupCloudSubtitle':
+        'The backup stays in your Google account’s app-specific storage. The rest of your Drive files are not accessed.',
     'backupCloudConnect': 'Connect Google Drive',
     'backupCloudConnectedAs': 'Connected as {account}',
     'backupCloudRemoteEmpty': 'There is no app backup in Drive yet.',
@@ -78,35 +92,44 @@ const backupStrings = <String, Map<String, String>>{
     'backupCloudReplace': 'Replace cloud backup with this device',
     'backupCloudSignOut': 'Sign out of Google account',
     'backupCloudUploadConfirmTitle': 'Change the Drive backup?',
-    'backupCloudUploadConfirmBody': 'This device data differs from the cloud state and will be saved as a new Drive backup. A limited history of small previous snapshots is retained.',
+    'backupCloudUploadConfirmBody':
+        'This device data differs from the cloud state and will be saved as a new Drive backup. A limited history of small previous snapshots is retained.',
     'backupCloudRestoreConfirmTitle': 'Restore the Drive backup?',
-    'backupCloudRestoreConfirmBody': 'Cloud app data will be applied over this device’s local data. You can export your current data first if needed.',
+    'backupCloudRestoreConfirmBody':
+        'Cloud app data will be applied over this device’s local data. You can export your current data first if needed.',
     'backupCloudReplaceConfirmTitle': 'Replace the unreadable cloud backup?',
-    'backupCloudReplaceConfirmBody': 'This device’s valid data will be stored as a new snapshot instead of the unreadable cloud backup.',
-    'backupCloudFailed': 'The Google Drive backup operation could not be completed.',
+    'backupCloudReplaceConfirmBody':
+        'This device’s valid data will be stored as a new snapshot instead of the unreadable cloud backup.',
+    'backupCloudFailed':
+        'The Google Drive backup operation could not be completed.',
   },
   'ar': <String, String>{
     'backupTitle': 'النسخ الاحتياطي والاستعادة',
-    'backupSubtitle': 'احتفظ بنسخة من ملاحظاتك ومحفوظاتك وتقدمك على الجهاز أو صدّرها إلى مساحة التخزين السحابية الخاصة بك.',
+    'backupSubtitle':
+        'احتفظ بنسخة من ملاحظاتك ومحفوظاتك وتقدمك على الجهاز أو صدّرها إلى مساحة التخزين السحابية الخاصة بك.',
     'backupCreateExport': 'إنشاء نسخة وتصديرها',
     'backupImport': 'استيراد ملف نسخة احتياطية',
     'backupRecent': 'النسخ الموجودة على هذا الجهاز',
     'backupEmpty': 'لم يتم إنشاء نسخة احتياطية على هذا الجهاز بعد.',
-    'backupPrivacy': 'لا تتضمن النسخة الموقع الدقيق أو الإحداثيات أو حزم القرآن والترجمات أو ذاكرة الصوت المؤقتة أو تسجيلات الحفظ.',
+    'backupPrivacy':
+        'لا تتضمن النسخة الموقع الدقيق أو الإحداثيات أو حزم القرآن والترجمات أو ذاكرة الصوت المؤقتة أو تسجيلات الحفظ.',
     'backupShare': 'مشاركة / تصدير',
     'backupRestore': 'استعادة',
     'backupCreated': 'تم إنشاء النسخة الاحتياطية.',
     'backupRestored': 'تمت استعادة النسخة الاحتياطية.',
     'backupRestoreConfirmTitle': 'استعادة هذه النسخة؟',
-    'backupRestoreConfirmBody': 'سيتم تطبيق بيانات التطبيق الموجودة في النسخة على البيانات المحلية الحالية. إذا فشلت الاستعادة فستتم إعادة الحالة السابقة.',
+    'backupRestoreConfirmBody':
+        'سيتم تطبيق بيانات التطبيق الموجودة في النسخة على البيانات المحلية الحالية. إذا فشلت الاستعادة فستتم إعادة الحالة السابقة.',
     'backupInvalid': 'هذا الملف ليس نسخة احتياطية صالحة أو مدعومة.',
     'backupVersionLabel': 'إصدار النسخة {version}',
     'backupRecordCount': '{count} سجل',
     'backupOperationFailed': 'تعذر إكمال عملية النسخ الاحتياطي.',
     'backupImportPathUnavailable': 'تعذر الوصول إلى الملف المحدد.',
-    'backupExternalHint': 'عند التصدير يمكنك اختيار iCloud Drive أو Google Drive أو تطبيق الملفات أو أي وجهة يوفرها جهازك.',
+    'backupExternalHint':
+        'عند التصدير يمكنك اختيار iCloud Drive أو Google Drive أو تطبيق الملفات أو أي وجهة يوفرها جهازك.',
     'backupCloudTitle': 'نسخة Google Drive الاحتياطية',
-    'backupCloudSubtitle': 'تُحفظ النسخة في مساحة التطبيق الخاصة داخل حساب Google فقط، ولا يتم الوصول إلى بقية ملفات Drive.',
+    'backupCloudSubtitle':
+        'تُحفظ النسخة في مساحة التطبيق الخاصة داخل حساب Google فقط، ولا يتم الوصول إلى بقية ملفات Drive.',
     'backupCloudConnect': 'الاتصال بـ Google Drive',
     'backupCloudConnectedAs': 'متصل بالحساب {account}',
     'backupCloudRemoteEmpty': 'لا توجد نسخة للتطبيق في Drive بعد.',
@@ -121,35 +144,43 @@ const backupStrings = <String, Map<String, String>>{
     'backupCloudReplace': 'استبدال نسخة السحابة ببيانات هذا الجهاز',
     'backupCloudSignOut': 'تسجيل الخروج من حساب Google',
     'backupCloudUploadConfirmTitle': 'تغيير نسخة Drive؟',
-    'backupCloudUploadConfirmBody': 'تختلف بيانات هذا الجهاز عن السحابة وستُحفظ كنسخة جديدة في Drive، مع الاحتفاظ بسجل محدود من النسخ الصغيرة السابقة.',
+    'backupCloudUploadConfirmBody':
+        'تختلف بيانات هذا الجهاز عن السحابة وستُحفظ كنسخة جديدة في Drive، مع الاحتفاظ بسجل محدود من النسخ الصغيرة السابقة.',
     'backupCloudRestoreConfirmTitle': 'استعادة نسخة Drive؟',
-    'backupCloudRestoreConfirmBody': 'سيتم تطبيق بيانات التطبيق السحابية فوق البيانات المحلية في هذا الجهاز. يمكنك تصدير البيانات الحالية أولاً إذا أردت.',
+    'backupCloudRestoreConfirmBody':
+        'سيتم تطبيق بيانات التطبيق السحابية فوق البيانات المحلية في هذا الجهاز. يمكنك تصدير البيانات الحالية أولاً إذا أردت.',
     'backupCloudReplaceConfirmTitle': 'استبدال النسخة السحابية غير المقروءة؟',
-    'backupCloudReplaceConfirmBody': 'سيتم حفظ بيانات هذا الجهاز الصالحة كلقطة جديدة بدلاً من النسخة السحابية غير المقروءة.',
+    'backupCloudReplaceConfirmBody':
+        'سيتم حفظ بيانات هذا الجهاز الصالحة كلقطة جديدة بدلاً من النسخة السحابية غير المقروءة.',
     'backupCloudFailed': 'تعذر إكمال عملية النسخ الاحتياطي عبر Google Drive.',
   },
   'az': <String, String>{
     'backupTitle': 'Yedəkləmə və bərpa',
-    'backupSubtitle': 'Qeydlərinizi, saxlanılanları və irəliləyişinizi cihazda yedəkləyin və ya öz bulud yaddaşınıza ixrac edin.',
+    'backupSubtitle':
+        'Qeydlərinizi, saxlanılanları və irəliləyişinizi cihazda yedəkləyin və ya öz bulud yaddaşınıza ixrac edin.',
     'backupCreateExport': 'Yedək yarat və ixrac et',
     'backupImport': 'Yedək faylını idxal et',
     'backupRecent': 'Bu cihazdakı yedəklər',
     'backupEmpty': 'Bu cihazda hələ yedək yaradılmayıb.',
-    'backupPrivacy': 'Dəqiq məkan və koordinatlar, Quran/tərcümə paketləri, audio keş və əzbər səs yazıları yedəyə daxil edilmir.',
+    'backupPrivacy':
+        'Dəqiq məkan və koordinatlar, Quran/tərcümə paketləri, audio keş və əzbər səs yazıları yedəyə daxil edilmir.',
     'backupShare': 'Paylaş / ixrac et',
     'backupRestore': 'Bərpa et',
     'backupCreated': 'Yedək yaradıldı.',
     'backupRestored': 'Yedək bərpa edildi.',
     'backupRestoreConfirmTitle': 'Bu yedək bərpa edilsin?',
-    'backupRestoreConfirmBody': 'Yedəkdə olan tətbiq məlumatları cari yerli məlumatların üzərinə tətbiq ediləcək. Bərpa uğursuz olsa əvvəlki vəziyyət geri qaytarılır.',
+    'backupRestoreConfirmBody':
+        'Yedəkdə olan tətbiq məlumatları cari yerli məlumatların üzərinə tətbiq ediləcək. Bərpa uğursuz olsa əvvəlki vəziyyət geri qaytarılır.',
     'backupInvalid': 'Bu fayl etibarlı və ya dəstəklənən yedək deyil.',
     'backupVersionLabel': 'Yedək versiyası {version}',
     'backupRecordCount': '{count} qeyd',
     'backupOperationFailed': 'Yedəkləmə əməliyyatı tamamlana bilmədi.',
     'backupImportPathUnavailable': 'Seçilmiş fayla giriş mümkün olmadı.',
-    'backupExternalHint': 'İxrac zamanı iCloud Drive, Google Drive, Fayllar və ya cihazın təklif etdiyi başqa hədəfi seçə bilərsiniz.',
+    'backupExternalHint':
+        'İxrac zamanı iCloud Drive, Google Drive, Fayllar və ya cihazın təklif etdiyi başqa hədəfi seçə bilərsiniz.',
     'backupCloudTitle': 'Google Drive yedəyi',
-    'backupCloudSubtitle': 'Yedək yalnız Google hesabınızın tətbiqə məxsus yaddaşında saxlanılır. Digər Drive fayllarınıza giriş edilmir.',
+    'backupCloudSubtitle':
+        'Yedək yalnız Google hesabınızın tətbiqə məxsus yaddaşında saxlanılır. Digər Drive fayllarınıza giriş edilmir.',
     'backupCloudConnect': 'Google Drive-a qoşul',
     'backupCloudConnectedAs': '{account} hesabı ilə qoşulub',
     'backupCloudRemoteEmpty': 'Drive-da hələ tətbiq yedəyi yoxdur.',
@@ -164,41 +195,53 @@ const backupStrings = <String, Map<String, String>>{
     'backupCloudReplace': 'Bulud yedəyini bu cihazla əvəz et',
     'backupCloudSignOut': 'Google hesabından çıx',
     'backupCloudUploadConfirmTitle': 'Drive yedəyi dəyişdirilsin?',
-    'backupCloudUploadConfirmBody': 'Bu cihazdakı məlumat buluddakı vəziyyətdən fərqlidir və yeni Drive yedəyi kimi saxlanılacaq. Əvvəlki kiçik snapshot-ların məhdud tarixçəsi qorunur.',
+    'backupCloudUploadConfirmBody':
+        'Bu cihazdakı məlumat buluddakı vəziyyətdən fərqlidir və yeni Drive yedəyi kimi saxlanılacaq. Əvvəlki kiçik snapshot-ların məhdud tarixçəsi qorunur.',
     'backupCloudRestoreConfirmTitle': 'Drive yedəyi bərpa edilsin?',
-    'backupCloudRestoreConfirmBody': 'Buluddakı tətbiq məlumatı bu cihazın yerli məlumatlarının üzərinə tətbiq ediləcək. İstəsəniz əvvəlcə cari məlumatı ixrac edə bilərsiniz.',
+    'backupCloudRestoreConfirmBody':
+        'Buluddakı tətbiq məlumatı bu cihazın yerli məlumatlarının üzərinə tətbiq ediləcək. İstəsəniz əvvəlcə cari məlumatı ixrac edə bilərsiniz.',
     'backupCloudReplaceConfirmTitle': 'Oxunmayan bulud yedəyi əvəz edilsin?',
-    'backupCloudReplaceConfirmBody': 'Bu cihazın etibarlı məlumatı oxunmayan bulud yedəyinin əvəzinə yeni snapshot kimi saxlanılacaq.',
+    'backupCloudReplaceConfirmBody':
+        'Bu cihazın etibarlı məlumatı oxunmayan bulud yedəyinin əvəzinə yeni snapshot kimi saxlanılacaq.',
     'backupCloudFailed': 'Google Drive yedəkləmə əməliyyatı tamamlana bilmədi.',
   },
   'ru': <String, String>{
     'backupTitle': 'Резервная копия и восстановление',
-    'backupSubtitle': 'Сохраняйте заметки, закладки и прогресс на устройстве или экспортируйте их в своё облачное хранилище.',
+    'backupSubtitle':
+        'Сохраняйте заметки, закладки и прогресс на устройстве или экспортируйте их в своё облачное хранилище.',
     'backupCreateExport': 'Создать и экспортировать копию',
     'backupImport': 'Импортировать файл копии',
     'backupRecent': 'Копии на этом устройстве',
     'backupEmpty': 'На этом устройстве ещё нет созданных резервных копий.',
-    'backupPrivacy': 'Точное местоположение и координаты, пакеты Корана/переводов, аудиокэш и записи для заучивания в копию не входят.',
+    'backupPrivacy':
+        'Точное местоположение и координаты, пакеты Корана/переводов, аудиокэш и записи для заучивания в копию не входят.',
     'backupShare': 'Поделиться / экспорт',
     'backupRestore': 'Восстановить',
     'backupCreated': 'Резервная копия создана.',
     'backupRestored': 'Резервная копия восстановлена.',
     'backupRestoreConfirmTitle': 'Восстановить эту копию?',
-    'backupRestoreConfirmBody': 'Данные приложения из копии будут применены поверх текущих локальных данных. При ошибке будет возвращено предыдущее состояние.',
-    'backupInvalid': 'Этот файл не является допустимой или поддерживаемой резервной копией.',
+    'backupRestoreConfirmBody':
+        'Данные приложения из копии будут применены поверх текущих локальных данных. При ошибке будет возвращено предыдущее состояние.',
+    'backupInvalid':
+        'Этот файл не является допустимой или поддерживаемой резервной копией.',
     'backupVersionLabel': 'Версия копии {version}',
     'backupRecordCount': '{count} записей',
-    'backupOperationFailed': 'Не удалось завершить операцию резервного копирования.',
-    'backupImportPathUnavailable': 'Не удалось получить доступ к выбранному файлу.',
-    'backupExternalHint': 'При экспорте можно выбрать iCloud Drive, Google Drive, Files или другое хранилище, доступное на устройстве.',
+    'backupOperationFailed':
+        'Не удалось завершить операцию резервного копирования.',
+    'backupImportPathUnavailable':
+        'Не удалось получить доступ к выбранному файлу.',
+    'backupExternalHint':
+        'При экспорте можно выбрать iCloud Drive, Google Drive, Files или другое хранилище, доступное на устройстве.',
     'backupCloudTitle': 'Резервная копия Google Drive',
-    'backupCloudSubtitle': 'Копия хранится только в служебном пространстве приложения вашего аккаунта Google. Остальные файлы Drive недоступны приложению.',
+    'backupCloudSubtitle':
+        'Копия хранится только в служебном пространстве приложения вашего аккаунта Google. Остальные файлы Drive недоступны приложению.',
     'backupCloudConnect': 'Подключить Google Drive',
     'backupCloudConnectedAs': 'Подключено как {account}',
     'backupCloudRemoteEmpty': 'В Drive ещё нет резервной копии приложения.',
     'backupCloudUpToDate': 'Данные устройства и облачная копия совпадают.',
     'backupCloudDiverged': 'Данные устройства и облачная копия различаются.',
-    'backupCloudInvalid': 'Облачную копию невозможно прочитать или она не поддерживается.',
+    'backupCloudInvalid':
+        'Облачную копию невозможно прочитать или она не поддерживается.',
     'backupCloudChecking': 'Проверка облачной копии…',
     'backupCloudUpdatedAt': 'Последняя облачная копия: {date}',
     'backupCloudRefresh': 'Проверить снова',
@@ -207,27 +250,34 @@ const backupStrings = <String, Map<String, String>>{
     'backupCloudReplace': 'Заменить облачную копию данными устройства',
     'backupCloudSignOut': 'Выйти из аккаунта Google',
     'backupCloudUploadConfirmTitle': 'Изменить копию в Drive?',
-    'backupCloudUploadConfirmBody': 'Данные этого устройства отличаются от облачных и будут сохранены как новая копия Drive. Ограниченная история небольших предыдущих снимков сохраняется.',
+    'backupCloudUploadConfirmBody':
+        'Данные этого устройства отличаются от облачных и будут сохранены как новая копия Drive. Ограниченная история небольших предыдущих снимков сохраняется.',
     'backupCloudRestoreConfirmTitle': 'Восстановить копию из Drive?',
-    'backupCloudRestoreConfirmBody': 'Облачные данные приложения будут применены поверх локальных данных этого устройства. При необходимости сначала экспортируйте текущие данные.',
+    'backupCloudRestoreConfirmBody':
+        'Облачные данные приложения будут применены поверх локальных данных этого устройства. При необходимости сначала экспортируйте текущие данные.',
     'backupCloudReplaceConfirmTitle': 'Заменить нечитаемую облачную копию?',
-    'backupCloudReplaceConfirmBody': 'Корректные данные этого устройства будут сохранены новым снимком вместо нечитаемой облачной копии.',
-    'backupCloudFailed': 'Не удалось завершить резервное копирование через Google Drive.',
+    'backupCloudReplaceConfirmBody':
+        'Корректные данные этого устройства будут сохранены новым снимком вместо нечитаемой облачной копии.',
+    'backupCloudFailed':
+        'Не удалось завершить резервное копирование через Google Drive.',
   },
   'fr': <String, String>{
     'backupTitle': 'Sauvegarde et restauration',
-    'backupSubtitle': 'Sauvegardez vos notes, éléments enregistrés et votre progression sur cet appareil, ou exportez-les vers votre propre espace cloud.',
+    'backupSubtitle':
+        'Sauvegardez vos notes, éléments enregistrés et votre progression sur cet appareil, ou exportez-les vers votre propre espace cloud.',
     'backupCreateExport': 'Créer et exporter une sauvegarde',
     'backupImport': 'Importer un fichier de sauvegarde',
     'backupRecent': 'Sauvegardes sur cet appareil',
     'backupEmpty': 'Aucune sauvegarde n’a encore été créée sur cet appareil.',
-    'backupPrivacy': 'La position exacte et les coordonnées, les packs du Coran et de traductions, le cache audio et les enregistrements de mémorisation ne sont pas inclus.',
+    'backupPrivacy':
+        'La position exacte et les coordonnées, les packs du Coran et de traductions, le cache audio et les enregistrements de mémorisation ne sont pas inclus.',
     'backupShare': 'Partager / exporter',
     'backupRestore': 'Restaurer',
     'backupCreated': 'Sauvegarde créée.',
     'backupRestored': 'Sauvegarde restaurée.',
     'backupRestoreConfirmTitle': 'Restaurer cette sauvegarde ?',
-    'backupRestoreConfirmBody': 'Les données de l’application présentes dans la sauvegarde seront appliquées aux données locales actuelles. En cas d’échec, l’état précédent sera rétabli.',
+    'backupRestoreConfirmBody':
+        'Les données de l’application présentes dans la sauvegarde seront appliquées aux données locales actuelles. En cas d’échec, l’état précédent sera rétabli.',
     'backupInvalid':
         'Ce fichier n’est pas une sauvegarde valide ou prise en charge.',
     'backupVersionLabel': 'Version de la sauvegarde {version}',
@@ -236,9 +286,11 @@ const backupStrings = <String, Map<String, String>>{
         'L’opération de sauvegarde n’a pas pu être terminée.',
     'backupImportPathUnavailable':
         'Impossible d’accéder au fichier sélectionné.',
-    'backupExternalHint': 'Lors de l’exportation, vous pouvez choisir iCloud Drive, Google Drive, Fichiers ou une autre destination proposée par votre appareil.',
+    'backupExternalHint':
+        'Lors de l’exportation, vous pouvez choisir iCloud Drive, Google Drive, Fichiers ou une autre destination proposée par votre appareil.',
     'backupCloudTitle': 'Sauvegarde Google Drive',
-    'backupCloudSubtitle': 'La sauvegarde reste dans l’espace réservé à l’application de votre compte Google. Les autres fichiers de votre Drive ne sont pas consultés.',
+    'backupCloudSubtitle':
+        'La sauvegarde reste dans l’espace réservé à l’application de votre compte Google. Les autres fichiers de votre Drive ne sont pas consultés.',
     'backupCloudConnect': 'Connecter Google Drive',
     'backupCloudConnectedAs': 'Connecté avec {account}',
     'backupCloudRemoteEmpty':
@@ -257,12 +309,15 @@ const backupStrings = <String, Map<String, String>>{
     'backupCloudReplace': 'Remplacer la sauvegarde cloud par cet appareil',
     'backupCloudSignOut': 'Se déconnecter du compte Google',
     'backupCloudUploadConfirmTitle': 'Modifier la sauvegarde Drive ?',
-    'backupCloudUploadConfirmBody': 'Les données de cet appareil diffèrent de celles du cloud et seront enregistrées comme une nouvelle sauvegarde Drive. Un historique limité des petites sauvegardes précédentes est conservé.',
+    'backupCloudUploadConfirmBody':
+        'Les données de cet appareil diffèrent de celles du cloud et seront enregistrées comme une nouvelle sauvegarde Drive. Un historique limité des petites sauvegardes précédentes est conservé.',
     'backupCloudRestoreConfirmTitle': 'Restaurer la sauvegarde Drive ?',
-    'backupCloudRestoreConfirmBody': 'Les données cloud de l’application seront appliquées aux données locales de cet appareil. Vous pouvez d’abord exporter vos données actuelles si nécessaire.',
+    'backupCloudRestoreConfirmBody':
+        'Les données cloud de l’application seront appliquées aux données locales de cet appareil. Vous pouvez d’abord exporter vos données actuelles si nécessaire.',
     'backupCloudReplaceConfirmTitle':
         'Remplacer la sauvegarde cloud illisible ?',
-    'backupCloudReplaceConfirmBody': 'Les données valides de cet appareil seront enregistrées comme une nouvelle sauvegarde à la place de la sauvegarde cloud illisible.',
+    'backupCloudReplaceConfirmBody':
+        'Les données valides de cet appareil seront enregistrées comme une nouvelle sauvegarde à la place de la sauvegarde cloud illisible.',
     'backupCloudFailed': 'La sauvegarde Google Drive n’a pas pu être terminée.',
   },
 };

@@ -69,8 +69,10 @@ const homeVerseStrings = <String, Map<String, String>>{
     'homeVerseCollapse': 'Réduire',
     'homeVerseReadSurah': 'Lire la sourate en entier',
     'homeCommunityTitle': 'Votre activité',
-    'homeCommunityBody': 'Les versets que vous enregistrez, surlignez ou annotez apparaissent ici. Lorsque les amis seront disponibles, ce fil pourra également afficher leur activité.',
-    'homeCommunityEmpty': 'Aucune activité pour le moment. Enregistrez ou surlignez un verset, ou ajoutez-y une note pour le retrouver ici.',
+    'homeCommunityBody':
+        'Les versets que vous enregistrez, surlignez ou annotez apparaissent ici. Lorsque les amis seront disponibles, ce fil pourra également afficher leur activité.',
+    'homeCommunityEmpty':
+        'Aucune activité pour le moment. Enregistrez ou surlignez un verset, ou ajoutez-y une note pour le retrouver ici.',
     'homeCommunityBookmark': 'Vous avez enregistré un verset',
     'homeCommunityHighlight': 'Vous avez surligné un verset',
     'homeCommunityNote': 'Vous avez ajouté une note à un verset',
