@@ -19,11 +19,12 @@ ReadingPlanRecoverySession? resolveReadingPlanRecoverySession({
         now: now,
         targetEndDate: redistributionTarget,
       );
-    } on ArgumentError {
-      // A target can become stale after a long pause/offline period. Falling
-      // back keeps the plan usable; UI may then ask the user for a new date.
     } on RangeError {
-      // Same principle when today's date no longer belongs to the proposal.
+      // Today's date can fall outside an old redistribution proposal.
+      // Falling back keeps the plan usable and lets the UI ask for a new date.
+    } on ArgumentError {
+      // A target can become stale after a long pause/offline period.
+      // Fall back to normal catch-up rather than blocking the plan.
     }
   }
 
