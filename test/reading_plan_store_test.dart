@@ -24,14 +24,17 @@ void main() {
     expect(loaded.active?.pausedDays, 0);
   });
 
-  test('completing a day advances without depending on calendar time', () async {
-    await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 16));
+  test(
+    'completing a day advances without depending on calendar time',
+    () async {
+      await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 16));
 
-    final after = await store.completeNextDay(now: DateTime(2026, 9, 20));
+      final after = await store.completeNextDay(now: DateTime(2026, 9, 20));
 
-    expect(after.active?.completedDays, <int>{1});
-    expect(after.active?.nextDayNumber, 2);
-  });
+      expect(after.active?.completedDays, <int>{1});
+      expect(after.active?.nextDayNumber, 2);
+    },
+  );
 
   test('saved presets persist independently from the active plan', () async {
     await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 16));
@@ -42,20 +45,23 @@ void main() {
     expect(loaded.savedPresetIds, <String>{'quran365'});
   });
 
-  test('finishing the final day archives the plan and clears active state', () async {
-    final completedDays = <int>{for (var day = 1; day < 30; day++) day};
-    SharedPreferences.setMockInitialValues(<String, Object>{
-      ReadingPlanStore.preferenceKey:
-          '{"active":{"preset":"quran30","startedAt":"2026-08-18","completedDays":${completedDays.toList()}},"saved":[],"completed":[]}',
-    });
+  test(
+    'finishing the final day archives the plan and clears active state',
+    () async {
+      final completedDays = <int>{for (var day = 1; day < 30; day++) day};
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        ReadingPlanStore.preferenceKey:
+            '{"active":{"preset":"quran30","startedAt":"2026-08-18","completedDays":${completedDays.toList()}},"saved":[],"completed":[]}',
+      });
 
-    final after = await store.completeNextDay(now: DateTime(2026, 9, 16));
+      final after = await store.completeNextDay(now: DateTime(2026, 9, 16));
 
-    expect(after.active, isNull);
-    expect(after.completed, hasLength(1));
-    expect(after.completed.single.preset, ReadingPlanPreset.quran30);
-    expect(after.completed.single.completedAt, DateTime(2026, 9, 16));
-  });
+      expect(after.active, isNull);
+      expect(after.completed, hasLength(1));
+      expect(after.completed.single.preset, ReadingPlanPreset.quran30);
+      expect(after.completed.single.completedAt, DateTime(2026, 9, 16));
+    },
+  );
 
   test('corrupted and unknown persisted values are sanitized', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{
@@ -97,24 +103,27 @@ void main() {
     expect(loaded.completed, isEmpty);
   });
 
-  test('completed history ignores invalid rows without silently truncating archive', () async {
-    final rows = <String>[
-      for (var day = 1; day <= 22; day++)
-        '{"preset":"quran30","startedAt":"2026-08-01","completedAt":"2026-09-${day.toString().padLeft(2, '0')}"}',
-      '{"preset":"unknown","startedAt":"2026-08-01","completedAt":"2026-09-01"}',
-      '{"preset":"quran30","startedAt":"bad","completedAt":"2026-09-01"}',
-    ];
-    SharedPreferences.setMockInitialValues(<String, Object>{
-      ReadingPlanStore.preferenceKey:
-          '{"active":null,"saved":[],"completed":[${rows.join(',')}]}'
-    });
+  test(
+    'completed history ignores invalid rows without silently truncating archive',
+    () async {
+      final rows = <String>[
+        for (var day = 1; day <= 22; day++)
+          '{"preset":"quran30","startedAt":"2026-08-01","completedAt":"2026-09-${day.toString().padLeft(2, '0')}"}',
+        '{"preset":"unknown","startedAt":"2026-08-01","completedAt":"2026-09-01"}',
+        '{"preset":"quran30","startedAt":"bad","completedAt":"2026-09-01"}',
+      ];
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        ReadingPlanStore.preferenceKey:
+            '{"active":null,"saved":[],"completed":[${rows.join(',')}]}',
+      });
 
-    final loaded = await store.load();
+      final loaded = await store.load();
 
-    expect(loaded.completed, hasLength(22));
-    expect(loaded.completed.first.completedAt, DateTime(2026, 9, 1));
-    expect(loaded.completed.last.completedAt, DateTime(2026, 9, 22));
-  });
+      expect(loaded.completed, hasLength(22));
+      expect(loaded.completed.first.completedAt, DateTime(2026, 9, 1));
+      expect(loaded.completed.last.completedAt, DateTime(2026, 9, 22));
+    },
+  );
 
   test('stopping an active plan keeps saved and completed history', () async {
     await store.toggleSaved(ReadingPlanPreset.quran90);
@@ -138,78 +147,94 @@ void main() {
     expect(loaded.active?.pausedAt, DateTime(2026, 9, 18));
   });
 
-  test('resuming accumulates full paused days and keeps original start', () async {
-    await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 16));
-    await store.pauseActive(now: DateTime(2026, 9, 18));
-    final resumed = await store.resumeActive(now: DateTime(2026, 9, 25));
-    final reloaded = await const ReadingPlanStore().load();
+  test(
+    'resuming accumulates full paused days and keeps original start',
+    () async {
+      await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 16));
+      await store.pauseActive(now: DateTime(2026, 9, 18));
+      final resumed = await store.resumeActive(now: DateTime(2026, 9, 25));
+      final reloaded = await const ReadingPlanStore().load();
 
-    expect(resumed.active?.isPaused, isFalse);
-    expect(resumed.active?.startedAt, DateTime(2026, 9, 16));
-    expect(resumed.active?.pausedDays, 7);
-    expect(reloaded.active?.pausedDays, 7);
-    expect(
-      reloaded.active?.scheduleStatus(DateTime(2026, 9, 25)).calendarDayNumber,
-      3,
-    );
-  });
+      expect(resumed.active?.isPaused, isFalse);
+      expect(resumed.active?.startedAt, DateTime(2026, 9, 16));
+      expect(resumed.active?.pausedDays, 7);
+      expect(reloaded.active?.pausedDays, 7);
+      expect(
+        reloaded.active
+            ?.scheduleStatus(DateTime(2026, 9, 25))
+            .calendarDayNumber,
+        3,
+      );
+    },
+  );
 
-  test('invalid pause metadata is sanitized without breaking older plans', () async {
-    SharedPreferences.setMockInitialValues(<String, Object>{
-      ReadingPlanStore.preferenceKey:
-          '{"active":{"preset":"quran30","startedAt":"2026-09-16","completedDays":[],"pausedAt":"2026-09-10","pausedDays":-7},"saved":[],"completed":[]}',
-    });
+  test(
+    'invalid pause metadata is sanitized without breaking older plans',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        ReadingPlanStore.preferenceKey:
+            '{"active":{"preset":"quran30","startedAt":"2026-09-16","completedDays":[],"pausedAt":"2026-09-10","pausedDays":-7},"saved":[],"completed":[]}',
+      });
 
-    final loaded = await store.load();
+      final loaded = await store.load();
 
-    expect(loaded.active?.pausedAt, isNull);
-    expect(loaded.active?.pausedDays, 0);
-    expect(loaded.active?.startedAt, DateTime(2026, 9, 16));
-  });
+      expect(loaded.active?.pausedAt, isNull);
+      expect(loaded.active?.pausedDays, 0);
+      expect(loaded.active?.startedAt, DateTime(2026, 9, 16));
+    },
+  );
 
-  test('yearly khatm target persists across plan mutations and can be cleared', () async {
-    await store.setYearlyKhatmTarget(3);
-    await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 20));
-    await store.toggleSaved(ReadingPlanPreset.quran90);
+  test(
+    'yearly khatm target persists across plan mutations and can be cleared',
+    () async {
+      await store.setYearlyKhatmTarget(3);
+      await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 20));
+      await store.toggleSaved(ReadingPlanPreset.quran90);
 
-    var loaded = await const ReadingPlanStore().load();
-    expect(loaded.yearlyKhatmTarget, 3);
+      var loaded = await const ReadingPlanStore().load();
+      expect(loaded.yearlyKhatmTarget, 3);
 
-    await store.setYearlyKhatmTarget(null);
-    loaded = await const ReadingPlanStore().load();
-    expect(loaded.yearlyKhatmTarget, isNull);
-  });
+      await store.setYearlyKhatmTarget(null);
+      loaded = await const ReadingPlanStore().load();
+      expect(loaded.yearlyKhatmTarget, isNull);
+    },
+  );
 
-  test('yearly khatm target rejects invalid values and sanitizes persisted data', () async {
-    await expectLater(store.setYearlyKhatmTarget(0), throwsRangeError);
-    await expectLater(store.setYearlyKhatmTarget(100), throwsRangeError);
+  test(
+    'yearly khatm target rejects invalid values and sanitizes persisted data',
+    () async {
+      await expectLater(store.setYearlyKhatmTarget(0), throwsRangeError);
+      await expectLater(store.setYearlyKhatmTarget(100), throwsRangeError);
 
-    SharedPreferences.setMockInitialValues(<String, Object>{
-      ReadingPlanStore.preferenceKey:
-          '{"active":null,"saved":[],"completed":[],"yearlyKhatmTarget":150}',
-    });
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        ReadingPlanStore.preferenceKey:
+            '{"active":null,"saved":[],"completed":[],"yearlyKhatmTarget":150}',
+      });
 
-    final loaded = await store.load();
-    expect(loaded.yearlyKhatmTarget, isNull);
-  });
+      final loaded = await store.load();
+      expect(loaded.yearlyKhatmTarget, isNull);
+    },
+  );
 
-  test('yearly khatm progress counts only completions in the selected year', () async {
-    SharedPreferences.setMockInitialValues(<String, Object>{
-      ReadingPlanStore.preferenceKey:
-          '{"active":null,"saved":[],"yearlyKhatmTarget":3,"completed":['
-          '{"preset":"quran30","startedAt":"2025-12-01","completedAt":"2025-12-30"},'
-          '{"preset":"quran30","startedAt":"2026-01-01","completedAt":"2026-01-30"},'
-          '{"preset":"quran90","startedAt":"2026-03-01","completedAt":"2026-05-29"}'
-          ']}',
-    });
+  test(
+    'yearly khatm progress counts only completions in the selected year',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        ReadingPlanStore.preferenceKey:
+            '{"active":null,"saved":[],"yearlyKhatmTarget":3,"completed":['
+            '{"preset":"quran30","startedAt":"2025-12-01","completedAt":"2025-12-30"},'
+            '{"preset":"quran30","startedAt":"2026-01-01","completedAt":"2026-01-30"},'
+            '{"preset":"quran90","startedAt":"2026-03-01","completedAt":"2026-05-29"}'
+            ']}',
+      });
 
-    final loaded = await store.load();
-    expect(loaded.completedInYear(2025), 1);
-    expect(loaded.completedInYear(2026), 2);
-    expect(loaded.remainingForYear(2026), 1);
-    expect(loaded.remainingForYear(2025), 2);
-  });
-
+      final loaded = await store.load();
+      expect(loaded.completedInYear(2025), 1);
+      expect(loaded.completedInYear(2026), 2);
+      expect(loaded.remainingForYear(2026), 1);
+      expect(loaded.remainingForYear(2025), 2);
+    },
+  );
 
   test('removing a completed khatm updates archive and yearly total', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{
@@ -229,15 +254,17 @@ void main() {
     expect(after.yearlyKhatmTarget, 3);
   });
 
-  test('removing an invalid archive index fails without mutating data', () async {
-    SharedPreferences.setMockInitialValues(<String, Object>{
-      ReadingPlanStore.preferenceKey:
-          '{"active":null,"saved":[],"completed":[]}',
-    });
+  test(
+    'removing an invalid archive index fails without mutating data',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        ReadingPlanStore.preferenceKey:
+            '{"active":null,"saved":[],"completed":[]}',
+      });
 
-    await expectLater(store.removeCompletedAt(0), throwsRangeError);
-    final loaded = await store.load();
-    expect(loaded.completed, isEmpty);
-  });
-
+      await expectLater(store.removeCompletedAt(0), throwsRangeError);
+      final loaded = await store.load();
+      expect(loaded.completed, isEmpty);
+    },
+  );
 }

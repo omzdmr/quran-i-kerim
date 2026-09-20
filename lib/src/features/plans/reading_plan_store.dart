@@ -103,8 +103,7 @@ class ReadingPlanStore {
     if (index < 0 || index >= current.completed.length) {
       throw RangeError.index(index, current.completed, 'index');
     }
-    final completed = current.completed.toList(growable: true)
-      ..removeAt(index);
+    final completed = current.completed.toList(growable: true)..removeAt(index);
     final next = ReadingPlanSnapshot(
       active: current.active,
       savedPresetIds: current.savedPresetIds,
@@ -173,7 +172,11 @@ class ReadingPlanStore {
     final today = readingPlanDateOnly(now ?? DateTime.now());
     final target = readingPlanDateOnly(targetEndDate);
     if (target.isBefore(today)) {
-      throw ArgumentError.value(targetEndDate, 'targetEndDate', 'Must not be before today.');
+      throw ArgumentError.value(
+        targetEndDate,
+        'targetEndDate',
+        'Must not be before today.',
+      );
     }
     final next = ReadingPlanSnapshot(
       active: active,
@@ -306,7 +309,9 @@ class ReadingPlanStore {
     final rawActive = json['active'];
     if (rawActive is Map) {
       final preset = ReadingPlanPreset.fromId(rawActive['preset']?.toString());
-      final startedAt = DateTime.tryParse(rawActive['startedAt']?.toString() ?? '');
+      final startedAt = DateTime.tryParse(
+        rawActive['startedAt']?.toString() ?? '',
+      );
       if (preset != null && startedAt != null) {
         final normalizedStart = readingPlanDateOnly(startedAt);
         final completedDays = <int>{};
@@ -360,9 +365,14 @@ class ReadingPlanStore {
       for (final item in rawCompleted) {
         if (item is! Map) continue;
         final preset = ReadingPlanPreset.fromId(item['preset']?.toString());
-        final startedAt = DateTime.tryParse(item['startedAt']?.toString() ?? '');
-        final completedAt = DateTime.tryParse(item['completedAt']?.toString() ?? '');
-        if (preset == null || startedAt == null || completedAt == null) continue;
+        final startedAt = DateTime.tryParse(
+          item['startedAt']?.toString() ?? '',
+        );
+        final completedAt = DateTime.tryParse(
+          item['completedAt']?.toString() ?? '',
+        );
+        if (preset == null || startedAt == null || completedAt == null)
+          continue;
         completed.add(
           CompletedReadingPlan(
             preset: preset,
@@ -375,15 +385,19 @@ class ReadingPlanStore {
 
     DateTime? redistributionTargetEndDate;
     if (active != null) {
-      final parsed = DateTime.tryParse(json['redistributionTargetEndDate']?.toString() ?? '');
-      if (parsed != null) redistributionTargetEndDate = readingPlanDateOnly(parsed);
+      final parsed = DateTime.tryParse(
+        json['redistributionTargetEndDate']?.toString() ?? '',
+      );
+      if (parsed != null)
+        redistributionTargetEndDate = readingPlanDateOnly(parsed);
     }
 
     final rawYearlyKhatmTarget = json['yearlyKhatmTarget'];
     final parsedYearlyKhatmTarget = rawYearlyKhatmTarget is int
         ? rawYearlyKhatmTarget
         : int.tryParse('${rawYearlyKhatmTarget ?? ''}');
-    final yearlyKhatmTarget = parsedYearlyKhatmTarget != null &&
+    final yearlyKhatmTarget =
+        parsedYearlyKhatmTarget != null &&
             parsedYearlyKhatmTarget >= 1 &&
             parsedYearlyKhatmTarget <= 99
         ? parsedYearlyKhatmTarget
@@ -408,11 +422,14 @@ class ReadingPlanStore {
               'preset': active.preset.id,
               'startedAt': _date(active.startedAt),
               'completedDays': active.completedDays.toList()..sort(),
-              'pausedAt': active.pausedAt == null ? null : _date(active.pausedAt!),
+              'pausedAt': active.pausedAt == null
+                  ? null
+                  : _date(active.pausedAt!),
               'pausedDays': active.pausedDays,
             },
       'yearlyKhatmTarget': snapshot.yearlyKhatmTarget,
-      'redistributionTargetEndDate': snapshot.redistributionTargetEndDate == null
+      'redistributionTargetEndDate':
+          snapshot.redistributionTargetEndDate == null
           ? null
           : _date(snapshot.redistributionTargetEndDate!),
       'saved': snapshot.savedPresetIds.toList()..sort(),
