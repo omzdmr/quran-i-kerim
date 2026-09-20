@@ -631,4 +631,156 @@ void main() {
     expect(after.offDevicePageSessions.single.startPage, 50);
     expect(after.offDevicePageSessions.single.endPage, 60);
   });
+
+  test('legacy page sessions gain canonical ayah coverage on load', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      ReadingPlanStore.preferenceKey:
+          '{"active":null,"saved":[],"completed":[],"offDevicePageSessions":['
+          '{"readAt":"2026-09-20","startPage":1,"endPage":2}'
+          ']}',
+    });
+
+    final loaded = await store.load();
+
+    expect(loaded.offDevicePageSessions, hasLength(1));
+    final session = loaded.offDevicePageSessions.single;
+    expect(session.inputKind, OffDeviceReadingInputKind.page);
+    expect(session.startPage, 1);
+    expect(session.endPage, 2);
+    expect(session.canonicalStartKey, '1:1');
+    expect(session.canonicalEndKey, isNotNull);
+  });
+
+  test('juz session normalizes to canonical ayah coverage', () async {
+    await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 20));
+
+    final after = await store.addOffDeviceJuzSession(
+      juzNumber: 1,
+      readAt: DateTime(2026, 9, 20),
+      note: '  first juz  ',
+      now: DateTime(2026, 9, 20),
+    );
+
+    expect(after.active?.nextDayNumber, 1);
+    expect(after.active?.completedDays, isEmpty);
+    final session = after.offDevicePageSessions.single;
+    expect(session.inputKind, OffDeviceReadingInputKind.juz);
+    expect(session.juzNumber, 1);
+    expect(session.canonicalStartKey, '1:1');
+    expect(session.canonicalEndKey, '2:141');
+    expect(session.startPage, 1);
+    expect(session.endPage, greaterThan(session.startPage));
+    expect(session.note, 'first juz');
+
+    final reloaded = await store.load();
+    expect(
+      reloaded.offDevicePageSessions.single.inputKind,
+      OffDeviceReadingInputKind.juz,
+    );
+    expect(reloaded.offDevicePageSessions.single.canonicalEndKey, '2:141');
+  });
+
+  test(
+    'ayah range session stores canonical references and derived pages',
+    () async {
+      final after = await store.addOffDeviceAyahRangeSession(
+        startSurah: 2,
+        startAyah: 255,
+        endSurah: 2,
+        endAyah: 257,
+        readAt: DateTime(2026, 9, 20),
+        now: DateTime(2026, 9, 20),
+      );
+
+      final session = after.offDevicePageSessions.single;
+      expect(session.inputKind, OffDeviceReadingInputKind.ayahRange);
+      expect(session.canonicalStartKey, '2:255');
+      expect(session.canonicalEndKey, '2:257');
+      expect(session.startPage, lessThanOrEqualTo(session.endPage));
+
+      final reloaded = await store.load();
+      expect(reloaded.offDevicePageSessions.single.canonicalStartKey, '2:255');
+      expect(reloaded.offDevicePageSessions.single.canonicalEndKey, '2:257');
+    },
+  );
+
+  test(
+    'structured off-device inputs reject invalid Quran references',
+    () async {
+      await expectLater(
+        store.addOffDeviceJuzSession(
+          juzNumber: 31,
+          readAt: DateTime(2026, 9, 20),
+          now: DateTime(2026, 9, 20),
+        ),
+        throwsRangeError,
+      );
+      await expectLater(
+        store.addOffDeviceAyahRangeSession(
+          startSurah: 115,
+          startAyah: 1,
+          endSurah: 115,
+          endAyah: 1,
+          readAt: DateTime(2026, 9, 20),
+          now: DateTime(2026, 9, 20),
+        ),
+        throwsRangeError,
+      );
+      await expectLater(
+        store.addOffDeviceAyahRangeSession(
+          startSurah: 2,
+          startAyah: 286,
+          endSurah: 2,
+          endAyah: 1,
+          readAt: DateTime(2026, 9, 20),
+          now: DateTime(2026, 9, 20),
+        ),
+        throwsArgumentError,
+      );
+      expect((await store.load()).offDevicePageSessions, isEmpty);
+    },
+  );
+
+  test(
+    'off-device session can change input type without advancing plan',
+    () async {
+      await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 20));
+      await store.addOffDevicePageSession(
+        startPage: 10,
+        endPage: 12,
+        readAt: DateTime(2026, 9, 20),
+        now: DateTime(2026, 9, 20),
+      );
+
+      var after = await store.updateOffDeviceJuzSessionAt(
+        0,
+        juzNumber: 2,
+        readAt: DateTime(2026, 9, 20),
+        now: DateTime(2026, 9, 20),
+      );
+      expect(
+        after.offDevicePageSessions.single.inputKind,
+        OffDeviceReadingInputKind.juz,
+      );
+      expect(after.offDevicePageSessions.single.juzNumber, 2);
+      expect(after.active?.nextDayNumber, 1);
+
+      after = await store.updateOffDeviceAyahRangeSessionAt(
+        0,
+        startSurah: 3,
+        startAyah: 1,
+        endSurah: 3,
+        endAyah: 20,
+        readAt: DateTime(2026, 9, 20),
+        now: DateTime(2026, 9, 20),
+      );
+      expect(
+        after.offDevicePageSessions.single.inputKind,
+        OffDeviceReadingInputKind.ayahRange,
+      );
+      expect(after.offDevicePageSessions.single.canonicalStartKey, '3:1');
+      expect(after.offDevicePageSessions.single.canonicalEndKey, '3:20');
+      expect(after.active?.nextDayNumber, 1);
+    },
+  );
 }

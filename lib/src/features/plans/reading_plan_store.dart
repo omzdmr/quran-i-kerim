@@ -1,9 +1,28 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:quran/quran.dart' as quran;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'reading_plan.dart';
+
+class _CanonicalOffDeviceCoverage {
+  const _CanonicalOffDeviceCoverage({
+    required this.startPage,
+    required this.endPage,
+    required this.startSurah,
+    required this.startAyah,
+    required this.endSurah,
+    required this.endAyah,
+  });
+
+  final int startPage;
+  final int endPage;
+  final int startSurah;
+  final int startAyah;
+  final int endSurah;
+  final int endAyah;
+}
 
 class ReadingPlanSnapshot {
   const ReadingPlanSnapshot({
@@ -207,22 +226,138 @@ class ReadingPlanStore {
     String? note,
     DateTime? now,
   }) async {
+    final coverage = _coverageForPages(startPage, endPage);
+    return _addOffDeviceSession(
+      inputKind: OffDeviceReadingInputKind.page,
+      coverage: coverage,
+      readAt: readAt,
+      note: note,
+      now: now,
+    );
+  }
+
+  Future<ReadingPlanSnapshot> addOffDeviceJuzSession({
+    required int juzNumber,
+    required DateTime readAt,
+    String? note,
+    DateTime? now,
+  }) async {
+    final coverage = _coverageForJuz(juzNumber);
+    return _addOffDeviceSession(
+      inputKind: OffDeviceReadingInputKind.juz,
+      coverage: coverage,
+      juzNumber: juzNumber,
+      readAt: readAt,
+      note: note,
+      now: now,
+    );
+  }
+
+  Future<ReadingPlanSnapshot> addOffDeviceAyahRangeSession({
+    required int startSurah,
+    required int startAyah,
+    required int endSurah,
+    required int endAyah,
+    required DateTime readAt,
+    String? note,
+    DateTime? now,
+  }) async {
+    final coverage = _coverageForAyahRange(
+      startSurah: startSurah,
+      startAyah: startAyah,
+      endSurah: endSurah,
+      endAyah: endAyah,
+    );
+    return _addOffDeviceSession(
+      inputKind: OffDeviceReadingInputKind.ayahRange,
+      coverage: coverage,
+      readAt: readAt,
+      note: note,
+      now: now,
+    );
+  }
+
+  Future<ReadingPlanSnapshot> updateOffDevicePageSessionAt(
+    int index, {
+    required int startPage,
+    required int endPage,
+    required DateTime readAt,
+    String? note,
+    DateTime? now,
+  }) {
+    return _replaceOffDeviceSessionAt(
+      index,
+      inputKind: OffDeviceReadingInputKind.page,
+      coverage: _coverageForPages(startPage, endPage),
+      readAt: readAt,
+      note: note,
+      now: now,
+    );
+  }
+
+  Future<ReadingPlanSnapshot> updateOffDeviceJuzSessionAt(
+    int index, {
+    required int juzNumber,
+    required DateTime readAt,
+    String? note,
+    DateTime? now,
+  }) {
+    return _replaceOffDeviceSessionAt(
+      index,
+      inputKind: OffDeviceReadingInputKind.juz,
+      coverage: _coverageForJuz(juzNumber),
+      juzNumber: juzNumber,
+      readAt: readAt,
+      note: note,
+      now: now,
+    );
+  }
+
+  Future<ReadingPlanSnapshot> updateOffDeviceAyahRangeSessionAt(
+    int index, {
+    required int startSurah,
+    required int startAyah,
+    required int endSurah,
+    required int endAyah,
+    required DateTime readAt,
+    String? note,
+    DateTime? now,
+  }) {
+    return _replaceOffDeviceSessionAt(
+      index,
+      inputKind: OffDeviceReadingInputKind.ayahRange,
+      coverage: _coverageForAyahRange(
+        startSurah: startSurah,
+        startAyah: startAyah,
+        endSurah: endSurah,
+        endAyah: endAyah,
+      ),
+      readAt: readAt,
+      note: note,
+      now: now,
+    );
+  }
+
+  Future<ReadingPlanSnapshot> _addOffDeviceSession({
+    required OffDeviceReadingInputKind inputKind,
+    required _CanonicalOffDeviceCoverage coverage,
+    required DateTime readAt,
+    String? note,
+    int? juzNumber,
+    DateTime? now,
+  }) async {
     final current = await load();
     final date = readingPlanDateOnly(readAt);
     final today = readingPlanDateOnly(now ?? DateTime.now());
-    _validateOffDevicePageSession(
-      startPage: startPage,
-      endPage: endPage,
-      readAt: date,
-      today: today,
-    );
+    _validateOffDeviceReadDate(readAt: date, today: today);
 
     final sessions = <OffDevicePageReadingSession>[
-      OffDevicePageReadingSession(
+      _sessionFromCoverage(
+        inputKind: inputKind,
+        coverage: coverage,
         readAt: date,
-        startPage: startPage,
-        endPage: endPage,
         note: _normalizeNote(note),
+        juzNumber: juzNumber,
       ),
       ...current.offDevicePageSessions,
     ];
@@ -240,12 +375,13 @@ class ReadingPlanStore {
     return next;
   }
 
-  Future<ReadingPlanSnapshot> updateOffDevicePageSessionAt(
+  Future<ReadingPlanSnapshot> _replaceOffDeviceSessionAt(
     int index, {
-    required int startPage,
-    required int endPage,
+    required OffDeviceReadingInputKind inputKind,
+    required _CanonicalOffDeviceCoverage coverage,
     required DateTime readAt,
     String? note,
+    int? juzNumber,
     DateTime? now,
   }) async {
     final current = await load();
@@ -254,19 +390,15 @@ class ReadingPlanStore {
     }
     final date = readingPlanDateOnly(readAt);
     final today = readingPlanDateOnly(now ?? DateTime.now());
-    _validateOffDevicePageSession(
-      startPage: startPage,
-      endPage: endPage,
-      readAt: date,
-      today: today,
-    );
+    _validateOffDeviceReadDate(readAt: date, today: today);
 
     final sessions = current.offDevicePageSessions.toList(growable: true);
-    sessions[index] = OffDevicePageReadingSession(
+    sessions[index] = _sessionFromCoverage(
+      inputKind: inputKind,
+      coverage: coverage,
       readAt: date,
-      startPage: startPage,
-      endPage: endPage,
       note: _normalizeNote(note),
+      juzNumber: juzNumber,
     );
     final next = ReadingPlanSnapshot(
       active: current.active,
@@ -599,29 +731,59 @@ class ReadingPlanStore {
     if (rawSessions is List) {
       for (final item in rawSessions) {
         if (item is! Map) continue;
-        final startPage = item['startPage'] is int
-            ? item['startPage'] as int
-            : int.tryParse('${item['startPage'] ?? ''}');
-        final endPage = item['endPage'] is int
-            ? item['endPage'] as int
-            : int.tryParse('${item['endPage'] ?? ''}');
         final readAt = DateTime.tryParse(item['readAt']?.toString() ?? '');
-        if (startPage == null ||
-            endPage == null ||
-            readAt == null ||
-            startPage < 1 ||
-            endPage > madinahMushafPageCount ||
-            startPage > endPage) {
+        if (readAt == null) continue;
+
+        final inputKind = OffDeviceReadingInputKind.fromId(
+          item['inputKind']?.toString(),
+        );
+        try {
+          final _CanonicalOffDeviceCoverage coverage;
+          int? juzNumber;
+          switch (inputKind) {
+            case OffDeviceReadingInputKind.page:
+              final startPage = _intValue(item['startPage']);
+              final endPage = _intValue(item['endPage']);
+              if (startPage == null || endPage == null) continue;
+              coverage = _coverageForPages(startPage, endPage);
+              break;
+            case OffDeviceReadingInputKind.juz:
+              juzNumber = _intValue(item['juzNumber']);
+              if (juzNumber == null) continue;
+              coverage = _coverageForJuz(juzNumber);
+              break;
+            case OffDeviceReadingInputKind.ayahRange:
+              final startSurah = _intValue(item['startSurah']);
+              final startAyah = _intValue(item['startAyah']);
+              final endSurah = _intValue(item['endSurah']);
+              final endAyah = _intValue(item['endAyah']);
+              if (startSurah == null ||
+                  startAyah == null ||
+                  endSurah == null ||
+                  endAyah == null) {
+                continue;
+              }
+              coverage = _coverageForAyahRange(
+                startSurah: startSurah,
+                startAyah: startAyah,
+                endSurah: endSurah,
+                endAyah: endAyah,
+              );
+              break;
+          }
+
+          offDevicePageSessions.add(
+            _sessionFromCoverage(
+              inputKind: inputKind,
+              coverage: coverage,
+              readAt: readingPlanDateOnly(readAt),
+              note: _decodeNote(item['note']?.toString()),
+              juzNumber: juzNumber,
+            ),
+          );
+        } catch (_) {
           continue;
         }
-        offDevicePageSessions.add(
-          OffDevicePageReadingSession(
-            readAt: readingPlanDateOnly(readAt),
-            startPage: startPage,
-            endPage: endPage,
-            note: _decodeNote(item['note']?.toString()),
-          ),
-        );
       }
     }
 
@@ -676,8 +838,14 @@ class ReadingPlanStore {
         for (final item in snapshot.offDevicePageSessions)
           <String, Object?>{
             'readAt': _date(item.readAt),
+            'inputKind': item.inputKind.id,
+            'juzNumber': item.juzNumber,
             'startPage': item.startPage,
             'endPage': item.endPage,
+            'startSurah': item.startSurah,
+            'startAyah': item.startAyah,
+            'endSurah': item.endSurah,
+            'endAyah': item.endAyah,
             'note': item.note,
           },
       ],
@@ -702,11 +870,132 @@ class ReadingPlanStore {
     notifyExternalChange();
   }
 
-  void _validateOffDevicePageSession({
-    required int startPage,
-    required int endPage,
+  OffDevicePageReadingSession _sessionFromCoverage({
+    required OffDeviceReadingInputKind inputKind,
+    required _CanonicalOffDeviceCoverage coverage,
+    required DateTime readAt,
+    String? note,
+    int? juzNumber,
+  }) {
+    return OffDevicePageReadingSession(
+      readAt: readAt,
+      startPage: coverage.startPage,
+      endPage: coverage.endPage,
+      inputKind: inputKind,
+      juzNumber: juzNumber,
+      startSurah: coverage.startSurah,
+      startAyah: coverage.startAyah,
+      endSurah: coverage.endSurah,
+      endAyah: coverage.endAyah,
+      note: note,
+    );
+  }
+
+  _CanonicalOffDeviceCoverage _coverageForPages(int startPage, int endPage) {
+    _validateOffDevicePageRange(startPage: startPage, endPage: endPage);
+    final startData = quran.getPageData(startPage);
+    final endData = quran.getPageData(endPage);
+    if (startData.isEmpty || endData.isEmpty) {
+      throw StateError('Quran page metadata is unavailable.');
+    }
+    final first = Map<Object?, Object?>.from(startData.first as Map);
+    final last = Map<Object?, Object?>.from(endData.last as Map);
+    final startSurah = _intValue(first['surah']);
+    final startAyah = _intValue(first['start']);
+    final endSurah = _intValue(last['surah']);
+    final endAyah = _intValue(last['end']);
+    if (startSurah == null ||
+        startAyah == null ||
+        endSurah == null ||
+        endAyah == null) {
+      throw StateError('Quran page metadata is malformed.');
+    }
+    return _CanonicalOffDeviceCoverage(
+      startPage: startPage,
+      endPage: endPage,
+      startSurah: startSurah,
+      startAyah: startAyah,
+      endSurah: endSurah,
+      endAyah: endAyah,
+    );
+  }
+
+  _CanonicalOffDeviceCoverage _coverageForJuz(int juzNumber) {
+    if (juzNumber < 1 || juzNumber > 30) {
+      throw RangeError.range(juzNumber, 1, 30, 'juzNumber');
+    }
+    final data = quran.getSurahAndVersesFromJuz(juzNumber);
+    if (data.isEmpty) throw StateError('Quran juz metadata is unavailable.');
+    final surahs = data.keys.toList()..sort();
+    final startSurah = surahs.first;
+    final endSurah = surahs.last;
+    final startVerses = data[startSurah];
+    final endVerses = data[endSurah];
+    if (startVerses == null ||
+        startVerses.isEmpty ||
+        endVerses == null ||
+        endVerses.isEmpty) {
+      throw StateError('Quran juz metadata is malformed.');
+    }
+    final startAyah = startVerses.first;
+    final endAyah = endVerses.last;
+    return _CanonicalOffDeviceCoverage(
+      startPage: quran.getPageNumber(startSurah, startAyah),
+      endPage: quran.getPageNumber(endSurah, endAyah),
+      startSurah: startSurah,
+      startAyah: startAyah,
+      endSurah: endSurah,
+      endAyah: endAyah,
+    );
+  }
+
+  _CanonicalOffDeviceCoverage _coverageForAyahRange({
+    required int startSurah,
+    required int startAyah,
+    required int endSurah,
+    required int endAyah,
+  }) {
+    _validateAyahReference(startSurah, startAyah, 'start');
+    _validateAyahReference(endSurah, endAyah, 'end');
+    if (startSurah > endSurah ||
+        (startSurah == endSurah && startAyah > endAyah)) {
+      throw ArgumentError('Start ayah must not be after end ayah.');
+    }
+    return _CanonicalOffDeviceCoverage(
+      startPage: quran.getPageNumber(startSurah, startAyah),
+      endPage: quran.getPageNumber(endSurah, endAyah),
+      startSurah: startSurah,
+      startAyah: startAyah,
+      endSurah: endSurah,
+      endAyah: endAyah,
+    );
+  }
+
+  void _validateAyahReference(int surah, int ayah, String field) {
+    if (surah < 1 || surah > 114) {
+      throw RangeError.range(surah, 1, 114, '${field}Surah');
+    }
+    final verseCount = quran.getVerseCount(surah);
+    if (ayah < 1 || ayah > verseCount) {
+      throw RangeError.range(ayah, 1, verseCount, '${field}Ayah');
+    }
+  }
+
+  int? _intValue(Object? value) =>
+      value is int ? value : int.tryParse('${value ?? ''}');
+
+  void _validateOffDeviceReadDate({
     required DateTime readAt,
     required DateTime today,
+  }) {
+    if (readAt.isAfter(today)) {
+      throw ArgumentError.value(readAt, 'readAt', 'Must not be in the future.');
+    }
+  }
+
+  void _validateOffDevicePageRange({
+    required int startPage,
+    required int endPage,
   }) {
     if (startPage < 1 || startPage > madinahMushafPageCount) {
       throw RangeError.range(startPage, 1, madinahMushafPageCount, 'startPage');
@@ -720,9 +1009,6 @@ class ReadingPlanStore {
         'endPage',
         'Must not be before startPage.',
       );
-    }
-    if (readAt.isAfter(today)) {
-      throw ArgumentError.value(readAt, 'readAt', 'Must not be in the future.');
     }
   }
 

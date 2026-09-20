@@ -82,12 +82,12 @@ const planStrings = <String, Map<String, String>>{
         '{plan} uygulama planı • {manual} manuel',
     'plansOffDeviceSectionTitleV1': 'Basılı mushaf / cihaz dışı okuma',
     'plansOffDeviceSectionBodyV1':
-        'Basılı mushafta okuduğun sayfaları kaydet. Bu kayıtlar kullanıcı bildirimi olarak tutulur ve aktif planı otomatik ilerletmez.',
-    'plansOffDeviceAddV1': 'Sayfa okuması ekle',
+        'Basılı mushaf veya cihaz dışında yaptığın okumayı sayfa, cüz ya da ayet aralığıyla kaydet. Kayıtlar kullanıcı bildirimi olarak tutulur ve aktif planı otomatik ilerletmez.',
+    'plansOffDeviceAddV1': 'Okuma ekle',
     'plansOffDeviceAddTitleV1': 'Cihaz dışı okuma ekle',
     'plansOffDeviceEditTitleV1': 'Cihaz dışı okumayı düzenle',
     'plansOffDeviceExplanationV1':
-        'Medine Mushafı sayfa numaralarını kullan. Bu kayıt, dijital okumayla aynı sayfaları okuyup okumadığını tahmin etmez.',
+        'Giriş türünü seç. Kayıt kanonik ayet aralığına dönüştürülür; dijital okumayla çakışma otomatik varsayılmaz.',
     'plansOffDeviceStartPageV1': 'İlk sayfa',
     'plansOffDeviceEndPageV1': 'Son sayfa',
     'plansOffDevicePageHelperV1': '1–604 arasında sayfa numarası gir.',
@@ -105,6 +105,24 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceDeleteBodyV1':
         'Bu cihaz dışı okuma kaydı silinecek. Aktif plan ilerlemesi değişmeyecek.',
     'plansOffDeviceDeleteV1': 'Kaydı sil',
+    'plansOffDeviceInputTypeV1': 'Giriş türü',
+    'plansOffDeviceInputPageV1': 'Sayfa',
+    'plansOffDeviceInputJuzV1': 'Cüz',
+    'plansOffDeviceInputAyahV1': 'Ayet aralığı',
+    'plansOffDeviceJuzNumberV1': 'Cüz numarası',
+    'plansOffDeviceJuzHelperV1': '1–30 arasında cüz numarası gir.',
+    'plansOffDeviceStartSurahV1': 'Başlangıç suresi',
+    'plansOffDeviceStartAyahV1': 'Başlangıç ayeti',
+    'plansOffDeviceEndSurahV1': 'Bitiş suresi',
+    'plansOffDeviceEndAyahV1': 'Bitiş ayeti',
+    'plansOffDeviceAyahHelperV1':
+        'Sure ve ayet numaralarını kullan (ör. 2:255–2:257).',
+    'plansOffDeviceJuzErrorV1': 'Cüz numarası 1–30 arasında olmalı.',
+    'plansOffDeviceAyahErrorV1':
+        'Geçerli bir başlangıç ve bitiş ayeti gir; başlangıç bitişten sonra olamaz.',
+    'plansOffDeviceJuzLabelV1': 'Cüz {juz}',
+    'plansOffDeviceAyahRangeLabelV1': 'Ayet {start}–{end}',
+    'plansOffDeviceCanonicalRangeV1': 'Kanonik kapsama: {start}–{end}',
   },
   'en': <String, String>{
     'plansSearchHintV1': 'Search plans',
@@ -189,12 +207,12 @@ const planStrings = <String, Map<String, String>>{
     'plansYearlyKhatmSourceBreakdownV1': '{plan} app-plan • {manual} manual',
     'plansOffDeviceSectionTitleV1': 'Physical Mushaf / off-device reading',
     'plansOffDeviceSectionBodyV1':
-        'Log pages read from a physical Mushaf. These are user-reported records and never advance an active plan automatically.',
-    'plansOffDeviceAddV1': 'Log page reading',
+        'Log physical-Mushaf or off-device reading by page, juz or ayah range. Records are user-reported and never advance an active plan automatically.',
+    'plansOffDeviceAddV1': 'Log reading',
     'plansOffDeviceAddTitleV1': 'Add off-device reading',
     'plansOffDeviceEditTitleV1': 'Edit off-device reading',
     'plansOffDeviceExplanationV1':
-        'Use Madinah Mushaf page numbers. This record does not guess whether the same pages were also read digitally.',
+        'Choose an input type. The record is normalized to a canonical ayah range; digital overlap is never inferred automatically.',
     'plansOffDeviceStartPageV1': 'Start page',
     'plansOffDeviceEndPageV1': 'End page',
     'plansOffDevicePageHelperV1': 'Enter page numbers from 1 to 604.',
@@ -212,6 +230,24 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceDeleteBodyV1':
         'This off-device reading record will be deleted. Active-plan progress will not change.',
     'plansOffDeviceDeleteV1': 'Delete record',
+    'plansOffDeviceInputTypeV1': 'Input type',
+    'plansOffDeviceInputPageV1': 'Pages',
+    'plansOffDeviceInputJuzV1': 'Juz',
+    'plansOffDeviceInputAyahV1': 'Ayah range',
+    'plansOffDeviceJuzNumberV1': 'Juz number',
+    'plansOffDeviceJuzHelperV1': 'Enter a juz number from 1 to 30.',
+    'plansOffDeviceStartSurahV1': 'Start surah',
+    'plansOffDeviceStartAyahV1': 'Start ayah',
+    'plansOffDeviceEndSurahV1': 'End surah',
+    'plansOffDeviceEndAyahV1': 'End ayah',
+    'plansOffDeviceAyahHelperV1':
+        'Use surah and ayah numbers (e.g. 2:255–2:257).',
+    'plansOffDeviceJuzErrorV1': 'Juz must be between 1 and 30.',
+    'plansOffDeviceAyahErrorV1':
+        'Enter valid start and end ayahs; the start cannot be after the end.',
+    'plansOffDeviceJuzLabelV1': 'Juz {juz}',
+    'plansOffDeviceAyahRangeLabelV1': 'Ayahs {start}–{end}',
+    'plansOffDeviceCanonicalRangeV1': 'Canonical coverage: {start}–{end}',
   },
   'ar': <String, String>{
     'plansSearchHintV1': 'ابحث في الخطط',
@@ -295,12 +331,12 @@ const planStrings = <String, Map<String, String>>{
         '{plan} من خطط التطبيق • {manual} يدوية',
     'plansOffDeviceSectionTitleV1': 'المصحف الورقي / القراءة خارج الجهاز',
     'plansOffDeviceSectionBodyV1':
-        'سجّل الصفحات التي قرأتها من مصحف ورقي. هذه سجلات يضيفها المستخدم ولا تُقدّم الخطة النشطة تلقائيًا.',
-    'plansOffDeviceAddV1': 'تسجيل صفحات مقروءة',
+        'سجّل القراءة من المصحف الورقي أو خارج الجهاز بالصفحة أو الجزء أو نطاق الآيات. هذه سجلات يضيفها المستخدم ولا تُقدّم الخطة النشطة تلقائيًا.',
+    'plansOffDeviceAddV1': 'تسجيل قراءة',
     'plansOffDeviceAddTitleV1': 'إضافة قراءة خارج الجهاز',
     'plansOffDeviceEditTitleV1': 'تعديل القراءة خارج الجهاز',
     'plansOffDeviceExplanationV1':
-        'استخدم أرقام صفحات مصحف المدينة. لا يفترض هذا السجل ما إذا كنت قد قرأت الصفحات نفسها رقميًا.',
+        'اختر نوع الإدخال. يُحوّل السجل إلى نطاق آيات معياري، ولا يُفترض تلقائيًا وجود تداخل مع القراءة الرقمية.',
     'plansOffDeviceStartPageV1': 'صفحة البداية',
     'plansOffDeviceEndPageV1': 'صفحة النهاية',
     'plansOffDevicePageHelperV1': 'أدخل رقم صفحة من 1 إلى 604.',
@@ -318,6 +354,24 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceDeleteBodyV1':
         'سيُحذف سجل القراءة خارج الجهاز ولن يتغير تقدم الخطة النشطة.',
     'plansOffDeviceDeleteV1': 'حذف السجل',
+    'plansOffDeviceInputTypeV1': 'نوع الإدخال',
+    'plansOffDeviceInputPageV1': 'صفحات',
+    'plansOffDeviceInputJuzV1': 'جزء',
+    'plansOffDeviceInputAyahV1': 'نطاق آيات',
+    'plansOffDeviceJuzNumberV1': 'رقم الجزء',
+    'plansOffDeviceJuzHelperV1': 'أدخل رقم جزء من 1 إلى 30.',
+    'plansOffDeviceStartSurahV1': 'سورة البداية',
+    'plansOffDeviceStartAyahV1': 'آية البداية',
+    'plansOffDeviceEndSurahV1': 'سورة النهاية',
+    'plansOffDeviceEndAyahV1': 'آية النهاية',
+    'plansOffDeviceAyahHelperV1':
+        'استخدم أرقام السور والآيات (مثال: 2:255–2:257).',
+    'plansOffDeviceJuzErrorV1': 'يجب أن يكون رقم الجزء بين 1 و30.',
+    'plansOffDeviceAyahErrorV1':
+        'أدخل آية بداية ونهاية صالحتين، ولا يجوز أن تكون البداية بعد النهاية.',
+    'plansOffDeviceJuzLabelV1': 'الجزء {juz}',
+    'plansOffDeviceAyahRangeLabelV1': 'الآيات {start}–{end}',
+    'plansOffDeviceCanonicalRangeV1': 'النطاق المعياري: {start}–{end}',
   },
   'az': <String, String>{
     'plansSearchHintV1': 'Plan axtar',
@@ -402,12 +456,12 @@ const planStrings = <String, Map<String, String>>{
         '{plan} tətbiq planı • {manual} əl ilə',
     'plansOffDeviceSectionTitleV1': 'Kağız Mushaf / cihazdan kənar oxu',
     'plansOffDeviceSectionBodyV1':
-        'Kağız Mushafdan oxuduğunuz səhifələri qeyd edin. Bu qeydlər istifadəçi tərəfindən daxil edilir və aktiv planı avtomatik irəli aparmır.',
-    'plansOffDeviceAddV1': 'Səhifə oxusunu əlavə et',
+        'Kağız Mushaf və ya cihazdan kənar oxunu səhifə, cüz və ya ayə aralığı ilə qeyd edin. Qeydlər istifadəçi tərəfindən daxil edilir və aktiv planı avtomatik irəli aparmır.',
+    'plansOffDeviceAddV1': 'Oxu əlavə et',
     'plansOffDeviceAddTitleV1': 'Cihazdan kənar oxu əlavə et',
     'plansOffDeviceEditTitleV1': 'Cihazdan kənar oxunu düzəlt',
     'plansOffDeviceExplanationV1':
-        'Mədinə Mushafı səhifə nömrələrini istifadə edin. Qeyd eyni səhifələrin rəqəmsal oxunub-oxunmadığını təxmin etmir.',
+        'Daxiletmə növünü seçin. Qeyd kanonik ayə aralığına çevrilir; rəqəmsal oxu ilə üst-üstə düşmə avtomatik qəbul edilmir.',
     'plansOffDeviceStartPageV1': 'İlk səhifə',
     'plansOffDeviceEndPageV1': 'Son səhifə',
     'plansOffDevicePageHelperV1': '1–604 arasında səhifə nömrəsi daxil edin.',
@@ -425,6 +479,24 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceDeleteBodyV1':
         'Bu cihazdan kənar oxu qeydi silinəcək. Aktiv planın irəliləyişi dəyişməyəcək.',
     'plansOffDeviceDeleteV1': 'Qeydi sil',
+    'plansOffDeviceInputTypeV1': 'Daxiletmə növü',
+    'plansOffDeviceInputPageV1': 'Səhifə',
+    'plansOffDeviceInputJuzV1': 'Cüz',
+    'plansOffDeviceInputAyahV1': 'Ayə aralığı',
+    'plansOffDeviceJuzNumberV1': 'Cüz nömrəsi',
+    'plansOffDeviceJuzHelperV1': '1–30 arasında cüz nömrəsi daxil edin.',
+    'plansOffDeviceStartSurahV1': 'Başlanğıc surəsi',
+    'plansOffDeviceStartAyahV1': 'Başlanğıc ayəsi',
+    'plansOffDeviceEndSurahV1': 'Son surə',
+    'plansOffDeviceEndAyahV1': 'Son ayə',
+    'plansOffDeviceAyahHelperV1':
+        'Surə və ayə nömrələrini istifadə edin (məs. 2:255–2:257).',
+    'plansOffDeviceJuzErrorV1': 'Cüz nömrəsi 1–30 arasında olmalıdır.',
+    'plansOffDeviceAyahErrorV1':
+        'Etibarlı başlanğıc və son ayə daxil edin; başlanğıc sondan sonra ola bilməz.',
+    'plansOffDeviceJuzLabelV1': 'Cüz {juz}',
+    'plansOffDeviceAyahRangeLabelV1': 'Ayə {start}–{end}',
+    'plansOffDeviceCanonicalRangeV1': 'Kanonik aralıq: {start}–{end}',
   },
   'ru': <String, String>{
     'plansSearchHintV1': 'Поиск планов',
@@ -510,12 +582,12 @@ const planStrings = <String, Map<String, String>>{
     'plansYearlyKhatmSourceBreakdownV1': '{plan} из планов • {manual} вручную',
     'plansOffDeviceSectionTitleV1': 'Бумажный Мусхаф / чтение вне приложения',
     'plansOffDeviceSectionBodyV1':
-        'Записывайте страницы, прочитанные по бумажному Мусхафу. Эти записи вводятся пользователем и не продвигают активный план автоматически.',
-    'plansOffDeviceAddV1': 'Записать прочитанные страницы',
+        'Записывайте чтение бумажного Мусхафа или вне приложения по страницам, джузам или диапазону аятов. Эти записи вводятся пользователем и не продвигают активный план автоматически.',
+    'plansOffDeviceAddV1': 'Записать чтение',
     'plansOffDeviceAddTitleV1': 'Добавить чтение вне приложения',
     'plansOffDeviceEditTitleV1': 'Изменить чтение вне приложения',
     'plansOffDeviceExplanationV1':
-        'Используйте номера страниц Мединского Мусхафа. Запись не предполагает, читались ли те же страницы цифровым способом.',
+        'Выберите тип ввода. Запись нормализуется к каноническому диапазону аятов; совпадение с цифровым чтением автоматически не предполагается.',
     'plansOffDeviceStartPageV1': 'Первая страница',
     'plansOffDeviceEndPageV1': 'Последняя страница',
     'plansOffDevicePageHelperV1': 'Введите номера страниц от 1 до 604.',
@@ -533,5 +605,23 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceDeleteBodyV1':
         'Запись чтения вне приложения будет удалена. Прогресс активного плана не изменится.',
     'plansOffDeviceDeleteV1': 'Удалить запись',
+    'plansOffDeviceInputTypeV1': 'Тип ввода',
+    'plansOffDeviceInputPageV1': 'Страницы',
+    'plansOffDeviceInputJuzV1': 'Джуз',
+    'plansOffDeviceInputAyahV1': 'Диапазон аятов',
+    'plansOffDeviceJuzNumberV1': 'Номер джуза',
+    'plansOffDeviceJuzHelperV1': 'Введите номер джуза от 1 до 30.',
+    'plansOffDeviceStartSurahV1': 'Начальная сура',
+    'plansOffDeviceStartAyahV1': 'Начальный аят',
+    'plansOffDeviceEndSurahV1': 'Конечная сура',
+    'plansOffDeviceEndAyahV1': 'Конечный аят',
+    'plansOffDeviceAyahHelperV1':
+        'Укажите номера суры и аята (например, 2:255–2:257).',
+    'plansOffDeviceJuzErrorV1': 'Номер джуза должен быть от 1 до 30.',
+    'plansOffDeviceAyahErrorV1':
+        'Укажите корректные начальный и конечный аяты; начало не может быть после конца.',
+    'plansOffDeviceJuzLabelV1': 'Джуз {juz}',
+    'plansOffDeviceAyahRangeLabelV1': 'Аяты {start}–{end}',
+    'plansOffDeviceCanonicalRangeV1': 'Канонический диапазон: {start}–{end}',
   },
 };
