@@ -303,6 +303,62 @@ class OffDevicePageReadingSession {
       hasCanonicalAyahRange ? '$endSurah:$endAyah' : null;
 }
 
+class OffDevicePlanImpact {
+  const OffDevicePlanImpact({
+    required this.firstDayNumber,
+    required this.lastDayNumber,
+    required this.completedDayNumbers,
+    required this.remainingDayNumbers,
+  });
+
+  final int firstDayNumber;
+  final int lastDayNumber;
+  final List<int> completedDayNumbers;
+  final List<int> remainingDayNumbers;
+
+  int get touchedDayCount => lastDayNumber - firstDayNumber + 1;
+  int get completedDayCount => completedDayNumbers.length;
+  int get remainingDayCount => remainingDayNumbers.length;
+  bool get touchesCompletedDays => completedDayNumbers.isNotEmpty;
+  bool get touchesRemainingDays => remainingDayNumbers.isNotEmpty;
+}
+
+OffDevicePlanImpact previewOffDevicePlanImpact(
+  ActiveReadingPlan active,
+  OffDevicePageReadingSession session,
+) {
+  final touched = <int>[];
+  final completed = <int>[];
+  final remaining = <int>[];
+
+  for (var dayNumber = 1;
+      dayNumber <= active.preset.durationDays;
+      dayNumber++) {
+    final day = readingPlanDay(active.preset, dayNumber);
+    final intersects =
+        day.endPage >= session.startPage && day.startPage <= session.endPage;
+    if (!intersects) continue;
+
+    touched.add(dayNumber);
+    if (active.completedDays.contains(dayNumber)) {
+      completed.add(dayNumber);
+    } else {
+      remaining.add(dayNumber);
+    }
+  }
+
+  if (touched.isEmpty) {
+    throw StateError('Off-device reading does not intersect the active plan.');
+  }
+
+  return OffDevicePlanImpact(
+    firstDayNumber: touched.first,
+    lastDayNumber: touched.last,
+    completedDayNumbers: List<int>.unmodifiable(completed),
+    remainingDayNumbers: List<int>.unmodifiable(remaining),
+  );
+}
+
 enum KhatmCompletionSource {
   readingPlan,
   manualOffDevice;
