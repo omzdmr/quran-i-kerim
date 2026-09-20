@@ -75,5 +75,6 @@ void main() {
 
     expect(settings.readerExperiencePreset, ReaderExperiencePreset.standard);
     expect(settings.essentialReaderEnabled, isFalse);
+    expect(settings.minimumInterfaceTextScale, 1);
   });
 }

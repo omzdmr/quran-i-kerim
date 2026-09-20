@@ -43,12 +43,12 @@ class QuranModernApp extends StatelessWidget {
               final mediaQuery = MediaQuery.of(context);
               final currentScale = mediaQuery.textScaler.scale(16) / 16;
               final minimumScale = settings.minimumInterfaceTextScale;
-              final effectiveScale = currentScale < minimumScale
-                  ? minimumScale
-                  : currentScale;
+              if (minimumScale <= 1 || currentScale >= minimumScale) {
+                return child ?? const SizedBox.shrink();
+              }
               return MediaQuery(
                 data: mediaQuery.copyWith(
-                  textScaler: TextScaler.linear(effectiveScale),
+                  textScaler: TextScaler.linear(minimumScale),
                 ),
                 child: child ?? const SizedBox.shrink(),
               );
