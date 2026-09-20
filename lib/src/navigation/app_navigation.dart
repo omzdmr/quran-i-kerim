@@ -24,6 +24,7 @@ class AppNavigation {
   static const int homeTabIndex = 0;
   static const int quranTabIndex = 1;
   static const int plansTabIndex = 2;
+  static const int discoverTabIndex = 3;
 
   static final AppNavigation instance = AppNavigation._();
 
@@ -56,6 +57,11 @@ class AppNavigation {
   void openPlans() {
     readerSelectionActive.value = false;
     tabRequest.value = plansTabIndex;
+  }
+
+  void openDiscover() {
+    readerSelectionActive.value = false;
+    tabRequest.value = discoverTabIndex;
   }
 
   void setReaderSelectionActive(bool active) {
