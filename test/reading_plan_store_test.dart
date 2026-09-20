@@ -894,4 +894,188 @@ void main() {
       expect(loaded.offDevicePageSessions, isEmpty);
     },
   );
+
+  test('full off-device plan day can be explicitly credited and persists', () async {
+    final day = readingPlanDay(ReadingPlanPreset.quran30, 1);
+    await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 20));
+    final logged = await store.addOffDevicePageSession(
+      startPage: day.startPage,
+      endPage: day.endPage,
+      readAt: DateTime(2026, 9, 20),
+      now: DateTime(2026, 9, 20),
+    );
+    final session = logged.offDevicePageSessions.single;
+
+    final preview = store.previewOffDevicePlanCredit(logged.active!, session);
+    expect(preview.creditableDayNumbers, <int>[1]);
+    expect(preview.partialRemainingDayNumbers, isEmpty);
+
+    final credited = await store.creditOffDeviceSessionToActivePlan(
+      session,
+      now: DateTime(2026, 9, 20),
+    );
+
+    expect(credited.active?.completedDays, <int>{1});
+    expect(credited.active?.offDeviceCredits, hasLength(1));
+    final event = credited.active!.offDeviceCredits.single;
+    expect(event.dayNumbers, <int>[1]);
+    expect(event.sourceStartPage, day.startPage);
+    expect(event.sourceEndPage, day.endPage);
+    expect(event.sourceInputKind, OffDeviceReadingInputKind.page);
+
+    final reloaded = await const ReadingPlanStore().load();
+    expect(reloaded.active?.completedDays, <int>{1});
+    expect(reloaded.active?.offDeviceCredits, hasLength(1));
+    expect(reloaded.active?.offDeviceCredits.single.dayNumbers, <int>[1]);
+  });
+
+  test('credit marks only fully covered unfinished days, not partial edges', () async {
+    final day1 = readingPlanDay(ReadingPlanPreset.quran30, 1);
+    final day3 = readingPlanDay(ReadingPlanPreset.quran30, 3);
+    await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 20));
+    final logged = await store.addOffDevicePageSession(
+      startPage: day1.endPage,
+      endPage: day3.startPage,
+      readAt: DateTime(2026, 9, 20),
+      now: DateTime(2026, 9, 20),
+    );
+    final session = logged.offDevicePageSessions.single;
+
+    final preview = store.previewOffDevicePlanCredit(logged.active!, session);
+
+    expect(preview.creditableDayNumbers, <int>[2]);
+    expect(preview.partialRemainingDayNumbers, <int>[1, 3]);
+
+    final credited = await store.creditOffDeviceSessionToActivePlan(
+      session,
+      now: DateTime(2026, 9, 20),
+    );
+    expect(credited.active?.completedDays, <int>{2});
+    expect(credited.active?.nextDayNumber, 1);
+    expect(credited.active?.offDeviceCredits.single.dayNumbers, <int>[2]);
+  });
+
+  test('partial ayah range never receives full-day credit', () async {
+    await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 20));
+    final logged = await store.addOffDeviceAyahRangeSession(
+      startSurah: 2,
+      startAyah: 1,
+      endSurah: 2,
+      endAyah: 5,
+      readAt: DateTime(2026, 9, 20),
+      now: DateTime(2026, 9, 20),
+    );
+    final session = logged.offDevicePageSessions.single;
+
+    final preview = store.previewOffDevicePlanCredit(logged.active!, session);
+
+    expect(preview.creditableDayNumbers, isEmpty);
+    expect(preview.partialRemainingDayNumbers, isNotEmpty);
+    await expectLater(
+      store.creditOffDeviceSessionToActivePlan(
+        session,
+        now: DateTime(2026, 9, 20),
+      ),
+      throwsStateError,
+    );
+    expect((await store.load()).active?.completedDays, isEmpty);
+  });
+
+  test('completed overlap is never credited a second time', () async {
+    await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 20));
+    await store.completeNextDay(now: DateTime(2026, 9, 20));
+    final day1 = readingPlanDay(ReadingPlanPreset.quran30, 1);
+    final day2 = readingPlanDay(ReadingPlanPreset.quran30, 2);
+    final logged = await store.addOffDevicePageSession(
+      startPage: day1.startPage,
+      endPage: day2.endPage,
+      readAt: DateTime(2026, 9, 20),
+      now: DateTime(2026, 9, 20),
+    );
+    final session = logged.offDevicePageSessions.single;
+
+    final preview = store.previewOffDevicePlanCredit(logged.active!, session);
+
+    expect(preview.impact.completedDayNumbers, <int>[1]);
+    expect(preview.creditableDayNumbers, <int>[2]);
+
+    final credited = await store.creditOffDeviceSessionToActivePlan(
+      session,
+      now: DateTime(2026, 9, 20),
+    );
+    expect(credited.active?.completedDays, <int>{1, 2});
+    expect(credited.active?.offDeviceCredits.single.dayNumbers, <int>[2]);
+  });
+
+  test('paused plan refuses off-device credit', () async {
+    final day = readingPlanDay(ReadingPlanPreset.quran30, 1);
+    await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 20));
+    final logged = await store.addOffDevicePageSession(
+      startPage: day.startPage,
+      endPage: day.endPage,
+      readAt: DateTime(2026, 9, 20),
+      now: DateTime(2026, 9, 20),
+    );
+    final session = logged.offDevicePageSessions.single;
+    await store.pauseActive(now: DateTime(2026, 9, 20));
+
+    await expectLater(
+      store.creditOffDeviceSessionToActivePlan(
+        session,
+        now: DateTime(2026, 9, 20),
+      ),
+      throwsStateError,
+    );
+
+    final reloaded = await store.load();
+    expect(reloaded.active?.completedDays, isEmpty);
+    expect(reloaded.active?.offDeviceCredits, isEmpty);
+  });
+
+  test('confirmed credit survives later deletion of the source reading log', () async {
+    final day = readingPlanDay(ReadingPlanPreset.quran30, 1);
+    await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 20));
+    final logged = await store.addOffDevicePageSession(
+      startPage: day.startPage,
+      endPage: day.endPage,
+      readAt: DateTime(2026, 9, 20),
+      note: 'paper',
+      now: DateTime(2026, 9, 20),
+    );
+    final session = logged.offDevicePageSessions.single;
+    await store.creditOffDeviceSessionToActivePlan(
+      session,
+      now: DateTime(2026, 9, 20),
+    );
+
+    final afterDelete = await store.removeOffDevicePageSessionAt(0);
+
+    expect(afterDelete.offDevicePageSessions, isEmpty);
+    expect(afterDelete.active?.completedDays, <int>{1});
+    expect(afterDelete.active?.offDeviceCredits, hasLength(1));
+    expect(afterDelete.active?.offDeviceCredits.single.dayNumbers, <int>[1]);
+  });
+
+  test('deleted source record cannot be newly credited', () async {
+    final day = readingPlanDay(ReadingPlanPreset.quran30, 1);
+    await store.start(ReadingPlanPreset.quran30, now: DateTime(2026, 9, 20));
+    final logged = await store.addOffDevicePageSession(
+      startPage: day.startPage,
+      endPage: day.endPage,
+      readAt: DateTime(2026, 9, 20),
+      now: DateTime(2026, 9, 20),
+    );
+    final session = logged.offDevicePageSessions.single;
+    await store.removeOffDevicePageSessionAt(0);
+
+    await expectLater(
+      store.creditOffDeviceSessionToActivePlan(
+        session,
+        now: DateTime(2026, 9, 20),
+      ),
+      throwsStateError,
+    );
+    expect((await store.load()).active?.completedDays, isEmpty);
+  });
+
 }
