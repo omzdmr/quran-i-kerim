@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:quran/quran.dart' as quran;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../data/quran_partition_metadata.dart';
 import 'reading_plan.dart';
 
 class _CanonicalOffDeviceCoverage {
@@ -253,6 +254,23 @@ class ReadingPlanStore {
     );
   }
 
+  Future<ReadingPlanSnapshot> addOffDeviceHizbSession({
+    required int hizbNumber,
+    required DateTime readAt,
+    String? note,
+    DateTime? now,
+  }) async {
+    final coverage = _coverageForHizb(hizbNumber);
+    return _addOffDeviceSession(
+      inputKind: OffDeviceReadingInputKind.hizb,
+      coverage: coverage,
+      hizbNumber: hizbNumber,
+      readAt: readAt,
+      note: note,
+      now: now,
+    );
+  }
+
   Future<ReadingPlanSnapshot> addOffDeviceAyahRangeSession({
     required int startSurah,
     required int startAyah,
@@ -313,6 +331,24 @@ class ReadingPlanStore {
     );
   }
 
+  Future<ReadingPlanSnapshot> updateOffDeviceHizbSessionAt(
+    int index, {
+    required int hizbNumber,
+    required DateTime readAt,
+    String? note,
+    DateTime? now,
+  }) {
+    return _replaceOffDeviceSessionAt(
+      index,
+      inputKind: OffDeviceReadingInputKind.hizb,
+      coverage: _coverageForHizb(hizbNumber),
+      hizbNumber: hizbNumber,
+      readAt: readAt,
+      note: note,
+      now: now,
+    );
+  }
+
   Future<ReadingPlanSnapshot> updateOffDeviceAyahRangeSessionAt(
     int index, {
     required int startSurah,
@@ -344,6 +380,7 @@ class ReadingPlanStore {
     required DateTime readAt,
     String? note,
     int? juzNumber,
+    int? hizbNumber,
     DateTime? now,
   }) async {
     final current = await load();
@@ -358,6 +395,7 @@ class ReadingPlanStore {
         readAt: date,
         note: _normalizeNote(note),
         juzNumber: juzNumber,
+        hizbNumber: hizbNumber,
       ),
       ...current.offDevicePageSessions,
     ];
@@ -382,6 +420,7 @@ class ReadingPlanStore {
     required DateTime readAt,
     String? note,
     int? juzNumber,
+    int? hizbNumber,
     DateTime? now,
   }) async {
     final current = await load();
@@ -399,6 +438,7 @@ class ReadingPlanStore {
       readAt: date,
       note: _normalizeNote(note),
       juzNumber: juzNumber,
+      hizbNumber: hizbNumber,
     );
     final next = ReadingPlanSnapshot(
       active: current.active,
@@ -740,6 +780,7 @@ class ReadingPlanStore {
         try {
           final _CanonicalOffDeviceCoverage coverage;
           int? juzNumber;
+          int? hizbNumber;
           switch (inputKind) {
             case OffDeviceReadingInputKind.page:
               final startPage = _intValue(item['startPage']);
@@ -751,6 +792,11 @@ class ReadingPlanStore {
               juzNumber = _intValue(item['juzNumber']);
               if (juzNumber == null) continue;
               coverage = _coverageForJuz(juzNumber);
+              break;
+            case OffDeviceReadingInputKind.hizb:
+              hizbNumber = _intValue(item['hizbNumber']);
+              if (hizbNumber == null) continue;
+              coverage = _coverageForHizb(hizbNumber);
               break;
             case OffDeviceReadingInputKind.ayahRange:
               final startSurah = _intValue(item['startSurah']);
@@ -779,6 +825,7 @@ class ReadingPlanStore {
               readAt: readingPlanDateOnly(readAt),
               note: _decodeNote(item['note']?.toString()),
               juzNumber: juzNumber,
+              hizbNumber: hizbNumber,
             ),
           );
         } catch (_) {
@@ -840,6 +887,7 @@ class ReadingPlanStore {
             'readAt': _date(item.readAt),
             'inputKind': item.inputKind.id,
             'juzNumber': item.juzNumber,
+            'hizbNumber': item.hizbNumber,
             'startPage': item.startPage,
             'endPage': item.endPage,
             'startSurah': item.startSurah,
@@ -876,6 +924,7 @@ class ReadingPlanStore {
     required DateTime readAt,
     String? note,
     int? juzNumber,
+    int? hizbNumber,
   }) {
     return OffDevicePageReadingSession(
       readAt: readAt,
@@ -883,6 +932,7 @@ class ReadingPlanStore {
       endPage: coverage.endPage,
       inputKind: inputKind,
       juzNumber: juzNumber,
+      hizbNumber: hizbNumber,
       startSurah: coverage.startSurah,
       startAyah: coverage.startAyah,
       endSurah: coverage.endSurah,
@@ -944,6 +994,38 @@ class ReadingPlanStore {
       endPage: quran.getPageNumber(endSurah, endAyah),
       startSurah: startSurah,
       startAyah: startAyah,
+      endSurah: endSurah,
+      endAyah: endAyah,
+    );
+  }
+
+  _CanonicalOffDeviceCoverage _coverageForHizb(int hizbNumber) {
+    if (hizbNumber < 1 || hizbNumber > quranHizbCount) {
+      throw RangeError.range(hizbNumber, 1, quranHizbCount, 'hizbNumber');
+    }
+
+    final start = tanzilHizbStartReferences[hizbNumber - 1];
+    late final int endSurah;
+    late final int endAyah;
+    if (hizbNumber == quranHizbCount) {
+      endSurah = 114;
+      endAyah = quran.getVerseCount(endSurah);
+    } else {
+      final next = tanzilHizbStartReferences[hizbNumber];
+      if (next.ayah > 1) {
+        endSurah = next.surah;
+        endAyah = next.ayah - 1;
+      } else {
+        endSurah = next.surah - 1;
+        endAyah = quran.getVerseCount(endSurah);
+      }
+    }
+
+    return _CanonicalOffDeviceCoverage(
+      startPage: quran.getPageNumber(start.surah, start.ayah),
+      endPage: quran.getPageNumber(endSurah, endAyah),
+      startSurah: start.surah,
+      startAyah: start.ayah,
       endSurah: endSurah,
       endAyah: endAyah,
     );
