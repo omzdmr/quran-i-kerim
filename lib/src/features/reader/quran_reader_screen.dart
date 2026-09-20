@@ -741,6 +741,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                   for (final color in VerseHighlightColor.values)
                     _HighlightDot(
                       color: color,
+                      semanticLabel: l10n.text(_highlightColorLabelKey(color)),
                       onTap: () {
                         Navigator.pop(sheetContext);
                         _applyHighlight(color);
@@ -2856,7 +2857,11 @@ class _SelectionTray extends StatelessWidget {
             children: [
               if (!essential)
                 for (final color in VerseHighlightColor.values)
-                  _HighlightDot(color: color, onTap: () => onHighlight(color)),
+                  _HighlightDot(
+                    color: color,
+                    semanticLabel: l10n.text(_highlightColorLabelKey(color)),
+                    onTap: () => onHighlight(color),
+                  ),
               if (!essential)
                 IconButton(
                   onPressed: () => onHighlight(null),
@@ -2991,16 +2996,27 @@ class _CompareVersion {
 }
 
 class _HighlightDot extends StatelessWidget {
-  const _HighlightDot({required this.color, required this.onTap});
+  const _HighlightDot({
+    required this.color,
+    required this.semanticLabel,
+    required this.onTap,
+  });
 
   final VerseHighlightColor color;
+  final String semanticLabel;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => InkWell(
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: semanticLabel,
     onTap: onTap,
-    customBorder: const CircleBorder(),
-    child: Padding(
+    excludeSemantics: true,
+    child: InkWell(
+      onTap: onTap,
+      excludeFromSemantics: true,
+      customBorder: const CircleBorder(),
+      child: Padding(
       padding: const EdgeInsets.all(3),
       child: Container(
         width: 32,
@@ -3009,10 +3025,19 @@ class _HighlightDot extends StatelessWidget {
           shape: BoxShape.circle,
           color: _highlightMaterialColor(color),
         ),
+        ),
       ),
     ),
   );
 }
+
+String _highlightColorLabelKey(VerseHighlightColor color) => switch (color) {
+  VerseHighlightColor.yellow => 'highlightYellow',
+  VerseHighlightColor.green => 'highlightGreen',
+  VerseHighlightColor.blue => 'highlightBlue',
+  VerseHighlightColor.orange => 'highlightOrange',
+  VerseHighlightColor.pink => 'highlightPink',
+};
 
 Color _highlightMaterialColor(VerseHighlightColor color) => switch (color) {
   VerseHighlightColor.yellow => const Color(0xFFFFEB00),
