@@ -115,6 +115,7 @@ class ActiveReadingPlan {
     required this.preset,
     required this.startedAt,
     this.completedDays = const <int>{},
+    this.offDeviceCredits = const <OffDevicePlanCreditEvent>[],
     this.pausedAt,
     this.pausedDays = 0,
   });
@@ -122,6 +123,11 @@ class ActiveReadingPlan {
   final ReadingPlanPreset preset;
   final DateTime startedAt;
   final Set<int> completedDays;
+
+  /// Explicit user-confirmed credits created from off-device reading records.
+  /// These are snapshots of the confirmed action, not live links to mutable
+  /// reading logs.
+  final List<OffDevicePlanCreditEvent> offDeviceCredits;
 
   /// Date on which the current pause began. Null means the schedule is active.
   final DateTime? pausedAt;
@@ -216,6 +222,7 @@ class ActiveReadingPlan {
       preset: preset,
       startedAt: startedAt,
       completedDays: completedDays,
+      offDeviceCredits: offDeviceCredits,
       pausedAt: readingPlanDateOnly(now),
       pausedDays: pausedDays,
     );
@@ -232,14 +239,19 @@ class ActiveReadingPlan {
       preset: preset,
       startedAt: startedAt,
       completedDays: completedDays,
+      offDeviceCredits: offDeviceCredits,
       pausedDays: pausedDays + (pausedFor > 0 ? pausedFor : 0),
     );
   }
 
-  ActiveReadingPlan copyWith({Set<int>? completedDays}) => ActiveReadingPlan(
+  ActiveReadingPlan copyWith({
+    Set<int>? completedDays,
+    List<OffDevicePlanCreditEvent>? offDeviceCredits,
+  }) => ActiveReadingPlan(
     preset: preset,
     startedAt: startedAt,
     completedDays: completedDays ?? this.completedDays,
+    offDeviceCredits: offDeviceCredits ?? this.offDeviceCredits,
     pausedAt: pausedAt,
     pausedDays: pausedDays,
   );
@@ -306,6 +318,44 @@ class OffDevicePageReadingSession {
 
   String? get canonicalEndKey =>
       hasCanonicalAyahRange ? '$endSurah:$endAyah' : null;
+}
+
+class OffDevicePlanCreditEvent {
+  const OffDevicePlanCreditEvent({
+    required this.creditedAt,
+    required this.sourceReadAt,
+    required this.sourceInputKind,
+    required this.sourceStartPage,
+    required this.sourceEndPage,
+    required this.dayNumbers,
+    this.sourceCanonicalStartKey,
+    this.sourceCanonicalEndKey,
+  });
+
+  final DateTime creditedAt;
+  final DateTime sourceReadAt;
+  final OffDeviceReadingInputKind sourceInputKind;
+  final int sourceStartPage;
+  final int sourceEndPage;
+  final List<int> dayNumbers;
+  final String? sourceCanonicalStartKey;
+  final String? sourceCanonicalEndKey;
+}
+
+class OffDevicePlanCreditPreview {
+  const OffDevicePlanCreditPreview({
+    required this.impact,
+    required this.creditableDayNumbers,
+    required this.partialRemainingDayNumbers,
+  });
+
+  final OffDevicePlanImpact impact;
+  final List<int> creditableDayNumbers;
+  final List<int> partialRemainingDayNumbers;
+
+  bool get canCredit => creditableDayNumbers.isNotEmpty;
+  int get creditableDayCount => creditableDayNumbers.length;
+  int get partialRemainingDayCount => partialRemainingDayNumbers.length;
 }
 
 class OffDevicePlanImpactSegment {
