@@ -266,7 +266,10 @@ class PrayerPreferencesStore {
       _notificationPrayerIdsKey,
       value.notificationPrayerIds.toList()..sort(),
     );
-    await prefs.setString(_notificationProfileKey, value.notificationProfile.name);
+    await prefs.setString(
+      _notificationProfileKey,
+      value.notificationProfile.name,
+    );
     await prefs.setInt(_hijriOffsetKey, value.hijriOffsetDays.clamp(-2, 2));
   }
 

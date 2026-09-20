@@ -154,6 +154,17 @@ pipeline green.
 6. Update this file whenever the active feature, blocker or next concrete step
    changes.
 
+## Latest prayer-notification profile slice
+
+Manual notification-profile foundation V1 is implemented in commit `b55535b`:
+- Prayer Settings exposes explicit full-sound and discreet/vibration profiles.
+- Android uses distinct versioned notification channels so sound policy can actually differ by profile.
+- iOS maps the profile to `presentSound` while preserving alerts.
+- The selected profile persists locally and is included in safe prayer-preference backup/restore.
+- Unknown future/stale stored profile values fall back to full sound.
+- This is intentionally only the manual profile foundation. Schedule/geofence/travel/mosque activation and temporary non-essential-reminder pause remain later V18 slices.
+- Android CI #560 for `b55535b` is running; do not mark this slice fully green until that run reaches analyzer/tests/build successfully or a newer equivalent head is verified.
+
 ## Immediate next step
 
 French application/feature-string parity is complete at the repository level.
