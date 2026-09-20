@@ -21,6 +21,7 @@ class _OffDeviceReadingDraft {
     this.startPage,
     this.endPage,
     this.juzNumber,
+    this.hizbNumber,
     this.startSurah,
     this.startAyah,
     this.endSurah,
@@ -32,6 +33,7 @@ class _OffDeviceReadingDraft {
   final int? startPage;
   final int? endPage;
   final int? juzNumber;
+  final int? hizbNumber;
   final int? startSurah;
   final int? startAyah;
   final int? endSurah;
@@ -299,6 +301,9 @@ class _PlansScreenState extends State<PlansScreen> {
     final juzController = TextEditingController(
       text: existing?.juzNumber?.toString() ?? '',
     );
+    final hizbController = TextEditingController(
+      text: existing?.hizbNumber?.toString() ?? '',
+    );
     final startSurahController = TextEditingController(
       text: existing?.startSurah?.toString() ?? '',
     );
@@ -316,6 +321,7 @@ class _PlansScreenState extends State<PlansScreen> {
     var startPage = existing?.startPage;
     var endPage = existing?.endPage;
     var juzNumber = existing?.juzNumber;
+    var hizbNumber = existing?.hizbNumber;
     var startSurah = existing?.startSurah;
     var startAyah = existing?.startAyah;
     var endSurah = existing?.endSurah;
@@ -352,6 +358,8 @@ class _PlansScreenState extends State<PlansScreen> {
                   startPage! <= endPage!,
             OffDeviceReadingInputKind.juz =>
               juzNumber != null && juzNumber! >= 1 && juzNumber! <= 30,
+            OffDeviceReadingInputKind.hizb =>
+              hizbNumber != null && hizbNumber! >= 1 && hizbNumber! <= 60,
             OffDeviceReadingInputKind.ayahRange => validAyahRange(),
           };
 
@@ -416,6 +424,8 @@ class _PlansScreenState extends State<PlansScreen> {
                                   'plansOffDeviceInputPageV1',
                                 OffDeviceReadingInputKind.juz =>
                                   'plansOffDeviceInputJuzV1',
+                                OffDeviceReadingInputKind.hizb =>
+                                  'plansOffDeviceInputHizbV1',
                                 OffDeviceReadingInputKind.ayahRange =>
                                   'plansOffDeviceInputAyahV1',
                               }),
@@ -465,6 +475,18 @@ class _PlansScreenState extends State<PlansScreen> {
                     const SizedBox(height: 8),
                     Text(
                       l10n.text('plansOffDeviceJuzHelperV1'),
+                      style: Theme.of(dialogContext).textTheme.bodySmall,
+                    ),
+                  ] else if (inputKind == OffDeviceReadingInputKind.hizb) ...[
+                    numberField(
+                      controller: hizbController,
+                      label: l10n.text('plansOffDeviceHizbNumberV1'),
+                      onChanged: (value) => hizbNumber = value,
+                      digits: 2,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.text('plansOffDeviceHizbHelperV1'),
                       style: Theme.of(dialogContext).textTheme.bodySmall,
                     ),
                   ] else ...[
@@ -538,6 +560,8 @@ class _PlansScreenState extends State<PlansScreen> {
                           'plansOffDeviceRangeErrorV1',
                         OffDeviceReadingInputKind.juz =>
                           'plansOffDeviceJuzErrorV1',
+                        OffDeviceReadingInputKind.hizb =>
+                          'plansOffDeviceHizbErrorV1',
                         OffDeviceReadingInputKind.ayahRange =>
                           'plansOffDeviceAyahErrorV1',
                       }),
@@ -561,6 +585,7 @@ class _PlansScreenState extends State<PlansScreen> {
                           startPage: startPage,
                           endPage: endPage,
                           juzNumber: juzNumber,
+                          hizbNumber: hizbNumber,
                           startSurah: startSurah,
                           startAyah: startAyah,
                           endSurah: endSurah,
@@ -580,6 +605,7 @@ class _PlansScreenState extends State<PlansScreen> {
     startController.dispose();
     endController.dispose();
     juzController.dispose();
+    hizbController.dispose();
     startSurahController.dispose();
     startAyahController.dispose();
     endSurahController.dispose();
@@ -621,6 +647,19 @@ class _PlansScreenState extends State<PlansScreen> {
               : _store.updateOffDeviceJuzSessionAt(
                   existingIndex,
                   juzNumber: result.juzNumber!,
+                  readAt: result.readAt,
+                  note: result.note,
+                ),
+        OffDeviceReadingInputKind.hizb =>
+          existing == null
+              ? _store.addOffDeviceHizbSession(
+                  hizbNumber: result.hizbNumber!,
+                  readAt: result.readAt,
+                  note: result.note,
+                )
+              : _store.updateOffDeviceHizbSessionAt(
+                  existingIndex,
+                  hizbNumber: result.hizbNumber!,
                   readAt: result.readAt,
                   note: result.note,
                 ),
@@ -1640,6 +1679,10 @@ class _OffDeviceReadingCard extends StatelessWidget {
                       l10n
                           .text('plansOffDeviceJuzLabelV1')
                           .replaceAll('{juz}', '${session.juzNumber}'),
+                    OffDeviceReadingInputKind.hizb =>
+                      l10n
+                          .text('plansOffDeviceHizbLabelV1')
+                          .replaceAll('{hizb}', '${session.hizbNumber}'),
                     OffDeviceReadingInputKind.ayahRange =>
                       l10n
                           .text('plansOffDeviceAyahRangeLabelV1')
