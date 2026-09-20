@@ -9,6 +9,21 @@ their ownership and handoff rules for possible future reactivation, but no
 automation should be assumed active. Current contributors must read
 `docs/PROJECT_HANDOFF.md` and the latest repository/CI state before working.
 
+## Active Feature Development handoff — Essential Reader
+
+- Draft PR #3 on `automation/feature-roadmap` implements the adopted P1
+  Essential/Senior Reader slice: reversible persisted preference, user-owned
+  backup/restore, larger interface and Reader typography/spacing, bounded line
+  measure, simplified first-layer Reader/search/selection controls and focused
+  regressions.
+- The slice is not landed on `feature/localization-v01` yet. The integration
+  workflow only runs for the feature branch, while the latest pre-existing
+  feature code run (#560) is still in progress at analysis. Do not duplicate
+  this implementation or merge it without Flutter analyzer/tests/APK validation.
+- After validation, land PR #3 (or reapply it onto a newer feature HEAD without
+  force-updating either branch). Remaining preset scope is full-screen, dimming,
+  keep-awake, simple auto-scroll and maximum-text-size device/accessibility QA.
+
 ## Shared source of truth
 Every automation must read these before acting:
 1. `docs/PRODUCT_MASTER_SPEC.md` — product requirements and non-negotiable decisions.
