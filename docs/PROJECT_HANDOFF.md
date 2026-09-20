@@ -58,6 +58,8 @@ Recent Plans work:
 - Commit `5c4b3b9` added manual/off-device completed-khatm records with
   optional start date/private note and clear source labels.
 - Commit `9995ee6` added physical-Mushaf/off-device page reading sessions.
+- The structured-input slice extends those sessions with page/juz/ayah-range
+  entry and canonical ayah coverage while preserving the same local storage.
 - Old khatm archive records without source metadata migrate as app reading-plan
   records.
 - Manual khatm records and off-device page sessions live inside
@@ -68,30 +70,42 @@ Recent Plans work:
 
 ## Latest completed feature slice
 
-Physical Mushaf/off-device page-session logging is integrated:
+Structured physical-Mushaf/off-device reading input now extends the existing
+page-session foundation:
 
-- Plans → My Plans now includes a dedicated physical-Mushaf/off-device reading
-  card whether or not an active reading plan exists.
-- Users can log Madinah Mushaf pages 1–604, a reading date and an optional
-  private note.
-- Sessions can be edited or deleted.
-- Invalid page ranges, future dates and overlong new notes are rejected.
-- Stored malformed rows are skipped; legacy overlong notes are truncated
-  instead of discarding the entire reading-plan snapshot.
-- Every session is explicitly manual/user-reported.
-- A manual session never advances, completes or rewrites an active reading plan
-  automatically.
-- The UI explicitly states that duplicate overlap with digital reading is not
-  inferred.
-- State-copy paths were audited: all 18 ReadingPlanSnapshot mutations preserve
-  off-device sessions.
-- A regression was caught and fixed where adding a manual completed khatm could
-  otherwise have dropped page-session state.
+- Plans → My Plans keeps the same user-reported off-device reading card.
+- A reading can now be entered as Madinah Mushaf pages, a juz number (1–30), or
+  a canonical surah/ayah range.
+- Every accepted input is normalized to canonical start/end ayah coverage while
+  retaining derived page coverage for existing plan/page logic.
+- Existing page-only records remain backward compatible: missing input metadata
+  defaults to page mode and canonical ayah coverage is derived on load.
+- Users can edit a record and switch its input type without losing the reading
+  date/private note.
+- Invalid juz numbers, surah/ayah references, reversed ayah ranges, invalid page
+  ranges and future dates are rejected.
+- Off-device records remain explicitly user-reported and never advance, finish
+  or rewrite an active reading plan automatically.
+- The UI states that overlap with digital reading is not inferred.
+- Storage remains inside `reading_plan_state_v1`; no new backend, account or
+  backup preference key was introduced.
+- Turkish, English, Arabic, Azerbaijani and Russian copy was updated for all
+  three input modes.
 
-Validation run `35516877754` passed:
-- `reading_plan_store_test.dart`: 31/31 tests.
+Focused validation run `35520001196` reached the meaningful checks:
+- `reading_plan_store_test.dart`: 36/36 tests passed.
 - `plan_strings_test.dart`: localization key parity passed.
-- Formatter completed successfully on all changed files.
+- Formatter reported all five changed source/test files clean.
+- A direct `flutter build bundle --debug` then produced no diagnostic and hit
+  the explicit 180-second timeout. The earlier direct Plans-screen import probe
+  behaved the same way. This matches the repository's existing Flutter
+  analyze/compile tooling stall; do not call it an app regression without an
+  actual compiler diagnostic.
+
+Hizb input is intentionally not implemented yet. The current `quran: ^1.4.1`
+dependency exposes documented page/juz/surah/ayah metadata but no verified Hizb
+boundary API. Do not invent Hizb boundaries; add them only from a verified,
+rights-compatible metadata source.
 
 ## Validation status
 
@@ -107,9 +121,12 @@ Recent full Android validation has a repeatable tooling problem:
 - Treat this as CI/analyzer tooling unless a concrete analyzer diagnostic or
   failing test says otherwise. Do not relabel a timeout as an app regression.
 
-Current code-bearing head: `9995ee6790dee1da8a2d1aaf9ac56cfce940db00`.
-Android APK run `35516979041` (#546) started for this head. Inspect its exact
-step/result before calling the full Android pipeline green.
+Structured-input code-bearing head before handoff-only commits:
+`1cb20ea0dee7472c1743971170050d8ac0ab3195`.
+Android APK runs #545/#546 for the preceding manual-khatm/page-session heads
+remain subject to the same long `flutter analyze lib --no-fatal-infos` stall.
+Inspect the newest integrated Actions run before calling the full Android
+pipeline green.
 
 ## Safe continuation checklist
 
@@ -127,17 +144,21 @@ step/result before calling the full Android pipeline green.
 
 ## Immediate next step
 
-Continue V17 physical-Mushaf integration without replacing the page-session
-foundation:
+Build on canonical off-device coverage without silently changing plan progress:
 
-- Extend manual reading input to juz/hizb and canonical ayah ranges.
-- Normalize those entries to a canonical coverage representation before using
-  them for any plan calculations.
-- Keep every off-device record explicitly user-reported.
-- Do not infer digital/manual duplicate coverage as fact.
-- If plan advancement is added, it must be an explicit user action after
-  logging; never auto-advance merely because an off-device session exists.
-- Preserve local-first storage and existing backup compatibility.
+- Add a read-only impact preview that can compare a logged off-device record
+  with the current plan's remaining coverage.
+- Show exactly which planned day/page span would be affected and surface
+  overlap/duplicate uncertainty instead of guessing.
+- Any future "credit this reading to my plan" action must require an explicit
+  confirmation after that preview; logging alone must never advance the plan.
+- Keep the original off-device record independent so correcting/deleting a log
+  does not silently rewrite previously confirmed plan progress.
+- Defer Hizb input until a verified, rights-compatible boundary dataset is
+  selected.
+- Keep the full French UI localization requirement as its separate localization
+  workstream rather than scattering partial French strings through feature
+  commits.
 
 Do not restart already completed recovery, notification diagnostics,
 recent-reading, Home quick-actions, khatm archive or page-session work unless a
