@@ -98,6 +98,24 @@ class ReadingPlanStore {
     return next;
   }
 
+  Future<ReadingPlanSnapshot> removeCompletedAt(int index) async {
+    final current = await load();
+    if (index < 0 || index >= current.completed.length) {
+      throw RangeError.index(index, current.completed, 'index');
+    }
+    final completed = current.completed.toList(growable: true)
+      ..removeAt(index);
+    final next = ReadingPlanSnapshot(
+      active: current.active,
+      savedPresetIds: current.savedPresetIds,
+      completed: List<CompletedReadingPlan>.unmodifiable(completed),
+      yearlyKhatmTarget: current.yearlyKhatmTarget,
+      redistributionTargetEndDate: current.redistributionTargetEndDate,
+    );
+    await _save(next);
+    return next;
+  }
+
   Future<ReadingPlanSnapshot> setYearlyKhatmTarget(int? target) async {
     if (target != null && (target < 1 || target > 99)) {
       throw RangeError.range(target, 1, 99, 'target');
