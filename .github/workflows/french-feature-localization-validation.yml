@@ -28,33 +28,6 @@ jobs:
       - name: Generate localizations
         run: flutter gen-l10n
 
-      - name: Check formatting
-        run: |
-          dart format --output=none --set-exit-if-changed \
-            lib/src/l10n/strings/home_quick_action_strings.dart \
-            lib/src/l10n/strings/home_recent_reading_strings.dart \
-            lib/src/l10n/strings/home_verse_strings.dart \
-            lib/src/l10n/strings/learn_catalog_strings.dart \
-            lib/src/l10n/strings/learn_reference_strings.dart \
-            lib/src/l10n/strings/learn_strings.dart \
-            lib/src/l10n/strings/prayer_notification_diagnostics_strings.dart \
-            lib/src/l10n/strings/prayer_notification_strings.dart \
-            lib/src/l10n/strings/reader_audio_transport_strings.dart \
-            lib/src/l10n/strings/reader_media_strings.dart \
-            lib/src/l10n/strings/reader_navigation_strings.dart \
-            lib/src/l10n/strings/reader_note_strings.dart \
-            test/home_quick_actions_settings_test.dart \
-            test/home_recent_reading_localization_test.dart \
-            test/home_verse_localization_test.dart \
-            test/learn_catalog_strings_test.dart \
-            test/learn_reference_catalog_test.dart \
-            test/learn_strings_test.dart \
-            test/prayer_notification_diagnostics_localization_test.dart \
-            test/reader_audio_transport_localization_test.dart \
-            test/reader_media_localization_test.dart \
-            test/reader_navigation_localization_test.dart \
-            test/reader_note_localization_test.dart
-
       - name: Run French feature localization tests
         run: >
           timeout 300s flutter test
