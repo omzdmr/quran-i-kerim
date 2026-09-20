@@ -155,6 +155,8 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceCreditConfirmActionV1': 'Plana işle',
     'plansOffDeviceCreditedV1': '{days} plan günü işlendi.',
     'plansOffDeviceCreditUnavailableV1': 'Bu okuma artık plana işlenemiyor.',
+    'plansArchivedCreditSummaryV1':
+        'Cihaz dışı okuma: {days} plan günü • {events} onay • {kinds}',
   },
   'en': <String, String>{
     'plansSearchHintV1': 'Search plans',
@@ -314,6 +316,8 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceCreditedV1': '{days} plan day(s) credited.',
     'plansOffDeviceCreditUnavailableV1':
         'This reading can no longer be credited to the plan.',
+    'plansArchivedCreditSummaryV1':
+        'Off-device reading: {days} plan day(s) • {events} confirmation(s) • {kinds}',
   },
   'ar': <String, String>{
     'plansSearchHintV1': 'ابحث في الخطط',
@@ -473,6 +477,8 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceCreditedV1': 'تم احتساب {days} من أيام الخطة.',
     'plansOffDeviceCreditUnavailableV1':
         'لم يعد من الممكن احتساب هذه القراءة في الخطة.',
+    'plansArchivedCreditSummaryV1':
+        'قراءة خارج الجهاز: {days} من أيام الخطة • {events} تأكيد • {kinds}',
   },
   'az': <String, String>{
     'plansSearchHintV1': 'Plan axtar',
@@ -634,6 +640,8 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceCreditedV1': '{days} plan günü əlavə edildi.',
     'plansOffDeviceCreditUnavailableV1':
         'Bu oxunu artıq plana əlavə etmək mümkün deyil.',
+    'plansArchivedCreditSummaryV1':
+        'Cihazdan kənar oxu: {days} plan günü • {events} təsdiq • {kinds}',
   },
   'ru': <String, String>{
     'plansSearchHintV1': 'Поиск планов',
@@ -794,5 +802,7 @@ const planStrings = <String, Map<String, String>>{
     'plansOffDeviceCreditedV1': 'Зачтено дней плана: {days}.',
     'plansOffDeviceCreditUnavailableV1':
         'Это чтение больше нельзя зачесть в план.',
+    'plansArchivedCreditSummaryV1':
+        'Чтение вне приложения: {days} дн. плана • {events} подтвержд. • {kinds}',
   },
 };
