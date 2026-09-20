@@ -161,8 +161,7 @@ const planStrings = <String, Map<String, String>>{
     'plansManualKhatmSourceV1': 'Manual • off-device',
     'plansPlanKhatmSourceV1': 'App reading plan',
     'plansKhatmStartedOnV1': 'Started: {date}',
-    'plansYearlyKhatmSourceBreakdownV1':
-        '{plan} app-plan • {manual} manual',
+    'plansYearlyKhatmSourceBreakdownV1': '{plan} app-plan • {manual} manual',
   },
   'ar': <String, String>{
     'plansSearchHintV1': 'ابحث في الخطط',
@@ -397,7 +396,8 @@ const planStrings = <String, Map<String, String>>{
     'plansManualKhatmStartOptionalV1': 'Необязательно',
     'plansManualKhatmClearStartV1': 'Убрать дату начала',
     'plansManualKhatmNoteV1': 'Личная заметка',
-    'plansManualKhatmNoteHintV1': 'Необязательная заметка только для этой записи',
+    'plansManualKhatmNoteHintV1':
+        'Необязательная заметка только для этой записи',
     'plansManualKhatmDateErrorV1':
         'Дата начала не может быть позже даты завершения.',
     'plansManualKhatmSaveV1': 'Сохранить хатм',
@@ -407,7 +407,6 @@ const planStrings = <String, Map<String, String>>{
     'plansManualKhatmSourceV1': 'Вручную • вне приложения',
     'plansPlanKhatmSourceV1': 'План чтения в приложении',
     'plansKhatmStartedOnV1': 'Начало: {date}',
-    'plansYearlyKhatmSourceBreakdownV1':
-        '{plan} из планов • {manual} вручную',
+    'plansYearlyKhatmSourceBreakdownV1': '{plan} из планов • {manual} вручную',
   },
 };

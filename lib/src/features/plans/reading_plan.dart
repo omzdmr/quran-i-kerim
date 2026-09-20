@@ -195,8 +195,8 @@ class ActiveReadingPlan {
     final livePauseDays = pauseDate == null
         ? 0
         : today.difference(pauseDate).inDays > 0
-            ? today.difference(pauseDate).inDays
-            : 0;
+        ? today.difference(pauseDate).inDays
+        : 0;
 
     return ReadingPlanScheduleStatus(
       calendarDayNumber: calendarDay,
@@ -225,7 +225,9 @@ class ActiveReadingPlan {
     final pauseDate = pausedAt;
     if (pauseDate == null) return this;
     final resumeDate = readingPlanDateOnly(now);
-    final pausedFor = resumeDate.difference(readingPlanDateOnly(pauseDate)).inDays;
+    final pausedFor = resumeDate
+        .difference(readingPlanDateOnly(pauseDate))
+        .inDays;
     return ActiveReadingPlan(
       preset: preset,
       startedAt: startedAt,
@@ -273,8 +275,7 @@ class CompletedReadingPlan {
   final KhatmCompletionSource source;
   final String? note;
 
-  bool get isManualOffDevice =>
-      source == KhatmCompletionSource.manualOffDevice;
+  bool get isManualOffDevice => source == KhatmCompletionSource.manualOffDevice;
 
   CompletedReadingPlan copyWith({
     DateTime? startedAt,

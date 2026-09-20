@@ -237,7 +237,8 @@ class _PlansScreenState extends State<PlansScreen> {
     if (_busy) return;
     final l10n = context.l10n;
     final noteController = TextEditingController(text: existing?.note ?? '');
-    var completedAt = existing?.completedAt ?? readingPlanDateOnly(DateTime.now());
+    var completedAt =
+        existing?.completedAt ?? readingPlanDateOnly(DateTime.now());
     var startedAt = existing?.startedAt;
 
     final result = await showDialog<_ManualKhatmDraft>(
@@ -362,8 +363,9 @@ class _PlansScreenState extends State<PlansScreen> {
     HapticFeedback.selectionClick();
     setState(() => _busy = true);
     try {
-      final existingIndex =
-          existing == null ? -1 : _snapshot.completed.indexOf(existing);
+      final existingIndex = existing == null
+          ? -1
+          : _snapshot.completed.indexOf(existing);
       if (existing != null && existingIndex < 0) return;
       final snapshot = existing == null
           ? await _store.addManualCompletedKhatm(
@@ -1204,9 +1206,8 @@ class _YearlyKhatmCard extends StatelessWidget {
                               .text('plansYearlyKhatmSourceBreakdownV1')
                               .replaceAll('{plan}', '$planCompleted')
                               .replaceAll('{manual}', '$manualCompleted'),
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: scheme.onSurfaceVariant),
                         ),
                       ],
                     ),
@@ -1291,10 +1292,7 @@ class _CompletedPlanCard extends StatelessWidget {
           color: scheme.onPrimaryContainer,
         ),
       ),
-      title: Text(
-        title,
-        style: const TextStyle(fontWeight: FontWeight.w800),
-      ),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1309,11 +1307,7 @@ class _CompletedPlanCard extends StatelessWidget {
           if (startedText != null) Text(startedText),
           if (item.note != null) ...[
             const SizedBox(height: 4),
-            Text(
-              item.note!,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-            ),
+            Text(item.note!, maxLines: 3, overflow: TextOverflow.ellipsis),
           ],
         ],
       ),

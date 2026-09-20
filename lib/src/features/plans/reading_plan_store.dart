@@ -452,8 +452,9 @@ class ReadingPlanStore {
         );
         if (parsedCompleted == null) continue;
 
-        final startedAt =
-            parsedStart == null ? null : readingPlanDateOnly(parsedStart);
+        final startedAt = parsedStart == null
+            ? null
+            : readingPlanDateOnly(parsedStart);
         final completedAt = readingPlanDateOnly(parsedCompleted);
         if (startedAt != null && startedAt.isAfter(completedAt)) continue;
         if (source == KhatmCompletionSource.readingPlan &&
@@ -544,7 +545,11 @@ class ReadingPlanStore {
     required DateTime today,
   }) {
     if (end.isAfter(today)) {
-      throw ArgumentError.value(end, 'completedAt', 'Must not be in the future.');
+      throw ArgumentError.value(
+        end,
+        'completedAt',
+        'Must not be in the future.',
+      );
     }
     if (start != null && start.isAfter(end)) {
       throw ArgumentError.value(
