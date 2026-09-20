@@ -97,7 +97,7 @@ void main() {
     expect(loaded.completed, isEmpty);
   });
 
-  test('completed history ignores invalid rows and keeps at most twenty', () async {
+  test('completed history ignores invalid rows without silently truncating archive', () async {
     final rows = <String>[
       for (var day = 1; day <= 22; day++)
         '{"preset":"quran30","startedAt":"2026-08-01","completedAt":"2026-09-${day.toString().padLeft(2, '0')}"}',
@@ -111,9 +111,9 @@ void main() {
 
     final loaded = await store.load();
 
-    expect(loaded.completed, hasLength(20));
+    expect(loaded.completed, hasLength(22));
     expect(loaded.completed.first.completedAt, DateTime(2026, 9, 1));
-    expect(loaded.completed.last.completedAt, DateTime(2026, 9, 20));
+    expect(loaded.completed.last.completedAt, DateTime(2026, 9, 22));
   });
 
   test('stopping an active plan keeps saved and completed history', () async {
@@ -181,8 +181,8 @@ void main() {
   });
 
   test('yearly khatm target rejects invalid values and sanitizes persisted data', () async {
-    expect(() => store.setYearlyKhatmTarget(0), throwsRangeError);
-    expect(() => store.setYearlyKhatmTarget(100), throwsRangeError);
+    await expectLater(store.setYearlyKhatmTarget(0), throwsRangeError);
+    await expectLater(store.setYearlyKhatmTarget(100), throwsRangeError);
 
     SharedPreferences.setMockInitialValues(<String, Object>{
       ReadingPlanStore.preferenceKey:
