@@ -71,47 +71,44 @@ Recent Plans work:
 
 ## Latest completed feature slice
 
-Explicit off-device → active-plan credit is implemented on top of the
-read-only impact preview:
+Completed-plan archive now retains off-device credit provenance:
 
-- Logging or previewing an off-device record never changes plan progress.
-- The preview now identifies which unfinished plan days are fully covered and
-  which are only partially covered.
-- Full-day eligibility is checked against canonical Quran start/end references,
-  not merely page overlap. An ayah-range entry that touches a plan page without
-  covering the complete plan day cannot be credited.
-- Already-completed plan days are excluded from credit, so overlapping manual
-  and digital reading is never counted twice.
-- A user must first choose the credit action in the impact preview and then
-  confirm a second dialog before any plan day is marked complete.
-- Paused plans cannot receive off-device credit until resumed.
-- Each confirmed credit creates an independent
-  `OffDevicePlanCreditEvent` snapshot inside active `reading_plan_state_v1`,
-  including source date/input/page/canonical coverage and credited day numbers.
-- Editing or deleting the original off-device reading after confirmation does
-  not undo credited progress or its active-plan credit event.
-- A deleted/changed source record cannot be newly credited through a stale UI
-  reference because the store verifies that the source record still exists.
-- Credit can complete the reading plan; normal completed-plan archive behavior
-  then takes over.
-- Credit-event audit detail currently belongs to the active plan. When a plan is
-  fully completed, the existing completed-plan archive keeps the completion but
-  not the per-credit event list. Preserve/extend that provenance deliberately
-  before presenting long-term credit history.
-- Turkish, English, Arabic, Azerbaijani and Russian credit-flow copy remains in
-  localization key parity.
+- `CompletedReadingPlan` carries immutable off-device credit event snapshots
+  when a reading plan finishes after one or more explicitly confirmed manual
+  credits.
+- Provenance survives all three plan-completion paths: a credit that completes
+  the plan, normal final-day completion, and catch-up/complete-through
+  completion after earlier credits.
+- The completed archive persists credit date, source reading date/input type,
+  source page/canonical coverage and credited plan-day numbers inside the
+  existing `reading_plan_state_v1` payload.
+- Editing or deleting the original off-device reading does not invalidate or
+  erase archived credit provenance.
+- Legacy completed-plan rows without provenance remain valid and load with an
+  empty credit history.
+- Malformed archived credit rows are skipped without dropping the completed
+  khatm record.
+- Completed-plan cards show a compact read-only summary: number of plan days
+  credited from off-device reading, number of explicit confirmations and the
+  input types involved.
+- Manual/off-device completed-khatm records remain separate from app reading
+  plans and do not inherit reading-plan credit provenance.
+- Existing strict credit rules are unchanged: only canonical full-day coverage
+  can be credited, partial overlap remains informational and already-completed
+  days are never credited twice.
+- Turkish, English, Arabic, Azerbaijani and Russian archive-provenance copy
+  remains in localization key parity.
 
-Focused plan-credit validation run `35522662840`:
-- bundled content setup, dependency resolution and localization generation
-  passed;
+Focused completed-provenance validation run `35522976274`:
+- bundled content setup, dependencies and localization generation passed;
 - formatter completed and its output was persisted to the feature branch;
-- `reading_plan_store_test.dart` passed, including full-day, partial-edge,
-  partial-ayah, duplicate-completed, paused-plan, deleted-source and
-  source-deletion-after-credit cases;
+- `reading_plan_store_test.dart` passed, including credit-completes-plan,
+  normal-completion-after-credit, source-log-deletion and legacy/malformed
+  archive migration scenarios;
 - `reading_plan_test.dart` passed;
 - `plan_strings_test.dart` localization key parity passed;
-- the focused analyzer remains a non-gating probe because this repository
-  repeatedly stalls in analyzer/import tooling without diagnostics.
+- the focused analyzer remains a non-gating probe because analyzer/import
+  tooling repeatedly stalls in this repository without a diagnostic.
 
 ## Validation status
 
@@ -127,9 +124,9 @@ Recent full Android validation has a repeatable tooling problem:
 - Treat this as CI/analyzer tooling unless a concrete analyzer diagnostic or
   failing test says otherwise. Do not relabel a timeout as an app regression.
 
-The impact-preview integration head before the explicit-credit slice was
-`7bbcdfdd7e027bdc15e4d9d170733bc82aec2759`.
-Android APK run #549 for that head started normally; newer full Android runs
+The explicit-credit integration head before completed-plan provenance was
+`84d45530ef966c3d95f0328f97e71f4fdd18eabf`.
+Android APK run #550 for that head started normally; newer full Android runs
 continue to be evaluated separately from focused feature validation because the
 main analyzer step has repeatedly stalled without a diagnostic. Inspect the
 newest integrated Actions run before calling the full Android pipeline green.
@@ -150,24 +147,21 @@ newest integrated Actions run before calling the full Android pipeline green.
 
 ## Immediate next step
 
-Preserve and expose off-device credit provenance without changing its strict
-credit rule:
+Finish the provenance UX as a read-only detail view, then leave the Plans slice
+alone unless a regression appears:
 
-- Extend completed-plan archive data so a khatm finished with confirmed
-  off-device credits can retain a compact summary/provenance after the active
-  plan is cleared.
-- Keep the detailed source reading independent; do not make completed archive
-  validity depend on the original off-device log still existing.
-- Surface a read-only source breakdown/history where useful, but do not add
-  undo-by-edit semantics that silently rewrite already confirmed progress.
-- Keep partial overlaps informational. Do not invent partial-day progress until
-  a separate explicit partial-progress model and UX exist.
-- Keep completed-day overlap non-creditable.
-- Preserve local-first storage and backup compatibility; migrate older
-  completed archive rows without provenance as valid legacy records.
-- Keep the full French UI localization requirement as a separate localization
-  workstream rather than scattering partial French strings through feature
-  commits.
+- Allow a completed reading-plan archive item with off-device credits to open a
+  read-only provenance detail sheet.
+- Show each confirmation date, source reading date/input type, credited plan
+  day numbers and source coverage without requiring the original reading log.
+- Keep the detail view non-editable; changing historical provenance must not
+  silently rewrite completed plan progress.
+- Do not introduce partial-day credit while implementing the detail view.
+- After that vertical slice, return to another open product requirement instead
+  of endlessly deepening Plans. The full French UI localization requirement
+  remains a high-priority separate workstream and should be resumed from a
+  dedicated localization branch after inspecting current localization state.
+- Preserve local-first storage and existing backup compatibility.
 
 
 Do not restart already completed recovery, notification diagnostics,
