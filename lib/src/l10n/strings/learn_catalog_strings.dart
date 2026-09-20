@@ -14,6 +14,9 @@ const learnCatalogStrings = <String, Map<String, String>>{
   'ru': <String, String>{
     'learnLessonProgressSummaryV1': 'Завершено уроков: {completed} из {total}',
   },
+  'fr': <String, String>{
+    'learnLessonProgressSummaryV1': '{completed} leçons terminées sur {total}',
+  },
 };
 
 String learnCatalogText(String languageCode, String key) =>
