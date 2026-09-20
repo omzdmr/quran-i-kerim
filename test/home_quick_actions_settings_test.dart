@@ -42,21 +42,24 @@ void main() {
     expect(reloaded.homeQuickActions, selection);
   });
 
-  test('invalid persisted quick actions fall back to the safe default', () async {
-    SharedPreferences.setMockInitialValues(<String, Object>{
-      'home_quick_actions_v1': <String>[
-        'quran',
-        'quran',
-        'not-real',
-        'prayer',
-      ],
-    });
+  test(
+    'invalid persisted quick actions fall back to the safe default',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        'home_quick_actions_v1': <String>[
+          'quran',
+          'quran',
+          'not-real',
+          'prayer',
+        ],
+      });
 
-    final settings = AppSettings();
-    await settings.load();
+      final settings = AppSettings();
+      await settings.load();
 
-    expect(settings.homeQuickActions, defaultHomeQuickActions);
-  });
+      expect(settings.homeQuickActions, defaultHomeQuickActions);
+    },
+  );
 
   test('setter rejects selections outside the four-to-six contract', () async {
     final settings = AppSettings();
@@ -74,21 +77,12 @@ void main() {
     );
     expect(settings.homeQuickActions, before);
 
-    expect(
-      await settings.setHomeQuickActions(HomeQuickAction.values),
-      isFalse,
-    );
+    expect(await settings.setHomeQuickActions(HomeQuickAction.values), isFalse);
     expect(settings.homeQuickActions, before);
   });
 
   test('Home quick actions survive sectioned backup and restore', () async {
-    const selection = <String>[
-      'quran',
-      'qibla',
-      'dhikr',
-      'plans',
-      'discover',
-    ];
+    const selection = <String>['quran', 'qibla', 'dhikr', 'plans', 'discover'];
     SharedPreferences.setMockInitialValues(<String, Object>{
       'home_quick_actions_v1': selection,
     });
@@ -108,30 +102,25 @@ void main() {
     expect(prefs.getStringList('home_quick_actions_v1'), selection);
   });
 
-  test('version four restore preserves newer quick-action preference', () async {
-    const currentSelection = <String>[
-      'quran',
-      'prayer',
-      'plans',
-      'settings',
-    ];
-    SharedPreferences.setMockInitialValues(<String, Object>{
-      'home_quick_actions_v1': currentSelection,
-      'theme_mode': 'dark',
-    });
+  test(
+    'version four restore preserves newer quick-action preference',
+    () async {
+      const currentSelection = <String>['quran', 'prayer', 'plans', 'settings'];
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        'home_quick_actions_v1': currentSelection,
+        'theme_mode': 'dark',
+      });
 
-    const adapter = SharedPreferencesBackupAdapter();
-    await adapter.restoreSections(
-      <String, Object?>{
+      const adapter = SharedPreferencesBackupAdapter();
+      await adapter.restoreSections(<String, Object?>{
         'preferences': <String, Object?>{'theme_mode': 'light'},
-      },
-      schemaVersion: 4,
-    );
+      }, schemaVersion: 4);
 
-    final prefs = await SharedPreferences.getInstance();
-    expect(prefs.getString('theme_mode'), 'light');
-    expect(prefs.getStringList('home_quick_actions_v1'), currentSelection);
-  });
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('theme_mode'), 'light');
+      expect(prefs.getStringList('home_quick_actions_v1'), currentSelection);
+    },
+  );
 
   test('Home quick-action strings have parity in every core locale', () {
     final expected = homeQuickActionStrings['tr']!.keys.toSet();

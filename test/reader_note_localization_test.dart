@@ -23,7 +23,11 @@ void main() {
         reason: 'Reader note key drift for $locale',
       );
       for (final key in requiredKeys) {
-        expect(values[key]!.trim(), isNotEmpty, reason: '$locale:$key is empty');
+        expect(
+          values[key]!.trim(),
+          isNotEmpty,
+          reason: '$locale:$key is empty',
+        );
       }
     }
   });
@@ -54,10 +58,7 @@ void main() {
       AppLocalizations(const Locale('az')).readerVerseFootnoteTooltip,
       'Haşiyə',
     );
-    expect(
-      AppLocalizations(const Locale('ru')).readerEditNote,
-      'Изменить',
-    );
+    expect(AppLocalizations(const Locale('ru')).readerEditNote, 'Изменить');
     expect(
       AppLocalizations(const Locale('ru')).readerVerseNoteTooltip,
       'Заметка',

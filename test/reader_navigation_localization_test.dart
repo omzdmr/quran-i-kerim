@@ -28,7 +28,11 @@ void main() {
         reason: 'Reader navigation key drift for $locale',
       );
       for (final key in requiredKeys) {
-        expect(values[key]!.trim(), isNotEmpty, reason: '$locale:$key is empty');
+        expect(
+          values[key]!.trim(),
+          isNotEmpty,
+          reason: '$locale:$key is empty',
+        );
       }
     }
   });

@@ -1,5 +1,4 @@
-const prayerNotificationDiagnosticsStrings =
-    <String, Map<String, String>>{
+const prayerNotificationDiagnosticsStrings = <String, Map<String, String>>{
   'tr': <String, String>{
     'notificationDiagnosticsCheck': 'Bildirimleri kontrol et',
     'notificationDiagnosticsTitle': 'Bildirim kontrolü',
@@ -34,9 +33,9 @@ const prayerNotificationDiagnosticsStrings =
     'notificationDiagnosticsUnavailable': 'Unavailable',
     'notificationDiagnosticsNotApplicable': 'Not required',
     'notificationDiagnosticsUnknown': 'Could not check',
-    'notificationDiagnosticsFailed': 'Notification check could not be completed.',
-    'notificationDiagnosticsPermissionHint':
-        'System notification permission is off. Prayer reminders may not appear.',
+    'notificationDiagnosticsFailed':
+        'Notification check could not be completed.',
+    'notificationDiagnosticsPermissionHint': 'System notification permission is off. Prayer reminders may not appear.',
   },
   'ar': <String, String>{
     'notificationDiagnosticsCheck': 'فحص التنبيهات',
@@ -91,9 +90,9 @@ const prayerNotificationDiagnosticsStrings =
     'notificationDiagnosticsUnavailable': 'Недоступен',
     'notificationDiagnosticsNotApplicable': 'Не требуется',
     'notificationDiagnosticsUnknown': 'Не удалось проверить',
-    'notificationDiagnosticsFailed': 'Не удалось завершить проверку уведомлений.',
-    'notificationDiagnosticsPermissionHint':
-        'Системные уведомления отключены. Напоминания о намазе могут не появляться.',
+    'notificationDiagnosticsFailed':
+        'Не удалось завершить проверку уведомлений.',
+    'notificationDiagnosticsPermissionHint': 'Системные уведомления отключены. Напоминания о намазе могут не появляться.',
   },
   'fr': <String, String>{
     'notificationDiagnosticsCheck': 'Vérifier les notifications',
@@ -112,7 +111,6 @@ const prayerNotificationDiagnosticsStrings =
     'notificationDiagnosticsUnknown': 'Vérification impossible',
     'notificationDiagnosticsFailed':
         'La vérification des notifications n’a pas pu être effectuée.',
-    'notificationDiagnosticsPermissionHint':
-        'L’autorisation système des notifications est désactivée. Les rappels de prière peuvent ne pas apparaître.',
+    'notificationDiagnosticsPermissionHint': 'L’autorisation système des notifications est désactivée. Les rappels de prière peuvent ne pas apparaître.',
   },
 };

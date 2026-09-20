@@ -3,8 +3,7 @@ import 'package:quran_i_kerim/src/l10n/strings/prayer_notification_diagnostics_s
 
 void main() {
   test('notification diagnostic strings have parity in every locale', () {
-    final expected =
-        prayerNotificationDiagnosticsStrings['tr']!.keys.toSet();
+    final expected = prayerNotificationDiagnosticsStrings['tr']!.keys.toSet();
 
     expect(
       prayerNotificationDiagnosticsStrings.keys,

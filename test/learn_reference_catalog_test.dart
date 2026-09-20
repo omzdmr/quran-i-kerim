@@ -16,7 +16,11 @@ void main() {
       final rawUrl = reference.sourceUrl;
       if (rawUrl != null) {
         final uri = Uri.tryParse(rawUrl);
-        expect(uri, isNotNull, reason: 'Invalid source URL for ${reference.id}');
+        expect(
+          uri,
+          isNotNull,
+          reason: 'Invalid source URL for ${reference.id}',
+        );
         expect(uri!.scheme, 'https');
         expect(uri.host, isNotEmpty);
       }
@@ -27,7 +31,11 @@ void main() {
     final referenceKeys = learnReferenceStrings['tr']!.keys.toSet();
     for (final locale in <String>['tr', 'en', 'ar', 'az', 'ru', 'fr']) {
       final values = learnReferenceStrings[locale];
-      expect(values, isNotNull, reason: 'Missing Learn reference strings for $locale');
+      expect(
+        values,
+        isNotNull,
+        reason: 'Missing Learn reference strings for $locale',
+      );
       expect(
         values!.keys.toSet(),
         referenceKeys,

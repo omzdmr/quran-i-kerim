@@ -8,7 +8,11 @@ void main() {
     for (final locale in <String>['tr', 'en', 'ar', 'az', 'ru', 'fr']) {
       final values = learnStrings[locale];
       expect(values, isNotNull, reason: 'Missing Learn strings for $locale');
-      expect(values!.keys.toSet(), reference, reason: 'Learn key mismatch for $locale');
+      expect(
+        values!.keys.toSet(),
+        reference,
+        reason: 'Learn key mismatch for $locale',
+      );
       expect(
         values.values.every((value) => value.trim().isNotEmpty),
         isTrue,

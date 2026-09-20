@@ -26,7 +26,11 @@ void main() {
         reason: 'Reader audio transport key drift for $locale',
       );
       for (final key in requiredKeys) {
-        expect(values[key]!.trim(), isNotEmpty, reason: '$locale:$key is empty');
+        expect(
+          values[key]!.trim(),
+          isNotEmpty,
+          reason: '$locale:$key is empty',
+        );
       }
     }
   });
@@ -46,9 +50,6 @@ void main() {
       AppLocalizations(const Locale('ru')).readerAudioPlay,
       'Воспроизвести',
     );
-    expect(
-      AppLocalizations(const Locale('fr')).readerAudioPlay,
-      'Lire',
-    );
+    expect(AppLocalizations(const Locale('fr')).readerAudioPlay, 'Lire');
   });
 }

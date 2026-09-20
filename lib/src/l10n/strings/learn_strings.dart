@@ -91,7 +91,8 @@ const learnStrings = <String, Map<String, String>>{
     'learnLessonQuizSurahV1': 'أي سورة درست في هذا الدرس؟',
     'learnLessonSummaryTitleV1': 'ملخص الدرس',
     'learnLessonCompletionTitleV1': 'اكتمل الدرس',
-    'learnLessonCompletionBodyV1': 'تم حفظ تقدمك على هذا الجهاز. يمكنك فتح الآيات نفسها في قارئ القرآن.',
+    'learnLessonCompletionBodyV1':
+        'تم حفظ تقدمك على هذا الجهاز. يمكنك فتح الآيات نفسها في قارئ القرآن.',
     'learnLessonStartV1': 'ابدأ الدرس',
     'learnLessonContinueV1': 'تابع الدرس',
     'learnLessonCompletedV1': 'مكتمل · افتحه مجددًا',
@@ -102,7 +103,8 @@ const learnStrings = <String, Map<String, String>>{
     'learnLessonIncorrectV1': 'يمكنك رؤية الإجابة الصحيحة أعلاه.',
     'learnLessonBackV1': 'العودة إلى الدروس',
     'learnLessonContinueQuranV1': 'المتابعة في القرآن',
-    'learnLessonLoadErrorV1': 'تعذر فتح محتوى الدرس. تحقق من توفر مصدر ترجمة ثم حاول مرة أخرى.',
+    'learnLessonLoadErrorV1':
+        'تعذر فتح محتوى الدرس. تحقق من توفر مصدر ترجمة ثم حاول مرة أخرى.',
   },
   'az': <String, String>{
     'learnLessonSourceBadgeV1': 'Mənbəli məzmun',
@@ -150,7 +152,8 @@ const learnStrings = <String, Map<String, String>>{
     'learnLessonAsrIntroBodyV1': 'Этот урок шаг за шагом рассматривает аяты 1, 2 и 3 суры Аль-Аср. Текст аята, выбранный перевод и примечание поставщика источника, если оно есть, показываются отдельно.',
     'learnLessonAsrSummaryBodyV1': 'Вы прочитали Аль-Аср 103:1-3 и рассмотрели их смысл по выбранному источнику перевода.',
     'learnLessonIkhlasTitleV1': 'Прочитайте суру Аль-Ихляс шаг за шагом',
-    'learnLessonIkhlasSubtitleV1': 'Аль-Ихляс 112:1-4 · краткий урок с источниками',
+    'learnLessonIkhlasSubtitleV1':
+        'Аль-Ихляс 112:1-4 · краткий урок с источниками',
     'learnLessonIkhlasIntroBodyV1': 'Этот урок шаг за шагом рассматривает аяты 1-4 суры Аль-Ихляс. Текст аята, выбранный перевод и примечание поставщика источника, если оно есть, показываются отдельно.',
     'learnLessonIkhlasSummaryBodyV1': 'Вы прочитали Аль-Ихляс 112:1-4 и рассмотрели их смысл по выбранному источнику перевода.',
     'learnLessonVerseTitleV1': 'Аят {ayah}',
@@ -177,39 +180,27 @@ const learnStrings = <String, Map<String, String>>{
   'fr': <String, String>{
     'learnLessonSourceBadgeV1': 'Contenu sourcé',
     'learnLessonEaseTitleV1': 'L’aisance avec la difficulté',
-    'learnLessonEaseSubtitleV1':
-        'Ash-Sharh 94:5-6 · courte leçon sourcée',
-    'learnLessonEaseIntroBodyV1':
-        'Cette leçon parcourt pas à pas les versets 5 et 6 de la sourate Ash-Sharh. Le texte des versets, la traduction sélectionnée et toute note rédigée par le fournisseur sont présentés séparément.',
-    'learnLessonEaseSummaryBodyV1':
-        'Vous avez lu Ash-Sharh 94:5-6 et revu leur sens à l’aide de la source de traduction sélectionnée.',
+    'learnLessonEaseSubtitleV1': 'Ash-Sharh 94:5-6 · courte leçon sourcée',
+    'learnLessonEaseIntroBodyV1': 'Cette leçon parcourt pas à pas les versets 5 et 6 de la sourate Ash-Sharh. Le texte des versets, la traduction sélectionnée et toute note rédigée par le fournisseur sont présentés séparément.',
+    'learnLessonEaseSummaryBodyV1': 'Vous avez lu Ash-Sharh 94:5-6 et revu leur sens à l’aide de la source de traduction sélectionnée.',
     'learnLessonAsrTitleV1': 'Lire la sourate Al-Asr pas à pas',
-    'learnLessonAsrSubtitleV1':
-        'Al-Asr 103:1-3 · courte leçon sourcée',
-    'learnLessonAsrIntroBodyV1':
-        'Cette leçon parcourt pas à pas les versets 1, 2 et 3 de la sourate Al-Asr. Le texte des versets, la traduction sélectionnée et toute note rédigée par le fournisseur sont présentés séparément.',
-    'learnLessonAsrSummaryBodyV1':
-        'Vous avez lu Al-Asr 103:1-3 et revu leur sens à l’aide de la source de traduction sélectionnée.',
-    'learnLessonIkhlasTitleV1':
-        'Lire la sourate Al-Ikhlas pas à pas',
-    'learnLessonIkhlasSubtitleV1':
-        'Al-Ikhlas 112:1-4 · courte leçon sourcée',
-    'learnLessonIkhlasIntroBodyV1':
-        'Cette leçon parcourt pas à pas les versets 1 à 4 de la sourate Al-Ikhlas. Le texte des versets, la traduction sélectionnée et toute note rédigée par le fournisseur sont présentés séparément.',
-    'learnLessonIkhlasSummaryBodyV1':
-        'Vous avez lu Al-Ikhlas 112:1-4 et revu leur sens à l’aide de la source de traduction sélectionnée.',
+    'learnLessonAsrSubtitleV1': 'Al-Asr 103:1-3 · courte leçon sourcée',
+    'learnLessonAsrIntroBodyV1': 'Cette leçon parcourt pas à pas les versets 1, 2 et 3 de la sourate Al-Asr. Le texte des versets, la traduction sélectionnée et toute note rédigée par le fournisseur sont présentés séparément.',
+    'learnLessonAsrSummaryBodyV1': 'Vous avez lu Al-Asr 103:1-3 et revu leur sens à l’aide de la source de traduction sélectionnée.',
+    'learnLessonIkhlasTitleV1': 'Lire la sourate Al-Ikhlas pas à pas',
+    'learnLessonIkhlasSubtitleV1': 'Al-Ikhlas 112:1-4 · courte leçon sourcée',
+    'learnLessonIkhlasIntroBodyV1': 'Cette leçon parcourt pas à pas les versets 1 à 4 de la sourate Al-Ikhlas. Le texte des versets, la traduction sélectionnée et toute note rédigée par le fournisseur sont présentés séparément.',
+    'learnLessonIkhlasSummaryBodyV1': 'Vous avez lu Al-Ikhlas 112:1-4 et revu leur sens à l’aide de la source de traduction sélectionnée.',
     'learnLessonVerseTitleV1': 'Verset {ayah}',
     'learnLessonMeaningTitleV1': 'Traduction sélectionnée',
     'learnLessonExplanationTitleV1': 'Explication de la source',
     'learnLessonReviewTitleV1': 'Révision rapide',
-    'learnLessonReviewBodyV1':
-        'Révisez les versets et leur sens dans la traduction sélectionnée. Si une explication sourcée était disponible, rappelez-vous-en avec son attribution.',
+    'learnLessonReviewBodyV1': 'Révisez les versets et leur sens dans la traduction sélectionnée. Si une explication sourcée était disponible, rappelez-vous-en avec son attribution.',
     'learnLessonQuizSurahV1':
         'Quelle sourate avez-vous étudiée dans cette leçon ?',
     'learnLessonSummaryTitleV1': 'Résumé de la leçon',
     'learnLessonCompletionTitleV1': 'Leçon terminée',
-    'learnLessonCompletionBodyV1':
-        'Votre progression a été enregistrée sur cet appareil. Vous pouvez ouvrir les mêmes versets dans le lecteur du Coran.',
+    'learnLessonCompletionBodyV1': 'Votre progression a été enregistrée sur cet appareil. Vous pouvez ouvrir les mêmes versets dans le lecteur du Coran.',
     'learnLessonStartV1': 'Commencer la leçon',
     'learnLessonContinueV1': 'Continuer la leçon',
     'learnLessonCompletedV1': 'Terminée · ouvrir à nouveau',
@@ -217,12 +208,10 @@ const learnStrings = <String, Map<String, String>>{
     'learnLessonNextV1': 'Suivant',
     'learnLessonFinishV1': 'Terminer',
     'learnLessonCorrectV1': 'Correct.',
-    'learnLessonIncorrectV1':
-        'La bonne réponse est indiquée ci-dessus.',
+    'learnLessonIncorrectV1': 'La bonne réponse est indiquée ci-dessus.',
     'learnLessonBackV1': 'Retour aux leçons',
     'learnLessonContinueQuranV1': 'Continuer dans le Coran',
-    'learnLessonLoadErrorV1':
-        'Impossible d’ouvrir le contenu de la leçon. Vérifiez qu’une source de traduction est disponible, puis réessayez.',
+    'learnLessonLoadErrorV1': 'Impossible d’ouvrir le contenu de la leçon. Vérifiez qu’une source de traduction est disponible, puis réessayez.',
   },
 };
 

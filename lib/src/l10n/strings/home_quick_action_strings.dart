@@ -37,7 +37,8 @@ const homeQuickActionStrings = <String, Map<String, String>>{
   },
   'az': <String, String>{
     'homeQuickActionsTitle': 'Sürətli əməliyyatlar',
-    'homeQuickActionsSubtitle': 'Ən çox istifadə etdiyiniz bölmələrə bir toxunuşla keçin',
+    'homeQuickActionsSubtitle':
+        'Ən çox istifadə etdiyiniz bölmələrə bir toxunuşla keçin',
     'homeQuickActionsEdit': 'Düzəlt',
     'homeQuickActionsCustomizeTitle': 'Sürətli əməliyyatları düzəlt',
     'homeQuickActionsCustomizeBody':
@@ -61,7 +62,8 @@ const homeQuickActionStrings = <String, Map<String, String>>{
   },
   'fr': <String, String>{
     'homeQuickActionsTitle': 'Actions rapides',
-    'homeQuickActionsSubtitle': 'Accédez à vos sections les plus utilisées en un geste',
+    'homeQuickActionsSubtitle':
+        'Accédez à vos sections les plus utilisées en un geste',
     'homeQuickActionsEdit': 'Modifier',
     'homeQuickActionsCustomizeTitle': 'Modifier les actions rapides',
     'homeQuickActionsCustomizeBody':

@@ -6,7 +6,11 @@ void main() {
     final reference = learnCatalogStrings['tr']!.keys.toSet();
     for (final locale in <String>['tr', 'en', 'ar', 'az', 'ru', 'fr']) {
       final values = learnCatalogStrings[locale];
-      expect(values, isNotNull, reason: 'Missing Learn catalog strings for $locale');
+      expect(
+        values,
+        isNotNull,
+        reason: 'Missing Learn catalog strings for $locale',
+      );
       expect(
         values!.keys.toSet(),
         reference,

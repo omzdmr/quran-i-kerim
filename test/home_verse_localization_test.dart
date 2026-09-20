@@ -16,7 +16,9 @@ void main() {
         reason: 'Missing or extra home localization key for $locale',
       );
       expect(
-        homeVerseStrings[locale]!.values.every((value) => value.trim().isNotEmpty),
+        homeVerseStrings[locale]!.values.every(
+          (value) => value.trim().isNotEmpty,
+        ),
         isTrue,
         reason: 'Empty home localization value for $locale',
       );

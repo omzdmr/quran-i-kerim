@@ -4,10 +4,8 @@ const homeVerseStrings = <String, Map<String, String>>{
     'homeVerseCollapse': 'Kısalt',
     'homeVerseReadSurah': 'Surenin tamamını oku',
     'homeCommunityTitle': 'Senin etkinliklerin',
-    'homeCommunityBody':
-        'Kaydettiğin, vurguladığın ve not aldığın ayetler burada görünür. Arkadaş sistemi geldiğinde bu akış arkadaş etkinliklerini de gösterebilir.',
-    'homeCommunityEmpty':
-        'Henüz bir etkinlik yok. Bir ayet kaydettiğinde, vurguladığında veya not eklediğinde burada görünecek.',
+    'homeCommunityBody': 'Kaydettiğin, vurguladığın ve not aldığın ayetler burada görünür. Arkadaş sistemi geldiğinde bu akış arkadaş etkinliklerini de gösterebilir.',
+    'homeCommunityEmpty': 'Henüz bir etkinlik yok. Bir ayet kaydettiğinde, vurguladığında veya not eklediğinde burada görünecek.',
     'homeCommunityBookmark': 'Bir ayeti kaydettin',
     'homeCommunityHighlight': 'Bir ayeti vurguladın',
     'homeCommunityNote': 'Bir ayete not ekledin',
@@ -17,10 +15,8 @@ const homeVerseStrings = <String, Map<String, String>>{
     'homeVerseCollapse': 'Show less',
     'homeVerseReadSurah': 'Read the full surah',
     'homeCommunityTitle': 'Your activity',
-    'homeCommunityBody':
-        'Verses you save, highlight or annotate appear here. When friends arrive, this feed can also include their activity.',
-    'homeCommunityEmpty':
-        'No activity yet. Save, highlight or add a note to a verse and it will appear here.',
+    'homeCommunityBody': 'Verses you save, highlight or annotate appear here. When friends arrive, this feed can also include their activity.',
+    'homeCommunityEmpty': 'No activity yet. Save, highlight or add a note to a verse and it will appear here.',
     'homeCommunityBookmark': 'You saved a verse',
     'homeCommunityHighlight': 'You highlighted a verse',
     'homeCommunityNote': 'You added a note to a verse',
@@ -30,8 +26,7 @@ const homeVerseStrings = <String, Map<String, String>>{
     'homeVerseCollapse': 'عرض أقل',
     'homeVerseReadSurah': 'قراءة السورة كاملة',
     'homeCommunityTitle': 'نشاطك',
-    'homeCommunityBody':
-        'تظهر هنا الآيات التي تحفظها أو تميزها أو تضيف إليها ملاحظات. وعند إضافة الأصدقاء يمكن أن يعرض هذا القسم نشاطهم أيضاً.',
+    'homeCommunityBody': 'تظهر هنا الآيات التي تحفظها أو تميزها أو تضيف إليها ملاحظات. وعند إضافة الأصدقاء يمكن أن يعرض هذا القسم نشاطهم أيضاً.',
     'homeCommunityEmpty':
         'لا يوجد نشاط بعد. احفظ آية أو ميزها أو أضف ملاحظة لتظهر هنا.',
     'homeCommunityBookmark': 'حفظت آية',
@@ -43,10 +38,8 @@ const homeVerseStrings = <String, Map<String, String>>{
     'homeVerseCollapse': 'Qısalt',
     'homeVerseReadSurah': 'Surəni tam oxu',
     'homeCommunityTitle': 'Sənin fəaliyyətin',
-    'homeCommunityBody':
-        'Yadda saxladığın, vurğuladığın və qeyd əlavə etdiyin ayələr burada görünür. Dost sistemi gələndə bu axın onların fəaliyyətini də göstərə bilər.',
-    'homeCommunityEmpty':
-        'Hələ fəaliyyət yoxdur. Ayəni yadda saxla, vurğula və ya qeyd əlavə et.',
+    'homeCommunityBody': 'Yadda saxladığın, vurğuladığın və qeyd əlavə etdiyin ayələr burada görünür. Dost sistemi gələndə bu axın onların fəaliyyətini də göstərə bilər.',
+    'homeCommunityEmpty': 'Hələ fəaliyyət yoxdur. Ayəni yadda saxla, vurğula və ya qeyd əlavə et.',
     'homeCommunityBookmark': 'Bir ayəni yadda saxladın',
     'homeCommunityHighlight': 'Bir ayəni vurğuladın',
     'homeCommunityNote': 'Bir ayəyə qeyd əlavə etdin',
@@ -56,10 +49,8 @@ const homeVerseStrings = <String, Map<String, String>>{
     'homeVerseCollapse': 'Свернуть',
     'homeVerseReadSurah': 'Читать суру полностью',
     'homeCommunityTitle': 'Ваша активность',
-    'homeCommunityBody':
-        'Здесь появляются сохранённые и выделенные аяты и заметки. После появления друзей лента сможет показывать и их активность.',
-    'homeCommunityEmpty':
-        'Пока активности нет. Сохраните или выделите аят либо добавьте заметку.',
+    'homeCommunityBody': 'Здесь появляются сохранённые и выделенные аяты и заметки. После появления друзей лента сможет показывать и их активность.',
+    'homeCommunityEmpty': 'Пока активности нет. Сохраните или выделите аят либо добавьте заметку.',
     'homeCommunityBookmark': 'Вы сохранили аят',
     'homeCommunityHighlight': 'Вы выделили аят',
     'homeCommunityNote': 'Вы добавили заметку к аяту',
@@ -69,10 +60,8 @@ const homeVerseStrings = <String, Map<String, String>>{
     'homeVerseCollapse': 'Réduire',
     'homeVerseReadSurah': 'Lire la sourate en entier',
     'homeCommunityTitle': 'Votre activité',
-    'homeCommunityBody':
-        'Les versets que vous enregistrez, surlignez ou annotez apparaissent ici. Lorsque les amis seront disponibles, ce fil pourra également afficher leur activité.',
-    'homeCommunityEmpty':
-        'Aucune activité pour le moment. Enregistrez ou surlignez un verset, ou ajoutez-y une note pour le retrouver ici.',
+    'homeCommunityBody': 'Les versets que vous enregistrez, surlignez ou annotez apparaissent ici. Lorsque les amis seront disponibles, ce fil pourra également afficher leur activité.',
+    'homeCommunityEmpty': 'Aucune activité pour le moment. Enregistrez ou surlignez un verset, ou ajoutez-y une note pour le retrouver ici.',
     'homeCommunityBookmark': 'Vous avez enregistré un verset',
     'homeCommunityHighlight': 'Vous avez surligné un verset',
     'homeCommunityNote': 'Vous avez ajouté une note à un verset',
