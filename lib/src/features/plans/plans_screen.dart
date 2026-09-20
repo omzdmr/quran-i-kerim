@@ -2254,6 +2254,25 @@ class _CompletedPlanCard extends StatelessWidget {
                 '{date}',
                 MaterialLocalizations.of(context).formatMediumDate(startedAt),
               );
+    final creditKinds = item.offDeviceCreditInputKinds
+        .map(
+          (kind) => l10n.text(
+            switch (kind) {
+              OffDeviceReadingInputKind.page => 'plansOffDeviceInputPageV1',
+              OffDeviceReadingInputKind.juz => 'plansOffDeviceInputJuzV1',
+              OffDeviceReadingInputKind.hizb => 'plansOffDeviceInputHizbV1',
+              OffDeviceReadingInputKind.ayahRange => 'plansOffDeviceInputAyahV1',
+            },
+          ),
+        )
+        .join(', ');
+    final creditSummary = item.offDeviceCredits.isEmpty
+        ? null
+        : l10n
+              .text('plansArchivedCreditSummaryV1')
+              .replaceAll('{days}', '${item.offDeviceCreditedDayCount}')
+              .replaceAll('{events}', '${item.offDeviceCreditEventCount}')
+              .replaceAll('{kinds}', creditKinds);
 
     return ListTile(
       tileColor: scheme.surfaceContainer,
@@ -2280,6 +2299,17 @@ class _CompletedPlanCard extends StatelessWidget {
             ),
           ),
           if (startedText != null) Text(startedText),
+          if (creditSummary != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              creditSummary,
+              style: TextStyle(
+                color: scheme.onSurfaceVariant,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
           if (item.note != null) ...[
             const SizedBox(height: 4),
             Text(item.note!, maxLines: 3, overflow: TextOverflow.ellipsis),
