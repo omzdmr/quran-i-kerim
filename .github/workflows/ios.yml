@@ -29,34 +29,59 @@ jobs:
           flutter --version
           xcodebuild -version
 
-      - name: Generate isolated iOS scaffold
-        run: flutter create --platforms=ios --org com.omzdmr --project-name quran_i_kerim .
-
-      - name: Remove generated scaffold test
-        run: |
-          if ! git ls-files --error-unmatch test/widget_test.dart >/dev/null 2>&1; then
-            rm -f test/widget_test.dart
-          fi
-
-      - name: Configure native iOS permissions and background audio
-        run: |
-          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Kur’an-ı Kerim" ios/Runner/Info.plist
-          /usr/libexec/PlistBuddy -c "Add :NSLocationWhenInUseUsageDescription string Konumunuz namaz vakitleri ve kıble yönünü hesaplamak için yalnızca izin verdiğinizde kullanılır." ios/Runner/Info.plist
-          /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string Mikrofon yalnızca kendi ezber kaydınızı oluşturmak istediğinizde kullanılır." ios/Runner/Info.plist
-          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" ios/Runner/Info.plist
-          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string audio" ios/Runner/Info.plist
-
-      - name: Audit generated native identity
+      # The iOS project is source-controlled. Never regenerate it here: doing
+      # so would make CI validate Flutter's template instead of our native code.
+      - name: Validate committed iOS scaffold
         run: |
           test -f ios/Runner.xcodeproj/project.pbxproj
+          test -f ios/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme
+          test -f ios/Runner.xcworkspace/contents.xcworkspacedata
+          test -f ios/Runner/AppDelegate.swift
+          test -f ios/Runner/AudioSessionCoordinator.swift
           test -f ios/Runner/Info.plist
-          grep -n "PRODUCT_BUNDLE_IDENTIFIER" ios/Runner.xcodeproj/project.pbxproj | sort -u
+          test -f ios/Runner/PrivacyInfo.xcprivacy
+          test -f ios/Podfile
+          plutil -lint ios/Runner/Info.plist
+          plutil -lint ios/Runner/PrivacyInfo.xcprivacy
+          plutil -lint ios/Flutter/AppFrameworkInfo.plist
+          ruby -c ios/Podfile
+          grep -q "PRODUCT_BUNDLE_IDENTIFIER = com.omzdmr.quranIKerim" ios/Runner.xcodeproj/project.pbxproj
+          grep -q "AudioSessionCoordinator.swift in Sources" ios/Runner.xcodeproj/project.pbxproj
           grep -q "NSLocationWhenInUseUsageDescription" ios/Runner/Info.plist
           grep -q "NSMicrophoneUsageDescription" ios/Runner/Info.plist
-          grep -q "UIBackgroundModes" ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes:0" ios/Runner/Info.plist | grep -qx audio
+
+      # This native compiler gate stays useful even when a shared Flutter asset
+      # blocks bundle assembly later in the job.
+      - name: Type-check native audio lifecycle
+        run: |
+          xcrun --sdk iphonesimulator swiftc \
+            -parse-as-library \
+            -target arm64-apple-ios13.0-simulator \
+            -typecheck ios/Runner/AudioSessionCoordinator.swift
 
       - name: Get dependencies
         run: flutter pub get
+
+      - name: Install iOS pods from committed project
+        run: pod install --project-directory=ios
+
+      - name: Audit committed Xcode graph
+        run: |
+          xcodebuild \
+            -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -sdk iphonesimulator \
+            -showBuildSettings \
+            CODE_SIGNING_ALLOWED=NO > /tmp/runner-build-settings.txt
+          grep -q "PRODUCT_BUNDLE_IDENTIFIER = com.omzdmr.quranIKerim" /tmp/runner-build-settings.txt
+          grep -q "IPHONEOS_DEPLOYMENT_TARGET = 13.0" /tmp/runner-build-settings.txt
+          git diff --exit-code -- \
+            ios/Runner \
+            ios/Runner.xcodeproj \
+            ios/Podfile \
+            ios/Flutter/Debug.xcconfig \
+            ios/Flutter/Release.xcconfig
 
       - name: Generate localizations
         run: flutter gen-l10n
