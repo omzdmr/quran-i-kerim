@@ -1,0 +1,51 @@
+name: Off-device Impact Validation
+
+on:
+  push:
+    branches: [ manual/off-device-plan-impact-preview-v2 ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.2'
+          channel: stable
+          cache: true
+
+      - name: Fetch and validate bundled content
+        run: python3 tool/fetch_content.py
+
+      - name: Fetch dependencies
+        run: flutter pub get
+
+      - name: Check impact slice formatting
+        run: |
+          dart format --output=none --set-exit-if-changed \
+            lib/src/features/plans/reading_plan.dart \
+            lib/src/features/plans/plans_screen.dart \
+            lib/src/l10n/strings/plan_strings.dart \
+            test/reading_plan_test.dart \
+            test/plans_off_device_impact_widget_test.dart
+
+      - name: Run reading-plan model tests
+        run: timeout 180s flutter test test/reading_plan_test.dart --reporter expanded
+
+      - name: Run plan localization parity test
+        run: timeout 120s flutter test test/plan_strings_test.dart --reporter expanded
+
+      - name: Run impact widget tests
+        run: timeout 180s flutter test test/plans_off_device_impact_widget_test.dart --reporter expanded
+
+      - name: Probe focused analyzer
+        continue-on-error: true
+        run: |
+          timeout 120s dart analyze \
+            lib/src/features/plans/reading_plan.dart \
+            lib/src/features/plans/plans_screen.dart
