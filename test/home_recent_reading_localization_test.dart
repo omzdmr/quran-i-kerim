@@ -7,7 +7,7 @@ void main() {
 
     expect(
       homeRecentReadingStrings.keys,
-      containsAll(<String>['tr', 'en', 'ar', 'az', 'ru']),
+      containsAll(<String>['tr', 'en', 'ar', 'az', 'ru', 'fr']),
     );
 
     for (final entry in homeRecentReadingStrings.entries) {
