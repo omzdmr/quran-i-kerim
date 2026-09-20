@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:quran/quran.dart' as quran;
 
 import '../../l10n/app_localizations.dart';
 import '../../navigation/app_navigation.dart';
@@ -13,16 +14,28 @@ enum _PlansTab { mine, find, saved, completed }
 
 enum _ArchiveAction { edit, delete }
 
-class _OffDevicePageDraft {
-  const _OffDevicePageDraft({
-    required this.startPage,
-    required this.endPage,
+class _OffDeviceReadingDraft {
+  const _OffDeviceReadingDraft({
+    required this.inputKind,
     required this.readAt,
+    this.startPage,
+    this.endPage,
+    this.juzNumber,
+    this.startSurah,
+    this.startAyah,
+    this.endSurah,
+    this.endAyah,
     this.note,
   });
 
-  final int startPage;
-  final int endPage;
+  final OffDeviceReadingInputKind inputKind;
+  final int? startPage;
+  final int? endPage;
+  final int? juzNumber;
+  final int? startSurah;
+  final int? startAyah;
+  final int? endSurah;
+  final int? endAyah;
   final DateTime readAt;
   final String? note;
 }
@@ -276,28 +289,71 @@ class _PlansScreenState extends State<PlansScreen> {
   ]) async {
     if (_busy) return;
     final l10n = context.l10n;
+    var inputKind = existing?.inputKind ?? OffDeviceReadingInputKind.page;
     final startController = TextEditingController(
       text: existing?.startPage.toString() ?? '',
     );
     final endController = TextEditingController(
       text: existing?.endPage.toString() ?? '',
     );
+    final juzController = TextEditingController(
+      text: existing?.juzNumber?.toString() ?? '',
+    );
+    final startSurahController = TextEditingController(
+      text: existing?.startSurah?.toString() ?? '',
+    );
+    final startAyahController = TextEditingController(
+      text: existing?.startAyah?.toString() ?? '',
+    );
+    final endSurahController = TextEditingController(
+      text: existing?.endSurah?.toString() ?? '',
+    );
+    final endAyahController = TextEditingController(
+      text: existing?.endAyah?.toString() ?? '',
+    );
     final noteController = TextEditingController(text: existing?.note ?? '');
     var readAt = existing?.readAt ?? readingPlanDateOnly(DateTime.now());
     var startPage = existing?.startPage;
     var endPage = existing?.endPage;
+    var juzNumber = existing?.juzNumber;
+    var startSurah = existing?.startSurah;
+    var startAyah = existing?.startAyah;
+    var endSurah = existing?.endSurah;
+    var endAyah = existing?.endAyah;
 
-    final result = await showDialog<_OffDevicePageDraft>(
+    bool validAyahReference(int? surah, int? ayah) {
+      if (surah == null || ayah == null || surah < 1 || surah > 114) {
+        return false;
+      }
+      return ayah >= 1 && ayah <= quran.getVerseCount(surah);
+    }
+
+    bool validAyahRange() {
+      if (!validAyahReference(startSurah, startAyah) ||
+          !validAyahReference(endSurah, endAyah)) {
+        return false;
+      }
+      if (startSurah! > endSurah!) return false;
+      if (startSurah == endSurah && startAyah! > endAyah!) return false;
+      return true;
+    }
+
+    final result = await showDialog<_OffDeviceReadingDraft>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) {
           final material = MaterialLocalizations.of(dialogContext);
-          final valid =
+          final valid = switch (inputKind) {
+            OffDeviceReadingInputKind.page =>
               startPage != null &&
-              endPage != null &&
-              startPage! >= 1 &&
-              endPage! <= madinahMushafPageCount &&
-              startPage! <= endPage!;
+                  endPage != null &&
+                  startPage! >= 1 &&
+                  endPage! <= madinahMushafPageCount &&
+                  startPage! <= endPage!,
+            OffDeviceReadingInputKind.juz =>
+              juzNumber != null && juzNumber! >= 1 && juzNumber! <= 30,
+            OffDeviceReadingInputKind.ayahRange => validAyahRange(),
+          };
 
           Future<void> pickDate() async {
             final picked = await showDatePicker(
@@ -309,6 +365,25 @@ class _PlansScreenState extends State<PlansScreen> {
             if (picked != null) {
               setDialogState(() => readAt = readingPlanDateOnly(picked));
             }
+          }
+
+          Widget numberField({
+            required TextEditingController controller,
+            required String label,
+            required ValueChanged<int?> onChanged,
+            int digits = 3,
+          }) {
+            return TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              inputFormatters: <TextInputFormatter>[
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(digits),
+              ],
+              decoration: InputDecoration(labelText: label),
+              onChanged: (value) =>
+                  setDialogState(() => onChanged(int.tryParse(value))),
+            );
           }
 
           return AlertDialog(
@@ -326,48 +401,120 @@ class _PlansScreenState extends State<PlansScreen> {
                 children: [
                   Text(l10n.text('plansOffDeviceExplanationV1')),
                   const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: startController,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: <TextInputFormatter>[
-                            FilteringTextInputFormatter.digitsOnly,
-                            LengthLimitingTextInputFormatter(3),
-                          ],
-                          decoration: InputDecoration(
-                            labelText: l10n.text('plansOffDeviceStartPageV1'),
+                  DropdownButtonFormField<OffDeviceReadingInputKind>(
+                    initialValue: inputKind,
+                    decoration: InputDecoration(
+                      labelText: l10n.text('plansOffDeviceInputTypeV1'),
+                    ),
+                    items: OffDeviceReadingInputKind.values
+                        .map(
+                          (kind) => DropdownMenuItem(
+                            value: kind,
+                            child: Text(
+                              l10n.text(
+                                switch (kind) {
+                                  OffDeviceReadingInputKind.page =>
+                                    'plansOffDeviceInputPageV1',
+                                  OffDeviceReadingInputKind.juz =>
+                                    'plansOffDeviceInputJuzV1',
+                                  OffDeviceReadingInputKind.ayahRange =>
+                                    'plansOffDeviceInputAyahV1',
+                                },
+                              ),
+                            ),
                           ),
-                          onChanged: (value) => setDialogState(
-                            () => startPage = int.tryParse(value),
+                        )
+                        .toList(growable: false),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setDialogState(() => inputKind = value);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  if (inputKind == OffDeviceReadingInputKind.page) ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: numberField(
+                            controller: startController,
+                            label: l10n.text('plansOffDeviceStartPageV1'),
+                            onChanged: (value) => startPage = value,
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          controller: endController,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: <TextInputFormatter>[
-                            FilteringTextInputFormatter.digitsOnly,
-                            LengthLimitingTextInputFormatter(3),
-                          ],
-                          decoration: InputDecoration(
-                            labelText: l10n.text('plansOffDeviceEndPageV1'),
-                          ),
-                          onChanged: (value) => setDialogState(
-                            () => endPage = int.tryParse(value),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: numberField(
+                            controller: endController,
+                            label: l10n.text('plansOffDeviceEndPageV1'),
+                            onChanged: (value) => endPage = value,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    l10n.text('plansOffDevicePageHelperV1'),
-                    style: Theme.of(dialogContext).textTheme.bodySmall,
-                  ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.text('plansOffDevicePageHelperV1'),
+                      style: Theme.of(dialogContext).textTheme.bodySmall,
+                    ),
+                  ] else if (inputKind == OffDeviceReadingInputKind.juz) ...[
+                    numberField(
+                      controller: juzController,
+                      label: l10n.text('plansOffDeviceJuzNumberV1'),
+                      onChanged: (value) => juzNumber = value,
+                      digits: 2,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.text('plansOffDeviceJuzHelperV1'),
+                      style: Theme.of(dialogContext).textTheme.bodySmall,
+                    ),
+                  ] else ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: numberField(
+                            controller: startSurahController,
+                            label: l10n.text('plansOffDeviceStartSurahV1'),
+                            onChanged: (value) => startSurah = value,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: numberField(
+                            controller: startAyahController,
+                            label: l10n.text('plansOffDeviceStartAyahV1'),
+                            onChanged: (value) => startAyah = value,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: numberField(
+                            controller: endSurahController,
+                            label: l10n.text('plansOffDeviceEndSurahV1'),
+                            onChanged: (value) => endSurah = value,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: numberField(
+                            controller: endAyahController,
+                            label: l10n.text('plansOffDeviceEndAyahV1'),
+                            onChanged: (value) => endAyah = value,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.text('plansOffDeviceAyahHelperV1'),
+                      style: Theme.of(dialogContext).textTheme.bodySmall,
+                    ),
+                  ],
                   const SizedBox(height: 8),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
@@ -388,7 +535,16 @@ class _PlansScreenState extends State<PlansScreen> {
                   ),
                   if (!valid)
                     Text(
-                      l10n.text('plansOffDeviceRangeErrorV1'),
+                      l10n.text(
+                        switch (inputKind) {
+                          OffDeviceReadingInputKind.page =>
+                            'plansOffDeviceRangeErrorV1',
+                          OffDeviceReadingInputKind.juz =>
+                            'plansOffDeviceJuzErrorV1',
+                          OffDeviceReadingInputKind.ayahRange =>
+                            'plansOffDeviceAyahErrorV1',
+                        },
+                      ),
                       style: TextStyle(
                         color: Theme.of(dialogContext).colorScheme.error,
                       ),
@@ -404,9 +560,15 @@ class _PlansScreenState extends State<PlansScreen> {
               FilledButton(
                 onPressed: valid
                     ? () => Navigator.of(dialogContext).pop(
-                        _OffDevicePageDraft(
-                          startPage: startPage!,
-                          endPage: endPage!,
+                        _OffDeviceReadingDraft(
+                          inputKind: inputKind,
+                          startPage: startPage,
+                          endPage: endPage,
+                          juzNumber: juzNumber,
+                          startSurah: startSurah,
+                          startAyah: startAyah,
+                          endSurah: endSurah,
+                          endAyah: endAyah,
                           readAt: readAt,
                           note: noteController.text,
                         ),
@@ -421,6 +583,11 @@ class _PlansScreenState extends State<PlansScreen> {
     );
     startController.dispose();
     endController.dispose();
+    juzController.dispose();
+    startSurahController.dispose();
+    startAyahController.dispose();
+    endSurahController.dispose();
+    endAyahController.dispose();
     noteController.dispose();
     if (!mounted || result == null) return;
 
@@ -432,20 +599,53 @@ class _PlansScreenState extends State<PlansScreen> {
     HapticFeedback.selectionClick();
     setState(() => _busy = true);
     try {
-      final snapshot = existing == null
-          ? await _store.addOffDevicePageSession(
-              startPage: result.startPage,
-              endPage: result.endPage,
-              readAt: result.readAt,
-              note: result.note,
-            )
-          : await _store.updateOffDevicePageSessionAt(
-              existingIndex,
-              startPage: result.startPage,
-              endPage: result.endPage,
-              readAt: result.readAt,
-              note: result.note,
-            );
+      final Future<ReadingPlanSnapshot> operation = switch (result.inputKind) {
+        OffDeviceReadingInputKind.page => existing == null
+            ? _store.addOffDevicePageSession(
+                startPage: result.startPage!,
+                endPage: result.endPage!,
+                readAt: result.readAt,
+                note: result.note,
+              )
+            : _store.updateOffDevicePageSessionAt(
+                existingIndex,
+                startPage: result.startPage!,
+                endPage: result.endPage!,
+                readAt: result.readAt,
+                note: result.note,
+              ),
+        OffDeviceReadingInputKind.juz => existing == null
+            ? _store.addOffDeviceJuzSession(
+                juzNumber: result.juzNumber!,
+                readAt: result.readAt,
+                note: result.note,
+              )
+            : _store.updateOffDeviceJuzSessionAt(
+                existingIndex,
+                juzNumber: result.juzNumber!,
+                readAt: result.readAt,
+                note: result.note,
+              ),
+        OffDeviceReadingInputKind.ayahRange => existing == null
+            ? _store.addOffDeviceAyahRangeSession(
+                startSurah: result.startSurah!,
+                startAyah: result.startAyah!,
+                endSurah: result.endSurah!,
+                endAyah: result.endAyah!,
+                readAt: result.readAt,
+                note: result.note,
+              )
+            : _store.updateOffDeviceAyahRangeSessionAt(
+                existingIndex,
+                startSurah: result.startSurah!,
+                startAyah: result.startAyah!,
+                endSurah: result.endSurah!,
+                endAyah: result.endAyah!,
+                readAt: result.readAt,
+                note: result.note,
+              ),
+      };
+      final snapshot = await operation;
       if (!mounted) return;
       setState(() => _snapshot = snapshot);
       _snack(
@@ -1432,10 +1632,22 @@ class _OffDeviceReadingCard extends StatelessWidget {
                     ),
                   ),
                   title: Text(
-                    l10n
-                        .text('plansOffDevicePagesV1')
-                        .replaceAll('{start}', '${session.startPage}')
-                        .replaceAll('{end}', '${session.endPage}'),
+                    switch (session.inputKind) {
+                      OffDeviceReadingInputKind.page => l10n
+                          .text('plansOffDevicePagesV1')
+                          .replaceAll('{start}', '${session.startPage}')
+                          .replaceAll('{end}', '${session.endPage}'),
+                      OffDeviceReadingInputKind.juz => l10n
+                          .text('plansOffDeviceJuzLabelV1')
+                          .replaceAll('{juz}', '${session.juzNumber}'),
+                      OffDeviceReadingInputKind.ayahRange => l10n
+                          .text('plansOffDeviceAyahRangeLabelV1')
+                          .replaceAll(
+                            '{start}',
+                            session.canonicalStartKey ?? '?',
+                          )
+                          .replaceAll('{end}', session.canonicalEndKey ?? '?'),
+                    },
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                   subtitle: Column(
@@ -1451,6 +1663,19 @@ class _OffDeviceReadingCard extends StatelessWidget {
                             .text('plansOffDevicePageCountV1')
                             .replaceAll('{count}', '${session.pageCount}'),
                       ),
+                      if (session.hasCanonicalAyahRange)
+                        Text(
+                          l10n
+                              .text('plansOffDeviceCanonicalRangeV1')
+                              .replaceAll(
+                                '{start}',
+                                session.canonicalStartKey ?? '?',
+                              )
+                              .replaceAll(
+                                '{end}',
+                                session.canonicalEndKey ?? '?',
+                              ),
+                        ),
                       if (session.note != null)
                         Text(
                           session.note!,
