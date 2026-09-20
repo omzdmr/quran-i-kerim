@@ -44,7 +44,7 @@ List<LocaleCoverage> buildLocaleCoverage(
   }
 
   final expectedKeys = reference.keys.toSet();
-  return appLocaleMetadata.map((metadata) {
+  return appLocaleMetadata.values.map((metadata) {
     final values = localizedValues[metadata.languageCode] ?? const <String, String>{};
     final translated = expectedKeys.where((key) {
       final value = values[key];
