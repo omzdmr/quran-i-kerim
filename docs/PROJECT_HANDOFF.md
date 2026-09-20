@@ -51,41 +51,45 @@ Earlier completed slices remain integrated, including missed-day plan recovery,
 Settings search, prayer notification diagnostics, Home prayer accessibility,
 recent-reading shortcuts and customizable Home quick actions.
 
-The newest Plans work is now integrated:
+Recent Plans work:
 
 - Commit `767c864` added full khatm archive retention, year filtering and a
-  private yearly target.
-- Commit `5c4b3b9` added manual/off-device completed-khatm records.
-- Archive records now carry source metadata. Old records without a source
-  migrate as app reading-plan records.
-- Manual records may contain an optional start date, completion date and
-  private note, and are clearly labelled user-reported/off-device.
-- Manual records can be corrected or deleted. App-generated completion records
-  cannot be rewritten through the manual editor.
-- Yearly totals include both sources while also exposing an app-plan/manual
-  breakdown.
-- Existing `reading_plan_state_v1` remains the local-first persistence and
-  backup unit; no backend/account dependency was introduced.
+  private yearly khatm target.
+- Commit `5c4b3b9` added manual/off-device completed-khatm records with
+  optional start date/private note and clear source labels.
+- Commit `9995ee6` added physical-Mushaf/off-device page reading sessions.
+- Old khatm archive records without source metadata migrate as app reading-plan
+  records.
+- Manual khatm records and off-device page sessions live inside
+  `reading_plan_state_v1`; existing backup coverage therefore remains intact
+  without a new backend or preference key.
 - Turkish, English, Arabic, Azerbaijani and Russian Plans copy remains
   key-parity checked.
 
 ## Latest completed feature slice
 
-Manual/off-device khatm archive support is complete as one vertical slice:
+Physical Mushaf/off-device page-session logging is integrated:
 
-- Plans → Completed exposes “Add manual khatm”.
-- Completion date is required; start date and private note are optional.
-- Future completion dates and start-after-completion ranges are rejected.
-- Notes are limited to 300 characters for new input.
-- Legacy/corrupt overlong stored notes are migration-tolerant and truncated
-  rather than causing the whole reading-plan snapshot to be discarded.
-- Archive cards distinguish app reading plans from manual/off-device records.
-- Manual records expose edit/delete; app-generated records expose delete only.
-- The yearly target card shows total progress plus source breakdown.
-- Old archive JSON remains backward compatible.
+- Plans → My Plans now includes a dedicated physical-Mushaf/off-device reading
+  card whether or not an active reading plan exists.
+- Users can log Madinah Mushaf pages 1–604, a reading date and an optional
+  private note.
+- Sessions can be edited or deleted.
+- Invalid page ranges, future dates and overlong new notes are rejected.
+- Stored malformed rows are skipped; legacy overlong notes are truncated
+  instead of discarding the entire reading-plan snapshot.
+- Every session is explicitly manual/user-reported.
+- A manual session never advances, completes or rewrites an active reading plan
+  automatically.
+- The UI explicitly states that duplicate overlap with digital reading is not
+  inferred.
+- State-copy paths were audited: all 18 ReadingPlanSnapshot mutations preserve
+  off-device sessions.
+- A regression was caught and fixed where adding a manual completed khatm could
+  otherwise have dropped page-session state.
 
-Validation branch run `35516412798` passed:
-- `reading_plan_store_test.dart`: 24/24 tests.
+Validation run `35516877754` passed:
+- `reading_plan_store_test.dart`: 31/31 tests.
 - `plan_strings_test.dart`: localization key parity passed.
 - Formatter completed successfully on all changed files.
 
@@ -96,15 +100,15 @@ code-bearing head `1ac4908`: analysis, all tests, ARM64 APK build,
 signer/application identity verification and artifact upload all passed.
 
 Recent full Android validation has a repeatable tooling problem:
-- Run `35502558063` for the Home quick-actions era was cancelled after
-  `flutter analyze lib --no-fatal-infos` ran until the 120-minute timeout.
-- Run `35510883618` for khatm archive head `767c864` showed the same
-  analyzer-hang pattern and remained in the analyze step when superseded.
+- Run `35502558063` was cancelled after `flutter analyze lib --no-fatal-infos`
+  ran until the 120-minute timeout.
+- Runs for newer khatm slices have shown the same long analyzer behavior unless
+  superseded by a newer push.
 - Treat this as CI/analyzer tooling unless a concrete analyzer diagnostic or
   failing test says otherwise. Do not relabel a timeout as an app regression.
 
-Current code-bearing head: `5c4b3b94cdfcc365f1b68d2646b4157e0b09b61c`.
-Android APK run `35516558965` (#545) started for this head. Inspect its exact
+Current code-bearing head: `9995ee6790dee1da8a2d1aaf9ac56cfce940db00`.
+Android APK run `35516979041` (#546) started for this head. Inspect its exact
 step/result before calling the full Android pipeline green.
 
 ## Safe continuation checklist
@@ -123,19 +127,18 @@ step/result before calling the full Android pipeline green.
 
 ## Immediate next step
 
-Continue the V17 physical Mushaf/off-device reading integration as the next
-separate vertical slice:
+Continue V17 physical-Mushaf integration without replacing the page-session
+foundation:
 
-- Add explicit manual reading sessions by page range first, then extend to
-  juz/hizb/canonical ayah ranges when the data contracts are ready.
-- Mark every such session as user-reported/off-device.
-- Never advance an active khatm/goal automatically; advancement must be an
-  explicit user action.
-- Preserve source breakdown and avoid claiming certainty about duplicate
-  digital/manual coverage.
-- Keep the flow local-first and backup-compatible.
-- A later quick-entry shortcut may support “I read pages X–Y on paper”.
+- Extend manual reading input to juz/hizb and canonical ayah ranges.
+- Normalize those entries to a canonical coverage representation before using
+  them for any plan calculations.
+- Keep every off-device record explicitly user-reported.
+- Do not infer digital/manual duplicate coverage as fact.
+- If plan advancement is added, it must be an explicit user action after
+  logging; never auto-advance merely because an off-device session exists.
+- Preserve local-first storage and existing backup compatibility.
 
-Do not restart already completed recovery, notification-diagnostics,
-recent-reading, Home quick-actions or completed-khatm archive work unless a
+Do not restart already completed recovery, notification diagnostics,
+recent-reading, Home quick-actions, khatm archive or page-session work unless a
 real regression is demonstrated.
