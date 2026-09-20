@@ -138,7 +138,7 @@ void main() {
 
     expect(
       homeQuickActionStrings.keys,
-      containsAll(<String>['tr', 'en', 'ar', 'az', 'ru']),
+      containsAll(<String>['tr', 'en', 'ar', 'az', 'ru', 'fr']),
     );
 
     for (final entry in homeQuickActionStrings.entries) {
