@@ -12,6 +12,8 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('settings exposes a reversible Essential Reader preset', (tester) async {
+    final semantics = tester.ensureSemantics();
+    addTearDown(semantics.dispose);
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final settings = AppSettings();
     await settings.load();
@@ -35,6 +37,10 @@ void main() {
     );
 
     expect(find.text('Essential / Large-text Reader'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel('Essential / Large-text Reader'),
+      findsOneWidget,
+    );
     await tester.tap(find.text('Essential / Large-text Reader'));
     await tester.pumpAndSettle();
 
