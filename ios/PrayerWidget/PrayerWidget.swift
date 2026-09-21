@@ -15,8 +15,8 @@ private struct PrayerSnapshot: Decodable {
   let displayName: String?
   let privacyMode: String
 
-  var isFresh: Bool {
-    version == 1 && generatedAt <= Date() && Date() < validUntil && timeZoneIdentifier == TimeZone.current.identifier
+  func isFresh(at date: Date, timeZone: TimeZone = .current) -> Bool {
+    version == 1 && generatedAt <= date && date < validUntil && timeZoneIdentifier == timeZone.identifier
   }
 }
 
@@ -26,7 +26,7 @@ private struct PrayerEntry: TimelineEntry {
 
   var canShowDetails: Bool {
     guard let snapshot else { return false }
-    return snapshot.isFresh && snapshot.privacyMode == "standard" && (snapshot.nextPrayerAt ?? .distantPast) > date
+    return snapshot.isFresh(at: date) && snapshot.privacyMode == "standard" && (snapshot.nextPrayerAt ?? .distantPast) > date
   }
 }
 
@@ -37,9 +37,7 @@ private struct PrayerProvider: TimelineProvider {
     return decoder
   }()
 
-  func placeholder(in context: Context) -> PrayerEntry {
-    PrayerEntry(date: Date(), snapshot: nil)
-  }
+  func placeholder(in context: Context) -> PrayerEntry { PrayerEntry(date: Date(), snapshot: nil) }
 
   func getSnapshot(in context: Context, completion: @escaping (PrayerEntry) -> Void) {
     completion(PrayerEntry(date: Date(), snapshot: load()))
@@ -72,9 +70,10 @@ private struct PrayerWidgetView: View {
     Group {
       if entry.canShowDetails, let snapshot = entry.snapshot, let nextAt = snapshot.nextPrayerAt {
         VStack(alignment: .leading, spacing: 4) {
-          Text(snapshot.displayName ?? snapshot.nextPrayerID ?? "Prayer")
+          Text(snapshot.displayName ?? snapshot.nextPrayerID ?? String(localized: "Prayer"))
             .font(.headline)
             .lineLimit(1)
+            .minimumScaleFactor(0.75)
           Text(nextAt, style: .timer)
             .font(.title3.monospacedDigit())
             .accessibilityLabel("Time remaining")
@@ -87,16 +86,18 @@ private struct PrayerWidgetView: View {
       } else if entry.snapshot?.privacyMode == "redacted" {
         VStack(alignment: .leading, spacing: 5) {
           Image(systemName: "lock.fill")
-          Text("Prayer times hidden")
-            .font(.headline)
+            .accessibilityHidden(true)
+          Text("Prayer times hidden").font(.headline)
         }
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel("Prayer times hidden for privacy")
       } else {
         VStack(alignment: .leading, spacing: 5) {
           Image(systemName: "arrow.clockwise")
-          Text("Open app to refresh")
-            .font(.headline)
+            .accessibilityHidden(true)
+          Text("Open app to refresh").font(.headline)
         }
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel("Prayer information needs to be refreshed in the app")
       }
     }
@@ -119,7 +120,5 @@ struct PrayerTimesWidget: Widget {
 
 @main
 struct PrayerWidgetBundle: WidgetBundle {
-  var body: some Widget {
-    PrayerTimesWidget()
-  }
+  var body: some Widget { PrayerTimesWidget() }
 }
