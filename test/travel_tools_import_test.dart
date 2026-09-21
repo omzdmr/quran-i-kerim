@@ -26,7 +26,8 @@ void main() {
       () => importer.parse('{"schema":"quran-i-kerim.travel-tools","version":1,"meetingPoint":null,"packing":[{"id":"x","label":"A","packed":false},{"id":"x","label":"B","packed":false}]}'),
       throwsFormatException,
     );
-    expect(() => importer.parse('x' * (TravelToolsImport.maxEncodedLength + 1)), throwsFormatException);
+    final oversized = List<String>.filled(TravelToolsImport.maxEncodedLength + 1, 'x').join();
+    expect(() => importer.parse(oversized), throwsFormatException);
     expect(await const TravelPackingStore().load(), isEmpty);
   });
 }
