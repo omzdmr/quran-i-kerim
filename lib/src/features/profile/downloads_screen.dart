@@ -4,6 +4,7 @@ import '../../data/quran_audio_catalog.dart';
 import '../../data/surah_catalog.dart';
 import '../../data/translation_catalog.dart';
 import '../../data/translation_repository.dart';
+import '../../navigation/app_navigation.dart';
 import '../../settings/app_settings.dart';
 import '../reader/offline_audio_manager.dart';
 import '../reader/offline_audio_pack_manifest.dart';
@@ -219,18 +220,37 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                                     '${item.downloadedAyahs}/${item.verseCount} ${copy.verse} · ${_formatBytes(item.bytes)}\n${copy.packStatus(item.readiness)}',
                                   ),
                                   isThreeLine: true,
-                                  trailing: IconButton(
-                                    onPressed: () async {
-                                      await OfflineAudioManager.instance
-                                          .deleteSurah(
-                                            item.storageKey,
-                                            item.surah,
-                                          );
-                                      await _refresh();
-                                    },
-                                    icon: const Icon(
-                                      Icons.delete_outline_rounded,
-                                    ),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (item.readiness !=
+                                          OfflineAudioPackReadiness.ready)
+                                        IconButton(
+                                          onPressed: () =>
+                                              AppNavigation.instance.openReader(
+                                                surah: item.surah,
+                                                ayah: 1,
+                                              ),
+                                          tooltip: copy.openReader,
+                                          icon: const Icon(
+                                            Icons.menu_book_rounded,
+                                          ),
+                                        ),
+                                      IconButton(
+                                        onPressed: () async {
+                                          await OfflineAudioManager.instance
+                                              .deleteSurah(
+                                                item.storageKey,
+                                                item.surah,
+                                              );
+                                          await _refresh();
+                                        },
+                                        tooltip: copy.delete,
+                                        icon: const Icon(
+                                          Icons.delete_outline_rounded,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               Align(
@@ -524,6 +544,22 @@ class _DownloadsCopy {
       'En attente d’un nouveau téléchargement',
     ),
   };
+  String get openReader => _pick(
+    'Reader’da aç ve onar',
+    'Open Reader to repair',
+    'افتح القارئ للإصلاح',
+    'Bərpa üçün Reader-da aç',
+    'Открыть Reader для исправления',
+    'Ouvrir Reader pour réparer',
+  );
+  String get delete => _pick(
+    'Paketi sil',
+    'Delete pack',
+    'حذف الحزمة',
+    'Paketi sil',
+    'Удалить пакет',
+    'Supprimer le pack',
+  );
   String get deleteAll => _pick(
     'Bu sesi tamamen sil',
     'Delete all for this voice',
