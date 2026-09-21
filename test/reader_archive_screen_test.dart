@@ -48,19 +48,36 @@ void main() {
     WidgetTester tester,
     AppSettings settings, {
     Locale locale = const Locale('en'),
-  }) => tester.pumpWidget(
-    AppSettingsScope(
-      settings: settings,
-      child: MaterialApp(locale: locale, home: const ReaderArchiveScreen()),
-    ),
-  );
+  }) async {
+    await tester.pumpWidget(
+      AppSettingsScope(
+        settings: settings,
+        child: MaterialApp(
+          locale: locale,
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () => Navigator.of(context).push<void>(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const ReaderArchiveScreen(),
+                  ),
+                ),
+                child: const Text('open archive'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open archive'));
+    await tester.pumpAndSettle();
+  }
 
   testWidgets('shows saved artifacts and note display-source provenance', (
     tester,
   ) async {
     final settings = await settingsWithSavedActivity();
     await pumpArchive(tester, settings);
-    await tester.pumpAndSettle();
 
     expect(find.text('Saved activity'), findsOneWidget);
     expect(find.text('Personal note'), findsOneWidget);
@@ -74,7 +91,6 @@ void main() {
   ) async {
     final settings = await settingsWithSavedActivity();
     await pumpArchive(tester, settings);
-    await tester.pumpAndSettle();
 
     expect(find.text('All (3)'), findsOneWidget);
     expect(find.text('Notes (1)'), findsOneWidget);
@@ -92,10 +108,9 @@ void main() {
     final settings = await settingsWithSavedActivity();
     final rwwad = translationCatalog.firstWhere((source) => source.code == 'RWD');
     await pumpArchive(tester, settings);
-    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Personal note'));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     final target = AppNavigation.instance.readerRequest.value;
     expect(target, isNotNull);
@@ -103,6 +118,7 @@ void main() {
     expect(target.ayah, 255);
     expect(target.sourceId, rwwad.id);
     expect(AppNavigation.instance.tabRequest.value, AppNavigation.quranTabIndex);
+    expect(find.text('open archive'), findsOneWidget);
   });
 
   testWidgets('legacy bookmark recovers its newest historical display source', (
@@ -110,10 +126,9 @@ void main() {
   ) async {
     final settings = await settingsWithSavedActivity();
     await pumpArchive(tester, settings);
-    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Saved verse'));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     final target = AppNavigation.instance.readerRequest.value;
     expect(target, isNotNull);
@@ -125,7 +140,6 @@ void main() {
   testWidgets('French archive labels are available end to end', (tester) async {
     final settings = await settingsWithSavedActivity();
     await pumpArchive(tester, settings, locale: const Locale('fr'));
-    await tester.pumpAndSettle();
 
     expect(find.text('Éléments enregistrés'), findsOneWidget);
     expect(find.text('Tout (3)'), findsOneWidget);
