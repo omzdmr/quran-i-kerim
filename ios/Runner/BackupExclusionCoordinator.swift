@@ -121,14 +121,18 @@ final class BackupExclusionCoordinator {
       throw ExclusionError.baseDirectoryUnavailable(storageArea)
     }
 
-    let standardizedBase = baseURL.standardizedFileURL
-    let candidate = standardizedBase
+    let resolvedBase = baseURL.standardizedFileURL.resolvingSymlinksInPath()
+    let candidate = resolvedBase
       .appendingPathComponent(trimmedPath)
       .standardizedFileURL
-    let basePrefix = standardizedBase.path.hasSuffix("/")
-      ? standardizedBase.path
-      : standardizedBase.path + "/"
+      .resolvingSymlinksInPath()
+    let basePrefix = resolvedBase.path.hasSuffix("/")
+      ? resolvedBase.path
+      : resolvedBase.path + "/"
 
+    // Resolve symlinks before the containment check. A symlink stored inside the
+    // app container must not turn a seemingly safe relative path into access to
+    // another location.
     guard candidate.path.hasPrefix(basePrefix) else {
       throw ExclusionError.invalidRelativePath
     }
