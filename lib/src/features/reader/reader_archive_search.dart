@@ -12,12 +12,12 @@ bool readerArchiveMatchesQuery({
   if (normalizedQuery.isEmpty) return true;
 
   final reference = parseReaderArchiveReference(selectionKey);
-  final surahName = reference == null
-      ? ''
-      : localizedSurahName(reference.surah, languageCode).toLowerCase();
+  final surahAliases = reference == null
+      ? const <String>[]
+      : surahSearchAliases(reference.surah, languageCode);
   final searchable = <String>[
     selectionKey.toLowerCase(),
-    surahName,
+    ...surahAliases.map((alias) => alias.toLowerCase()),
     note?.toLowerCase() ?? '',
     sourceCode?.toLowerCase() ?? '',
   ].join(' ');
