@@ -118,7 +118,9 @@ class _QuranAreaScreenState extends State<QuranAreaScreen> {
                         const SizedBox(width: 6),
                         Badge(
                           isLabelVisible: savedCount > 0,
-                          label: Text(savedCount > 99 ? '99+' : '$savedCount'),
+                          label: ExcludeSemantics(
+                            child: Text(savedCount > 99 ? '99+' : '$savedCount'),
+                          ),
                           child: IconButton(
                             onPressed: _openSavedActivity,
                             tooltip: savedTooltip,
