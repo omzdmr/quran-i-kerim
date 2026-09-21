@@ -80,4 +80,29 @@ void main() {
     expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
     expect(find.byIcon(Icons.check_circle_outline_rounded), findsWidgets);
   });
+
+  testWidgets('bounds a large attention backlog to a five-page session', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'memorized_pages_v1': <String>['1', '2', '3', '4', '5', '6', '7', '8'],
+      'memorization_page_progress_v1':
+          '{"1":{"memorizedAt":"2026-01-01T00:00:00.000"},'
+          '"2":{"memorizedAt":"2026-01-01T00:00:00.000"},'
+          '"3":{"memorizedAt":"2026-01-01T00:00:00.000"},'
+          '"4":{"memorizedAt":"2026-01-01T00:00:00.000"},'
+          '"5":{"memorizedAt":"2026-01-01T00:00:00.000"},'
+          '"6":{"memorizedAt":"2026-01-01T00:00:00.000"},'
+          '"7":{"memorizedAt":"2026-01-01T00:00:00.000"},'
+          '"8":{"memorizedAt":"2026-01-01T00:00:00.000"}}',
+    });
+
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('5/8'), findsOneWidget);
+    final startButton = find.widgetWithIcon(FilledButton, Icons.play_arrow_rounded);
+    expect(startButton, findsOneWidget);
+    final semantics = tester.getSemantics(startButton);
+    expect(semantics.hasAction(SemanticsAction.tap), isTrue);
+    expect(semantics.label, contains('5 / 8'));
+  });
 }
