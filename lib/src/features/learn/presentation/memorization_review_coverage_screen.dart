@@ -273,13 +273,16 @@ class _CoveragePageTile extends StatelessWidget {
     return Semantics(
       button: true,
       label: semantic,
-      child: Card(
-        child: ListTile(
-          leading: Icon(_icon),
-          title: Text('$pageLabel ${item.page}'),
-          subtitle: Text(detailText),
-          trailing: const Icon(Icons.chevron_right_rounded),
-          onTap: onTap,
+      onTap: onTap,
+      child: ExcludeSemantics(
+        child: Card(
+          child: ListTile(
+            leading: Icon(_icon),
+            title: Text('$pageLabel ${item.page}'),
+            subtitle: Text(detailText),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: onTap,
+          ),
         ),
       ),
     );
