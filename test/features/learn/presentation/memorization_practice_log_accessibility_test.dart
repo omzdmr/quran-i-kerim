@@ -37,7 +37,7 @@ void main() {
     expect(solo, findsOneWidget);
     expect(
       tester.getSemantics(solo),
-      matchesSemantics(
+      isSemantics(
         label: 'Solo review',
         hint: 'My own review session',
         isButton: true,
@@ -52,7 +52,7 @@ void main() {
     expect(prayer, findsOneWidget);
     expect(
       tester.getSemantics(prayer),
-      matchesSemantics(
+      isSemantics(
         label: 'In prayer',
         hint: 'I recited this memorization in prayer',
         isButton: true,
