@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../l10n/strings/qada_fasting_archive_strings.dart';
 import 'qada_fasting_ledger.dart';
 import 'qada_fasting_portable_archive.dart';
 
@@ -25,8 +26,10 @@ class _QadaFastingArchiveScreenState extends State<QadaFastingArchiveScreen> {
   bool _includeNotes = false;
   String? _status;
 
-  String get _language => Localizations.localeOf(context).languageCode;
-  String _t(String key) => (_labels[_language] ?? _labels['en']!)[key] ?? key;
+  String _t(String key) => qadaFastingArchiveText(
+        Localizations.localeOf(context).languageCode,
+        key,
+      );
 
   @override
   void initState() {
@@ -300,15 +303,3 @@ class _PreviewRow extends StatelessWidget {
     );
   }
 }
-
-const Map<String, Map<String, String>> _labels = {
-  'tr': {
-    'title': 'Kaza defteri yedeği', 'localTitle': 'Bu cihazdaki defter', 'records': 'Kayıt', 'remaining': 'Kalan gün', 'includeNotes': 'Özel notları yedeğe ekle', 'includeNotesWarning': 'Kapalı tutarsan hassas notlar dışarı çıkmaz.', 'export': 'Taşınabilir yedek oluştur', 'exportTitle': 'Kaza defteri yedeği', 'exportFailed': 'Yedek oluşturulamadı.', 'pasteImport': 'Panodan yedek içe aktar', 'pasteHelp': 'İçe aktarmadan önce yedeğin JSON metnini panoya kopyala. Uygulama önce önizleme gösterir; hiçbir kayıt sessizce değiştirilmez.', 'clipboardEmpty': 'Panoda içe aktarılabilecek metin yok.', 'invalidArchive': 'Bu metin geçerli bir kaza defteri yedeği değil.', 'previewTitle': 'Yedeği kontrol et', 'incoming': 'Yedekteki kayıt', 'newRecords': 'Yeni kayıt', 'duplicates': 'Zaten mevcut', 'conflictingRecords': 'Çakışan kayıt', 'archiveBalance': 'Yedekte kalan gün', 'containsNotes': 'Bu yedek özel notlar içeriyor.', 'mergeBlocked': 'Aynı kimliğe sahip farklı kayıtlar var. Veri kaybını önlemek için Birleştir kapatıldı.', 'mergeExplanation': 'Birleştir yerel kayıtları korur ve yalnız yeni kayıtları ekler.', 'replaceWarning': 'Değiştir bu cihazdaki kaza defterinin tamamını yedekteki kayıtlarla değiştirir.', 'merge': 'Birleştir', 'replace': 'Değiştir', 'cancel': 'İptal', 'replaceConfirmTitle': 'Yerel defteri değiştir?', 'replaceConfirmBody': 'Bu işlem mevcut yerel kaza kayıtlarını yedekteki kayıtlarla değiştirecek. Yanlışlıkla veri kaybını önlemek için yalnız gerçekten istediğinde devam et.', 'restoreComplete': 'Kaza defteri geri yüklendi.', 'conflict': 'Yedek ile yerel geçmiş çakışıyor; hiçbir kayıt değiştirilmedi.'
-  },
-  'en': {
-    'title': 'Qada ledger backup', 'localTitle': 'Ledger on this device', 'records': 'Records', 'remaining': 'Remaining days', 'includeNotes': 'Include private notes', 'includeNotesWarning': 'Keep this off to leave sensitive notes out of the archive.', 'export': 'Create portable backup', 'exportTitle': 'Qada ledger backup', 'exportFailed': 'The backup could not be created.', 'pasteImport': 'Import backup from clipboard', 'pasteHelp': 'Copy the backup JSON text to the clipboard first. The app always previews it before changing any record.', 'clipboardEmpty': 'There is no importable text on the clipboard.', 'invalidArchive': 'This text is not a valid qada ledger backup.', 'previewTitle': 'Review backup', 'incoming': 'Records in backup', 'newRecords': 'New records', 'duplicates': 'Already present', 'conflictingRecords': 'Conflicting records', 'archiveBalance': 'Remaining days in backup', 'containsNotes': 'This backup contains private notes.', 'mergeBlocked': 'Different records use the same id. Merge is disabled to prevent silent data loss.', 'mergeExplanation': 'Merge preserves local history and adds only new records.', 'replaceWarning': 'Replace swaps the entire local qada ledger for the backup.', 'merge': 'Merge', 'replace': 'Replace', 'cancel': 'Cancel', 'replaceConfirmTitle': 'Replace local ledger?', 'replaceConfirmBody': 'This replaces the qada history on this device with the backup. Continue only if that is what you intend.', 'restoreComplete': 'Qada ledger restored.', 'conflict': 'The backup conflicts with local history; no records were changed.'
-  },
-  'fr': {
-    'title': 'Sauvegarde des jeûnes à rattraper', 'localTitle': 'Registre sur cet appareil', 'records': 'Entrées', 'remaining': 'Jours restants', 'includeNotes': 'Inclure les notes privées', 'includeNotesWarning': 'Laissez désactivé pour exclure les notes sensibles.', 'export': 'Créer une sauvegarde portable', 'exportTitle': 'Sauvegarde du registre', 'exportFailed': 'Impossible de créer la sauvegarde.', 'pasteImport': 'Importer depuis le presse-papiers', 'pasteHelp': 'Copiez d’abord le texte JSON de la sauvegarde. Un aperçu est toujours affiché avant toute modification.', 'clipboardEmpty': 'Aucun texte importable dans le presse-papiers.', 'invalidArchive': 'Ce texte n’est pas une sauvegarde valide.', 'previewTitle': 'Vérifier la sauvegarde', 'incoming': 'Entrées dans la sauvegarde', 'newRecords': 'Nouvelles entrées', 'duplicates': 'Déjà présentes', 'conflictingRecords': 'Entrées en conflit', 'archiveBalance': 'Jours restants dans la sauvegarde', 'containsNotes': 'Cette sauvegarde contient des notes privées.', 'mergeBlocked': 'Des entrées différentes utilisent le même identifiant. La fusion est désactivée pour éviter une perte silencieuse.', 'mergeExplanation': 'Fusionner conserve les données locales et ajoute uniquement les nouvelles entrées.', 'replaceWarning': 'Remplacer substitue tout le registre local par la sauvegarde.', 'merge': 'Fusionner', 'replace': 'Remplacer', 'cancel': 'Annuler', 'replaceConfirmTitle': 'Remplacer le registre local ?', 'replaceConfirmBody': 'Cette action remplace l’historique local par la sauvegarde.', 'restoreComplete': 'Registre restauré.', 'conflict': 'Conflit avec l’historique local ; aucune donnée n’a été modifiée.'
-  },
-};
