@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/strings/qada_fasting_strings.dart';
 import '../../navigation/app_navigation.dart';
+import '../prayer/application/prayer_calculation_explanation_loader.dart';
+import '../prayer/presentation/prayer_calculation_inspector_sheet.dart';
 import '../prayer/presentation/prayer_screen.dart';
 import '../prayer/presentation/qibla_launcher_screen.dart';
 import '../profile/downloads_screen.dart';
@@ -22,6 +24,16 @@ class DiscoverScreen extends StatelessWidget {
       Navigator.of(
         context,
       ).push(MaterialPageRoute<void>(builder: (_) => const PrayerScreen()));
+    }
+
+    Future<void> openPrayerCalculationDetails() async {
+      HapticFeedback.selectionClick();
+      final explanation = await PrayerCalculationExplanationLoader.load();
+      if (!context.mounted) return;
+      await showPrayerCalculationInspector(
+        context: context,
+        explanation: explanation,
+      );
     }
 
     void openQibla() {
@@ -75,6 +87,12 @@ class DiscoverScreen extends StatelessWidget {
             onTap: openPrayer,
             title: l10n.text('prayerTimes'),
             subtitle: l10n.text('prayerSubtitle'),
+          ),
+          const SizedBox(height: 12),
+          _Shortcut(
+            Icons.calculate_outlined,
+            l10n.text('calculationMethod'),
+            onTap: openPrayerCalculationDetails,
           ),
           const SizedBox(height: 12),
           _Shortcut(
