@@ -23,6 +23,7 @@ import '../../settings/app_settings.dart';
 import '../settings/quran_translation_catalog_screen.dart';
 import 'reader_audio_sheet.dart';
 import 'reader_focus_controller.dart';
+import 'reader_focus_controls.dart';
 import 'reader_navigation.dart';
 import 'reader_mixed_verse_list.dart';
 import 'reader_note_sheet.dart';
@@ -627,93 +628,11 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
       isScrollControlled: true,
       showDragHandle: true,
       builder: (sheetContext) => SafeArea(
-        child: StatefulBuilder(
-          builder: (context, setSheetState) => SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 28),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Text(
-                    l10n.text('focusReading'),
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-                SwitchListTile.adaptive(
-                  secondary: const Icon(Icons.fullscreen_rounded),
-                  title: Text(l10n.text('fullScreen')),
-                  value: _focusController.fullScreen,
-                  onChanged: (value) async {
-                    await _setReaderFullScreen(value);
-                    if (sheetContext.mounted) setSheetState(() {});
-                  },
-                ),
-                SwitchListTile.adaptive(
-                  secondary: const Icon(Icons.brightness_4_outlined),
-                  title: Text(l10n.text('dimScreen')),
-                  value: _focusController.dimmed,
-                  onChanged: (value) {
-                    _focusController.setDimmed(value);
-                    setSheetState(() {});
-                  },
-                ),
-                SwitchListTile.adaptive(
-                  secondary: const Icon(Icons.lightbulb_outline_rounded),
-                  title: Text(l10n.text('keepScreenAwake')),
-                  value: _focusController.keepAwake,
-                  onChanged: (value) async {
-                    await _setReaderKeepAwake(value);
-                    if (sheetContext.mounted) setSheetState(() {});
-                  },
-                ),
-                SwitchListTile.adaptive(
-                  secondary: const Icon(Icons.slow_motion_video_rounded),
-                  title: Text(l10n.text('autoScroll')),
-                  subtitle: Text(l10n.text('autoScrollHint')),
-                  value: _focusController.autoScroll,
-                  onChanged: (value) {
-                    if (value) {
-                      Navigator.pop(sheetContext);
-                      _focusController.setAutoScroll(true);
-                    } else {
-                      _focusController.setAutoScroll(false);
-                      setSheetState(() {});
-                    }
-                  },
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final speed in ReaderAutoScrollSpeed.values)
-                        ChoiceChip(
-                          label: Text(switch (speed) {
-                            ReaderAutoScrollSpeed.slow =>
-                              l10n.text('scrollSpeedSlow'),
-                            ReaderAutoScrollSpeed.normal =>
-                              l10n.text('scrollSpeedNormal'),
-                            ReaderAutoScrollSpeed.fast =>
-                              l10n.text('scrollSpeedFast'),
-                          }),
-                          selected:
-                              _focusController.autoScrollSpeed == speed,
-                          onSelected: (_) {
-                            _focusController.setAutoScrollSpeed(speed);
-                            setSheetState(() {});
-                          },
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+        child: ReaderFocusControls(
+          controller: _focusController,
+          text: l10n.text,
+          onFullScreenChanged: _setReaderFullScreen,
+          onKeepAwakeChanged: _setReaderKeepAwake,
         ),
       ),
     );
