@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
+
 import 'backup_manifest.dart';
 
 enum BackupPreviewIssue {
@@ -5,6 +9,8 @@ enum BackupPreviewIssue {
   unsupportedVersion,
   invalidCreatedAt,
   invalidData,
+  unsupportedIntegrity,
+  checksumMismatch,
 }
 
 class BackupPreview {
@@ -13,12 +19,14 @@ class BackupPreview {
     required this.createdAt,
     required this.recordCounts,
     required this.issues,
+    this.integrityVerified = false,
   });
 
   final int? version;
   final DateTime? createdAt;
   final Map<String, int> recordCounts;
   final Set<BackupPreviewIssue> issues;
+  final bool integrityVerified;
 
   bool get canRestore => issues.isEmpty;
   int get totalRecords =>
@@ -78,11 +86,29 @@ class BackupPreviewParser {
       issues.add(BackupPreviewIssue.invalidData);
     }
 
+    var integrityVerified = false;
+    final integrity = decoded['integrity'];
+    // Legacy bundles remain importable. New exports always carry integrity.
+    if (integrity != null) {
+      if (integrity is! Map || integrity['algorithm'] != 'sha256') {
+        issues.add(BackupPreviewIssue.unsupportedIntegrity);
+      } else if (data is Map) {
+        final expected = integrity['dataSha256'];
+        final actual = sha256.convert(utf8.encode(jsonEncode(data))).toString();
+        if (expected is! String || expected != actual) {
+          issues.add(BackupPreviewIssue.checksumMismatch);
+        } else {
+          integrityVerified = true;
+        }
+      }
+    }
+
     return BackupPreview(
       version: parsedVersion,
       createdAt: createdAt,
       recordCounts: Map<String, int>.unmodifiable(counts),
       issues: Set<BackupPreviewIssue>.unmodifiable(issues),
+      integrityVerified: integrityVerified,
     );
   }
 }
