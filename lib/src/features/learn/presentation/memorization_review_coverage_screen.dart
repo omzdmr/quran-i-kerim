@@ -19,6 +19,7 @@ class _MemorizationReviewCoverageScreenState
   static const _store = MemorizationProgressStore();
   static const _practiceStore = MemorizationPracticeHistoryStore();
   MemorizationReviewCoverage? _coverage;
+  bool _attentionOnly = true;
 
   @override
   void initState() {
@@ -59,28 +60,67 @@ class _MemorizationReviewCoverageScreenState
           ? const Center(child: CircularProgressIndicator())
           : coverage.total == 0
               ? Center(child: Text(l10n.memorizeProgress))
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  child: ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      Semantics(
-                        container: true,
-                        label:
-                            '${l10n.memorizeTodayReview}: ${coverage.needsAttentionCount} / ${coverage.total}',
-                        child: _CoverageSummary(coverage: coverage),
-                      ),
-                      const SizedBox(height: 16),
-                      for (final item in coverage.items)
-                        _CoveragePageTile(
-                          item: item,
-                          pageLabel: l10n.memorizePages,
-                          reviewLabel: l10n.memorizeTodayReview,
-                          onTap: () => _openPage(item.page),
-                        ),
-                    ],
-                  ),
+              : _buildCoverage(context, l10n, coverage),
+    );
+  }
+
+  Widget _buildCoverage(
+    BuildContext context,
+    GeneratedAppLocalizations l10n,
+    MemorizationReviewCoverage coverage,
+  ) {
+    final visibleItems = _attentionOnly
+        ? coverage.items.where((item) => item.needsAttention).toList()
+        : coverage.items;
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Semantics(
+            container: true,
+            label:
+                '${l10n.memorizeTodayReview}: ${coverage.needsAttentionCount} / ${coverage.total}',
+            child: _CoverageSummary(coverage: coverage),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            children: [
+              ChoiceChip(
+                selected: _attentionOnly,
+                label: Text(l10n.memorizeTodayReview),
+                onSelected: (_) => setState(() => _attentionOnly = true),
+              ),
+              ChoiceChip(
+                selected: !_attentionOnly,
+                label: Text(l10n.memorizeProgress),
+                onSelected: (_) => setState(() => _attentionOnly = false),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (visibleItems.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 32),
+              child: Center(
+                child: Icon(
+                  Icons.check_circle_outline_rounded,
+                  size: 42,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
+              ),
+            )
+          else
+            for (final item in visibleItems)
+              _CoveragePageTile(
+                item: item,
+                pageLabel: l10n.memorizePages,
+                reviewLabel: l10n.memorizeTodayReview,
+                onTap: () => _openPage(item.page),
+              ),
+        ],
+      ),
     );
   }
 }
