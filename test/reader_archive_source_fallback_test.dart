@@ -33,4 +33,11 @@ void main() {
     );
     expect(source, englishTranslationId);
   });
+
+  test('saved reference cannot point beyond the surah verse count', () {
+    expect(parseReaderArchiveReference('1:8'), isNull);
+    expect(parseReaderArchiveReference('2:287'), isNull);
+    expect(parseReaderArchiveReference('1:7')?.ayah, 7);
+    expect(parseReaderArchiveReference('2:286')?.ayah, 286);
+  });
 }
