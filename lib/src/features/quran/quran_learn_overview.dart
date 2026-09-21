@@ -9,6 +9,7 @@ import '../learn/presentation/learn_lessons_overview.dart';
 import '../learn/presentation/learn_reference_overview.dart';
 import '../learn/presentation/memorization_overview.dart';
 import '../learn/presentation/memorization_review_coverage_screen.dart';
+import '../learn/presentation/memorization_review_history_screen.dart';
 
 class QuranLearnOverview extends StatefulWidget {
   const QuranLearnOverview({super.key});
@@ -44,9 +45,15 @@ class _QuranLearnOverviewState extends State<QuranLearnOverview> {
   Future<void> _openReviewCoverage() async {
     HapticFeedback.selectionClick();
     await Navigator.of(context).push<void>(
-      MaterialPageRoute(
-        builder: (_) => const MemorizationReviewCoverageScreen(),
-      ),
+      MaterialPageRoute(builder: (_) => const MemorizationReviewCoverageScreen()),
+    );
+    await _loadReviewCoverage();
+  }
+
+  Future<void> _openReviewHistory() async {
+    HapticFeedback.selectionClick();
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => const MemorizationReviewHistoryScreen()),
     );
     await _loadReviewCoverage();
   }
@@ -54,6 +61,8 @@ class _QuranLearnOverviewState extends State<QuranLearnOverview> {
   @override
   Widget build(BuildContext context) {
     final l10n = GeneratedAppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).languageCode;
+    final historyLabel = _historyLabels[locale] ?? _historyLabels['en']!;
     final reviewLabel = _reviewAttentionCount == 0
         ? l10n.memorizeTodayReview
         : '${l10n.memorizeTodayReview} ($_reviewAttentionCount)';
@@ -85,17 +94,24 @@ class _QuranLearnOverviewState extends State<QuranLearnOverview> {
                 key: const ValueKey('memorize'),
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Semantics(
-                    button: true,
-                    label: reviewLabel,
-                    onTap: _openReviewCoverage,
-                    child: ExcludeSemantics(
-                      child: OutlinedButton.icon(
-                        onPressed: _openReviewCoverage,
-                        icon: const Icon(Icons.history_toggle_off_rounded),
-                        label: Text(reviewLabel),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _HifzToolButton(
+                          icon: Icons.history_toggle_off_rounded,
+                          label: reviewLabel,
+                          onTap: _openReviewCoverage,
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _HifzToolButton(
+                          icon: Icons.insights_outlined,
+                          label: historyLabel,
+                          onTap: _openReviewHistory,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 12),
                   const MemorizationOverview(),
@@ -107,6 +123,41 @@ class _QuranLearnOverviewState extends State<QuranLearnOverview> {
       ],
     );
   }
+}
+
+const _historyLabels = <String, String>{
+  'tr': 'Tekrar geçmişi',
+  'en': 'Review history',
+  'fr': 'Historique',
+  'ar': 'سجل المراجعة',
+  'az': 'Təkrar tarixçəsi',
+  'ru': 'История повторений',
+};
+
+class _HifzToolButton extends StatelessWidget {
+  const _HifzToolButton({required this.icon, required this.label, required this.onTap});
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        button: true,
+        label: label,
+        onTap: onTap,
+        child: ExcludeSemantics(
+          child: OutlinedButton.icon(
+            onPressed: onTap,
+            icon: Icon(icon),
+            label: Text(label, maxLines: 2, textAlign: TextAlign.center),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size.fromHeight(54),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            ),
+          ),
+        ),
+      );
 }
 
 class _LearnSwitcher extends StatelessWidget {
@@ -164,11 +215,7 @@ class _LearnSwitcher extends StatelessWidget {
 }
 
 class _FeatureHero extends StatelessWidget {
-  const _FeatureHero({
-    required this.icon,
-    required this.title,
-    required this.body,
-  });
+  const _FeatureHero({required this.icon, required this.title, required this.body});
 
   final IconData icon;
   final String title;
@@ -183,11 +230,7 @@ class _FeatureHero extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF315348),
-            Color(0xFF183A31),
-            Color(0xFF453B5A),
-          ],
+          colors: [Color(0xFF315348), Color(0xFF183A31), Color(0xFF453B5A)],
           stops: [0, .62, 1],
         ),
         boxShadow: [
@@ -233,11 +276,7 @@ class _FeatureHero extends StatelessWidget {
                 const Positioned(
                   top: 8,
                   right: 13,
-                  child: Icon(
-                    Icons.auto_awesome_rounded,
-                    color: Color(0xFF5CE7B3),
-                    size: 14,
-                  ),
+                  child: Icon(Icons.auto_awesome_rounded, color: Color(0xFF5CE7B3), size: 14),
                 ),
               ],
             ),
@@ -257,11 +296,7 @@ class _FeatureHero extends StatelessWidget {
           Text(
             body,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 15,
-              height: 1.5,
-            ),
+            style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.5),
           ),
         ],
       ),
