@@ -98,11 +98,12 @@ void main() {
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('5/8'), findsOneWidget);
+    expect(find.text('This review round: 5 · Remaining later: 3'), findsOneWidget);
     final startButton = find.widgetWithIcon(FilledButton, Icons.play_arrow_rounded);
     expect(startButton, findsOneWidget);
     final semantics = tester.getSemantics(startButton);
     expect(semantics.hasAction(SemanticsAction.tap), isTrue);
-    expect(semantics.label, contains('5 / 8'));
+    expect(semantics.label, contains('This review round: 5'));
+    expect(semantics.label, contains('Remaining later: 3'));
   });
 }
