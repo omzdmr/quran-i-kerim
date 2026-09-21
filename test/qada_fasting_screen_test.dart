@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:quran_i_kerim/src/features/discover/qada_fasting_ledger.dart';
 import 'package:quran_i_kerim/src/features/discover/qada_fasting_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -102,4 +103,49 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.bySemanticsLabel('Remaining: 2 days'), findsOneWidget);
   });
+  testWidgets('calendar jumps between recorded days', (tester) async {
+    final created = DateTime.utc(2026, 9, 21, 8);
+    final ledger = QadaFastingLedger()
+        .addDebt(
+          days: 2,
+          occurredOn: DateTime(2025, 3, 5),
+          createdAt: created,
+          id: 'old-debt',
+        )
+        .complete(
+          occurredOn: DateTime(2026, 9, 21),
+          createdAt: created.add(const Duration(minutes: 1)),
+          id: 'recent-completion',
+        );
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      QadaFastingStore.preferenceKey: ledger.encode(),
+    });
+    final semantics = tester.ensureSemantics();
+    addTearDown(semantics.dispose);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        locale: Locale('en'),
+        home: QadaFastingScreen(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Calendar'));
+    await tester.pumpAndSettle();
+
+    final previous = find.byTooltip('Previous record day');
+    final next = find.byTooltip('Next record day');
+    expect(previous, findsOneWidget);
+    expect(tester.widget<IconButton>(previous).onPressed, isNotNull);
+    expect(tester.widget<IconButton>(next).onPressed, isNull);
+
+    await tester.tap(previous);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mar 5, 2025'), findsOneWidget);
+    expect(find.text('Qada debt added'), findsWidgets);
+    expect(tester.widget<IconButton>(previous).onPressed, isNull);
+    expect(tester.widget<IconButton>(next).onPressed, isNotNull);
+  });
+
 }
