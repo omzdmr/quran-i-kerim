@@ -18,6 +18,12 @@ if s.count('CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;') < 3:
 if s.count('CODE_SIGN_ENTITLEMENTS = PrayerWidget/PrayerWidget.entitlements;') < 3:
     errors.append('PrayerWidget entitlements must be wired for Debug, Release and Profile')
 
+# The project-level Runner settings and all three widget configurations must keep
+# universal iPhone+iPad targeting. This catches the surprisingly easy Xcode UI
+# regression where one target silently becomes iPhone-only.
+if s.count('TARGETED_DEVICE_FAMILY = "1,2";') < 6:
+    errors.append('Runner/PrayerWidget must retain iPhone+iPad targeted device family in all configurations')
+
 widget_privacy = pathlib.Path('ios/PrayerWidget/PrivacyInfo.xcprivacy')
 if widget_privacy.exists() and 'PrivacyInfo.xcprivacy in Resources' not in s:
     errors.append('PrayerWidget PrivacyInfo.xcprivacy is not referenced by the widget Resources phase')
