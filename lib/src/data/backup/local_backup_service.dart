@@ -31,9 +31,8 @@ class LocalBackupService {
     );
   }
 
-  Future<String> exportJson({DateTime? now}) async {
-    return (await createDocument(now: now)).encode();
-  }
+  Future<String> exportJson({DateTime? now}) async =>
+      (await createDocument(now: now)).encode();
 
   BackupPreview previewDecoded(Object? decoded) => previewParser.parse(decoded);
 
@@ -59,8 +58,7 @@ class LocalBackupService {
     String encoded, {
     BackupRestoreMode mode = BackupRestoreMode.replace,
   }) async {
-    final decoded = jsonDecode(encoded);
-    await restoreDecoded(decoded, mode: mode);
+    await restoreDecoded(jsonDecode(encoded), mode: mode);
   }
 
   Future<void> restoreDecoded(
@@ -127,13 +125,18 @@ class LocalBackupService {
       final currentSection = current[section];
       final incomingSection = incoming[section];
       if (currentSection is Map || incomingSection is Map) {
+        final currentMap = _stringMap(currentSection);
+        final incomingMap = _stringMap(incomingSection);
+        final keys = <String>{...currentMap.keys, ...incomingMap.keys};
         merged[section] = <String, Object?>{
-          if (currentSection is Map)
-            for (final entry in currentSection.entries)
-              if (entry.key is String) entry.key as String: entry.value,
-          if (incomingSection is Map)
-            for (final entry in incomingSection.entries)
-              if (entry.key is String) entry.key as String: entry.value,
+          for (final key in keys)
+            key: _mergePreferenceValue(
+              section: section,
+              key: key,
+              current: currentMap[key],
+              incoming: incomingMap[key],
+              hasIncoming: incomingMap.containsKey(key),
+            ),
         };
       } else if (incoming.containsKey(section)) {
         merged[section] = incomingSection;
@@ -142,5 +145,100 @@ class LocalBackupService {
       }
     }
     return Map<String, Object?>.unmodifiable(merged);
+  }
+
+  Map<String, Object?> _stringMap(Object? value) {
+    if (value is! Map) return const <String, Object?>{};
+    return <String, Object?>{
+      for (final entry in value.entries)
+        if (entry.key is String) entry.key as String: entry.value,
+    };
+  }
+
+  Object? _mergePreferenceValue({
+    required String section,
+    required String key,
+    required Object? current,
+    required Object? incoming,
+    required bool hasIncoming,
+  }) {
+    if (!hasIncoming) return current;
+    if (current == null) return incoming;
+
+    if (section == 'memorization' &&
+        const {
+          'memorized_pages_v1',
+          'memorization_practice_days_v1',
+          'memorization_plan_missed_days_v1',
+        }.contains(key)) {
+      return _mergeStringLists(current, incoming);
+    }
+
+    if (section == 'memorization' && key == 'memorization_page_progress_v1') {
+      return _mergeJsonObjectStrings(current, incoming);
+    }
+
+    if (section == 'memorizationPractice' &&
+        key == 'memorization_practice_history_v1') {
+      return _mergeJsonEventLists(current, incoming);
+    }
+
+    return incoming;
+  }
+
+  Object? _mergeStringLists(Object? current, Object? incoming) {
+    if (current is! List || incoming is! List) return incoming;
+    final values = <String>{
+      ...current.whereType<String>(),
+      ...incoming.whereType<String>(),
+    }.toList()
+      ..sort();
+    return values;
+  }
+
+  Object? _mergeJsonObjectStrings(Object? current, Object? incoming) {
+    if (current is! String || incoming is! String) return incoming;
+    try {
+      final currentDecoded = jsonDecode(current);
+      final incomingDecoded = jsonDecode(incoming);
+      if (currentDecoded is! Map || incomingDecoded is! Map) return incoming;
+      return jsonEncode(<String, Object?>{
+        for (final entry in currentDecoded.entries)
+          if (entry.key is String) entry.key as String: entry.value,
+        for (final entry in incomingDecoded.entries)
+          if (entry.key is String) entry.key as String: entry.value,
+      });
+    } on FormatException {
+      return incoming;
+    }
+  }
+
+  Object? _mergeJsonEventLists(Object? current, Object? incoming) {
+    if (current is! String || incoming is! String) return incoming;
+    try {
+      final currentDecoded = jsonDecode(current);
+      final incomingDecoded = jsonDecode(incoming);
+      if (currentDecoded is! List || incomingDecoded is! List) return incoming;
+
+      final byId = <String, Object?>{};
+      void addEvents(List<dynamic> events) {
+        for (final event in events) {
+          if (event is! Map || event['id'] is! String) continue;
+          byId[event['id'] as String] = event;
+        }
+      }
+
+      addEvents(currentDecoded);
+      addEvents(incomingDecoded);
+      final merged = byId.values.toList(growable: false)
+        ..sort((a, b) {
+          final aDate = a is Map ? a['occurredAt']?.toString() ?? '' : '';
+          final bDate = b is Map ? b['occurredAt']?.toString() ?? '' : '';
+          return bDate.compareTo(aDate);
+        });
+      return jsonEncode(merged.take(400).toList(growable: false));
+    } on FormatException {
+      return incoming;
+    }
   }
 }
