@@ -6,6 +6,8 @@ import 'backup_preview.dart';
 import 'backup_restore_coordinator.dart';
 import 'shared_preferences_backup_adapter.dart';
 
+enum BackupRestoreMode { merge, replace }
+
 class LocalBackupService {
   const LocalBackupService({
     this.adapter = const SharedPreferencesBackupAdapter(),
@@ -40,12 +42,18 @@ class LocalBackupService {
     }
   }
 
-  Future<void> restoreJson(String encoded) async {
+  Future<void> restoreJson(
+    String encoded, {
+    BackupRestoreMode mode = BackupRestoreMode.replace,
+  }) async {
     final decoded = jsonDecode(encoded);
-    await restoreDecoded(decoded);
+    await restoreDecoded(decoded, mode: mode);
   }
 
-  Future<void> restoreDecoded(Object? decoded) async {
+  Future<void> restoreDecoded(
+    Object? decoded, {
+    BackupRestoreMode mode = BackupRestoreMode.replace,
+  }) async {
     Map<String, Object?>? normalizedData;
     int? normalizedVersion;
 
@@ -73,10 +81,17 @@ class LocalBackupService {
         normalizedData = Map<String, Object?>.unmodifiable(selected);
       },
       captureSnapshot: adapter.capture,
-      applyRestore: () => adapter.restoreSections(
-        normalizedData!,
-        schemaVersion: normalizedVersion!,
-      ),
+      applyRestore: () async {
+        var dataToRestore = normalizedData!;
+        if (mode == BackupRestoreMode.merge) {
+          final current = await adapter.captureSections();
+          dataToRestore = _mergeSections(current, normalizedData!);
+        }
+        await adapter.restoreSections(
+          dataToRestore,
+          schemaVersion: normalizedVersion!,
+        );
+      },
       rollback: (snapshot) async {
         if (snapshot is! Map) {
           throw const FormatException('Backup rollback snapshot is invalid.');
@@ -84,5 +99,31 @@ class LocalBackupService {
         await adapter.restore(Map<String, Object?>.from(snapshot));
       },
     );
+  }
+
+  Map<String, Object?> _mergeSections(
+    Map<String, Object?> current,
+    Map<String, Object?> incoming,
+  ) {
+    final merged = <String, Object?>{};
+    for (final section in BackupManifest.includedSections) {
+      final currentSection = current[section];
+      final incomingSection = incoming[section];
+      if (currentSection is Map || incomingSection is Map) {
+        merged[section] = <String, Object?>{
+          if (currentSection is Map)
+            for (final entry in currentSection.entries)
+              if (entry.key is String) entry.key as String: entry.value,
+          if (incomingSection is Map)
+            for (final entry in incomingSection.entries)
+              if (entry.key is String) entry.key as String: entry.value,
+        };
+      } else if (incoming.containsKey(section)) {
+        merged[section] = incomingSection;
+      } else if (current.containsKey(section)) {
+        merged[section] = currentSection;
+      }
+    }
+    return Map<String, Object?>.unmodifiable(merged);
   }
 }
