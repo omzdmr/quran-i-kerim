@@ -56,7 +56,8 @@ class QadaFastingCsvExporter {
         !value.contains('\r')) {
       return value;
     }
-    return '"${value.replaceAll('"', '""')}"';
+    final escaped = value.replaceAll('"', '""');
+    return '"$escaped"';
   }
 }
 
