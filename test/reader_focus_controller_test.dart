@@ -9,12 +9,14 @@ void main() {
     controller
       ..setFullScreen(true)
       ..setDimmed(true)
+      ..setLineFocus(true)
       ..setKeepAwake(true)
       ..setAutoScroll(true)
       ..setAutoScrollSpeed(ReaderAutoScrollSpeed.fast);
 
     expect(controller.fullScreen, isTrue);
-    expect(controller.dimmed, isTrue);
+    expect(controller.dimmed, isFalse);
+    expect(controller.lineFocus, isTrue);
     expect(controller.keepAwake, isTrue);
     expect(controller.autoScroll, isTrue);
     expect(controller.autoScrollSpeed, ReaderAutoScrollSpeed.fast);
@@ -24,9 +26,23 @@ void main() {
 
     expect(controller.fullScreen, isFalse);
     expect(controller.dimmed, isFalse);
+    expect(controller.lineFocus, isFalse);
     expect(controller.keepAwake, isFalse);
     expect(controller.autoScroll, isFalse);
     expect(controller.autoScrollSpeed, ReaderAutoScrollSpeed.normal);
+  });
+
+  test('dimming and line focus remain mutually exclusive', () {
+    final controller = ReaderFocusController();
+    addTearDown(controller.dispose);
+
+    controller.setDimmed(true);
+    expect(controller.dimmed, isTrue);
+    expect(controller.lineFocus, isFalse);
+
+    controller.setLineFocus(true);
+    expect(controller.lineFocus, isTrue);
+    expect(controller.dimmed, isFalse);
   });
 
   test('manual interaction pauses auto-scroll without changing other controls', () {

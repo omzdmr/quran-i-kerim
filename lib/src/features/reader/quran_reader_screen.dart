@@ -680,6 +680,8 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
                 ),
               ),
             ),
+          if (_focusController.lineFocus)
+            const Positioned.fill(child: ReaderLineFocusOverlay()),
           Positioned(
             left: 0,
             right: 0,

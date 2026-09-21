@@ -17,12 +17,14 @@ extension ReaderAutoScrollSpeedValue on ReaderAutoScrollSpeed {
 class ReaderFocusController extends ChangeNotifier {
   bool _fullScreen = false;
   bool _dimmed = false;
+  bool _lineFocus = false;
   bool _keepAwake = false;
   bool _autoScroll = false;
   ReaderAutoScrollSpeed _autoScrollSpeed = ReaderAutoScrollSpeed.normal;
 
   bool get fullScreen => _fullScreen;
   bool get dimmed => _dimmed;
+  bool get lineFocus => _lineFocus;
   bool get keepAwake => _keepAwake;
   bool get autoScroll => _autoScroll;
   ReaderAutoScrollSpeed get autoScrollSpeed => _autoScrollSpeed;
@@ -34,8 +36,16 @@ class ReaderFocusController extends ChangeNotifier {
   }
 
   void setDimmed(bool value) {
-    if (_dimmed == value) return;
+    if (_dimmed == value && (!value || !_lineFocus)) return;
     _dimmed = value;
+    if (value) _lineFocus = false;
+    notifyListeners();
+  }
+
+  void setLineFocus(bool value) {
+    if (_lineFocus == value && (!value || !_dimmed)) return;
+    _lineFocus = value;
+    if (value) _dimmed = false;
     notifyListeners();
   }
 
@@ -66,10 +76,11 @@ class ReaderFocusController extends ChangeNotifier {
 
   void reset() {
     final changed =
-        _fullScreen || _dimmed || _keepAwake || _autoScroll ||
+        _fullScreen || _dimmed || _lineFocus || _keepAwake || _autoScroll ||
         _autoScrollSpeed != ReaderAutoScrollSpeed.normal;
     _fullScreen = false;
     _dimmed = false;
+    _lineFocus = false;
     _keepAwake = false;
     _autoScroll = false;
     _autoScrollSpeed = ReaderAutoScrollSpeed.normal;

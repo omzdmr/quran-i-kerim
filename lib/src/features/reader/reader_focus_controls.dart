@@ -50,6 +50,13 @@ class ReaderFocusControls extends StatelessWidget {
               onChanged: controller.setDimmed,
             ),
             SwitchListTile.adaptive(
+              secondary: const Icon(Icons.center_focus_weak_rounded),
+              title: Text(text('lineFocus')),
+              subtitle: Text(text('lineFocusHint')),
+              value: controller.lineFocus,
+              onChanged: controller.setLineFocus,
+            ),
+            SwitchListTile.adaptive(
               secondary: const Icon(Icons.lightbulb_outline_rounded),
               title: Text(text('keepScreenAwake')),
               value: controller.keepAwake,
@@ -90,6 +97,37 @@ class ReaderFocusControls extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+
+class ReaderLineFocusOverlay extends StatelessWidget {
+  const ReaderLineFocusOverlay({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final shade = Colors.black.withValues(alpha: .2);
+    return IgnorePointer(
+      child: Column(
+        children: [
+          Expanded(child: ColoredBox(color: shade)),
+          Container(
+            key: const ValueKey<String>('reader-line-focus-band'),
+            height: 132,
+            decoration: BoxDecoration(
+              border: Border.symmetric(
+                horizontal: BorderSide(
+                  color: scheme.primary.withValues(alpha: .45),
+                  width: 1.5,
+                ),
+              ),
+            ),
+          ),
+          Expanded(child: ColoredBox(color: shade)),
+        ],
       ),
     );
   }
