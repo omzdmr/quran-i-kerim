@@ -8,6 +8,7 @@ import UIKit
   private var nowPlayingChannel: NowPlayingChannel?
   private var audioLifecycleChannel: AudioLifecycleChannel?
   private var notificationPermissionChannel: NotificationPermissionChannel?
+  private var locationHeadingChannel: LocationHeadingChannel?
 
   override func application(
     _ application: UIApplication,
@@ -20,6 +21,7 @@ import UIKit
   }
 
   override func applicationWillTerminate(_ application: UIApplication) {
+    locationHeadingChannel?.detach()
     notificationPermissionChannel?.detach()
     audioLifecycleChannel?.detach()
     nowPlayingChannel?.detach()
@@ -38,5 +40,6 @@ import UIKit
     nowPlayingChannel = NowPlayingChannel(binaryMessenger: messenger)
     audioLifecycleChannel = AudioLifecycleChannel(binaryMessenger: messenger)
     notificationPermissionChannel = NotificationPermissionChannel(binaryMessenger: messenger)
+    locationHeadingChannel = LocationHeadingChannel(binaryMessenger: messenger)
   }
 }
