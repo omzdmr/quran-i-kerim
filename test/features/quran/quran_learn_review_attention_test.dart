@@ -22,6 +22,13 @@ void main() {
         home: Scaffold(body: QuranLearnOverview()),
       );
 
+  Future<void> openMemorize(WidgetTester tester) async {
+    final context = tester.element(find.byType(QuranLearnOverview));
+    final l10n = GeneratedAppLocalizations.of(context)!;
+    await tester.tap(find.text(l10n.quranLearnMemorize));
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('memorize tab surfaces review attention count', (tester) async {
     SharedPreferences.setMockInitialValues({
       'memorized_pages_v1': <String>['1', '2', '3'],
@@ -35,8 +42,7 @@ void main() {
 
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Memorize'));
-    await tester.pumpAndSettle();
+    await openMemorize(tester);
 
     expect(find.textContaining('(2)'), findsOneWidget);
     expect(find.byIcon(Icons.history_toggle_off_rounded), findsOneWidget);
@@ -51,8 +57,7 @@ void main() {
 
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Memorize'));
-    await tester.pumpAndSettle();
+    await openMemorize(tester);
     expect(find.textContaining('(1)'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.history_toggle_off_rounded));
