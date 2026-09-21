@@ -74,9 +74,12 @@ class BackupFileService {
     return backupService.previewJson(encoded);
   }
 
-  Future<void> restoreFile(File file) async {
+  Future<void> restoreFile(
+    File file, {
+    BackupRestoreMode mode = BackupRestoreMode.replace,
+  }) async {
     final encoded = await _readImport(file);
-    await backupService.restoreJson(encoded);
+    await backupService.restoreJson(encoded, mode: mode);
   }
 
   Future<Directory> _backupDirectory({required bool create}) async {
