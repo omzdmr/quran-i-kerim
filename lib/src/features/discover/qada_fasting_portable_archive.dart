@@ -72,7 +72,7 @@ class QadaFastingPortableArchive {
     for (final entry in decoded.entries) {
       final existing = currentById[entry.id];
       if (existing == null) continue;
-      if (_sameEntry(existing, entry)) {
+      if (_sameEventIdentity(existing, entry)) {
         duplicateCount++;
       } else {
         conflictCount++;
@@ -108,11 +108,15 @@ class QadaFastingPortableArchive {
         byId[entry.id] = entry;
         continue;
       }
-      if (!_sameEntry(existing, entry)) {
+      if (!_sameEventIdentity(existing, entry)) {
         throw const FormatException(
           'Archive contains a record id that conflicts with local history.',
         );
       }
+      // Merge never erases a local private note merely because an exported
+      // archive was intentionally redacted. Existing local metadata wins for
+      // an otherwise identical immutable event id.
+      byId[entry.id] = existing.note != null ? existing : entry;
     }
 
     final merged = byId.values.toList()
@@ -172,6 +176,9 @@ class QadaFastingPortableArchive {
     return ledger;
   }
 
-  bool _sameEntry(QadaFastingEntry a, QadaFastingEntry b) =>
-      jsonEncode(a.toJson()) == jsonEncode(b.toJson());
+  bool _sameEventIdentity(QadaFastingEntry a, QadaFastingEntry b) {
+    final left = Map<String, Object?>.from(a.toJson())..remove('note');
+    final right = Map<String, Object?>.from(b.toJson())..remove('note');
+    return jsonEncode(left) == jsonEncode(right);
+  }
 }
