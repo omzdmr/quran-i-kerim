@@ -99,12 +99,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('This review round: 5 · Remaining later: 3'), findsOneWidget);
-    final startButton = find.widgetWithIcon(FilledButton, Icons.play_arrow_rounded);
-    expect(startButton, findsOneWidget);
-    final semantics = tester.getSemantics(startButton);
+    expect(find.widgetWithIcon(FilledButton, Icons.play_arrow_rounded), findsOneWidget);
+    final semanticsFinder = find.bySemanticsLabel(
+      RegExp('This review round: 5.*Remaining later: 3'),
+    );
+    expect(semanticsFinder, findsOneWidget);
+    final semantics = tester.getSemantics(semanticsFinder);
     expect(semantics.hasAction(SemanticsAction.tap), isTrue);
-    expect(semantics.label, contains('This review round: 5'));
-    expect(semantics.label, contains('Remaining later: 3'));
   });
 
   testWidgets('guided assessment clears the reviewed page from attention', (tester) async {
