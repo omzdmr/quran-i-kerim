@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../../l10n/generated/generated_app_localizations.dart';
 import '../application/memorization_review_coverage.dart';
 import '../application/memorization_review_coverage_store.dart';
@@ -139,7 +140,7 @@ class _MemorizationReviewCoverageScreenState
                 item: item,
                 pageLabel: l10n.memorizePages,
                 reviewLabel: l10n.memorizeTodayReview,
-                daysLabel: l10n.daysUnit,
+                daysLabel: AppLocalizations.of(context).text('daysUnit'),
                 onTap: () => _openPage(item.page),
               ),
         ],
