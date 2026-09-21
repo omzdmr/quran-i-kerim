@@ -11,8 +11,7 @@ import '../prayer/presentation/qibla_launcher_screen.dart';
 import '../profile/downloads_screen.dart';
 import 'dhikr_counter_screen.dart';
 import 'qada_fasting_screen.dart';
-import 'travel_meeting_point_screen.dart';
-import 'travel_packing_screen.dart';
+import 'travel_tools_screen.dart';
 
 class DiscoverScreen extends StatelessWidget {
   const DiscoverScreen({super.key});
@@ -60,11 +59,7 @@ class DiscoverScreen extends StatelessWidget {
           const SizedBox(height: 12),
           _Shortcut(Icons.event_repeat_rounded, qadaFastingText(locale, 'title'), onTap: () => push(const QadaFastingScreen())),
           const SizedBox(height: 12),
-          Row(children: [
-            Expanded(child: _Shortcut(Icons.pin_drop_outlined, _meetingPointLabels[locale] ?? _meetingPointLabels['en']!, onTap: () => push(const TravelMeetingPointScreen()))),
-            const SizedBox(width: 12),
-            Expanded(child: _Shortcut(Icons.checklist_rounded, _packingLabels[locale] ?? _packingLabels['en']!, onTap: () => push(const TravelPackingScreen()))),
-          ]),
+          _Shortcut(Icons.luggage_outlined, _travelLabels[locale] ?? _travelLabels['en']!, onTap: () => push(const TravelToolsScreen())),
           const SizedBox(height: 12),
           Row(children: [
             Expanded(child: _Shortcut(Icons.library_add_check_outlined, l10n.text('readingPlans'), onTap: openPlans)),
@@ -79,11 +74,8 @@ class DiscoverScreen extends StatelessWidget {
   }
 }
 
-const _meetingPointLabels = <String, String>{
-  'tr': 'Buluşma noktası', 'en': 'Meeting point', 'fr': 'Point de rendez-vous', 'ar': 'نقطة اللقاء', 'az': 'Görüş yeri', 'ru': 'Место встречи',
-};
-const _packingLabels = <String, String>{
-  'tr': 'Seyahat listesi', 'en': 'Travel checklist', 'fr': 'Liste de voyage', 'ar': 'قائمة السفر', 'az': 'Səyahət siyahısı', 'ru': 'Список в поездку',
+const _travelLabels = <String, String>{
+  'tr': 'Seyahat araçları', 'en': 'Travel tools', 'fr': 'Outils de voyage', 'ar': 'أدوات السفر', 'az': 'Səyahət alətləri', 'ru': 'Инструменты поездки',
 };
 
 class _PrayerFeatureCard extends StatelessWidget {
