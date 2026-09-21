@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../l10n/generated/generated_app_localizations.dart';
 import '../../navigation/app_navigation.dart';
+import '../../settings/app_settings.dart';
 import '../reader/quran_reader_screen.dart';
 import '../reader/reader_archive_screen.dart';
 import 'quran_learn_overview.dart';
@@ -64,15 +65,14 @@ class _QuranAreaScreenState extends State<QuranAreaScreen> {
   Future<void> _openSavedActivity() async {
     HapticFeedback.selectionClick();
     await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        builder: (_) => const ReaderArchiveScreen(),
-      ),
+      MaterialPageRoute<void>(builder: (_) => const ReaderArchiveScreen()),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = GeneratedAppLocalizations.of(context)!;
+    final settings = AppSettingsScope.of(context);
     final languageCode = Localizations.localeOf(context).languageCode;
     final savedLabel = switch (languageCode) {
       'tr' => 'Kaydedilenler',
@@ -82,6 +82,9 @@ class _QuranAreaScreenState extends State<QuranAreaScreen> {
       'ru' => 'Сохранённое',
       _ => 'Saved activity',
     };
+    final savedCount = settings.bookmarkKeys.length +
+        settings.noteEntries.length +
+        settings.highlightEntries.length;
 
     return SafeArea(
       child: Column(
@@ -112,11 +115,17 @@ class _QuranAreaScreenState extends State<QuranAreaScreen> {
                         const SizedBox(width: 6),
                         Semantics(
                           button: true,
-                          label: savedLabel,
-                          child: IconButton(
-                            onPressed: _openSavedActivity,
-                            tooltip: savedLabel,
-                            icon: const Icon(Icons.bookmarks_outlined),
+                          label: savedCount == 0
+                              ? savedLabel
+                              : '$savedLabel, $savedCount',
+                          child: Badge(
+                            isLabelVisible: savedCount > 0,
+                            label: Text(savedCount > 99 ? '99+' : '$savedCount'),
+                            child: IconButton(
+                              onPressed: _openSavedActivity,
+                              tooltip: savedLabel,
+                              icon: const Icon(Icons.bookmarks_outlined),
+                            ),
                           ),
                         ),
                       ],
