@@ -50,7 +50,13 @@ class _PrayerNotificationSelfTestButtonState extends State<PrayerNotificationSel
 
   Future<void> _confirm(bool received) async {
     final copy = prayerNotificationSelfTestStrings(context);
-    await _store.save(received ? PrayerNotificationProbeOutcome.received : PrayerNotificationProbeOutcome.notReceived);
+    try {
+      await _store.save(received ? PrayerNotificationProbeOutcome.received : PrayerNotificationProbeOutcome.notReceived);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(copy.failed)));
+      return;
+    }
     if (!mounted) return;
     setState(() => _awaitingConfirmation = false);
     widget.onConfirmed?.call();
