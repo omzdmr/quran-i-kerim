@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:quran_i_kerim/src/features/discover/travel_meeting_point_screen.dart';
@@ -9,11 +10,18 @@ void main() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
   });
 
+  Widget app({required Locale locale, double textScale = 1}) => MediaQuery(
+        data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
+        child: MaterialApp(
+          locale: locale,
+          supportedLocales: const [Locale('tr'), Locale('en'), Locale('fr'), Locale('ar'), Locale('az'), Locale('ru')],
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
+          home: const TravelMeetingPointScreen(),
+        ),
+      );
+
   testWidgets('user can save meeting point from the offline form', (tester) async {
-    await tester.pumpWidget(const MaterialApp(
-      locale: Locale('tr'),
-      home: TravelMeetingPointScreen(),
-    ));
+    await tester.pumpWidget(app(locale: const Locale('tr')));
     await tester.pumpAndSettle();
 
     expect(find.text('Buluşma noktası'), findsOneWidget);
@@ -33,10 +41,7 @@ void main() {
   });
 
   testWidgets('large text keeps core actions reachable', (tester) async {
-    await tester.pumpWidget(MediaQuery(
-      data: const MediaQueryData(textScaler: TextScaler.linear(2.0)),
-      child: const MaterialApp(locale: Locale('en'), home: TravelMeetingPointScreen()),
-    ));
+    await tester.pumpWidget(app(locale: const Locale('en'), textScale: 2));
     await tester.pumpAndSettle();
 
     expect(find.text('Save'), findsOneWidget);
