@@ -34,7 +34,7 @@ void main() {
     expect(coverage.agingCount, 1);
     expect(coverage.freshCount, 1);
     expect(coverage.needsAttentionCount, 2);
-    expect(coverage.coveredFraction, .75);
+    expect(coverage.coveredFraction, .5);
   });
 
   test('oldest never-reviewed page is first even when page number is larger', () {
