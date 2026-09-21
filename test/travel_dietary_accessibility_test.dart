@@ -7,9 +7,9 @@ void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
   testWidgets('dietary editor survives large accessibility text', (tester) async {
-    await tester.pumpWidget(MediaQuery(
-      data: const MediaQueryData(textScaler: TextScaler.linear(2.0)),
-      child: const MaterialApp(home: TravelDietaryCardScreen()),
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => MediaQuery(data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(2.0)), child: child!),
+      home: const TravelDietaryCardScreen(),
     ));
     await tester.pumpAndSettle();
     expect(find.text('Dietary communication card'), findsOneWidget);
