@@ -49,6 +49,14 @@ private struct PrayerWidgetView: View {
       HStack { VStack(alignment: .leading, spacing: 1) { Text(name).font(.headline).lineLimit(1); Text(nextAt, style: .timer).font(.caption.monospacedDigit()) }; Spacer(minLength: 4); Image(systemName: "clock").accessibilityHidden(true) }.privacySensitive().accessibilityElement(children: .combine).accessibilityLabel(Text("\(name), \(nextAt.formatted(date: .omitted, time: .shortened))"))
     case .systemMedium:
       HStack(spacing: 14) { VStack(alignment: .leading, spacing: 4) { Label(name, systemImage: "moon.stars.fill").font(.headline).lineLimit(1); Text(nextAt, style: .time).font(.title3.weight(.semibold)).monospacedDigit() }; Spacer(minLength: 8); VStack(alignment: .trailing, spacing: 2) { Text("Time remaining").font(.caption).foregroundStyle(.secondary); Text(nextAt, style: .timer).font(.title2.monospacedDigit()).minimumScaleFactor(0.7).lineLimit(1) } }.privacySensitive().accessibilityElement(children: .ignore).accessibilityLabel(Text("\(name), \(nextAt.formatted(date: .omitted, time: .shortened))"))
+    case .systemLarge:
+      VStack(alignment: .leading, spacing: 16) {
+        HStack { Label(name, systemImage: "moon.stars.fill").font(.title2.weight(.semibold)).lineLimit(1); Spacer(); Image(systemName: "clock").font(.title3).accessibilityHidden(true) }
+        Spacer(minLength: 0)
+        Text(nextAt, style: .time).font(.system(.largeTitle, design: .rounded, weight: .semibold)).monospacedDigit().minimumScaleFactor(0.65).lineLimit(1)
+        VStack(alignment: .leading, spacing: 4) { Text("Time remaining").font(.headline).foregroundStyle(.secondary); Text(nextAt, style: .timer).font(.system(.title, design: .rounded).monospacedDigit()).minimumScaleFactor(0.6).lineLimit(1) }
+        Spacer(minLength: 0)
+      }.privacySensitive().accessibilityElement(children: .ignore).accessibilityLabel(Text("\(name), \(nextAt.formatted(date: .omitted, time: .shortened))"))
     default:
       VStack(alignment: .leading, spacing: 4) { Text(name).font(.headline).lineLimit(1).minimumScaleFactor(0.75); Text(nextAt, style: .timer).font(.title3.monospacedDigit()).accessibilityLabel("Time remaining"); Text(nextAt, style: .time).font(.caption).foregroundStyle(.secondary) }.privacySensitive().accessibilityElement(children: .combine)
     }
@@ -56,9 +64,8 @@ private struct PrayerWidgetView: View {
 
   @ViewBuilder private var unavailableContent: some View {
     if entry.snapshot?.privacyMode == "redacted" {
-      if family == .accessoryCircular || family == .accessoryInline {
-        Label { Text("Prayer times hidden") } icon: { Image(systemName: "lock.fill") }.accessibilityLabel(Text("Prayer times hidden for privacy"))
-      } else { stateContent(icon: "lock.fill", title: "Prayer times hidden", accessibility: "Prayer times hidden for privacy") }
+      if family == .accessoryCircular || family == .accessoryInline { Label { Text("Prayer times hidden") } icon: { Image(systemName: "lock.fill") }.accessibilityLabel(Text("Prayer times hidden for privacy")) }
+      else { stateContent(icon: "lock.fill", title: "Prayer times hidden", accessibility: "Prayer times hidden for privacy") }
     } else if family == .accessoryCircular || family == .accessoryInline {
       Label { Text("Open app to refresh") } icon: { Image(systemName: "arrow.clockwise") }.accessibilityLabel(Text("Prayer information needs to be refreshed in the app"))
     } else if let snapshot = entry.snapshot {
@@ -75,7 +82,7 @@ private struct PrayerWidgetView: View {
 
 struct PrayerTimesWidget: Widget {
   let kind = "PrayerTimesWidget"
-  var body: some WidgetConfiguration { StaticConfiguration(kind: kind, provider: PrayerProvider()) { PrayerWidgetView(entry: $0) }.configurationDisplayName("Prayer Times").description("Shows the next prayer from your on-device schedule.").supportedFamilies([.systemSmall, .systemMedium, .accessoryInline, .accessoryCircular, .accessoryRectangular]) }
+  var body: some WidgetConfiguration { StaticConfiguration(kind: kind, provider: PrayerProvider()) { PrayerWidgetView(entry: $0) }.configurationDisplayName("Prayer Times").description("Shows the next prayer from your on-device schedule.").supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryInline, .accessoryCircular, .accessoryRectangular]) }
 }
 
 @main struct PrayerWidgetBundle: WidgetBundle { var body: some Widget { PrayerTimesWidget() } }
