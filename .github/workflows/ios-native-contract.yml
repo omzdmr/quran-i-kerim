@@ -50,11 +50,13 @@ jobs:
       - name: Build and inspect standalone WidgetKit extension
         run: |
           rm -rf /tmp/quran-widget-build
-          xcodebuild -project ios/Runner.xcodeproj -target PrayerWidget -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO CONFIGURATION_BUILD_DIR=/tmp/quran-widget-build build
+          xcodebuild -project ios/Runner.xcodeproj -target PrayerWidget -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO CONFIGURATION_BUILD_DIR=/tmp/quran-widget-build FLUTTER_BUILD_NAME=0.0.0 FLUTTER_BUILD_NUMBER=1 build
           widget=/tmp/quran-widget-build/PrayerWidget.appex
           test -d "$widget"
           test -f "$widget/PrivacyInfo.xcprivacy"
           /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$widget/Info.plist" | grep -qx com.omzdmr.quranIKerim.PrayerWidget
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$widget/Info.plist" | grep -qx 0.0.0
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$widget/Info.plist" | grep -qx 1
           /usr/libexec/PlistBuddy -c 'Print :NSExtension:NSExtensionPointIdentifier' "$widget/Info.plist" | grep -qx com.apple.widgetkit-extension
           for locale in en tr ar az ru fr; do test -f "$widget/${locale}.lproj/Localizable.strings"; done
       - name: Type-check MediaPlayer native surface
