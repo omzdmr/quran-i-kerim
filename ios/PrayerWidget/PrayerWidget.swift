@@ -16,11 +16,13 @@ private struct PrayerSnapshot: Decodable {
   let privacyMode: String
 
   enum Freshness {
-    case fresh, unsupportedSchema, generatedInFuture, expired, timeZoneChanged, prayerBoundaryPassed
+    case fresh, unsupportedSchema, generatedInFuture, expired, timeZoneChanged, prayerBoundaryPassed, malformed
   }
 
-  func freshness(at date: Date, timeZone: TimeZone = .current) -> Freshness {
+  func freshness(at date: Date, timeZone: TimeZone = .autoupdatingCurrent) -> Freshness {
     guard version == 1 else { return .unsupportedSchema }
+    guard TimeZone(identifier: timeZoneIdentifier) != nil,
+          !calculationFingerprint.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return .malformed }
     guard generatedAt <= date else { return .generatedInFuture }
     guard date < validUntil else { return .expired }
     guard timeZoneIdentifier == timeZone.identifier else { return .timeZoneChanged }
@@ -47,9 +49,7 @@ private struct PrayerProvider: TimelineProvider {
     return decoder
   }()
 
-  func placeholder(in context: Context) -> PrayerEntry {
-    PrayerEntry(date: Date(), snapshot: nil)
-  }
+  func placeholder(in context: Context) -> PrayerEntry { PrayerEntry(date: Date(), snapshot: nil) }
 
   func getSnapshot(in context: Context, completion: @escaping (PrayerEntry) -> Void) {
     completion(PrayerEntry(date: Date(), snapshot: load()))
@@ -59,11 +59,9 @@ private struct PrayerProvider: TimelineProvider {
     let now = Date()
     let snapshot = load()
     var entries = [PrayerEntry(date: now, snapshot: snapshot)]
-
     if let boundary = nextBoundary(snapshot: snapshot, after: now) {
       entries.append(PrayerEntry(date: boundary, snapshot: snapshot))
     }
-
     completion(Timeline(entries: entries, policy: .after(nextRefresh(snapshot: snapshot, now: now))))
   }
 
@@ -77,7 +75,6 @@ private struct PrayerProvider: TimelineProvider {
     guard let boundary = nextBoundary(snapshot: snapshot, after: now) else {
       return now.addingTimeInterval(snapshot == nil ? 300 : 60)
     }
-    // Ask WidgetKit for a refresh no later than the religious-data validity boundary.
     return max(now.addingTimeInterval(60), min(boundary, now.addingTimeInterval(1800)))
   }
 
@@ -110,7 +107,16 @@ private struct PrayerWidgetView: View {
   @ViewBuilder
   private func prayerContent(_ snapshot: PrayerSnapshot, _ nextAt: Date) -> some View {
     let name = snapshot.displayName ?? snapshot.nextPrayerID ?? String(localized: "Prayer")
-    if family == .accessoryRectangular {
+    switch family {
+    case .accessoryCircular:
+      VStack(spacing: 1) {
+        Image(systemName: "clock").font(.caption2).accessibilityHidden(true)
+        Text(nextAt, style: .timer).font(.caption2.monospacedDigit()).minimumScaleFactor(0.65)
+      }
+      .privacySensitive()
+      .accessibilityElement(children: .ignore)
+      .accessibilityLabel(Text("\(name), \(nextAt.formatted(date: .omitted, time: .shortened))"))
+    case .accessoryRectangular:
       HStack {
         VStack(alignment: .leading, spacing: 1) {
           Text(name).font(.headline).lineLimit(1)
@@ -122,7 +128,7 @@ private struct PrayerWidgetView: View {
       .privacySensitive()
       .accessibilityElement(children: .combine)
       .accessibilityLabel(Text("\(name), \(nextAt.formatted(date: .omitted, time: .shortened))"))
-    } else {
+    default:
       VStack(alignment: .leading, spacing: 4) {
         Text(name).font(.headline).lineLimit(1).minimumScaleFactor(0.75)
         Text(nextAt, style: .timer).font(.title3.monospacedDigit()).accessibilityLabel("Time remaining")
@@ -135,13 +141,16 @@ private struct PrayerWidgetView: View {
 
   @ViewBuilder
   private var staleContent: some View {
-    if let snapshot = entry.snapshot {
+    if family == .accessoryCircular {
+      Image(systemName: entry.snapshot?.privacyMode == "redacted" ? "lock.fill" : "arrow.clockwise")
+        .accessibilityLabel(entry.snapshot?.privacyMode == "redacted" ? Text("Prayer times hidden for privacy") : Text("Prayer information needs to be refreshed in the app"))
+    } else if let snapshot = entry.snapshot {
       switch snapshot.freshness(at: entry.date) {
       case .timeZoneChanged:
         stateContent(icon: "globe", title: "Location changed", accessibility: "Prayer times need refresh after a time zone change")
       case .prayerBoundaryPassed, .expired:
         stateContent(icon: "arrow.clockwise", title: "Prayer times need refresh", accessibility: "Prayer information is out of date. Open the app to refresh")
-      case .generatedInFuture, .unsupportedSchema:
+      case .generatedInFuture, .unsupportedSchema, .malformed:
         stateContent(icon: "exclamationmark.circle", title: "Open app to refresh", accessibility: "Prayer information cannot be shown safely. Open the app to refresh")
       case .fresh:
         stateContent(icon: "arrow.clockwise", title: "Open app to refresh", accessibility: "Prayer information needs to be refreshed in the app")
@@ -167,7 +176,7 @@ struct PrayerTimesWidget: Widget {
     StaticConfiguration(kind: kind, provider: PrayerProvider()) { PrayerWidgetView(entry: $0) }
       .configurationDisplayName("Prayer Times")
       .description("Shows the next prayer from your on-device schedule.")
-      .supportedFamilies([.systemSmall, .systemMedium, .accessoryRectangular])
+      .supportedFamilies([.systemSmall, .systemMedium, .accessoryCircular, .accessoryRectangular])
   }
 }
 
