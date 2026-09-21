@@ -7,11 +7,13 @@ void main() {
   setUp(() {
     navigation.reportQuranSection(AppNavigation.quranReadSectionIndex);
     navigation.reportActiveTab(AppNavigation.homeTabIndex);
+    navigation.setReaderFullScreenActive(false);
   });
 
   tearDown(() {
     navigation.reportQuranSection(AppNavigation.quranReadSectionIndex);
     navigation.reportActiveTab(AppNavigation.homeTabIndex);
+    navigation.setReaderFullScreenActive(false);
   });
 
   test('Reader visibility requires both Quran tab and Read section', () {
@@ -28,6 +30,16 @@ void main() {
 
     navigation.reportActiveTab(AppNavigation.plansTabIndex);
     expect(navigation.readerVisible.value, isFalse);
+  });
+
+  test('Reader fullscreen visibility can drive shell chrome independently', () {
+    expect(navigation.readerFullScreenActive.value, isFalse);
+
+    navigation.setReaderFullScreenActive(true);
+    expect(navigation.readerFullScreenActive.value, isTrue);
+
+    navigation.setReaderFullScreenActive(false);
+    expect(navigation.readerFullScreenActive.value, isFalse);
   });
 
   test('reported navigation state is clamped to known surfaces', () {

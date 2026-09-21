@@ -40,6 +40,8 @@ class AppNavigation {
       ValueNotifier<ReaderTarget?>(null);
   final ValueNotifier<int> quranReadRequest = ValueNotifier<int>(0);
   final ValueNotifier<bool> readerSelectionActive = ValueNotifier<bool>(false);
+  final ValueNotifier<bool> readerFullScreenActive =
+      ValueNotifier<bool>(false);
 
   void reportActiveTab(int index) {
     final safe = index.clamp(homeTabIndex, profileTabIndex).toInt();
@@ -93,6 +95,11 @@ class AppNavigation {
   void setReaderSelectionActive(bool active) {
     if (readerSelectionActive.value == active) return;
     readerSelectionActive.value = active;
+  }
+
+  void setReaderFullScreenActive(bool active) {
+    if (readerFullScreenActive.value == active) return;
+    readerFullScreenActive.value = active;
   }
 
   void consumeTabRequest() => tabRequest.value = null;

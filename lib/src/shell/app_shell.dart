@@ -137,10 +137,16 @@ class _AppShellState extends State<AppShell> {
       bottomNavigationBar: ValueListenableBuilder<bool>(
         valueListenable: AppNavigation.instance.readerSelectionActive,
         builder: (context, selectionActive, _) {
-          if (_index == 1 && selectionActive) {
-            return const SizedBox.shrink();
-          }
-          return _buildBottomNavigation(context);
+          return ValueListenableBuilder<bool>(
+            valueListenable: AppNavigation.instance.readerFullScreenActive,
+            builder: (context, fullScreenActive, _) {
+              if (_index == AppNavigation.quranTabIndex &&
+                  (selectionActive || fullScreenActive)) {
+                return const SizedBox.shrink();
+              }
+              return _buildBottomNavigation(context);
+            },
+          );
         },
       ),
     );

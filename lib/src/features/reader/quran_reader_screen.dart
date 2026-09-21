@@ -105,6 +105,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
     _autoScrollTimer = null;
     _saveVisibleReadingPosition();
     final release = _focusController.leaveSession();
+    AppNavigation.instance.setReaderFullScreenActive(false);
     if (release.releaseWakeLock) {
       unawaited(WakelockPlus.disable());
     }
@@ -152,6 +153,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
       );
     }
     _focusController.dispose();
+    AppNavigation.instance.setReaderFullScreenActive(false);
     AppNavigation.instance.setReaderSelectionActive(false);
     AppNavigation.instance.readerRequest.removeListener(_handleReaderRequest);
     AppNavigation.instance.readerVisible.removeListener(
@@ -636,6 +638,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
       );
       if (!mounted) return;
       _focusController.setFullScreen(enabled);
+      AppNavigation.instance.setReaderFullScreenActive(enabled);
       _setReaderChromeVisible(!enabled);
     } catch (_) {
       if (!mounted) return;
