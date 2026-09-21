@@ -24,22 +24,14 @@ class LocalBackupService {
 
   Future<BackupDocument> createDocument({DateTime? now}) async {
     final sections = await adapter.captureSections();
-    return BackupDocument(
-      version: BackupManifest.schemaVersion,
-      createdAt: (now ?? DateTime.now()).toUtc(),
-      data: BackupManifest.selectBackupData(sections),
-    );
+    return BackupDocument(version: BackupManifest.schemaVersion, createdAt: (now ?? DateTime.now()).toUtc(), data: BackupManifest.selectBackupData(sections));
   }
 
   Future<String> exportJson({DateTime? now}) async => (await createDocument(now: now)).encode();
   BackupPreview previewDecoded(Object? decoded) => previewParser.parse(decoded);
 
   BackupPreview previewJson(String encoded) {
-    try {
-      return previewParser.parse(jsonDecode(encoded));
-    } on FormatException {
-      return previewParser.parse(null);
-    }
+    try { return previewParser.parse(jsonDecode(encoded)); } on FormatException { return previewParser.parse(null); }
   }
 
   Future<BackupImportPlan> planImportJson(String encoded) async {
@@ -79,18 +71,14 @@ class LocalBackupService {
 
   Map<String, Object?> _validatedSections(Object? decoded) {
     final preview = previewParser.parse(decoded);
-    if (!preview.canRestore || decoded is! Map || preview.version == null) {
-      throw const FormatException('Backup is not restorable.');
-    }
+    if (!preview.canRestore || decoded is! Map || preview.version == null) throw const FormatException('Backup is not restorable.');
     final rawData = decoded['data'];
     if (rawData is! Map) throw const FormatException('Backup data is invalid.');
     final selected = <String, Object?>{};
     for (final entry in rawData.entries) {
       if (entry.key is! String) throw const FormatException('Backup section key is invalid.');
       final section = entry.key as String;
-      if (BackupManifest.sectionsForVersion(preview.version!).contains(section)) {
-        selected[section] = entry.value;
-      }
+      if (BackupManifest.sectionsForVersion(preview.version!).contains(section)) selected[section] = entry.value;
     }
     return Map<String, Object?>.unmodifiable(selected);
   }
@@ -106,13 +94,7 @@ class LocalBackupService {
         final keys = <String>{...currentMap.keys, ...incomingMap.keys};
         merged[section] = <String, Object?>{
           for (final key in keys)
-            key: _mergePreferenceValue(
-              section: section,
-              key: key,
-              current: currentMap[key],
-              incoming: incomingMap[key],
-              hasIncoming: incomingMap.containsKey(key),
-            ),
+            key: _mergePreferenceValue(section: section, key: key, current: currentMap[key], incoming: incomingMap[key], hasIncoming: incomingMap.containsKey(key)),
         };
       } else if (incoming.containsKey(section)) {
         merged[section] = incomingSection;
@@ -125,10 +107,7 @@ class LocalBackupService {
 
   Map<String, Object?> _stringMap(Object? value) {
     if (value is! Map) return const <String, Object?>{};
-    return <String, Object?>{
-      for (final entry in value.entries)
-        if (entry.key is String) entry.key as String: entry.value,
-    };
+    return <String, Object?>{for (final entry in value.entries) if (entry.key is String) entry.key as String: entry.value};
   }
 
   Object? _mergePreferenceValue({required String section, required String key, required Object? current, required Object? incoming, required bool hasIncoming}) {
@@ -137,18 +116,15 @@ class LocalBackupService {
     if (section == 'memorization' && const {'memorized_pages_v1', 'memorization_practice_days_v1', 'memorization_plan_missed_days_v1'}.contains(key)) {
       return _mergeStringLists(current, incoming);
     }
-    if (section == 'memorization' && key == 'memorization_page_progress_v1') {
-      return _mergePageProgress(current, incoming);
-    }
-    if (section == 'memorizationPractice' && key == 'memorization_practice_history_v1') {
-      return _mergeJsonEventLists(current, incoming);
-    }
+    if (section == 'memorization' && key == 'memorization_page_progress_v1') return _mergePageProgress(current, incoming);
+    if (section == 'memorizationPractice' && key == 'memorization_practice_history_v1') return _mergeJsonEventLists(current, incoming);
     return incoming;
   }
 
   Object? _mergeStringLists(Object? current, Object? incoming) {
-    if (current is! List || incoming is! List) return incoming;
-    final values = <String>{...current.whereType<String>(), ...incoming.whereType<String>()}.toList()
+    if (current is! List || incoming is! List) return current;
+    if (current.any((value) => value is! String) || incoming.any((value) => value is! String)) return current;
+    final values = <String>{...current.cast<String>(), ...incoming.cast<String>()}.toList()
       ..sort((a, b) {
         final aInt = int.tryParse(a);
         final bInt = int.tryParse(b);
@@ -159,11 +135,11 @@ class LocalBackupService {
   }
 
   Object? _mergePageProgress(Object? current, Object? incoming) {
-    if (current is! String || incoming is! String) return incoming;
+    if (current is! String || incoming is! String) return current;
     try {
       final currentDecoded = jsonDecode(current);
       final incomingDecoded = jsonDecode(incoming);
-      if (currentDecoded is! Map || incomingDecoded is! Map) return incoming;
+      if (currentDecoded is! Map || incomingDecoded is! Map) return current;
       final merged = <String, Object?>{};
       final keys = <String>{...currentDecoded.keys.whereType<String>(), ...incomingDecoded.keys.whereType<String>()};
       for (final key in keys) {
@@ -178,13 +154,11 @@ class LocalBackupService {
         }
       }
       return jsonEncode(merged);
-    } on FormatException {
-      return incoming;
-    }
+    } on FormatException { return current; }
   }
 
   Object? _newerProgress(Object? local, Object? incoming) {
-    if (local is! Map || incoming is! Map) return incoming;
+    if (local is! Map || incoming is! Map) return local;
     DateTime? timestamp(Map value) {
       final reviewed = value['lastReviewedAt'];
       final memorized = value['memorizedAt'];
@@ -192,17 +166,18 @@ class LocalBackupService {
     }
     final localTime = timestamp(local);
     final incomingTime = timestamp(incoming);
-    if (localTime == null) return incoming;
+    if (localTime == null && incomingTime != null) return incoming;
     if (incomingTime == null) return local;
+    if (localTime == null) return incoming;
     return incomingTime.isAfter(localTime) ? incoming : local;
   }
 
   Object? _mergeJsonEventLists(Object? current, Object? incoming) {
-    if (current is! String || incoming is! String) return incoming;
+    if (current is! String || incoming is! String) return current;
     try {
       final currentDecoded = jsonDecode(current);
       final incomingDecoded = jsonDecode(incoming);
-      if (currentDecoded is! List || incomingDecoded is! List) return incoming;
+      if (currentDecoded is! List || incomingDecoded is! List) return current;
       final byId = <String, Object?>{};
       void addEvents(List<dynamic> events) {
         for (final event in events) {
@@ -219,8 +194,6 @@ class LocalBackupService {
           return bDate.compareTo(aDate);
         });
       return jsonEncode(merged.take(4000).toList(growable: false));
-    } on FormatException {
-      return incoming;
-    }
+    } on FormatException { return current; }
   }
 }
