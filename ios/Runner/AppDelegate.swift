@@ -14,11 +14,9 @@ import UniformTypeIdentifiers
   private var widgetSnapshotChannel: WidgetSnapshotChannel?
   private var nativeLifecycleStateChannel: NativeLifecycleStateChannel?
   private var microphoneRecordingChannel: MicrophoneRecordingChannel?
+  private var nativeShareChannel: NativeShareChannel?
 
-  override func application(
-    _ application: UIApplication,
-    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
-  ) -> Bool {
+  override func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
     audioSessionCoordinator.start()
     GeneratedPluginRegistrant.register(with: self)
     configureNativeChannels()
@@ -26,6 +24,7 @@ import UniformTypeIdentifiers
   }
 
   override func applicationWillTerminate(_ application: UIApplication) {
+    nativeShareChannel?.detach()
     microphoneRecordingChannel?.detach()
     nativeLifecycleStateChannel?.markCleanTermination()
     nativeLifecycleStateChannel?.detach()
@@ -41,10 +40,7 @@ import UniformTypeIdentifiers
   }
 
   private func configureNativeChannels() {
-    guard let controller = window?.rootViewController as? FlutterViewController else {
-      NSLog("Unable to install native channels: Flutter view controller unavailable.")
-      return
-    }
+    guard let controller = window?.rootViewController as? FlutterViewController else { NSLog("Unable to install native channels: Flutter view controller unavailable."); return }
     let messenger = controller.binaryMessenger
     backupExclusionChannel = BackupExclusionChannel(binaryMessenger: messenger)
     nowPlayingChannel = NowPlayingChannel(binaryMessenger: messenger)
@@ -55,6 +51,7 @@ import UniformTypeIdentifiers
     widgetSnapshotChannel = WidgetSnapshotChannel(binaryMessenger: messenger)
     nativeLifecycleStateChannel = NativeLifecycleStateChannel(binaryMessenger: messenger)
     microphoneRecordingChannel = MicrophoneRecordingChannel(binaryMessenger: messenger)
+    nativeShareChannel = NativeShareChannel(binaryMessenger: messenger, presenter: controller)
   }
 }
 
@@ -87,21 +84,16 @@ final class DocumentHandoffChannel: NSObject, UIDocumentPickerDelegate {
   }
 
   private func exportFile(_ arguments: Any?, result: @escaping FlutterResult) {
-    guard let args = arguments as? [String: Any], let sourcePath = args["path"] as? String, !sourcePath.isEmpty else {
-      result(FlutterError(code: "invalid_arguments", message: "exportFile requires a non-empty path.", details: nil)); return
-    }
+    guard let args = arguments as? [String: Any], let sourcePath = args["path"] as? String, !sourcePath.isEmpty else { result(FlutterError(code: "invalid_arguments", message: "exportFile requires a non-empty path.", details: nil)); return }
     let source = URL(fileURLWithPath: sourcePath).standardizedFileURL
-    guard FileManager.default.fileExists(atPath: source.path), !source.hasDirectoryPath else {
-      result(FlutterError(code: "missing_file", message: "The export source is not a file.", details: nil)); return
-    }
+    guard FileManager.default.fileExists(atPath: source.path), !source.hasDirectoryPath else { result(FlutterError(code: "missing_file", message: "The export source is not a file.", details: nil)); return }
     guard let presenter else { result(FlutterError(code: "no_presenter", message: "No view controller is available.", details: nil)); return }
     let preferredName = sanitizedFilename(args["filename"] as? String) ?? source.lastPathComponent
     let tempDirectory = FileManager.default.temporaryDirectory.appendingPathComponent("quran-user-exports", isDirectory: true)
     do {
       try FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
       let staged = tempDirectory.appendingPathComponent(preferredName, isDirectory: false)
-      try? FileManager.default.removeItem(at: staged)
-      try FileManager.default.copyItem(at: source, to: staged)
+      try? FileManager.default.removeItem(at: staged); try FileManager.default.copyItem(at: source, to: staged)
       var values = URLResourceValues(); values.isExcludedFromBackup = true
       var mutable = staged; try mutable.setResourceValues(values)
       temporaryExportURL = staged; pendingResult = result
@@ -146,9 +138,7 @@ final class DocumentHandoffChannel: NSObject, UIDocumentPickerDelegate {
     let base = URL(fileURLWithPath: filename).deletingPathExtension().lastPathComponent
     let ext = URL(fileURLWithPath: filename).pathExtension
     var candidate = directory.appendingPathComponent(filename); var index = 2
-    while FileManager.default.fileExists(atPath: candidate.path) {
-      candidate = directory.appendingPathComponent(ext.isEmpty ? "\(base)-\(index)" : "\(base)-\(index).\(ext)"); index += 1
-    }
+    while FileManager.default.fileExists(atPath: candidate.path) { candidate = directory.appendingPathComponent(ext.isEmpty ? "\(base)-\(index)" : "\(base)-\(index).\(ext)"); index += 1 }
     return candidate
   }
 
