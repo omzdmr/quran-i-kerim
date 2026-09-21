@@ -39,6 +39,31 @@ void main() {
     expect(find.text('Ajouter une dette'), findsOneWidget);
   });
 
+  testWidgets('French Discover opens portable qada backup flow', (tester) async {
+    final ledger = QadaFastingLedger().addDebt(
+      days: 2,
+      occurredOn: DateTime(2026, 3, 1),
+      createdAt: DateTime.utc(2026, 9, 22),
+      sourceRamadanYear: 1447,
+      id: 'discover-backup',
+    );
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      QadaFastingStore.preferenceKey: ledger.encode(),
+    });
+
+    await tester.pumpWidget(_app(const Locale('fr')));
+    await tester.pumpAndSettle();
+    expect(find.text('Sauvegarde du registre'), findsOneWidget);
+
+    await tester.tap(find.text('Sauvegarde du registre'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sauvegarde des jeûnes à rattraper'), findsOneWidget);
+    expect(find.text('Entrées: 1'), findsOneWidget);
+    expect(find.text('Jours restants: 2'), findsOneWidget);
+    expect(find.text('Créer une sauvegarde portable'), findsOneWidget);
+  });
+
   testWidgets('Arabic Discover keeps qada navigation RTL', (tester) async {
     await tester.pumpWidget(_app(const Locale('ar')));
     await tester.pumpAndSettle();
