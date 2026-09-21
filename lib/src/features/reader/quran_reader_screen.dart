@@ -305,7 +305,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
         _scrollController.animateTo(
           target,
           duration: attempt == 0
-              ? const Duration(milliseconds: 280)
+              ? _motionDuration(const Duration(milliseconds: 280))
               : Duration.zero,
           curve: Curves.easeOutCubic,
         );

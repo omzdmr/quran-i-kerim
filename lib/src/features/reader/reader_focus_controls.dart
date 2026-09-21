@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'reader_focus_controller.dart';
@@ -115,7 +117,6 @@ class ReaderFocusControls extends StatelessWidget {
   }
 }
 
-
 class ReaderLineFocusOverlay extends StatelessWidget {
   const ReaderLineFocusOverlay({super.key});
 
@@ -146,7 +147,6 @@ class ReaderLineFocusOverlay extends StatelessWidget {
   }
 }
 
-
 class ReaderFullScreenBackGuard extends StatelessWidget {
   const ReaderFullScreenBackGuard({
     required this.controller,
@@ -168,7 +168,7 @@ class ReaderFullScreenBackGuard extends StatelessWidget {
         canPop: !controller.fullScreen,
         onPopInvokedWithResult: (didPop, _) {
           if (!didPop && controller.fullScreen) {
-            onExitFullScreen();
+            unawaited(onExitFullScreen());
           }
         },
         child: child!,
