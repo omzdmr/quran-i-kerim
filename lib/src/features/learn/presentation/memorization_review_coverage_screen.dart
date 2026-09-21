@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/generated/generated_app_localizations.dart';
+import '../application/memorization_progress_store.dart';
 import '../application/memorization_review_coverage.dart';
 import '../application/memorization_review_coverage_store.dart';
 import '../application/memorization_review_session.dart';
@@ -152,6 +153,15 @@ class _MemorizationReviewCoverageScreenState
                 pageLabel: l10n.memorizePages,
                 reviewLabel: l10n.memorizeTodayReview,
                 daysLabel: AppLocalizations.of(context).text('daysUnit'),
+                assessmentLabel: switch (item.selfAssessment) {
+                  MemorizationSelfAssessment.struggled =>
+                    l10n.memorizeTestStruggled,
+                  MemorizationSelfAssessment.assisted =>
+                    l10n.memorizeTestAssisted,
+                  MemorizationSelfAssessment.independent =>
+                    l10n.memorizeTestIndependent,
+                  null => null,
+                },
                 onTap: () => _openPage(item.page),
               ),
         ],
@@ -223,6 +233,7 @@ class _CoveragePageTile extends StatelessWidget {
     required this.pageLabel,
     required this.reviewLabel,
     required this.daysLabel,
+    required this.assessmentLabel,
     required this.onTap,
   });
 
@@ -230,6 +241,7 @@ class _CoveragePageTile extends StatelessWidget {
   final String pageLabel;
   final String reviewLabel;
   final String daysLabel;
+  final String? assessmentLabel;
   final VoidCallback onTap;
 
   IconData get _icon => switch (item.freshness) {
@@ -245,8 +257,12 @@ class _CoveragePageTile extends StatelessWidget {
     final dateText = reviewedAt == null
         ? reviewLabel
         : MaterialLocalizations.of(context).formatCompactDate(reviewedAt);
-    final ageText = item.ageDays == null ? null : '${item.ageDays} $daysLabel';
-    final detailText = ageText == null ? dateText : '$dateText · $ageText';
+    final details = <String>[
+      dateText,
+      if (item.ageDays != null) '${item.ageDays} $daysLabel',
+      if (assessmentLabel != null) assessmentLabel!,
+    ];
+    final detailText = details.join(' · ');
     final semantic = '$pageLabel ${item.page}, $reviewLabel, $detailText';
     return Semantics(
       button: true,
