@@ -11,3 +11,9 @@
 "Prayer times need refresh after a time zone change" = "Saat dilimi değiştiği için namaz vakitlerinin yenilenmesi gerekiyor";
 "Prayer information is out of date. Open the app to refresh" = "Namaz vakti bilgisi güncel değil. Yenilemek için uygulamayı aç";
 "Prayer information cannot be shown safely. Open the app to refresh" = "Namaz vakti bilgisi güvenli biçimde gösterilemiyor. Yenilemek için uygulamayı aç";
+"Fajr" = "İmsak";
+"Sunrise" = "Güneş";
+"Dhuhr" = "Öğle";
+"Asr" = "İkindi";
+"Maghrib" = "Akşam";
+"Isha" = "Yatsı";
