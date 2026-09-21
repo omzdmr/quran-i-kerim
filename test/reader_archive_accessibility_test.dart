@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quran_i_kerim/src/data/translation_catalog.dart';
 import 'package:quran_i_kerim/src/features/reader/reader_archive_screen.dart';
@@ -62,15 +63,19 @@ void main() {
         settings: settings,
         child: const MaterialApp(
           locale: Locale('ar'),
-          home: Directionality(
-            textDirection: TextDirection.rtl,
-            child: ReaderArchiveScreen(),
-          ),
+          supportedLocales: <Locale>[Locale('en'), Locale('ar')],
+          localizationsDelegates: <LocalizationsDelegate<dynamic>>[
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: ReaderArchiveScreen(),
         ),
       ),
     );
     await tester.pumpAndSettle();
 
+    expect(Directionality.of(tester.element(find.byType(ReaderArchiveScreen))), TextDirection.rtl);
     expect(find.text('المحفوظات'), findsOneWidget);
     expect(find.text('ملاحظة خاصة'), findsOneWidget);
     expect(find.bySemanticsLabel(RegExp('آية محفوظة')), findsOneWidget);
