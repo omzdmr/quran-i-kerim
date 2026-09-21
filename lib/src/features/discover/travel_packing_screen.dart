@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'travel_packing_store.dart';
 
@@ -63,6 +64,19 @@ class _TravelPackingScreenState extends State<TravelPackingScreen> {
   Future<void> _remove(TravelPackingItem item) =>
       _persist(_items.where((current) => current.id != item.id).toList(growable: false));
 
+  Future<void> _resetPacked() => _persist([
+        for (final item in _items) item.packed ? item.copyWith(packed: false) : item,
+      ]);
+
+  Future<void> _copyChecklist() async {
+    if (_items.isEmpty) return;
+    final text = _items.map((item) => '${item.packed ? '☑' : '☐'} ${item.label}').join('\n');
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!mounted) return;
+    HapticFeedback.selectionClick();
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(copy.copied)));
+  }
+
   @override
   void dispose() {
     _controller.dispose();
@@ -109,6 +123,14 @@ class _TravelPackingScreenState extends State<TravelPackingScreen> {
                   const SizedBox(width: 8),
                   IconButton.filled(onPressed: _add, tooltip: c.add, icon: const Icon(Icons.add_rounded)),
                 ]),
+                if (_items.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Wrap(spacing: 8, runSpacing: 8, children: [
+                    OutlinedButton.icon(onPressed: _copyChecklist, icon: const Icon(Icons.copy_rounded), label: Text(c.copy)),
+                    if (packed > 0)
+                      OutlinedButton.icon(onPressed: _resetPacked, icon: const Icon(Icons.restart_alt_rounded), label: Text(c.reset)),
+                  ]),
+                ],
                 const SizedBox(height: 14),
                 if (_items.isEmpty)
                   Padding(
@@ -149,16 +171,16 @@ class _TravelPackingScreenState extends State<TravelPackingScreen> {
 }
 
 class _PackingCopy {
-  const _PackingCopy(this.title, this.progress, this.offline, this.newItem, this.add, this.remove, this.empty);
-  final String title, progress, offline, newItem, add, remove, empty;
+  const _PackingCopy(this.title, this.progress, this.offline, this.newItem, this.add, this.remove, this.empty, this.copy, this.copied, this.reset);
+  final String title, progress, offline, newItem, add, remove, empty, copy, copied, reset;
   static _PackingCopy forLocale(Locale locale) => _copy[locale.languageCode] ?? _copy['en']!;
 }
 
 const _copy = <String, _PackingCopy>{
-  'tr': _PackingCopy('Seyahat listesi', 'Hazır', 'Liste yalnızca bu cihazda saklanır ve çevrimdışı çalışır.', 'Listeye ekle', 'Ekle', 'Sil', 'Henüz eşya eklenmedi. Kendi seyahat listenizi oluşturun.'),
-  'en': _PackingCopy('Travel checklist', 'Ready', 'The list stays on this device and works offline.', 'Add an item', 'Add', 'Remove', 'Nothing added yet. Build your own travel checklist.'),
-  'fr': _PackingCopy('Liste de voyage', 'Prêt', 'La liste reste sur cet appareil et fonctionne hors ligne.', 'Ajouter un élément', 'Ajouter', 'Supprimer', 'Aucun élément pour le moment. Créez votre propre liste.'),
-  'ar': _PackingCopy('قائمة السفر', 'جاهز', 'تُحفظ القائمة على هذا الجهاز وتعمل دون اتصال.', 'إضافة عنصر', 'إضافة', 'حذف', 'لم تتم إضافة عناصر بعد. أنشئ قائمة سفرك الخاصة.'),
-  'az': _PackingCopy('Səyahət siyahısı', 'Hazır', 'Siyahı bu cihazda saxlanılır və oflayn işləyir.', 'Element əlavə et', 'Əlavə et', 'Sil', 'Hələ heç nə əlavə edilməyib. Öz səyahət siyahınızı yaradın.'),
-  'ru': _PackingCopy('Список в поездку', 'Готово', 'Список хранится на этом устройстве и работает офлайн.', 'Добавить пункт', 'Добавить', 'Удалить', 'Пока ничего нет. Создайте свой список для поездки.'),
+  'tr': _PackingCopy('Seyahat listesi', 'Hazır', 'Liste yalnızca bu cihazda saklanır ve çevrimdışı çalışır.', 'Listeye ekle', 'Ekle', 'Sil', 'Henüz eşya eklenmedi. Kendi seyahat listenizi oluşturun.', 'Listeyi kopyala', 'Liste kopyalandı', 'İşaretleri sıfırla'),
+  'en': _PackingCopy('Travel checklist', 'Ready', 'The list stays on this device and works offline.', 'Add an item', 'Add', 'Remove', 'Nothing added yet. Build your own travel checklist.', 'Copy list', 'Checklist copied', 'Reset checks'),
+  'fr': _PackingCopy('Liste de voyage', 'Prêt', 'La liste reste sur cet appareil et fonctionne hors ligne.', 'Ajouter un élément', 'Ajouter', 'Supprimer', 'Aucun élément pour le moment. Créez votre propre liste.', 'Copier la liste', 'Liste copiée', 'Réinitialiser les coches'),
+  'ar': _PackingCopy('قائمة السفر', 'جاهز', 'تُحفظ القائمة على هذا الجهاز وتعمل دون اتصال.', 'إضافة عنصر', 'إضافة', 'حذف', 'لم تتم إضافة عناصر بعد. أنشئ قائمة سفرك الخاصة.', 'نسخ القائمة', 'تم نسخ القائمة', 'إعادة ضبط العلامات'),
+  'az': _PackingCopy('Səyahət siyahısı', 'Hazır', 'Siyahı bu cihazda saxlanılır və oflayn işləyir.', 'Element əlavə et', 'Əlavə et', 'Sil', 'Hələ heç nə əlavə edilməyib. Öz səyahət siyahınızı yaradın.', 'Siyahını kopyala', 'Siyahı kopyalandı', 'İşarələri sıfırla'),
+  'ru': _PackingCopy('Список в поездку', 'Готово', 'Список хранится на этом устройстве и работает офлайн.', 'Добавить пункт', 'Добавить', 'Удалить', 'Пока ничего нет. Создайте свой список для поездки.', 'Копировать список', 'Список скопирован', 'Сбросить отметки'),
 };
