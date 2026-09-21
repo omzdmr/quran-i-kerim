@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:quran_i_kerim/src/data/backup/backup_manifest.dart';
 import 'package:quran_i_kerim/src/data/backup/local_backup_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -29,8 +30,9 @@ void main() {
     final decoded = jsonDecode(encoded) as Map<String, dynamic>;
     final data = decoded['data'] as Map<String, dynamic>;
 
-    expect(decoded['version'], 4);
+    expect(decoded['version'], BackupManifest.schemaVersion);
     expect(decoded['createdAt'], '2026-09-16T10:00:00.000Z');
+    expect(decoded['integrity'], isA<Map>());
     expect((data['reading'] as Map)['last_surah'], 2);
     expect((data['learning'] as Map)['learn_progress_v1:intro'], isNotNull);
     expect((data['dhikr'] as Map)['dhikr_v2_selected'], 'subhanallah');
@@ -54,25 +56,16 @@ void main() {
       'version': 4,
       'createdAt': '2026-09-16T10:00:00Z',
       'data': <String, Object?>{
-        'dhikr': <String, Object?>{
-          'dhikr_v2_counts': '{"subhanallah":33}',
-        },
-        'prayerPreferences': <String, Object?>{
-          'prayer_asr_method': 'hanafi',
-        },
-        'readingPlans': <String, Object?>{
-          'reading_plan_state_v1': '{"active":{"preset":"quran90"}}',
-        },
+        'dhikr': <String, Object?>{'dhikr_v2_counts': '{"subhanallah":33}'},
+        'prayerPreferences': <String, Object?>{'prayer_asr_method': 'hanafi'},
+        'readingPlans': <String, Object?>{'reading_plan_state_v1': '{"active":{"preset":"quran90"}}'},
       },
     });
 
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getString('dhikr_v2_counts'), '{"subhanallah":33}');
     expect(prefs.getString('prayer_asr_method'), 'hanafi');
-    expect(
-      prefs.getString('reading_plan_state_v1'),
-      '{"active":{"preset":"quran90"}}',
-    );
+    expect(prefs.getString('reading_plan_state_v1'), '{"active":{"preset":"quran90"}}');
     expect(prefs.getDouble('prayer_device_latitude'), 41.0);
     expect(prefs.getDouble('prayer_device_longitude'), 29.0);
   });
@@ -83,7 +76,6 @@ void main() {
       'dhikr_v2_counts': '{"subhanallah":99}',
       'reading_plan_state_v1': '{"active":{"preset":"quran30"}}',
     });
-
     await service.restoreDecoded(<String, Object?>{
       'version': 3,
       'createdAt': '2026-09-16T10:00:00Z',
@@ -92,14 +84,10 @@ void main() {
         'dhikr': <String, Object?>{'dhikr_v2_counts': '{"subhanallah":33}'},
       },
     });
-
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getInt('last_surah'), 36);
     expect(prefs.getString('dhikr_v2_counts'), '{"subhanallah":33}');
-    expect(
-      prefs.getString('reading_plan_state_v1'),
-      '{"active":{"preset":"quran30"}}',
-    );
+    expect(prefs.getString('reading_plan_state_v1'), '{"active":{"preset":"quran30"}}');
   });
 
   test('version two restore preserves version three-only local data', () async {
@@ -108,15 +96,11 @@ void main() {
       'dhikr_v2_counts': '{"subhanallah":99}',
       'prayer_asr_method': 'hanafi',
     });
-
     await service.restoreDecoded(<String, Object?>{
       'version': 2,
       'createdAt': '2026-09-16T10:00:00Z',
-      'data': <String, Object?>{
-        'reading': <String, Object?>{'last_surah': 36},
-      },
+      'data': <String, Object?>{'reading': <String, Object?>{'last_surah': 36}},
     });
-
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getInt('last_surah'), 36);
     expect(prefs.getString('dhikr_v2_counts'), '{"subhanallah":99}');
@@ -131,15 +115,12 @@ void main() {
       'reading_plan_state_v1': '{"active":{"preset":"quran30"}}',
       'unrelated': 'keep me',
     });
-
     await expectLater(
       service.restoreDecoded(<String, Object?>{
         'version': 4,
         'createdAt': '2026-09-16T10:00:00Z',
         'data': <String, Object?>{
-          'reading': <String, Object?>{
-            'last_surah': <Object>[42],
-          },
+          'reading': <String, Object?>{'last_surah': <Object>[42]},
           'dhikr': <String, Object?>{},
           'prayerPreferences': <String, Object?>{},
           'readingPlans': <String, Object?>{},
@@ -147,21 +128,16 @@ void main() {
       }),
       throwsFormatException,
     );
-
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getInt('last_surah'), 9);
     expect(prefs.getString('dhikr_v2_counts'), '{"subhanallah":99}');
     expect(prefs.getString('prayer_asr_method'), 'hanafi');
-    expect(
-      prefs.getString('reading_plan_state_v1'),
-      '{"active":{"preset":"quran30"}}',
-    );
+    expect(prefs.getString('reading_plan_state_v1'), '{"active":{"preset":"quran30"}}');
     expect(prefs.getString('unrelated'), 'keep me');
   });
 
   test('rejects unsupported version before mutating local data', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{'last_surah': 9});
-
     await expectLater(
       service.restoreDecoded(<String, Object?>{
         'version': 99,
@@ -170,7 +146,6 @@ void main() {
       }),
       throwsFormatException,
     );
-
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getInt('last_surah'), 9);
   });
