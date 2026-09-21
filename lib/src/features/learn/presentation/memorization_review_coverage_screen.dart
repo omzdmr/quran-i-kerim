@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../l10n/generated/generated_app_localizations.dart';
-import '../application/memorization_practice_history_store.dart';
-import '../application/memorization_progress_store.dart';
 import '../application/memorization_review_coverage.dart';
+import '../application/memorization_review_coverage_store.dart';
 import 'memorization_study_screen.dart';
 
 class MemorizationReviewCoverageScreen extends StatefulWidget {
@@ -16,8 +15,7 @@ class MemorizationReviewCoverageScreen extends StatefulWidget {
 
 class _MemorizationReviewCoverageScreenState
     extends State<MemorizationReviewCoverageScreen> {
-  static const _store = MemorizationProgressStore();
-  static const _practiceStore = MemorizationPracticeHistoryStore();
+  static const _coverageStore = MemorizationReviewCoverageStore();
   MemorizationReviewCoverage? _coverage;
   bool _attentionOnly = true;
 
@@ -28,17 +26,7 @@ class _MemorizationReviewCoverageScreenState
   }
 
   Future<void> _load() async {
-    final results = await Future.wait<Object>([
-      _store.load(),
-      _practiceStore.load(),
-    ]);
-    final progress = results[0] as MemorizationProgressSnapshot;
-    final practiceHistory = results[1] as MemorizationPracticeHistorySnapshot;
-    final coverage = buildMemorizationReviewCoverage(
-      progress: progress,
-      practiceHistory: practiceHistory,
-      now: DateTime.now(),
-    );
+    final coverage = await _coverageStore.load();
     if (!mounted) return;
     setState(() => _coverage = coverage);
   }
