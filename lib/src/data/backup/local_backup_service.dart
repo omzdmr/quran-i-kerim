@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'backup_document.dart';
+import 'backup_import_plan.dart';
 import 'backup_manifest.dart';
 import 'backup_preview.dart';
 import 'backup_restore_coordinator.dart';
@@ -12,11 +13,13 @@ class LocalBackupService {
   const LocalBackupService({
     this.adapter = const SharedPreferencesBackupAdapter(),
     this.previewParser = const BackupPreviewParser(),
+    this.importPlanner = const BackupImportPlanner(),
     this.restoreCoordinator = const BackupRestoreCoordinator(),
   });
 
   final SharedPreferencesBackupAdapter adapter;
   final BackupPreviewParser previewParser;
+  final BackupImportPlanner importPlanner;
   final BackupRestoreCoordinator restoreCoordinator;
 
   Future<BackupDocument> createDocument({DateTime? now}) async {
@@ -42,6 +45,16 @@ class LocalBackupService {
     }
   }
 
+  Future<BackupImportPlan> planImportJson(String encoded) async {
+    final decoded = jsonDecode(encoded);
+    final incoming = _validatedSections(decoded);
+    final current = await adapter.captureSections();
+    return importPlanner.build(
+      currentSections: current,
+      incomingSections: incoming,
+    );
+  }
+
   Future<void> restoreJson(
     String encoded, {
     BackupRestoreMode mode = BackupRestoreMode.replace,
@@ -59,26 +72,8 @@ class LocalBackupService {
 
     await restoreCoordinator.restore(
       validate: () async {
-        final preview = previewParser.parse(decoded);
-        if (!preview.canRestore || decoded is! Map || preview.version == null) {
-          throw const FormatException('Backup is not restorable.');
-        }
-        final rawData = decoded['data'];
-        if (rawData is! Map) {
-          throw const FormatException('Backup data is invalid.');
-        }
-        normalizedVersion = preview.version;
-        final selected = <String, Object?>{};
-        for (final entry in rawData.entries) {
-          if (entry.key is! String) {
-            throw const FormatException('Backup section key is invalid.');
-          }
-          final section = entry.key as String;
-          if (BackupManifest.sectionsForVersion(normalizedVersion!).contains(section)) {
-            selected[section] = entry.value;
-          }
-        }
-        normalizedData = Map<String, Object?>.unmodifiable(selected);
+        normalizedData = _validatedSections(decoded);
+        normalizedVersion = previewParser.parse(decoded).version;
       },
       captureSnapshot: adapter.capture,
       applyRestore: () async {
@@ -99,6 +94,28 @@ class LocalBackupService {
         await adapter.restore(Map<String, Object?>.from(snapshot));
       },
     );
+  }
+
+  Map<String, Object?> _validatedSections(Object? decoded) {
+    final preview = previewParser.parse(decoded);
+    if (!preview.canRestore || decoded is! Map || preview.version == null) {
+      throw const FormatException('Backup is not restorable.');
+    }
+    final rawData = decoded['data'];
+    if (rawData is! Map) {
+      throw const FormatException('Backup data is invalid.');
+    }
+    final selected = <String, Object?>{};
+    for (final entry in rawData.entries) {
+      if (entry.key is! String) {
+        throw const FormatException('Backup section key is invalid.');
+      }
+      final section = entry.key as String;
+      if (BackupManifest.sectionsForVersion(preview.version!).contains(section)) {
+        selected[section] = entry.value;
+      }
+    }
+    return Map<String, Object?>.unmodifiable(selected);
   }
 
   Map<String, Object?> _mergeSections(
