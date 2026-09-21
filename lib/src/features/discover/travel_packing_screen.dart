@@ -5,7 +5,6 @@ import 'travel_packing_store.dart';
 
 class TravelPackingScreen extends StatefulWidget {
   const TravelPackingScreen({super.key});
-
   @override
   State<TravelPackingScreen> createState() => _TravelPackingScreenState();
 }
@@ -15,58 +14,34 @@ class _TravelPackingScreenState extends State<TravelPackingScreen> {
   final _controller = TextEditingController();
   List<TravelPackingItem> _items = const [];
   bool _loading = true;
-
   _PackingCopy get copy => _PackingCopy.forLocale(Localizations.localeOf(context));
 
   @override
-  void initState() {
-    super.initState();
-    _load();
-  }
+  void initState() { super.initState(); _load(); }
 
   Future<void> _load() async {
     final items = await _store.load();
     if (!mounted) return;
-    setState(() {
-      _items = items;
-      _loading = false;
-    });
+    setState(() { _items = items; _loading = false; });
   }
 
   Future<void> _persist(List<TravelPackingItem> next) async {
     final previous = _items;
     setState(() => _items = List.unmodifiable(next));
-    try {
-      await _store.save(next);
-    } catch (_) {
-      if (mounted) setState(() => _items = previous);
-      rethrow;
-    }
+    try { await _store.save(next); } catch (_) { if (mounted) setState(() => _items = previous); rethrow; }
   }
 
   Future<void> _add() async {
     final label = _controller.text.trim();
     if (label.isEmpty) return;
-    final item = TravelPackingItem(
-      id: '${DateTime.now().microsecondsSinceEpoch}-${label.hashCode}',
-      label: label,
-      packed: false,
-    );
+    final item = TravelPackingItem(id: '${DateTime.now().microsecondsSinceEpoch}-${label.hashCode}', label: label, packed: false);
     _controller.clear();
     await _persist([..._items, item]);
   }
 
-  Future<void> _toggle(TravelPackingItem item, bool value) => _persist([
-        for (final current in _items)
-          current.id == item.id ? current.copyWith(packed: value) : current,
-      ]);
-
-  Future<void> _remove(TravelPackingItem item) =>
-      _persist(_items.where((current) => current.id != item.id).toList(growable: false));
-
-  Future<void> _resetPacked() => _persist([
-        for (final item in _items) item.packed ? item.copyWith(packed: false) : item,
-      ]);
+  Future<void> _toggle(TravelPackingItem item, bool value) => _persist([for (final current in _items) current.id == item.id ? current.copyWith(packed: value) : current]);
+  Future<void> _remove(TravelPackingItem item) => _persist(_items.where((current) => current.id != item.id).toList(growable: false));
+  Future<void> _resetPacked() => _persist([for (final item in _items) item.packed ? item.copyWith(packed: false) : item]);
 
   Future<void> _copyChecklist() async {
     if (_items.isEmpty) return;
@@ -78,10 +53,7 @@ class _TravelPackingScreenState extends State<TravelPackingScreen> {
   }
 
   @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  void dispose() { _controller.dispose(); super.dispose(); }
 
   @override
   Widget build(BuildContext context) {
@@ -89,83 +61,59 @@ class _TravelPackingScreenState extends State<TravelPackingScreen> {
     final packed = _items.where((item) => item.packed).length;
     return Scaffold(
       appBar: AppBar(title: Text(c.title)),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
-              children: [
-                Semantics(
-                  container: true,
-                  label: '${c.progress}: $packed / ${_items.length}. ${c.offline}',
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text('${c.progress}: $packed / ${_items.length}', style: Theme.of(context).textTheme.titleMedium),
-                        const SizedBox(height: 8),
-                        LinearProgressIndicator(value: _items.isEmpty ? 0 : packed / _items.length),
-                        const SizedBox(height: 8),
-                        Text(c.offline, style: Theme.of(context).textTheme.bodySmall),
-                      ]),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _controller,
-                      textInputAction: TextInputAction.done,
-                      onSubmitted: (_) => _add(),
-                      decoration: InputDecoration(labelText: c.newItem, prefixIcon: const Icon(Icons.add_box_outlined)),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton.filled(onPressed: _add, tooltip: c.add, icon: const Icon(Icons.add_rounded)),
-                ]),
-                if (_items.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  Wrap(spacing: 8, runSpacing: 8, children: [
-                    OutlinedButton.icon(onPressed: _copyChecklist, icon: const Icon(Icons.copy_rounded), label: Text(c.copy)),
-                    if (packed > 0)
-                      OutlinedButton.icon(onPressed: _resetPacked, icon: const Icon(Icons.restart_alt_rounded), label: Text(c.reset)),
-                  ]),
-                ],
-                const SizedBox(height: 14),
-                if (_items.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 32),
-                    child: Column(children: [
-                      const Icon(Icons.luggage_outlined, size: 44),
-                      const SizedBox(height: 10),
-                      Text(c.empty, textAlign: TextAlign.center),
-                    ]),
-                  )
-                else
-                  for (final item in _items)
-                    Dismissible(
-                      key: ValueKey(item.id),
-                      direction: DismissDirection.endToStart,
-                      background: Container(
-                        alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.only(right: 20),
-                        color: Theme.of(context).colorScheme.errorContainer,
-                        child: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.onErrorContainer),
-                      ),
-                      onDismissed: (_) => _remove(item),
-                      child: Semantics(
-                        checked: item.packed,
-                        label: item.label,
-                        child: CheckboxListTile(
-                          value: item.packed,
-                          onChanged: (value) => _toggle(item, value ?? false),
-                          title: Text(item.label, style: item.packed ? const TextStyle(decoration: TextDecoration.lineThrough) : null),
-                          secondary: IconButton(onPressed: () => _remove(item), tooltip: c.remove, icon: const Icon(Icons.delete_outline)),
-                        ),
-                      ),
-                    ),
-              ],
-            ),
+      body: _loading ? const Center(child: CircularProgressIndicator()) : ListView(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
+        children: [
+          Semantics(container: true, label: '${c.progress}: $packed / ${_items.length}. ${c.offline}', child: Card(child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('${c.progress}: $packed / ${_items.length}', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 8),
+              LinearProgressIndicator(value: _items.isEmpty ? 0 : packed / _items.length),
+              const SizedBox(height: 8),
+              Text(c.offline, style: Theme.of(context).textTheme.bodySmall),
+            ]),
+          ))),
+          const SizedBox(height: 14),
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(child: TextField(
+              controller: _controller,
+              inputFormatters: [LengthLimitingTextInputFormatter(TravelPackingItem.maxLabelLength)],
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _add(),
+              decoration: InputDecoration(labelText: c.newItem, prefixIcon: const Icon(Icons.add_box_outlined)),
+            )),
+            const SizedBox(width: 8),
+            IconButton.filled(onPressed: _add, tooltip: c.add, icon: const Icon(Icons.add_rounded)),
+          ]),
+          if (_items.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(spacing: 8, runSpacing: 8, children: [
+              OutlinedButton.icon(onPressed: _copyChecklist, icon: const Icon(Icons.copy_rounded), label: Text(c.copy)),
+              if (packed > 0) OutlinedButton.icon(onPressed: _resetPacked, icon: const Icon(Icons.restart_alt_rounded), label: Text(c.reset)),
+            ]),
+          ],
+          const SizedBox(height: 14),
+          if (_items.isEmpty)
+            Padding(padding: const EdgeInsets.symmetric(vertical: 32), child: Column(children: [
+              const Icon(Icons.luggage_outlined, size: 44), const SizedBox(height: 10), Text(c.empty, textAlign: TextAlign.center),
+            ]))
+          else
+            for (final item in _items)
+              Dismissible(
+                key: ValueKey(item.id),
+                direction: DismissDirection.endToStart,
+                background: Container(alignment: Alignment.centerRight, padding: const EdgeInsets.only(right: 20), color: Theme.of(context).colorScheme.errorContainer, child: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.onErrorContainer)),
+                onDismissed: (_) => _remove(item),
+                child: Semantics(checked: item.packed, label: item.label, child: CheckboxListTile(
+                  value: item.packed,
+                  onChanged: (value) => _toggle(item, value ?? false),
+                  title: Text(item.label, style: item.packed ? const TextStyle(decoration: TextDecoration.lineThrough) : null),
+                  secondary: IconButton(onPressed: () => _remove(item), tooltip: c.remove, icon: const Icon(Icons.delete_outline)),
+                )),
+              ),
+        ],
+      ),
     );
   }
 }
