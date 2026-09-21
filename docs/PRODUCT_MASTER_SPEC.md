@@ -1173,6 +1173,10 @@ Signed manifests may add/update language packs without an app release after lice
 - User chooses which languages/editions/audio to store.
 - Reader/search/bookmarks for downloaded language packs work offline.
 - Download manager shows size, version, source and integrity state.
+- An offline pack is marked ready only when its payload and every required timing/index/manifest/font dependency are version-compatible and checksum-verified; media bytes alone never count as a successful install.
+- Install/update is transactional: retain the last valid pack until the replacement passes verification, resume/retry partial work, and expose exact scope, size, network policy, progress, failure reason and repair action.
+- Storage controls show per-pack/reciter/range size and allow deleting reproducible content without deleting bookmarks, notes, Hifz state, reading history or pack preference.
+- Cloud backup includes user-created data and lightweight installed-pack intent/version metadata, but excludes reproducible Quran/translation/audio/font payload bytes. After restore or OS cache eviction, preserve selections and transparently offer/queue re-download; never claim a missing pack is offline-ready.
 - Updates are resumable/checksummed and must not destroy already downloaded valid packs during app upgrades.
 
 ### Rendering/search quality
