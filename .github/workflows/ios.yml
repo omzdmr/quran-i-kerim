@@ -91,6 +91,9 @@ jobs:
             -o /tmp/backup-exclusion-validation
           /tmp/backup-exclusion-validation
 
+      - name: Fetch and validate bundled content
+        run: python3 tool/fetch_content.py
+
       - name: Get dependencies
         run: flutter pub get
 
