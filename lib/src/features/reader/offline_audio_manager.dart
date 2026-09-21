@@ -88,6 +88,7 @@ class OfflineAudioManager extends ChangeNotifier {
   final Map<String, AudioDownloadProgress> _progress =
       <String, AudioDownloadProgress>{};
   final Map<String, _DownloadJob> _jobs = <String, _DownloadJob>{};
+  final Set<String> _verifiedManifests = <String>{};
   Directory? _rootDirectory;
 
   String _jobKey(String storageKey, int surah) => '$storageKey|$surah';
@@ -293,6 +294,9 @@ class OfflineAudioManager extends ChangeNotifier {
     final job = _jobs[_jobKey(storageKey, surah)];
     if (job != null) job.cancelRequested = true;
     await _deleteSurahInternal(storageKey, surah);
+    _verifiedManifests.removeWhere(
+      (key) => key.startsWith('$storageKey|$surah|'),
+    );
     await _intentStore.remove(storageKey, surah);
     _progress.remove(_jobKey(storageKey, surah));
     notifyListeners();
@@ -303,6 +307,9 @@ class OfflineAudioManager extends ChangeNotifier {
     final directory = Directory('${root.path}/${_safe(storageKey)}');
     if (await directory.exists()) await directory.delete(recursive: true);
     await _intentStore.removeSource(storageKey);
+    _verifiedManifests.removeWhere(
+      (key) => key.startsWith('$storageKey|'),
+    );
     _progress.removeWhere((key, _) => key.startsWith('$storageKey|'));
     notifyListeners();
   }
@@ -427,20 +434,22 @@ class OfflineAudioManager extends ChangeNotifier {
     final directory = await _surahDirectory(storageKey, surah, create: true);
     final target = File('${directory.path}/pack_manifest_v1.json');
     final partial = File('${target.path}.part');
-    await partial.writeAsString(
-      OfflineAudioPackManifest(
+    final manifest = OfflineAudioPackManifest(
         storageKey: storageKey,
         surah: surah,
         verseCount: verseCount,
         ayahBytes: inspection.ayahBytes,
         ayahSha256: inspection.ayahSha256,
         completedAt: DateTime.now().toUtc(),
-      ).encode(),
-      flush: true,
-    );
+      );
+    await partial.writeAsString(manifest.encode(), flush: true);
     if (await target.exists()) await target.delete();
     await partial.rename(target.path);
+    _verifiedManifests.add(_manifestVerificationKey(manifest));
   }
+
+  String _manifestVerificationKey(OfflineAudioPackManifest manifest) =>
+      '${manifest.storageKey}|${manifest.surah}|${manifest.completedAt.toUtc().toIso8601String()}|${manifest.totalBytes}';
 
   Future<_AudioDirectoryInspection> _inspect(
     String storageKey,
@@ -484,10 +493,28 @@ class OfflineAudioManager extends ChangeNotifier {
         ayahFiles[ayah] = entity;
       } catch (_) {}
     }
-    if (computeHashes || manifest != null) {
+    final verificationKey = manifest == null
+        ? null
+        : _manifestVerificationKey(manifest);
+    if (manifest != null &&
+        !computeHashes &&
+        _verifiedManifests.contains(verificationKey)) {
+      ayahSha256.addAll(manifest.ayahSha256);
+    } else if (computeHashes || manifest != null) {
       for (final entry in ayahFiles.entries) {
         ayahSha256[entry.key] =
             (await sha256.bind(entry.value.openRead()).first).toString();
+      }
+      if (manifest != null &&
+          manifest.matches(
+            expectedStorageKey: storageKey,
+            expectedSurah: surah,
+            expectedVerseCount: manifest.verseCount,
+            actualAyahBytes: ayahBytes,
+            actualAyahSha256: ayahSha256,
+            hasPartialFiles: hasPartials,
+          )) {
+        _verifiedManifests.add(verificationKey!);
       }
     }
     return _AudioDirectoryInspection(
