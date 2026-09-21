@@ -45,6 +45,7 @@ jobs:
           test -f ios/Runner/WidgetSnapshotStore.swift
           test -f ios/Runner/WidgetSnapshotChannel.swift
           test -f ios/Runner/NativeLifecycleStateChannel.swift
+          test -f ios/Runner/MicrophoneRecordingChannel.swift
           test -f ios/Runner/Runner.entitlements
           test -f ios/NativeTests/BackupExclusionCoordinatorValidation.swift
           test -f ios/NativeTests/WidgetSnapshotValidation.swift
@@ -70,6 +71,8 @@ jobs:
             grep -q "CFBundleDisplayName" "$strings_file"
             grep -q "NSLocationWhenInUseUsageDescription" "$strings_file"
             grep -q "NSMicrophoneUsageDescription" "$strings_file"
+            grep -q "NotificationSelfTestTitle" "$strings_file"
+            grep -q "NotificationSelfTestBody" "$strings_file"
             grep -q "name = ${locale};" ios/Runner.xcodeproj/project.pbxproj
           done
           ruby -c ios/Podfile
@@ -80,13 +83,18 @@ jobs:
           grep -q "WidgetSnapshotStore.swift in Sources" ios/Runner.xcodeproj/project.pbxproj
           grep -q "WidgetSnapshotChannel.swift in Sources" ios/Runner.xcodeproj/project.pbxproj
           grep -q "NativeLifecycleStateChannel.swift in Sources" ios/Runner.xcodeproj/project.pbxproj
+          grep -q "MicrophoneRecordingChannel.swift in Sources" ios/Runner.xcodeproj/project.pbxproj
           grep -q "group.app.quranikerim.shared" ios/Runner/Runner.entitlements
           grep -q "CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements" ios/Flutter/Debug.xcconfig
           grep -q "CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements" ios/Flutter/Release.xcconfig
           grep -q "app.quranikerim/native_widget_snapshot" ios/Runner/WidgetSnapshotChannel.swift
           grep -q "app.quranikerim/native_lifecycle_state" ios/Runner/NativeLifecycleStateChannel.swift
+          grep -q "app.quranikerim/native_recording" ios/Runner/MicrophoneRecordingChannel.swift
+          grep -q 'case "scheduleNotificationSelfTest"' ios/Runner/BackupExclusionChannel.swift
+          grep -q 'case "getNotificationDiagnostics"' ios/Runner/BackupExclusionChannel.swift
           grep -q "WidgetSnapshotChannel(binaryMessenger: messenger)" ios/Runner/AppDelegate.swift
           grep -q "NativeLifecycleStateChannel(binaryMessenger: messenger)" ios/Runner/AppDelegate.swift
+          grep -q "MicrophoneRecordingChannel(binaryMessenger: messenger)" ios/Runner/AppDelegate.swift
           grep -q "app.quranikerim/native_document_handoff" ios/Runner/AppDelegate.swift
           grep -q 'case "exportFile"' ios/Runner/AppDelegate.swift
           grep -q 'case "importFile"' ios/Runner/AppDelegate.swift
@@ -118,18 +126,12 @@ jobs:
 
       - name: Validate native backup exclusion boundary
         run: |
-          swiftc \
-            ios/Runner/BackupExclusionCoordinator.swift \
-            ios/NativeTests/BackupExclusionCoordinatorValidation.swift \
-            -o /tmp/backup-exclusion-validation
+          swiftc ios/Runner/BackupExclusionCoordinator.swift ios/NativeTests/BackupExclusionCoordinatorValidation.swift -o /tmp/backup-exclusion-validation
           /tmp/backup-exclusion-validation
 
       - name: Validate widget snapshot freshness contract
         run: |
-          swiftc \
-            ios/Runner/WidgetSnapshotStore.swift \
-            ios/NativeTests/WidgetSnapshotValidation.swift \
-            -o /tmp/widget-snapshot-validation
+          swiftc ios/Runner/WidgetSnapshotStore.swift ios/NativeTests/WidgetSnapshotValidation.swift -o /tmp/widget-snapshot-validation
           /tmp/widget-snapshot-validation
 
       - name: Fetch and validate bundled content
@@ -147,20 +149,11 @@ jobs:
       - name: Audit committed Xcode graph
         if: steps.ios_pods.outcome == 'success'
         run: |
-          xcodebuild \
-            -workspace ios/Runner.xcworkspace \
-            -scheme Runner \
-            -sdk iphonesimulator \
-            -showBuildSettings \
-            CODE_SIGNING_ALLOWED=NO > /tmp/runner-build-settings.txt
+          xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -sdk iphonesimulator -showBuildSettings CODE_SIGNING_ALLOWED=NO > /tmp/runner-build-settings.txt
           grep -q "PRODUCT_BUNDLE_IDENTIFIER = com.omzdmr.quranIKerim" /tmp/runner-build-settings.txt
           grep -q "IPHONEOS_DEPLOYMENT_TARGET = 15.0" /tmp/runner-build-settings.txt
           grep -q "CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements" /tmp/runner-build-settings.txt
-          git diff --exit-code -- \
-            ios/Runner \
-            ios/Podfile \
-            ios/Flutter/Debug.xcconfig \
-            ios/Flutter/Release.xcconfig
+          git diff --exit-code -- ios/Runner ios/Podfile ios/Flutter/Debug.xcconfig ios/Flutter/Release.xcconfig
 
       - name: Generate localizations
         run: flutter gen-l10n
@@ -188,9 +181,7 @@ jobs:
           /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes:0" build/ios/iphonesimulator/Runner.app/Info.plist | grep -qx audio
           /usr/libexec/PlistBuddy -c "Print :NSLocationWhenInUseUsageDescription" build/ios/iphonesimulator/Runner.app/Info.plist
           /usr/libexec/PlistBuddy -c "Print :NSMicrophoneUsageDescription" build/ios/iphonesimulator/Runner.app/Info.plist
-          for locale in en tr ar az ru fr; do
-            test -f "build/ios/iphonesimulator/Runner.app/${locale}.lproj/InfoPlist.strings"
-          done
+          for locale in en tr ar az ru fr; do test -f "build/ios/iphonesimulator/Runner.app/${locale}.lproj/InfoPlist.strings"; done
 
       - name: Upload simulator build for parity inspection
         if: steps.ios_build.outcome == 'success'
@@ -205,16 +196,7 @@ jobs:
         if: always()
         run: |
           failed=0
-          if [[ "${{ steps.ios_pods.outcome }}" != "success" ]]; then
-            echo "::error::CocoaPods could not integrate the committed Runner project."
-            failed=1
-          fi
-          if [[ "${{ steps.shared_tests.outcome }}" != "success" ]]; then
-            echo "::error::Shared Flutter tests failed on this staging snapshot."
-            failed=1
-          fi
-          if [[ "${{ steps.ios_build.outcome }}" != "success" ]]; then
-            echo "::error::iOS simulator build failed."
-            failed=1
-          fi
+          if [[ "${{ steps.ios_pods.outcome }}" != "success" ]]; then echo "::error::CocoaPods could not integrate the committed Runner project."; failed=1; fi
+          if [[ "${{ steps.shared_tests.outcome }}" != "success" ]]; then echo "::error::Shared Flutter tests failed on this staging snapshot."; failed=1; fi
+          if [[ "${{ steps.ios_build.outcome }}" != "success" ]]; then echo "::error::iOS simulator build failed."; failed=1; fi
           exit "$failed"
