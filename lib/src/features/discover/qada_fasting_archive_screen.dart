@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
@@ -72,6 +73,27 @@ class _QadaFastingArchiveScreenState extends State<QadaFastingArchiveScreen> {
     }
   }
 
+  Future<void> _pickAndPreview() async {
+    try {
+      final picked = await FilePicker.pickFile(
+        type: FileType.custom,
+        allowedExtensions: const <String>['json'],
+      );
+      if (picked == null || !mounted) return;
+      final path = picked.path;
+      if (path == null || path.trim().isEmpty) {
+        setState(() => _status = _t('fileUnavailable'));
+        return;
+      }
+      final source = await File(path).readAsString();
+      if (!mounted) return;
+      await _previewSource(source);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _status = _t('invalidArchive'));
+    }
+  }
+
   Future<void> _pasteAndPreview() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     final source = data?.text?.trim();
@@ -80,11 +102,16 @@ class _QadaFastingArchiveScreenState extends State<QadaFastingArchiveScreen> {
       setState(() => _status = _t('clipboardEmpty'));
       return;
     }
+    await _previewSource(source);
+  }
+
+  Future<void> _previewSource(String source) async {
     try {
       final preview = _archive.preview(source, current: _ledger);
       if (!mounted) return;
       await _showPreview(source, preview);
     } on FormatException {
+      if (!mounted) return;
       setState(() => _status = _t('invalidArchive'));
     }
   }
@@ -253,6 +280,12 @@ class _QadaFastingArchiveScreenState extends State<QadaFastingArchiveScreen> {
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
+                  onPressed: _pickAndPreview,
+                  icon: const Icon(Icons.folder_open_rounded),
+                  label: Text(_t('fileImport')),
+                ),
+                const SizedBox(height: 8),
+                TextButton.icon(
                   onPressed: _pasteAndPreview,
                   icon: const Icon(Icons.content_paste_rounded),
                   label: Text(_t('pasteImport')),
