@@ -22,6 +22,7 @@ class _QuranAreaScreenState extends State<QuranAreaScreen> {
     super.initState();
     AppNavigation.instance.readerRequest.addListener(_handleReaderRequest);
     AppNavigation.instance.quranReadRequest.addListener(_handleQuranReadRequest);
+    AppNavigation.instance.reportQuranSection(_section);
   }
 
   @override
@@ -44,14 +45,19 @@ class _QuranAreaScreenState extends State<QuranAreaScreen> {
   }
 
   void _showReadSection() {
-    if (_section == 0) return;
+    if (_section == 0) {
+      AppNavigation.instance.reportQuranSection(_section);
+      return;
+    }
     setState(() => _section = 0);
+    AppNavigation.instance.reportQuranSection(_section);
   }
 
   void _selectSection(int index) {
     if (_section == index) return;
     HapticFeedback.selectionClick();
     setState(() => _section = index);
+    AppNavigation.instance.reportQuranSection(index);
   }
 
   @override

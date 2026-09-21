@@ -74,7 +74,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
       ..addListener(_handleFocusChanged);
     unawaited(_restoreFocusPreferences());
     AppNavigation.instance.readerRequest.addListener(_handleReaderRequest);
-    AppNavigation.instance.activeTabIndex.addListener(_handleActiveTabChanged);
+    AppNavigation.instance.readerVisible.addListener(_handleReaderVisibilityChanged);
   }
 
   @override
@@ -99,11 +99,8 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
     }
   }
 
-  void _handleActiveTabChanged() {
-    if (AppNavigation.instance.activeTabIndex.value ==
-        AppNavigation.quranTabIndex) {
-      return;
-    }
+  void _handleReaderVisibilityChanged() {
+    if (AppNavigation.instance.readerVisible.value) return;
     _autoScrollTimer?.cancel();
     _autoScrollTimer = null;
     _saveVisibleReadingPosition();
@@ -159,8 +156,8 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
     _focusController.dispose();
     AppNavigation.instance.setReaderSelectionActive(false);
     AppNavigation.instance.readerRequest.removeListener(_handleReaderRequest);
-    AppNavigation.instance.activeTabIndex.removeListener(
-      _handleActiveTabChanged,
+    AppNavigation.instance.readerVisible.removeListener(
+      _handleReaderVisibilityChanged,
     );
     _audioController.removeListener(_handleAudioChanged);
     _audioController.dispose();
