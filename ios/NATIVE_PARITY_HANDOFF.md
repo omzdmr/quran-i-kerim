@@ -1,50 +1,26 @@
 # Native iOS parity handoff
 
-This file describes the native contracts exposed by `automation/ios-parity`. Shared Flutter/Dart remains read-only on this branch.
+Shared Flutter/Dart remains read-only on `automation/ios-parity`.
 
 ## Widget snapshot (`app.quranikerim/native_widget_snapshot`)
+`publish` expects `generatedAtMs`, `validUntilMs`, `timeZone`, `calculationFingerprint`, optional paired `nextPrayerId`/`nextPrayerAtMs`, `displayName`, and `privacyMode`. Native storage rejects expired, malformed or implausible snapshots. The widget refuses wrong-time-zone/redacted/stale data and inserts an explicit timeline entry at the next-prayer boundary so a countdown cannot remain at 00:00. Shared code must republish after prayer-policy, timezone, schedule or privacy changes. Prayer calculation remains shared-layer owned.
 
-`publish` expects `generatedAtMs`, `validUntilMs`, `timeZone`, `calculationFingerprint`, optional `nextPrayerId`, `nextPrayerAtMs`, `displayName`, and `privacyMode` (`standard` or `redacted`). The native store rejects already-expired/invalid snapshots, persists only a compact projection in `group.app.quranikerim.shared`, and asks WidgetKit to reload. The widget refuses stale, wrong-time-zone, expired-next-prayer, or redacted detail. Shared code must republish whenever prayer calculation policy, timezone, relevant location-derived schedule, or privacy choice changes.
-
-Do not calculate prayer times inside the extension. The widget is a consumer of the shared layer's already-approved schedule.
-
-The `PrayerWidget` target is embedded by Runner and has the same App Group entitlement. Its source supports system small, system medium and accessory rectangular families, Dynamic Type, VoiceOver-friendly states, privacy redaction, six native locales, and a validity-bound timeline refresh. The app remains iOS 15+, while this first widget target is iOS 17+ because it uses the modern widget container background API.
+`PrayerWidget` is embedded by Runner, shares the App Group, supports small/medium/accessory rectangular families, Dynamic Type/VoiceOver-friendly states and EN/TR/AR/AZ/RU/FR. The first target is iOS 17+ because it uses the modern widget container background API.
 
 ## Lifecycle restore (`app.quranikerim/native_lifecycle_state`)
-
-- `snapshot`: launch count, launch time, prior clean-termination flag, last background/foreground timestamps and background gap.
-- `acknowledgeRestore`: clears the consumed background marker.
-- Event: `lifecycleChanged` with `active`, `inactive`, `background`, or `foreground`.
-
-Use this to decide whether a shared reader/audio state needs restoration. Native code does not choose the Quran position itself.
+`snapshot` exposes launch count/time, `hadPreviousSession`, prior clean-termination state, background/foreground timestamps and background gap. First install is therefore not mislabeled as a crash. `acknowledgeRestore` consumes the background marker. `lifecycleChanged` emits active/inactive/background/foreground. Shared code still owns the actual Reader/audio restore decision.
 
 ## Recitation recording (`app.quranikerim/native_recording`)
-
-- `permissionStatus`, `requestPermission`
-- `startRecording({recordingId?})`
-- `recordingStatus`
-- `stopRecording`, `cancelRecording`
-- `listRecordings`
-- `deleteRecording({recordingId})`
-
-Files are AAC `.m4a` under Application Support `UserRecitations`. They are user-created data and therefore are not marked as reproducible/backup-excluded. The directory uses iOS file protection. The shared layer owns labels, verse associations and deletion confirmation UX. No tajwid scoring or speech judgement is performed natively.
+Methods: `permissionStatus`, `requestPermission`, `startRecording`, `recordingStatus`, `stopRecording`, `cancelRecording`, `listRecordings`, `deleteRecording`. AAC `.m4a` files live under Application Support `UserRecitations`, use iOS file protection, and are deliberately not backup-excluded because they are user-created data. Unexpected recorder termination emits `recordingInterrupted` with recoverable file metadata and restores the playback audio-session policy. Shared code owns verse associations/deletion confirmation. No tajwid scoring is performed.
 
 ## Native share (`app.quranikerim/native_share`)
-
-- `shareText({text})`
-- `shareFile({path})`
-- completion result: `completed`, `cancelled`, or `dismissed`
-
-The presenter is popover-safe on iPad. Shared code owns the rendered text and must not ask native code to invent or transform religious content.
+`shareText` and `shareFile` use `UIActivityViewController`, return completion status, and are popover-safe on iPad. Shared code owns rendered religious text.
 
 ## Notification diagnostics (`com.omzdmr.quran_i_kerim/notification_permission`)
-
-In addition to permission request/status, native code exposes `getNotificationDiagnostics`, `scheduleNotificationSelfTest`, and `cancelNotificationSelfTest`. The self-test schedules a local notification three seconds later only when authorization can deliver notifications. This is intended for a user-invoked troubleshooting screen, not an automatic background probe.
+`getNotificationDiagnostics`, `scheduleNotificationSelfTest`, and `cancelNotificationSelfTest` complement permission status/request. The user-invoked self-test schedules a local notification after three seconds only when authorization permits delivery. Its visible text is localized through the existing InfoPlist localization bundle.
 
 ## Privacy manifests
-
-Runner declares Apple's required-reason API categories for app-owned/shared `UserDefaults` (`CA92.1`, `1C8F.1`) and app-container file metadata (`C617.1`). The widget has its own privacy manifest declaring App Group `UserDefaults` use (`1C8F.1`), because it is a separate executable. Before App Store landing, ensure `PrayerWidget/PrivacyInfo.xcprivacy` has target membership and verify it exists inside the built `.appex`; the file is committed but that resource-membership gate is intentionally left explicit until CI validates the new target graph.
+Runner declares required-reason APIs for app-owned/shared `UserDefaults` (`CA92.1`, `1C8F.1`) and app-container file metadata (`C617.1`). The widget has its own manifest with App Group `UserDefaults` reason `1C8F.1`. Before App Store landing, add `PrayerWidget/PrivacyInfo.xcprivacy` to widget target resources and verify it exists inside the built `.appex`; the file is committed but resource membership is intentionally still a landing gate.
 
 ## Deep link draft
-
-`DeepLinkChannel.swift` is intentionally **not wired into AppDelegate or the Xcode Sources phase yet**. It implements a bounded cold-start-safe queue and URL normalization, but enabling it must be coordinated with the shared router so Flutter's existing deep-link handling is not duplicated. Integrate it only after the shared route ownership decision is explicit.
+`DeepLinkChannel.swift` is intentionally not wired into AppDelegate/Xcode Sources yet. It provides a bounded cold-start queue and URL normalization, but enabling it must be coordinated with the shared router to avoid duplicate Flutter deep-link handling.
