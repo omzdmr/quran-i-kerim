@@ -223,7 +223,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
     if (!mounted) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !AppNavigation.instance.readerVisible.value) return;
-      _showFocusControls();
+      unawaited(_showFocusControls());
     });
   }
 
