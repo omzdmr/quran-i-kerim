@@ -72,6 +72,9 @@ class _MemorizationReviewCoverageScreenState
     final visibleItems = _attentionOnly
         ? coverage.items.where((item) => item.needsAttention).toList()
         : coverage.items;
+    final nextAttention = coverage.items
+        .where((item) => item.needsAttention)
+        .firstOrNull;
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView(
@@ -83,6 +86,16 @@ class _MemorizationReviewCoverageScreenState
                 '${l10n.memorizeTodayReview}: ${coverage.needsAttentionCount} / ${coverage.total}',
             child: _CoverageSummary(coverage: coverage),
           ),
+          if (nextAttention != null) ...[
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: () => _openPage(nextAttention.page),
+              icon: const Icon(Icons.play_arrow_rounded),
+              label: Text(
+                '${l10n.memorizeOpenNext} · ${l10n.memorizePages} ${nextAttention.page}',
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,
@@ -218,5 +231,12 @@ class _CoveragePageTile extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+extension _FirstOrNull<T> on Iterable<T> {
+  T? get firstOrNull {
+    final iterator = this.iterator;
+    return iterator.moveNext() ? iterator.current : null;
   }
 }
