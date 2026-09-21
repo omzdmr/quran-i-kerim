@@ -75,7 +75,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(Directionality.of(tester.element(find.byType(ReaderArchiveScreen))), TextDirection.rtl);
+    expect(
+      Directionality.of(tester.element(find.byType(ReaderArchiveScreen))),
+      TextDirection.rtl,
+    );
     expect(find.text('المحفوظات'), findsOneWidget);
     expect(find.text('ملاحظة خاصة'), findsOneWidget);
     expect(find.bySemanticsLabel(RegExp('آية محفوظة')), findsOneWidget);
