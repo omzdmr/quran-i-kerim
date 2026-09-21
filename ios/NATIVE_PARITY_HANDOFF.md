@@ -5,7 +5,14 @@ Shared Flutter/Dart remains read-only on `automation/ios-parity`.
 ## Widget snapshot (`app.quranikerim/native_widget_snapshot`)
 `publish` expects `generatedAtMs`, `validUntilMs`, `timeZone`, `calculationFingerprint`, optional paired `nextPrayerId`/`nextPrayerAtMs`, `displayName`, and `privacyMode`. Native storage rejects expired, malformed or implausible snapshots. The widget refuses wrong-time-zone/redacted/stale data and inserts an explicit timeline entry at the next-prayer boundary so a countdown cannot remain at 00:00. Shared code must republish after prayer-policy, timezone, schedule or privacy changes. Prayer calculation remains shared-layer owned.
 
-`PrayerWidget` shares the App Group, supports small/medium/accessory rectangular families, Dynamic Type/VoiceOver-friendly states and EN/TR/AR/AZ/RU/FR. The first target is iOS 17+ because it uses the modern widget container background API.
+The native channel now also revalidates the projection on significant system-clock changes, time-zone changes and foreground activation. A stale projection is purged from the App Group; clock/time-zone changes force WidgetKit timeline reevaluation even if the projection remains valid. Capabilities expose `systemTimeInvalidation`, `timeZoneInvalidation` and `foregroundRevalidation` so the shared layer can feature-detect this behavior.
+
+`PrayerWidget` shares the App Group, supports small/medium/accessory inline/circular/rectangular families, Dynamic Type/VoiceOver-friendly states and EN/TR/AR/AZ/RU/FR. The extension validates the prayer-id/time pair and policy/time-zone metadata again before display, so malformed App Group bytes fail closed. The first target is iOS 17+ because it uses the modern widget container background API.
+
+## Widget deep link (`app.quranikerim/native_deep_link`)
+Runner now registers the private `quranikerim` URL scheme. Widget taps use `quranikerim://prayer`. AppDelegate forwards cold-start and warm custom-scheme ingress into a bounded native queue and still calls FlutterAppDelegate so existing plugin routing is not bypassed. The native boundary accepts only HTTPS plus the private scheme; private-scheme hosts are limited to `prayer`, `reader`, and `hifz`.
+
+Shared-router handoff: consume `consumePendingLinks` after router readiness and listen for `linkReceived`. Deduplicate against Flutter's own incoming-link callback by normalized URL before navigation. Until that shared integration lands, a widget tap is guaranteed to open the app, while exact in-app destination parity remains a shared-layer task.
 
 ## Lifecycle restore (`app.quranikerim/native_lifecycle_state`)
 `snapshot` exposes launch count/time, `hadPreviousSession`, prior clean-termination state, background/foreground timestamps and background gap. First install is not mislabeled as a crash. `acknowledgeRestore` consumes the background marker. Shared code owns the actual Reader/audio restore decision.
@@ -23,6 +30,3 @@ Methods: `permissionStatus`, `requestPermission`, `startRecording`, `recordingSt
 Runner declares required-reason APIs for app-owned/shared `UserDefaults` (`CA92.1`, `1C8F.1`) and app-container file metadata (`C617.1`). Widget manifest declares App Group `UserDefaults` reason `1C8F.1`. The App Group ID `group.app.quranikerim.shared` must also be registered to the Apple team and authorized by both provisioning profiles.
 
 Before landing, run `ios/NativeTests/validate_project_graph.py`. The current widget graph still needs two corrections: replace provisional non-hex `W...` PBX object identifiers with normal 24-character hex IDs, and add `PrayerWidget/PrivacyInfo.xcprivacy` to the widget Resources phase. Do not merge the widget target to integration until this validator and the simulator build are green.
-
-## Deep link draft
-`DeepLinkChannel.swift` is intentionally not wired into AppDelegate/Xcode Sources yet. It provides a bounded cold-start queue and URL normalization, but enabling it must be coordinated with the shared router to avoid duplicate Flutter deep-link handling.
