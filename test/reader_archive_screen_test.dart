@@ -23,8 +23,10 @@ void main() {
       'bookmarks': <String>['36:1'],
       'verse_notes': jsonEncode(<String, String>{'2:255': 'Personal note'}),
       'verse_note_sources': jsonEncode(<String, String>{'2:255': 'RWD'}),
+      'verse_highlights': jsonEncode(<String, String>{'18:10': 'yellow'}),
       'archive_times': jsonEncode(<String, String>{
         'bookmark|36:1': '100',
+        'highlight|18:10': '150',
         'note|2:255': '200',
       }),
     });
@@ -34,26 +36,46 @@ void main() {
     return settings;
   }
 
+  Future<void> pumpArchive(
+    WidgetTester tester,
+    AppSettings settings, {
+    Locale locale = const Locale('en'),
+  }) => tester.pumpWidget(
+    AppSettingsScope(
+      settings: settings,
+      child: MaterialApp(locale: locale, home: const ReaderArchiveScreen()),
+    ),
+  );
+
   testWidgets('shows saved artifacts and note display-source provenance', (
     tester,
   ) async {
     final settings = await settingsWithSavedActivity();
-
-    await tester.pumpWidget(
-      AppSettingsScope(
-        settings: settings,
-        child: const MaterialApp(
-          locale: Locale('en'),
-          home: ReaderArchiveScreen(),
-        ),
-      ),
-    );
+    await pumpArchive(tester, settings);
     await tester.pumpAndSettle();
 
     expect(find.text('Saved activity'), findsOneWidget);
     expect(find.text('Personal note'), findsOneWidget);
     expect(find.textContaining('Display source:'), findsOneWidget);
     expect(find.text('Saved verse'), findsOneWidget);
+    expect(find.text('Highlighted verse'), findsOneWidget);
+  });
+
+  testWidgets('filters saved artifacts without losing persisted state', (
+    tester,
+  ) async {
+    final settings = await settingsWithSavedActivity();
+    await pumpArchive(tester, settings);
+    await tester.pumpAndSettle();
+
+    expect(find.text('All (3)'), findsOneWidget);
+    expect(find.text('Notes (1)'), findsOneWidget);
+    await tester.tap(find.text('Notes (1)'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Personal note'), findsOneWidget);
+    expect(find.text('Saved verse'), findsNothing);
+    expect(find.text('Highlighted verse'), findsNothing);
   });
 
   testWidgets('opening a note requests its original display source', (
@@ -61,16 +83,7 @@ void main() {
   ) async {
     final settings = await settingsWithSavedActivity();
     final rwwad = translationCatalog.firstWhere((source) => source.code == 'RWD');
-
-    await tester.pumpWidget(
-      AppSettingsScope(
-        settings: settings,
-        child: const MaterialApp(
-          locale: Locale('en'),
-          home: ReaderArchiveScreen(),
-        ),
-      ),
-    );
+    await pumpArchive(tester, settings);
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Personal note'));
@@ -86,16 +99,7 @@ void main() {
 
   testWidgets('legacy bookmark keeps current display source', (tester) async {
     final settings = await settingsWithSavedActivity();
-
-    await tester.pumpWidget(
-      AppSettingsScope(
-        settings: settings,
-        child: const MaterialApp(
-          locale: Locale('en'),
-          home: ReaderArchiveScreen(),
-        ),
-      ),
-    );
+    await pumpArchive(tester, settings);
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Saved verse'));
@@ -106,5 +110,16 @@ void main() {
     expect(target!.surah, 36);
     expect(target.ayah, 1);
     expect(target.sourceId, arabicOriginalSourceId);
+  });
+
+  testWidgets('French archive labels are available end to end', (tester) async {
+    final settings = await settingsWithSavedActivity();
+    await pumpArchive(tester, settings, locale: const Locale('fr'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Éléments enregistrés'), findsOneWidget);
+    expect(find.text('Tout (3)'), findsOneWidget);
+    expect(find.text('Notes (1)'), findsOneWidget);
+    expect(find.text('Surlignages (1)'), findsOneWidget);
   });
 }
