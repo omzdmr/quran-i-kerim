@@ -5,6 +5,7 @@ import 'package:quran_i_kerim/src/app.dart';
 import 'package:quran_i_kerim/src/features/settings/settings_screen.dart';
 import 'package:quran_i_kerim/src/l10n/app_localizations.dart';
 import 'package:quran_i_kerim/src/l10n/generated/generated_app_localizations.dart';
+import 'package:quran_i_kerim/src/navigation/app_navigation.dart';
 import 'package:quran_i_kerim/src/settings/app_settings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -108,4 +109,44 @@ void main() {
       isTrue,
     );
   });
+  testWidgets('settings search opens Reader focus controls', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final settings = AppSettings();
+    await settings.load();
+    AppNavigation.instance.consumeTabRequest();
+    addTearDown(AppNavigation.instance.consumeTabRequest);
+
+    await tester.pumpWidget(
+      AppSettingsScope(
+        settings: settings,
+        child: const MaterialApp(
+          locale: Locale('en'),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: <LocalizationsDelegate<dynamic>>[
+            GeneratedAppLocalizations.delegate,
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: SettingsScreen(),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byIcon(Icons.search_rounded).first);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'focus reading');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Focus reading'), findsOneWidget);
+    await tester.tap(find.text('Focus reading'));
+    await tester.pump();
+
+    expect(
+      AppNavigation.instance.tabRequest.value,
+      AppNavigation.quranTabIndex,
+    );
+  });
+
 }
