@@ -6,6 +6,7 @@ import UIKit
   private let audioSessionCoordinator = AudioSessionCoordinator.shared
   private var backupExclusionChannel: BackupExclusionChannel?
   private var nowPlayingChannel: NowPlayingChannel?
+  private var audioLifecycleChannel: AudioLifecycleChannel?
 
   override func application(
     _ application: UIApplication,
@@ -18,6 +19,7 @@ import UIKit
   }
 
   override func applicationWillTerminate(_ application: UIApplication) {
+    audioLifecycleChannel?.detach()
     nowPlayingChannel?.detach()
     backupExclusionChannel?.detach()
     audioSessionCoordinator.stop()
@@ -32,5 +34,6 @@ import UIKit
 
     backupExclusionChannel = BackupExclusionChannel(binaryMessenger: controller.binaryMessenger)
     nowPlayingChannel = NowPlayingChannel(binaryMessenger: controller.binaryMessenger)
+    audioLifecycleChannel = AudioLifecycleChannel(binaryMessenger: controller.binaryMessenger)
   }
 }
