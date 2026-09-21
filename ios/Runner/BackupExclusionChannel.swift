@@ -1,3 +1,4 @@
+import CoreLocation
 import Flutter
 import Foundation
 import UserNotifications
@@ -76,45 +77,84 @@ final class AudioLifecycleChannel {
   func detach() { observers.forEach(notificationCenter.removeObserver); observers.removeAll() }
 }
 
-/// Central native notification-permission boundary. Permission is requested only
-/// after an explicit shared-layer call; app launch never triggers Apple's prompt.
 final class NotificationPermissionChannel {
   static let name = "com.omzdmr.quran_i_kerim/notification_permission"
   private let center: UNUserNotificationCenter
   private let channel: FlutterMethodChannel
-
   init(binaryMessenger: FlutterBinaryMessenger, center: UNUserNotificationCenter = .current()) {
-    self.center = center
-    channel = FlutterMethodChannel(name: Self.name, binaryMessenger: binaryMessenger)
+    self.center = center; channel = FlutterMethodChannel(name: Self.name, binaryMessenger: binaryMessenger)
     channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) }
   }
   func detach() { channel.setMethodCallHandler(nil) }
-
   private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
-    case "getNotificationPermissionStatus":
-      center.getNotificationSettings { settings in
-        DispatchQueue.main.async { result(Self.statusName(settings.authorizationStatus)) }
-      }
-    case "requestNotificationPermission":
-      center.requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
-        DispatchQueue.main.async {
-          if let error { result(FlutterError(code: "notification_permission_failed", message: error.localizedDescription, details: nil)) }
-          else { result(["granted": granted]) }
-        }
-      }
+    case "getNotificationPermissionStatus": center.getNotificationSettings { settings in DispatchQueue.main.async { result(Self.statusName(settings.authorizationStatus)) } }
+    case "requestNotificationPermission": center.requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in DispatchQueue.main.async { if let error { result(FlutterError(code: "notification_permission_failed", message: error.localizedDescription, details: nil)) } else { result(["granted": granted]) } } }
+    default: result(FlutterMethodNotImplemented)
+    }
+  }
+  private static func statusName(_ status: UNAuthorizationStatus) -> String {
+    switch status { case .notDetermined: return "notDetermined"; case .denied: return "denied"; case .authorized: return "authorized"; case .provisional: return "provisional"; case .ephemeral: return "ephemeral"; @unknown default: return "unknown" }
+  }
+}
+
+/// Foreground-only native location/compass boundary for prayer and Qibla features.
+/// Permission and sensor streams start only after explicit shared-layer calls.
+final class LocationHeadingChannel: NSObject, CLLocationManagerDelegate {
+  static let name = "com.omzdmr.quran_i_kerim/location_heading"
+  private let manager: CLLocationManager
+  private let channel: FlutterMethodChannel
+  private var locationStreaming = false
+  private var headingStreaming = false
+
+  init(binaryMessenger: FlutterBinaryMessenger, manager: CLLocationManager = CLLocationManager()) {
+    self.manager = manager
+    channel = FlutterMethodChannel(name: Self.name, binaryMessenger: binaryMessenger)
+    super.init()
+    manager.delegate = self
+    manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+    manager.distanceFilter = 25
+    manager.headingFilter = 2
+    channel.setMethodCallHandler { [weak self] call, result in self?.handleLocationHeading(call, result: result) }
+  }
+
+  func detach() { stopAll(); channel.setMethodCallHandler(nil); manager.delegate = nil }
+
+  private func handleLocationHeading(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    switch call.method {
+    case "getAuthorizationStatus": result(Self.authorizationName(manager.authorizationStatus))
+    case "requestWhenInUsePermission": manager.requestWhenInUseAuthorization(); result(nil)
+    case "getCapabilityStatus": result(["locationServicesEnabled": CLLocationManager.locationServicesEnabled(), "headingAvailable": CLLocationManager.headingAvailable(), "authorizationStatus": Self.authorizationName(manager.authorizationStatus)])
+    case "startLocationUpdates":
+      guard CLLocationManager.locationServicesEnabled() else { result(FlutterError(code: "location_services_disabled", message: "Location Services are disabled.", details: nil)); return }
+      guard Self.canReadLocation(manager.authorizationStatus) else { result(FlutterError(code: "location_permission_required", message: "Foreground location permission is required.", details: nil)); return }
+      locationStreaming = true; manager.startUpdatingLocation(); result(nil)
+    case "stopLocationUpdates": locationStreaming = false; manager.stopUpdatingLocation(); result(nil)
+    case "startHeadingUpdates":
+      guard CLLocationManager.headingAvailable() else { result(FlutterError(code: "heading_unavailable", message: "Compass heading is unavailable on this device.", details: nil)); return }
+      headingStreaming = true; manager.startUpdatingHeading(); result(nil)
+    case "stopHeadingUpdates": headingStreaming = false; manager.stopUpdatingHeading(); result(nil)
+    case "stopAll": stopAll(); result(nil)
     default: result(FlutterMethodNotImplemented)
     }
   }
 
-  private static func statusName(_ status: UNAuthorizationStatus) -> String {
-    switch status {
-    case .notDetermined: return "notDetermined"
-    case .denied: return "denied"
-    case .authorized: return "authorized"
-    case .provisional: return "provisional"
-    case .ephemeral: return "ephemeral"
-    @unknown default: return "unknown"
-    }
+  private func stopAll() { locationStreaming = false; headingStreaming = false; manager.stopUpdatingLocation(); manager.stopUpdatingHeading() }
+  func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) { channel.invokeMethod("authorizationChanged", arguments: ["status": Self.authorizationName(manager.authorizationStatus)]) }
+  func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+    guard locationStreaming, let location = locations.last, location.horizontalAccuracy >= 0 else { return }
+    channel.invokeMethod("locationChanged", arguments: ["latitude": location.coordinate.latitude, "longitude": location.coordinate.longitude, "horizontalAccuracyMeters": location.horizontalAccuracy, "timestampMilliseconds": location.timestamp.timeIntervalSince1970 * 1000])
+  }
+  func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
+    guard headingStreaming, newHeading.headingAccuracy >= 0 else { return }
+    let heading = newHeading.trueHeading >= 0 ? newHeading.trueHeading : newHeading.magneticHeading
+    channel.invokeMethod("headingChanged", arguments: ["degrees": heading, "magneticDegrees": newHeading.magneticHeading, "accuracyDegrees": newHeading.headingAccuracy, "usesTrueNorth": newHeading.trueHeading >= 0, "timestampMilliseconds": newHeading.timestamp.timeIntervalSince1970 * 1000])
+  }
+  func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+    let nsError = error as NSError; channel.invokeMethod("locationError", arguments: ["code": nsError.code, "message": nsError.localizedDescription])
+  }
+  private static func canReadLocation(_ status: CLAuthorizationStatus) -> Bool { status == .authorizedWhenInUse || status == .authorizedAlways }
+  private static func authorizationName(_ status: CLAuthorizationStatus) -> String {
+    switch status { case .notDetermined: return "notDetermined"; case .restricted: return "restricted"; case .denied: return "denied"; case .authorizedAlways: return "authorizedAlways"; case .authorizedWhenInUse: return "authorizedWhenInUse"; @unknown default: return "unknown" }
   }
 }
