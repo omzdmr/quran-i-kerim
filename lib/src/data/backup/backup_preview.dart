@@ -49,7 +49,7 @@ class BackupPreviewParser {
       for (final raw in entries) {
         if (raw is! Map) return null;
         final id = raw['id']; final kind = raw['kind']; final days = raw['days']; final occurredOn = raw['occurredOn']; final createdAt = raw['createdAt']; final sourceYear = raw['sourceRamadanYear']; final note = raw['note'];
-        if (id is! String || id.trim().isEmpty || id.length > 128 || !ids.add(id) || kind is! String || !const {'debt', 'completion', 'correction'}.contains(kind) || days is! int || days == 0 || days.abs() > 3650 || occurredOn is! String || DateTime.tryParse(occurredOn) == null || createdAt is! String || DateTime.tryParse(createdAt) == null || (sourceYear != null && (sourceYear is! int || sourceYear < 1 || sourceYear > 9999)) || (note != null && note is! String)) return null;
+        if (id is! String || id.trim().isEmpty || id.length > 128 || !ids.add(id) || kind is! String || !const {'debt', 'completion', 'correction'}.contains(kind) || days is! int || days == 0 || days.abs() > 3650 || occurredOn is! String || DateTime.tryParse(occurredOn) == null || createdAt is! String || DateTime.tryParse(createdAt) == null || (sourceYear != null && (sourceYear is! int || sourceYear < 1 || sourceYear > 9999)) || (note != null && (note is! String || note.length > 500))) return null;
         balance += kind == 'completion' ? -days : days;
         if (sourceYear is int && kind == 'debt') debtByYear[sourceYear] = (debtByYear[sourceYear] ?? 0) + days;
         if (sourceYear is int && kind == 'completion') completionByYear[sourceYear] = (completionByYear[sourceYear] ?? 0) + days;
