@@ -10,6 +10,12 @@ struct BackupExclusionCoordinatorValidation {
     ).first else {
       fatalError("Application Support directory is unavailable.")
     }
+    guard let caches = fileManager.urls(
+      for: .cachesDirectory,
+      in: .userDomainMask
+    ).first else {
+      fatalError("Caches directory is unavailable.")
+    }
 
     let validationRootName =
       "quran-ios-backup-validation-\(UUID().uuidString)"
@@ -33,6 +39,10 @@ struct BackupExclusionCoordinatorValidation {
       relativePath: relativePayloadPath
     )
     precondition(initial.exists, "Fixture must exist before exclusion.")
+    precondition(
+      initial.storageArea == .applicationSupport,
+      "Status must preserve the validated storage area."
+    )
 
     let excluded = try coordinator.exclude(
       storageArea: "applicationSupport",
@@ -42,6 +52,29 @@ struct BackupExclusionCoordinatorValidation {
     precondition(
       excluded.isExcludedFromBackup,
       "Reproducible payload must be excluded from backup."
+    )
+
+    // Cache payloads are reproducible by definition and are safe to mark as
+    // excluded. Validate the second allow-listed storage root end to end.
+    let cacheRootName = "quran-ios-cache-validation-\(UUID().uuidString)"
+    let cacheRoot = caches.appendingPathComponent(cacheRootName, isDirectory: true)
+    let cachePayload = cacheRoot.appendingPathComponent("pack.bin")
+    try fileManager.createDirectory(at: cacheRoot, withIntermediateDirectories: true)
+    try Data("cache-payload".utf8).write(to: cachePayload)
+    defer { try? fileManager.removeItem(at: cacheRoot) }
+
+    let excludedCache = try coordinator.exclude(
+      storageArea: "caches",
+      relativePath: "\(cacheRootName)/pack.bin"
+    )
+    precondition(excludedCache.exists, "Cache fixture must exist.")
+    precondition(
+      excludedCache.isExcludedFromBackup,
+      "Reproducible cache payload must be excluded from backup."
+    )
+    precondition(
+      excludedCache.storageArea == .caches,
+      "Cache status must report the validated storage area."
     )
 
     let missing = try coordinator.status(
@@ -68,6 +101,15 @@ struct BackupExclusionCoordinatorValidation {
       coordinator: coordinator,
       storageArea: "unknown",
       relativePath: relativePayloadPath
+    )
+
+    // Documents can contain notes, recordings, exports and other user-created
+    // data. Even a valid-looking relative path must fail closed here so a shared
+    // layer bug cannot silently remove user data from device/iCloud backups.
+    assertRejected(
+      coordinator: coordinator,
+      storageArea: "documents",
+      relativePath: "notes/user-note.json"
     )
 
     let externalRoot = fileManager.temporaryDirectory
