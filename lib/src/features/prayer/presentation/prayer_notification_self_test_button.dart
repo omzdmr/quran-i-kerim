@@ -4,11 +4,9 @@ import '../application/prayer_notification_self_test_store.dart';
 import '../application/prayer_notification_service.dart';
 import 'prayer_notification_self_test_strings.dart';
 
-/// User-triggered notification probe. API acceptance alone is not presented as
-/// proof of delivery: after sending, the user confirms whether the device
-/// actually surfaced the alert/sound.
 class PrayerNotificationSelfTestButton extends StatefulWidget {
-  const PrayerNotificationSelfTestButton({super.key});
+  const PrayerNotificationSelfTestButton({this.onConfirmed, super.key});
+  final VoidCallback? onConfirmed;
 
   @override
   State<PrayerNotificationSelfTestButton> createState() => _PrayerNotificationSelfTestButtonState();
@@ -55,6 +53,7 @@ class _PrayerNotificationSelfTestButtonState extends State<PrayerNotificationSel
     await _store.save(received ? PrayerNotificationProbeOutcome.received : PrayerNotificationProbeOutcome.notReceived);
     if (!mounted) return;
     setState(() => _awaitingConfirmation = false);
+    widget.onConfirmed?.call();
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
       ..showSnackBar(SnackBar(
