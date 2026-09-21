@@ -13,9 +13,6 @@ class ReaderArchiveReference {
   final String selectionKey;
 }
 
-/// Immutable navigation context for a saved Reader artifact (bookmark, note or
-/// highlight). The canonical Qur'an identity is always surah/ayah; [sourceId]
-/// only restores the display layer that was active when the artifact was made.
 class ReaderArchiveContext {
   const ReaderArchiveContext({
     required this.surah,
@@ -32,9 +29,14 @@ class ReaderArchiveContext {
   bool get isValid => surah >= 1 && surah <= 114 && ayah >= 1;
 }
 
+String? _nonEmpty(String? value) {
+  final normalized = value?.trim();
+  return normalized == null || normalized.isEmpty ? null : normalized;
+}
+
 String? readerSourceIdForArchiveCode(String? code) {
-  final normalized = code?.trim();
-  if (normalized == null || normalized.isEmpty) return null;
+  final normalized = _nonEmpty(code);
+  if (normalized == null) return null;
   if (normalized == 'AR') return arabicOriginalSourceId;
 
   for (final source in translationCatalog) {
@@ -62,10 +64,6 @@ ReaderArchiveReference? parseReaderArchiveReference(String selectionKey) {
   );
 }
 
-/// Best-effort migration path for source-neutral legacy bookmarks/highlights.
-/// Reader history already persists source identity. If the exact saved ayah was
-/// recently read, its newest context is safer than blindly applying whichever
-/// translation happens to be selected today.
 String? recentReaderSourceForArchive(
   String selectionKey,
   Iterable<ReaderHistoryEntry> history,
@@ -76,9 +74,10 @@ String? recentReaderSourceForArchive(
   ReaderHistoryEntry? newest;
   for (final entry in history) {
     if (entry.surah != reference.surah || entry.ayah != reference.ayah) continue;
+    if (_nonEmpty(entry.sourceId) == null) continue;
     if (newest == null || entry.updatedAt > newest.updatedAt) newest = entry;
   }
-  return newest?.sourceId;
+  return _nonEmpty(newest?.sourceId);
 }
 
 ReaderArchiveContext? parseReaderArchiveContext({
@@ -93,9 +92,9 @@ ReaderArchiveContext? parseReaderArchiveContext({
   final sourceId = readerSourceIdForArchiveCode(sourceCode) ??
       readerSourceIdForArchiveCode(historySourceId) ??
       readerSourceIdForArchiveCode(fallbackSourceId) ??
-      historySourceId?.trim() ??
-      fallbackSourceId?.trim();
-  if (sourceId == null || sourceId.isEmpty) return null;
+      _nonEmpty(historySourceId) ??
+      _nonEmpty(fallbackSourceId);
+  if (sourceId == null) return null;
 
   return ReaderArchiveContext(
     surah: reference.surah,
