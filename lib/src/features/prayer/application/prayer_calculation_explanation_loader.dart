@@ -11,7 +11,7 @@ class PrayerCalculationExplanationLoader {
   const PrayerCalculationExplanationLoader._();
 
   static Future<PrayerCalculationExplanation> load() async {
-    final settings = await PrayerPreferencesStore.loadSettings();
+    final settings = await PrayerPreferencesStore.load();
     final cityId = await PrayerPreferencesStore.loadCityId();
     final city = await _resolveCity(cityId);
     final zone = tz.getLocation(city.location.timeZoneId);
