@@ -106,4 +106,32 @@ void main() {
     expect(semantics.label, contains('This review round: 5'));
     expect(semantics.label, contains('Remaining later: 3'));
   });
+
+  testWidgets('recorded practice clears the reviewed page from attention', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'memorized_pages_v1': <String>['1'],
+      'memorization_page_progress_v1':
+          '{"1":{"memorizedAt":"2026-01-01T00:00:00.000",'
+          '"lastReviewedAt":"2026-01-02T00:00:00.000"}}',
+    });
+
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.visibility_off_outlined), findsWidgets);
+
+    await tester.tap(find.byIcon(Icons.fact_check_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.person_outline_rounded).first);
+    await tester.pumpAndSettle();
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
+    expect(find.byIcon(Icons.check_circle_outline_rounded), findsWidgets);
+  });
 }
