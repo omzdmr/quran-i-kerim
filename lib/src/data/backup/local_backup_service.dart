@@ -29,7 +29,6 @@ class LocalBackupService {
 
   Future<String> exportJson({DateTime? now}) async => (await createDocument(now: now)).encode();
   BackupPreview previewDecoded(Object? decoded) => previewParser.parse(decoded);
-
   BackupPreview previewJson(String encoded) {
     try { return previewParser.parse(jsonDecode(encoded)); } on FormatException { return previewParser.parse(null); }
   }
@@ -41,9 +40,8 @@ class LocalBackupService {
     return importPlanner.build(currentSections: current, incomingSections: incoming);
   }
 
-  Future<void> restoreJson(String encoded, {BackupRestoreMode mode = BackupRestoreMode.replace}) async {
-    await restoreDecoded(jsonDecode(encoded), mode: mode);
-  }
+  Future<void> restoreJson(String encoded, {BackupRestoreMode mode = BackupRestoreMode.replace}) async =>
+      restoreDecoded(jsonDecode(encoded), mode: mode);
 
   Future<void> restoreDecoded(Object? decoded, {BackupRestoreMode mode = BackupRestoreMode.replace}) async {
     Map<String, Object?>? normalizedData;
@@ -135,21 +133,11 @@ class LocalBackupService {
   }
 
   Map<dynamic, dynamic>? _decodeMap(String value) {
-    try {
-      final decoded = jsonDecode(value);
-      return decoded is Map ? decoded : null;
-    } on FormatException {
-      return null;
-    }
+    try { final decoded = jsonDecode(value); return decoded is Map ? decoded : null; } on FormatException { return null; }
   }
 
   List<dynamic>? _decodeList(String value) {
-    try {
-      final decoded = jsonDecode(value);
-      return decoded is List ? decoded : null;
-    } on FormatException {
-      return null;
-    }
+    try { final decoded = jsonDecode(value); return decoded is List ? decoded : null; } on FormatException { return null; }
   }
 
   Object? _mergePageProgress(Object? current, Object? incoming) {
@@ -159,7 +147,6 @@ class LocalBackupService {
     final incomingDecoded = _decodeMap(incoming);
     if (currentDecoded == null) return incomingDecoded == null ? current : incoming;
     if (incomingDecoded == null) return current;
-
     final merged = <String, Object?>{};
     final keys = <String>{...currentDecoded.keys.whereType<String>(), ...incomingDecoded.keys.whereType<String>()};
     for (final key in keys) {
@@ -179,16 +166,24 @@ class LocalBackupService {
   Object? _newerProgress(Object? local, Object? incoming) {
     if (local is! Map) return incoming;
     if (incoming is! Map) return local;
-    DateTime? timestamp(Map value) {
-      final reviewed = value['lastReviewedAt'];
-      final memorized = value['memorizedAt'];
-      return DateTime.tryParse(reviewed?.toString() ?? '') ?? DateTime.tryParse(memorized?.toString() ?? '');
-    }
+    DateTime? timestamp(Map value) =>
+        DateTime.tryParse(value['lastReviewedAt']?.toString() ?? '') ??
+        DateTime.tryParse(value['memorizedAt']?.toString() ?? '');
     final localTime = timestamp(local);
     final incomingTime = timestamp(incoming);
     if (localTime == null) return incomingTime == null ? local : incoming;
     if (incomingTime == null) return local;
     return incomingTime.isAfter(localTime) ? incoming : local;
+  }
+
+  bool _validPracticeEvent(Map event) {
+    final id = event['id'];
+    final page = event['page'];
+    final context = event['context'];
+    final occurredAt = event['occurredAt'];
+    return id is String && id.trim().isNotEmpty && page is int && page > 0 &&
+        context is String && const {'soloReview', 'prayer', 'recitedToSomeone'}.contains(context) &&
+        occurredAt is String && DateTime.tryParse(occurredAt) != null;
   }
 
   Object? _mergeJsonEventLists(Object? current, Object? incoming) {
@@ -199,21 +194,17 @@ class LocalBackupService {
     if (currentDecoded == null) return incomingDecoded == null ? current : incoming;
     if (incomingDecoded == null) return current;
 
-    final byId = <String, Object?>{};
+    final byId = <String, Map>{};
     void addEvents(List<dynamic> events) {
       for (final event in events) {
-        if (event is! Map || event['id'] is! String) continue;
+        if (event is! Map || !_validPracticeEvent(event)) continue;
         byId[event['id'] as String] = event;
       }
     }
     addEvents(currentDecoded);
     addEvents(incomingDecoded);
     final merged = byId.values.toList(growable: false)
-      ..sort((a, b) {
-        final aDate = a is Map ? a['occurredAt']?.toString() ?? '' : '';
-        final bDate = b is Map ? b['occurredAt']?.toString() ?? '' : '';
-        return bDate.compareTo(aDate);
-      });
+      ..sort((a, b) => (b['occurredAt'] as String).compareTo(a['occurredAt'] as String));
     return jsonEncode(merged.take(4000).toList(growable: false));
   }
 }
