@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
@@ -6,6 +7,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:quran/quran.dart' as quran;
 import 'package:share_plus/share_plus.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../data/quran_audio_catalog.dart';
 import '../../data/quran_verse_metadata.dart';
@@ -20,6 +22,7 @@ import '../../navigation/app_navigation.dart';
 import '../../settings/app_settings.dart';
 import '../settings/quran_translation_catalog_screen.dart';
 import 'reader_audio_sheet.dart';
+import 'reader_focus_controller.dart';
 import 'reader_navigation.dart';
 import 'reader_mixed_verse_list.dart';
 import 'reader_note_sheet.dart';
@@ -45,6 +48,8 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   bool _audioFollowEnabled = true;
   bool _manualReaderScroll = false;
   late final ReaderAudioController _audioController;
+  late final ReaderFocusController _focusController;
+  Timer? _autoScrollTimer;
   final Set<int> _selectedAyahs = <int>{};
   final ScrollController _scrollController = ScrollController();
   final GlobalKey<_ContinuousVerseTextState> _textKey =
@@ -59,6 +64,8 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     super.initState();
     _audioController = ReaderAudioController();
     _audioController.addListener(_handleAudioChanged);
+    _focusController = ReaderFocusController()
+      ..addListener(_handleFocusChanged);
     AppNavigation.instance.readerRequest.addListener(_handleReaderRequest);
   }
 
@@ -87,6 +94,17 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
 
   @override
   void dispose() {
+    _autoScrollTimer?.cancel();
+    _focusController.removeListener(_handleFocusChanged);
+    if (_focusController.keepAwake) {
+      unawaited(WakelockPlus.disable());
+    }
+    if (_focusController.fullScreen) {
+      unawaited(
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge),
+      );
+    }
+    _focusController.dispose();
     AppNavigation.instance.setReaderSelectionActive(false);
     AppNavigation.instance.readerRequest.removeListener(_handleReaderRequest);
     _audioController.removeListener(_handleAudioChanged);
@@ -522,6 +540,156 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     setState(() => _readerChromeVisible = visible);
   }
 
+  void _handleFocusChanged() {
+    if (!mounted) return;
+    _syncAutoScrollTimer();
+    setState(() {});
+  }
+
+  void _syncAutoScrollTimer() {
+    if (!_focusController.autoScroll) {
+      _autoScrollTimer?.cancel();
+      _autoScrollTimer = null;
+      return;
+    }
+    if (_autoScrollTimer?.isActive ?? false) return;
+    _autoScrollTimer = Timer.periodic(const Duration(milliseconds: 50), (_) {
+      if (!mounted || !_scrollController.hasClients) return;
+      final position = _scrollController.position;
+      final next =
+          position.pixels +
+          (_focusController.autoScrollSpeed.pixelsPerSecond * .05);
+      if (next >= position.maxScrollExtent) {
+        _focusController.setAutoScroll(false);
+        return;
+      }
+      _scrollController.jumpTo(next);
+    });
+  }
+
+  Future<void> _setReaderFullScreen(bool enabled) async {
+    try {
+      await SystemChrome.setEnabledSystemUIMode(
+        enabled ? SystemUiMode.immersiveSticky : SystemUiMode.edgeToEdge,
+      );
+      if (!mounted) return;
+      _focusController.setFullScreen(enabled);
+      _setReaderChromeVisible(!enabled);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.text('focusControlFailed'))),
+      );
+    }
+  }
+
+  Future<void> _setReaderKeepAwake(bool enabled) async {
+    try {
+      await WakelockPlus.toggle(enable: enabled);
+      if (!mounted) return;
+      _focusController.setKeepAwake(enabled);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.text('focusControlFailed'))),
+      );
+    }
+  }
+
+  Future<void> _showFocusControls() async {
+    final l10n = context.l10n;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: StatefulBuilder(
+          builder: (context, setSheetState) => SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 28),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text(
+                    l10n.text('focusReading'),
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                SwitchListTile.adaptive(
+                  secondary: const Icon(Icons.fullscreen_rounded),
+                  title: Text(l10n.text('fullScreen')),
+                  value: _focusController.fullScreen,
+                  onChanged: (value) async {
+                    await _setReaderFullScreen(value);
+                    if (sheetContext.mounted) setSheetState(() {});
+                  },
+                ),
+                SwitchListTile.adaptive(
+                  secondary: const Icon(Icons.brightness_4_outlined),
+                  title: Text(l10n.text('dimScreen')),
+                  value: _focusController.dimmed,
+                  onChanged: (value) {
+                    _focusController.setDimmed(value);
+                    setSheetState(() {});
+                  },
+                ),
+                SwitchListTile.adaptive(
+                  secondary: const Icon(Icons.lightbulb_outline_rounded),
+                  title: Text(l10n.text('keepScreenAwake')),
+                  value: _focusController.keepAwake,
+                  onChanged: (value) async {
+                    await _setReaderKeepAwake(value);
+                    if (sheetContext.mounted) setSheetState(() {});
+                  },
+                ),
+                SwitchListTile.adaptive(
+                  secondary: const Icon(Icons.slow_motion_video_rounded),
+                  title: Text(l10n.text('autoScroll')),
+                  subtitle: Text(l10n.text('autoScrollHint')),
+                  value: _focusController.autoScroll,
+                  onChanged: (value) {
+                    _focusController.setAutoScroll(value);
+                    setSheetState(() {});
+                  },
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final speed in ReaderAutoScrollSpeed.values)
+                        ChoiceChip(
+                          label: Text(switch (speed) {
+                            ReaderAutoScrollSpeed.slow =>
+                              l10n.text('scrollSpeedSlow'),
+                            ReaderAutoScrollSpeed.normal =>
+                              l10n.text('scrollSpeedNormal'),
+                            ReaderAutoScrollSpeed.fast =>
+                              l10n.text('scrollSpeedFast'),
+                          }),
+                          selected:
+                              _focusController.autoScrollSpeed == speed,
+                          onSelected: (_) {
+                            _focusController.setAutoScrollSpeed(speed);
+                            setSheetState(() {});
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -556,6 +724,14 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
               },
             ),
           ),
+          if (_focusController.dimmed)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: ColoredBox(
+                  color: Colors.black.withValues(alpha: .16),
+                ),
+              ),
+            ),
           Positioned(
             left: 0,
             right: 0,
@@ -629,6 +805,21 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                       ),
                     ),
                   ),
+                ),
+              ),
+            ),
+          if (_focusController.autoScroll)
+            Positioned(
+              right: 16,
+              bottom: 150,
+              child: Semantics(
+                button: true,
+                label: l10n.text('pauseAutoScroll'),
+                child: FloatingActionButton.small(
+                  heroTag: 'reader-auto-scroll-pause',
+                  onPressed: () => _focusController.setAutoScroll(false),
+                  tooltip: l10n.text('pauseAutoScroll'),
+                  child: const Icon(Icons.pause_rounded),
                 ),
               ),
             ),
@@ -943,6 +1134,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
       child: Listener(
         behavior: HitTestBehavior.translucent,
         onPointerDown: (_) {
+          _focusController.pauseAutoScrollForInteraction();
           _horizontalDragDistance = 0;
           _verticalPointerDistance = 0;
         },
@@ -1259,6 +1451,15 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              ListTile(
+                leading: const Icon(Icons.center_focus_strong_rounded),
+                title: Text(l10n.text('focusReading')),
+                subtitle: Text(l10n.text('focusReadingSubtitle')),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _showFocusControls();
+                },
+              ),
               ListTile(
                 leading: const Icon(Icons.text_fields_rounded),
                 title: Text(l10n.text('readerAppearanceMenu')),
