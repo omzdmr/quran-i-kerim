@@ -670,8 +670,15 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
         audioConfig != null &&
         _audioQuickControlsVisible;
 
-    return SafeArea(
-      child: Stack(
+    return PopScope(
+      canPop: !_focusController.fullScreen,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _focusController.fullScreen) {
+          unawaited(_setReaderFullScreen(false));
+        }
+      },
+      child: SafeArea(
+        child: Stack(
         children: [
           Positioned.fill(
             child: FutureBuilder<TranslationPack?>(
@@ -887,7 +894,8 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
               ),
             ),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }
