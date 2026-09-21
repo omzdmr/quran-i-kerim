@@ -155,6 +155,7 @@ class _MemorizationReviewCoverageScreenState
                 item: item,
                 pageLabel: l10n.memorizePages,
                 reviewLabel: l10n.memorizeTodayReview,
+                neverReviewedLabel: copy.neverReviewed,
                 daysLabel: AppLocalizations.of(context).text('daysUnit'),
                 assessmentLabel: switch (item.selfAssessment) {
                   MemorizationSelfAssessment.struggled =>
@@ -235,6 +236,7 @@ class _CoveragePageTile extends StatelessWidget {
     required this.item,
     required this.pageLabel,
     required this.reviewLabel,
+    required this.neverReviewedLabel,
     required this.daysLabel,
     required this.assessmentLabel,
     required this.onTap,
@@ -243,6 +245,7 @@ class _CoveragePageTile extends StatelessWidget {
   final MemorizationReviewCoverageItem item;
   final String pageLabel;
   final String reviewLabel;
+  final String neverReviewedLabel;
   final String daysLabel;
   final String? assessmentLabel;
   final VoidCallback onTap;
@@ -258,7 +261,7 @@ class _CoveragePageTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final reviewedAt = item.lastReviewedAt;
     final dateText = reviewedAt == null
-        ? reviewLabel
+        ? neverReviewedLabel
         : MaterialLocalizations.of(context).formatCompactDate(reviewedAt);
     final details = <String>[
       dateText,
@@ -287,10 +290,12 @@ class _CoverageCopy {
   const _CoverageCopy({
     required this.batch,
     required this.remaining,
+    required this.neverReviewed,
   });
 
   final String batch;
   final String remaining;
+  final String neverReviewed;
 
   String batchSummary(MemorizationReviewSession session) {
     final base = '$batch: ${session.sessionSize}';
@@ -307,10 +312,34 @@ class _CoverageCopy {
 }
 
 const _copies = <String, _CoverageCopy>{
-  'tr': _CoverageCopy(batch: 'Bu tekrar turu', remaining: 'Sonraya kalan'),
-  'en': _CoverageCopy(batch: 'This review round', remaining: 'Remaining later'),
-  'ar': _CoverageCopy(batch: 'جولة المراجعة هذه', remaining: 'المتبقي لاحقًا'),
-  'az': _CoverageCopy(batch: 'Bu təkrar turu', remaining: 'Sonraya qalan'),
-  'ru': _CoverageCopy(batch: 'Этот подход повторения', remaining: 'Останется на потом'),
-  'fr': _CoverageCopy(batch: 'Cette session de révision', remaining: 'À revoir ensuite'),
+  'tr': _CoverageCopy(
+    batch: 'Bu tekrar turu',
+    remaining: 'Sonraya kalan',
+    neverReviewed: 'Henüz tekrar edilmedi',
+  ),
+  'en': _CoverageCopy(
+    batch: 'This review round',
+    remaining: 'Remaining later',
+    neverReviewed: 'Not reviewed yet',
+  ),
+  'ar': _CoverageCopy(
+    batch: 'جولة المراجعة هذه',
+    remaining: 'المتبقي لاحقًا',
+    neverReviewed: 'لم تتم مراجعته بعد',
+  ),
+  'az': _CoverageCopy(
+    batch: 'Bu təkrar turu',
+    remaining: 'Sonraya qalan',
+    neverReviewed: 'Hələ təkrar edilməyib',
+  ),
+  'ru': _CoverageCopy(
+    batch: 'Этот подход повторения',
+    remaining: 'Останется на потом',
+    neverReviewed: 'Ещё не повторялось',
+  ),
+  'fr': _CoverageCopy(
+    batch: 'Cette session de révision',
+    remaining: 'À revoir ensuite',
+    neverReviewed: 'Pas encore révisée',
+  ),
 };
