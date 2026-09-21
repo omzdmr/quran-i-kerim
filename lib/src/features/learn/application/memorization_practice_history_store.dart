@@ -101,7 +101,7 @@ class MemorizationPracticeHistoryStore {
           'id': event.id,
           'page': event.page,
           'context': event.context.name,
-          'occurredAt': event.occurredAt.toIso8601String(),
+          'occurredAt': event.occurredAt.toUtc().toIso8601String(),
         }).toList(growable: false),
       );
 
