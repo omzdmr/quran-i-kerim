@@ -10,6 +10,7 @@ class QadaArchivePreview {
     required this.incomingEntries,
     required this.newEntries,
     required this.duplicateEntries,
+    required this.conflictingEntries,
     required this.remainingDays,
     required this.containsPrivateNotes,
   });
@@ -18,8 +19,11 @@ class QadaArchivePreview {
   final int incomingEntries;
   final int newEntries;
   final int duplicateEntries;
+  final int conflictingEntries;
   final int remainingDays;
   final bool containsPrivateNotes;
+
+  bool get canMerge => conflictingEntries == 0;
 }
 
 class QadaFastingPortableArchive {
@@ -60,15 +64,26 @@ class QadaFastingPortableArchive {
   }) {
     final decoded = _decodeArchive(source);
     final currentLedger = current ?? QadaFastingLedger();
-    final currentIds = currentLedger.entries.map((entry) => entry.id).toSet();
-    final duplicateCount = decoded.entries
-        .where((entry) => currentIds.contains(entry.id))
-        .length;
+    final currentById = <String, QadaFastingEntry>{
+      for (final entry in currentLedger.entries) entry.id: entry,
+    };
+    var duplicateCount = 0;
+    var conflictCount = 0;
+    for (final entry in decoded.entries) {
+      final existing = currentById[entry.id];
+      if (existing == null) continue;
+      if (_sameEntry(existing, entry)) {
+        duplicateCount++;
+      } else {
+        conflictCount++;
+      }
+    }
     return QadaArchivePreview(
       ledger: decoded,
       incomingEntries: decoded.entries.length,
-      newEntries: decoded.entries.length - duplicateCount,
+      newEntries: decoded.entries.length - duplicateCount - conflictCount,
       duplicateEntries: duplicateCount,
+      conflictingEntries: conflictCount,
       remainingDays: decoded.remainingDays,
       containsPrivateNotes: decoded.entries.any(
         (entry) => entry.note != null && entry.note!.isNotEmpty,
