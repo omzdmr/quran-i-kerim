@@ -139,6 +139,7 @@ class _MemorizationReviewCoverageScreenState
                 item: item,
                 pageLabel: l10n.memorizePages,
                 reviewLabel: l10n.memorizeTodayReview,
+                daysLabel: l10n.daysUnit,
                 onTap: () => _openPage(item.page),
               ),
         ],
@@ -209,12 +210,14 @@ class _CoveragePageTile extends StatelessWidget {
     required this.item,
     required this.pageLabel,
     required this.reviewLabel,
+    required this.daysLabel,
     required this.onTap,
   });
 
   final MemorizationReviewCoverageItem item;
   final String pageLabel;
   final String reviewLabel;
+  final String daysLabel;
   final VoidCallback onTap;
 
   IconData get _icon => switch (item.freshness) {
@@ -230,7 +233,9 @@ class _CoveragePageTile extends StatelessWidget {
     final dateText = reviewedAt == null
         ? reviewLabel
         : MaterialLocalizations.of(context).formatCompactDate(reviewedAt);
-    final semantic = '$pageLabel ${item.page}, $reviewLabel, $dateText';
+    final ageText = item.ageDays == null ? null : '${item.ageDays} $daysLabel';
+    final detailText = ageText == null ? dateText : '$dateText · $ageText';
+    final semantic = '$pageLabel ${item.page}, $reviewLabel, $detailText';
     return Semantics(
       button: true,
       label: semantic,
@@ -238,7 +243,7 @@ class _CoveragePageTile extends StatelessWidget {
         child: ListTile(
           leading: Icon(_icon),
           title: Text('$pageLabel ${item.page}'),
-          subtitle: Text(dateText),
+          subtitle: Text(detailText),
           trailing: const Icon(Icons.chevron_right_rounded),
           onTap: onTap,
         ),
