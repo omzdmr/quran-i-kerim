@@ -102,6 +102,23 @@ void main() {
     expect(find.text('Highlighted verse'), findsNothing);
   });
 
+  testWidgets('searches saved items locally by note text and reference', (
+    tester,
+  ) async {
+    final settings = await settingsWithSavedActivity();
+    await pumpArchive(tester, settings);
+
+    await tester.enterText(find.byType(TextField), 'Personal');
+    await tester.pump();
+    expect(find.text('Personal note'), findsOneWidget);
+    expect(find.text('Saved verse'), findsNothing);
+
+    await tester.enterText(find.byType(TextField), '36:1');
+    await tester.pump();
+    expect(find.text('Saved verse'), findsOneWidget);
+    expect(find.text('Personal note'), findsNothing);
+  });
+
   testWidgets('opening a note requests its original display source', (
     tester,
   ) async {
@@ -145,5 +162,6 @@ void main() {
     expect(find.text('Tout (3)'), findsOneWidget);
     expect(find.text('Notes (1)'), findsOneWidget);
     expect(find.text('Surlignages (1)'), findsOneWidget);
+    expect(find.text('Rechercher une sourate, un verset ou une note'), findsOneWidget);
   });
 }
