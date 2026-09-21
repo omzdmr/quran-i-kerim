@@ -32,7 +32,9 @@ final class WidgetSnapshotChannel {
         "schemaVersion": WidgetPrayerSnapshot.schemaVersion,
         "appGroup": store != nil,
         "freshnessRequired": true,
-        "privacyRedaction": true
+        "freshnessReason": true,
+        "privacyRedaction": true,
+        "stalePurge": true
       ])
     case "publish":
       publish(call.arguments, result: result)
@@ -40,6 +42,10 @@ final class WidgetSnapshotChannel {
       store?.clear()
       reloadWidgets()
       result(nil)
+    case "purgeIfStale":
+      let purged = store?.purgeIfStale() ?? false
+      if purged { reloadWidgets() }
+      result(["purged": purged])
     case "status":
       result(statusPayload())
     default:
@@ -82,7 +88,11 @@ final class WidgetSnapshotChannel {
     do {
       try store.save(snapshot)
       reloadWidgets()
-      result(["stored": true, "validUntilMs": validUntilMs])
+      result([
+        "stored": true,
+        "validUntilMs": validUntilMs,
+        "freshness": WidgetPrayerSnapshot.Freshness.fresh.rawValue
+      ])
     } catch {
       result(FlutterError(code: "snapshot_rejected", message: error.localizedDescription, details: nil))
     }
@@ -90,13 +100,21 @@ final class WidgetSnapshotChannel {
 
   private func statusPayload() -> [String: Any] {
     guard let store, let snapshot = store.load() else {
-      return ["available": store != nil, "hasSnapshot": false, "fresh": false]
+      return [
+        "available": store != nil,
+        "hasSnapshot": false,
+        "fresh": false,
+        "freshness": "missing"
+      ]
     }
+
     let now = Date()
+    let freshness = snapshot.freshness(at: now)
     return [
       "available": true,
       "hasSnapshot": true,
-      "fresh": snapshot.isFresh(at: now),
+      "fresh": freshness == .fresh,
+      "freshness": freshness.rawValue,
       "generatedAtMs": Int64(snapshot.generatedAt.timeIntervalSince1970 * 1000),
       "validUntilMs": Int64(snapshot.validUntil.timeIntervalSince1970 * 1000),
       "timeZone": snapshot.timeZoneIdentifier,
