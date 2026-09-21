@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'memorization_page_catalog.dart';
+import 'memorization_progress_store.dart';
 
 enum MemorizationPracticeContext {
   soloReview,
@@ -56,6 +57,7 @@ class MemorizationPracticeHistoryStore {
 
   static const _key = 'memorization_practice_history_v1';
   static const _maxEvents = 400;
+  static const _progressStore = MemorizationProgressStore();
 
   MemorizationPracticeContext? _parseContext(Object? raw) {
     if (raw is! String) return null;
@@ -163,6 +165,12 @@ class MemorizationPracticeHistoryStore {
         : events.take(_maxEvents).toList(growable: false);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_key, _encode(limited));
+
+    // A practice event is real review activity, but it is not automatically a
+    // quality judgement. Update review age while preserving any prior
+    // independent/assisted/struggled self-assessment.
+    await _progressStore.recordReviewActivity(page, now: occurredAt);
+
     return MemorizationPracticeHistorySnapshot(
       List<MemorizationPracticeEvent>.unmodifiable(limited),
     );
