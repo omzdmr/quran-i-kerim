@@ -19,9 +19,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Validate Xcode graph and privacy manifests
+      - name: Validate Xcode graph privacy and native localization
         run: |
           python3 ios/NativeTests/validate_project_graph.py
+          python3 ios/NativeTests/validate_widget_localizations.py
           plutil -lint ios/Runner/Info.plist
           plutil -lint ios/Runner/PrivacyInfo.xcprivacy
           plutil -lint ios/PrayerWidget/Info.plist
