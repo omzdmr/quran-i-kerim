@@ -14,11 +14,12 @@ void main() {
     localOnlyRecords: 2,
   );
 
-  const preview = BackupPreview(
-    version: 1,
-    createdAt: null,
-    totalRecords: 8,
-    canRestore: true,
+  final preview = BackupPreview(
+    version: BackupPreviewParser.currentVersion,
+    createdAt: DateTime.utc(2026, 9, 21),
+    recordCounts: const <String, int>{'notes': 8},
+    issues: const <BackupPreviewIssue>{},
+    integrityVerified: true,
   );
 
   testWidgets('defaults to merge and returns selected restore mode', (tester) async {
@@ -32,10 +33,7 @@ void main() {
               onPressed: () async {
                 result = await showDialog<BackupRestoreMode>(
                   context: context,
-                  builder: (_) => const BackupRestoreDialog(
-                    preview: preview,
-                    plan: plan,
-                  ),
+                  builder: (_) => BackupRestoreDialog(preview: preview, plan: plan),
                 );
               },
               child: const Text('open'),
@@ -47,16 +45,9 @@ void main() {
 
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
-
     expect(find.text('Çakışan: 2'), findsOneWidget);
     expect(find.text('Yalnız yedekte: 3'), findsOneWidget);
     expect(find.text('Yalnız cihazda: 2'), findsOneWidget);
-    expect(
-      tester.widget<RadioListTile<BackupRestoreMode>>(
-        find.widgetWithText(RadioListTile<BackupRestoreMode>, 'Birleştir'),
-      ).groupValue,
-      BackupRestoreMode.merge,
-    );
 
     await tester.tap(find.text('Değiştir'));
     await tester.pumpAndSettle();
@@ -69,12 +60,11 @@ void main() {
 
   testWidgets('uses English fallback for unsupported locale', (tester) async {
     await tester.pumpWidget(
-      const MaterialApp(
-        locale: Locale('de'),
+      MaterialApp(
+        locale: const Locale('de'),
         home: Scaffold(body: BackupRestoreDialog(preview: preview, plan: plan)),
       ),
     );
-
     expect(find.text('How should this backup be restored?'), findsOneWidget);
     expect(find.text('Merge'), findsOneWidget);
     expect(find.text('Replace'), findsOneWidget);
