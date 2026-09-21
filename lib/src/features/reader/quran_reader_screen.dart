@@ -602,6 +602,9 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
     setState(() => _readerChromeVisible = visible);
   }
 
+  Duration _motionDuration(Duration duration) =>
+      MediaQuery.disableAnimationsOf(context) ? Duration.zero : duration;
+
   Future<void> _restoreFocusPreferences() async {
     final speed = await _focusPreferences.loadAutoScrollSpeed();
     if (!mounted) return;
@@ -744,11 +747,15 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
               ignoring: !showTopChrome,
               child: AnimatedSlide(
                 offset: showTopChrome ? Offset.zero : const Offset(0, -1.05),
-                duration: const Duration(milliseconds: 210),
+                duration: _motionDuration(
+                  const Duration(milliseconds: 210),
+                ),
                 curve: Curves.easeOutCubic,
                 child: AnimatedOpacity(
                   opacity: showTopChrome ? 1 : 0,
-                  duration: const Duration(milliseconds: 160),
+                  duration: _motionDuration(
+                  const Duration(milliseconds: 160),
+                ),
                   curve: Curves.easeOut,
                   child: Material(
                     color: scheme.surface,
@@ -773,11 +780,15 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
                 ignoring: !showQuickAudio,
                 child: AnimatedSlide(
                   offset: showQuickAudio ? Offset.zero : const Offset(0, .85),
-                  duration: const Duration(milliseconds: 220),
+                  duration: _motionDuration(
+                  const Duration(milliseconds: 220),
+                ),
                   curve: Curves.easeOutCubic,
                   child: AnimatedOpacity(
                     opacity: showQuickAudio ? 1 : 0,
-                    duration: const Duration(milliseconds: 165),
+                    duration: _motionDuration(
+                  const Duration(milliseconds: 165),
+                ),
                     curve: Curves.easeOut,
                     child: Material(
                       elevation: showQuickAudio ? 8 : 0,
@@ -884,11 +895,15 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
                 offset: _selectedAyahs.isEmpty
                     ? const Offset(0, 1.15)
                     : Offset.zero,
-                duration: const Duration(milliseconds: 210),
+                duration: _motionDuration(
+                  const Duration(milliseconds: 210),
+                ),
                 curve: Curves.easeOutCubic,
                 child: AnimatedOpacity(
                   opacity: _selectedAyahs.isEmpty ? 0 : 1,
-                  duration: const Duration(milliseconds: 150),
+                  duration: _motionDuration(
+                  const Duration(milliseconds: 150),
+                ),
                   child: Row(
                     children: [
                       Expanded(
