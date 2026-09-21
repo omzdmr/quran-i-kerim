@@ -73,13 +73,29 @@ final class BackupExclusionChannel {
       }
       result(status.dictionary)
     } catch {
-      result(
-        FlutterError(
-          code: "backup_exclusion_failed",
-          message: error.localizedDescription,
-          details: nil
-        )
-      )
+      result(flutterError(from: error))
     }
+  }
+
+  private func flutterError(from error: Error) -> FlutterError {
+    let code: String
+    switch error {
+    case BackupExclusionCoordinator.ExclusionError.unsupportedStorageArea:
+      code = "unsupported_backup_storage_area"
+    case BackupExclusionCoordinator.ExclusionError.invalidRelativePath:
+      code = "invalid_backup_relative_path"
+    case BackupExclusionCoordinator.ExclusionError.baseDirectoryUnavailable:
+      code = "backup_directory_unavailable"
+    case BackupExclusionCoordinator.ExclusionError.itemDoesNotExist:
+      code = "backup_item_not_found"
+    default:
+      code = "backup_exclusion_failed"
+    }
+
+    return FlutterError(
+      code: code,
+      message: error.localizedDescription,
+      details: nil
+    )
   }
 }
