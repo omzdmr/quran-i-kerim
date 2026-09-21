@@ -32,6 +32,25 @@ automation should be assumed active. Current contributors must read
   fullscreen system UI restoration, tab/Read-section cleanup, auto-scroll at all
   three speeds and 200%+ text on physical Android/iOS devices.
 
+## Active Feature Development handoff — Atomic offline audio packs
+
+- The same draft PR #3 now also contains the adopted P1 offline-audio
+  reliability slice. A surah pack is marked offline-ready only after every ayah
+  payload is present, SHA-256 verified, and an atomic versioned manifest has
+  been published. Partial, changed and corrupt packs remain playable per
+  available ayah but are surfaced as pending/repair-required, never as complete.
+- Download intent is persisted separately from reproducible media bytes and is
+  included in user-owned backup schema v8. Restore therefore remembers which
+  reciter/quality/surah packs the user selected, while audio payloads remain
+  excluded from backup; Downloads shows the re-download state and links back to
+  the exact surah in Reader. Delete removes both payload and intent.
+- Existing pre-manifest downloads upgrade in place after a successful integrity
+  pass. Interrupted work retains resumable partials, while cancel/delete removes
+  the selection. Validate pause/resume, checksum repair, legacy upgrade,
+  backup/restore and large-surah performance before landing. Full Flutter and
+  platform CI are still unavailable for the staging branch, so PR #3 remains
+  draft.
+
 ## Shared source of truth
 Every automation must read these before acting:
 1. `docs/PRODUCT_MASTER_SPEC.md` — product requirements and non-negotiable decisions.
