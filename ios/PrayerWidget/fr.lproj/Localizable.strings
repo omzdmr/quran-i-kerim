@@ -11,3 +11,9 @@
 "Prayer times need refresh after a time zone change" = "Les horaires de prière doivent être actualisés après un changement de fuseau horaire";
 "Prayer information is out of date. Open the app to refresh" = "Les horaires de prière ne sont plus à jour. Ouvrez l’app pour les actualiser";
 "Prayer information cannot be shown safely. Open the app to refresh" = "Les horaires de prière ne peuvent pas être affichés de manière fiable. Ouvrez l’app pour les actualiser";
+"Fajr" = "Fajr";
+"Sunrise" = "Lever du soleil";
+"Dhuhr" = "Dhuhr";
+"Asr" = "Asr";
+"Maghrib" = "Maghrib";
+"Isha" = "Isha";
