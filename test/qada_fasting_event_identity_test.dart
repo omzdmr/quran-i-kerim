@@ -15,6 +15,53 @@ void main() {
     expect(restored.remainingDays, 1);
   });
 
+  test('explicit duplicate ids are rejected before they can be persisted', () {
+    final ledger = QadaFastingLedger().addDebt(
+      days: 2,
+      occurredOn: DateTime(2026, 3, 1),
+      createdAt: DateTime.utc(2026, 9, 21),
+      id: 'stable-event-id',
+    );
+
+    expect(
+      () => ledger.complete(
+        occurredOn: DateTime(2026, 9, 22),
+        createdAt: DateTime.utc(2026, 9, 22),
+        id: 'stable-event-id',
+      ),
+      throwsStateError,
+    );
+    expect(QadaFastingLedger.decode(ledger.encode()).entries, hasLength(1));
+  });
+
+  test('explicit ids are trimmed and bounded before persistence', () {
+    final ledger = QadaFastingLedger().addDebt(
+      days: 1,
+      occurredOn: DateTime(2026, 3, 1),
+      createdAt: DateTime.utc(2026, 9, 21),
+      id: '  stable-id  ',
+    );
+    expect(ledger.entries.single.id, 'stable-id');
+    expect(
+      () => QadaFastingLedger().addDebt(
+        days: 1,
+        occurredOn: DateTime(2026, 3, 1),
+        createdAt: DateTime.utc(2026, 9, 21),
+        id: '',
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      () => QadaFastingLedger().addDebt(
+        days: 1,
+        occurredOn: DateTime(2026, 3, 1),
+        createdAt: DateTime.utc(2026, 9, 21),
+        id: List<String>.filled(129, 'x').join(),
+      ),
+      throwsArgumentError,
+    );
+  });
+
   test('oversized imported event arrays fail closed', () {
     final event = <String, Object?>{'id': 'template', 'kind': 'debt', 'days': 1, 'occurredOn': '2026-03-01T00:00:00.000', 'createdAt': '2026-09-21T10:00:00.000Z'};
     final entries = List<Object?>.generate(QadaFastingLedger.maxEntries + 1, (index) => <String, Object?>{...event, 'id': 'event-$index'}, growable: false);
