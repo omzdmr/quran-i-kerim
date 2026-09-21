@@ -62,10 +62,13 @@ automation should be assumed active. Current contributors must read
   future-format records. Its local preference participates in user-owned backup
   schema v9; restoring schema v8 or older preserves newer qada data rather than
   deleting it. The UI states clearly that a user-created backup includes it.
-- Domain, persistence, six-locale parity, backup compatibility and widget-flow
-  tests are present, but Flutter tests/analyzer have not run in this worker.
-  Keep the PR draft until full validation, then land without force-updating the
-  feature branch.
+- The ledger also has a date calendar with previous/next recorded-day
+  navigation and a user-owned CSV export. Export excludes private notes by
+  default; notes require explicit opt-in and formula-like user text is escaped
+  before spreadsheet use. Domain, file, persistence, six-locale parity, backup
+  compatibility and widget-flow tests are present, but Flutter tests/analyzer
+  have not run in this worker. Keep the PR draft until full validation, then
+  land without force-updating the feature branch.
 
 ## Shared source of truth
 Every automation must read these before acting:
