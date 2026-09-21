@@ -12,6 +12,7 @@ import '../profile/downloads_screen.dart';
 import 'dhikr_counter_screen.dart';
 import 'qada_fasting_screen.dart';
 import 'travel_meeting_point_screen.dart';
+import 'travel_packing_screen.dart';
 
 class DiscoverScreen extends StatelessWidget {
   const DiscoverScreen({super.key});
@@ -21,9 +22,9 @@ class DiscoverScreen extends StatelessWidget {
     final l10n = context.l10n;
     final locale = Localizations.localeOf(context).languageCode;
 
-    void openPrayer() {
+    void push(Widget screen) {
       HapticFeedback.selectionClick();
-      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const PrayerScreen()));
+      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => screen));
     }
 
     Future<void> openPrayerCalculationDetails() async {
@@ -31,26 +32,6 @@ class DiscoverScreen extends StatelessWidget {
       final explanation = await PrayerCalculationExplanationLoader.load();
       if (!context.mounted) return;
       await showPrayerCalculationInspector(context: context, explanation: explanation);
-    }
-
-    void openQibla() {
-      HapticFeedback.selectionClick();
-      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const QiblaLauncherScreen()));
-    }
-
-    void openDhikr() {
-      HapticFeedback.selectionClick();
-      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const DhikrCounterScreen()));
-    }
-
-    void openQadaFasting() {
-      HapticFeedback.selectionClick();
-      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const QadaFastingScreen()));
-    }
-
-    void openMeetingPoint() {
-      HapticFeedback.selectionClick();
-      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const TravelMeetingPointScreen()));
     }
 
     void openPlans() {
@@ -63,38 +44,35 @@ class DiscoverScreen extends StatelessWidget {
       AppNavigation.instance.openQuran();
     }
 
-    void openAudioQuran() {
-      HapticFeedback.selectionClick();
-      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const DownloadsScreen()));
-    }
-
     return SafeArea(
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 44, 20, 120),
         children: [
           Text(l10n.text('discoverTitle'), style: Theme.of(context).textTheme.headlineLarge),
           const SizedBox(height: 26),
-          _PrayerFeatureCard(onTap: openPrayer, title: l10n.text('prayerTimes'), subtitle: l10n.text('prayerSubtitle')),
+          _PrayerFeatureCard(onTap: () => push(const PrayerScreen()), title: l10n.text('prayerTimes'), subtitle: l10n.text('prayerSubtitle')),
           const SizedBox(height: 12),
           _Shortcut(Icons.calculate_outlined, l10n.text('calculationMethod'), onTap: openPrayerCalculationDetails),
           const SizedBox(height: 12),
-          _Shortcut(Icons.explore_outlined, l10n.text('qibla'), onTap: openQibla),
+          _Shortcut(Icons.explore_outlined, l10n.text('qibla'), onTap: () => push(const QiblaLauncherScreen())),
           const SizedBox(height: 12),
-          _Shortcut(Icons.touch_app_outlined, l10n.text('dhikrCounter'), onTap: openDhikr),
+          _Shortcut(Icons.touch_app_outlined, l10n.text('dhikrCounter'), onTap: () => push(const DhikrCounterScreen())),
           const SizedBox(height: 12),
-          _Shortcut(Icons.event_repeat_rounded, qadaFastingText(locale, 'title'), onTap: openQadaFasting),
+          _Shortcut(Icons.event_repeat_rounded, qadaFastingText(locale, 'title'), onTap: () => push(const QadaFastingScreen())),
           const SizedBox(height: 12),
-          _Shortcut(Icons.luggage_outlined, _meetingPointLabels[locale] ?? _meetingPointLabels['en']!, onTap: openMeetingPoint),
+          Row(children: [
+            Expanded(child: _Shortcut(Icons.pin_drop_outlined, _meetingPointLabels[locale] ?? _meetingPointLabels['en']!, onTap: () => push(const TravelMeetingPointScreen()))),
+            const SizedBox(width: 12),
+            Expanded(child: _Shortcut(Icons.checklist_rounded, _packingLabels[locale] ?? _packingLabels['en']!, onTap: () => push(const TravelPackingScreen()))),
+          ]),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(child: _Shortcut(Icons.library_add_check_outlined, l10n.text('readingPlans'), onTap: openPlans)),
-              const SizedBox(width: 12),
-              Expanded(child: _Shortcut(Icons.menu_book_outlined, l10n.text('verses'), onTap: openQuran)),
-            ],
-          ),
+          Row(children: [
+            Expanded(child: _Shortcut(Icons.library_add_check_outlined, l10n.text('readingPlans'), onTap: openPlans)),
+            const SizedBox(width: 12),
+            Expanded(child: _Shortcut(Icons.menu_book_outlined, l10n.text('verses'), onTap: openQuran)),
+          ]),
           const SizedBox(height: 12),
-          _Shortcut(Icons.headphones_outlined, l10n.text('audioQuran'), onTap: openAudioQuran),
+          _Shortcut(Icons.headphones_outlined, l10n.text('audioQuran'), onTap: () => push(const DownloadsScreen())),
         ],
       ),
     );
@@ -102,12 +80,10 @@ class DiscoverScreen extends StatelessWidget {
 }
 
 const _meetingPointLabels = <String, String>{
-  'tr': 'Seyahat buluşma noktası',
-  'en': 'Travel meeting point',
-  'fr': 'Point de rendez-vous',
-  'ar': 'نقطة لقاء السفر',
-  'az': 'Səyahət görüş yeri',
-  'ru': 'Место встречи в поездке',
+  'tr': 'Buluşma noktası', 'en': 'Meeting point', 'fr': 'Point de rendez-vous', 'ar': 'نقطة اللقاء', 'az': 'Görüş yeri', 'ru': 'Место встречи',
+};
+const _packingLabels = <String, String>{
+  'tr': 'Seyahat listesi', 'en': 'Travel checklist', 'fr': 'Liste de voyage', 'ar': 'قائمة السفر', 'az': 'Səyahət siyahısı', 'ru': 'Список в поездку',
 };
 
 class _PrayerFeatureCard extends StatelessWidget {
