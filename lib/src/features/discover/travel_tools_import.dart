@@ -5,10 +5,12 @@ import 'travel_meeting_point_store.dart';
 import 'travel_packing_store.dart';
 
 class TravelToolsImportPreview {
-  const TravelToolsImportPreview({required this.meetingPoint, required this.packing, this.dietaryCard});
+  const TravelToolsImportPreview({required this.sourceVersion, required this.meetingPoint, required this.packing, this.dietaryCard});
+  final int sourceVersion;
   final TravelMeetingPoint? meetingPoint;
   final List<TravelPackingItem> packing;
   final TravelDietaryCard? dietaryCard;
+  bool get includesDietaryCard => sourceVersion >= 2;
 }
 
 class TravelToolsImport {
@@ -22,9 +24,7 @@ class TravelToolsImport {
     if (encoded.length > maxEncodedLength) throw const FormatException('Travel tools export is too large.');
     final raw = jsonDecode(encoded);
     final version = raw is Map ? raw['version'] : null;
-    if (raw is! Map || raw['schema'] != 'quran-i-kerim.travel-tools' || (version != 1 && version != 2)) {
-      throw const FormatException('Unsupported travel tools export.');
-    }
+    if (raw is! Map || raw['schema'] != 'quran-i-kerim.travel-tools' || (version != 1 && version != 2)) throw const FormatException('Unsupported travel tools export.');
     final meetingRaw = raw['meetingPoint'];
     final meetingPoint = meetingRaw == null ? null : TravelMeetingPoint.fromJson(meetingRaw);
     if (meetingRaw != null && meetingPoint == null) throw const FormatException('Invalid meeting point.');
@@ -40,7 +40,7 @@ class TravelToolsImport {
     final dietaryRaw = version == 2 ? raw['dietaryCard'] : null;
     final dietary = dietaryRaw == null ? null : TravelDietaryCard.fromJson(dietaryRaw);
     if (dietaryRaw != null && dietary == null) throw const FormatException('Invalid dietary card.');
-    return TravelToolsImportPreview(meetingPoint: meetingPoint, packing: List.unmodifiable(packing), dietaryCard: dietary);
+    return TravelToolsImportPreview(sourceVersion: version as int, meetingPoint: meetingPoint, packing: List.unmodifiable(packing), dietaryCard: dietary);
   }
 
   Future<void> apply(TravelToolsImportPreview preview) async {
@@ -50,7 +50,9 @@ class TravelToolsImport {
     try {
       if (preview.meetingPoint == null) { await meetingPointStore.clear(); } else { await meetingPointStore.save(preview.meetingPoint!); }
       await packingStore.save(preview.packing);
-      if (preview.dietaryCard == null) { await dietaryCardStore.clear(); } else { await dietaryCardStore.save(preview.dietaryCard!); }
+      if (preview.includesDietaryCard) {
+        if (preview.dietaryCard == null) { await dietaryCardStore.clear(); } else { await dietaryCardStore.save(preview.dietaryCard!); }
+      }
     } catch (_) {
       if (previousMeeting == null) { await meetingPointStore.clear(); } else { await meetingPointStore.save(previousMeeting); }
       await packingStore.save(previousPacking);
