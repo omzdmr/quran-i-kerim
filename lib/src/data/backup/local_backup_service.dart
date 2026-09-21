@@ -31,9 +31,7 @@ class LocalBackupService {
     );
   }
 
-  Future<String> exportJson({DateTime? now}) async =>
-      (await createDocument(now: now)).encode();
-
+  Future<String> exportJson({DateTime? now}) async => (await createDocument(now: now)).encode();
   BackupPreview previewDecoded(Object? decoded) => previewParser.parse(decoded);
 
   BackupPreview previewJson(String encoded) {
@@ -51,20 +49,13 @@ class LocalBackupService {
     return importPlanner.build(currentSections: current, incomingSections: incoming);
   }
 
-  Future<void> restoreJson(
-    String encoded, {
-    BackupRestoreMode mode = BackupRestoreMode.replace,
-  }) async {
+  Future<void> restoreJson(String encoded, {BackupRestoreMode mode = BackupRestoreMode.replace}) async {
     await restoreDecoded(jsonDecode(encoded), mode: mode);
   }
 
-  Future<void> restoreDecoded(
-    Object? decoded, {
-    BackupRestoreMode mode = BackupRestoreMode.replace,
-  }) async {
+  Future<void> restoreDecoded(Object? decoded, {BackupRestoreMode mode = BackupRestoreMode.replace}) async {
     Map<String, Object?>? normalizedData;
     int? normalizedVersion;
-
     await restoreCoordinator.restore(
       validate: () async {
         normalizedData = _validatedSections(decoded);
@@ -80,9 +71,7 @@ class LocalBackupService {
         await adapter.restoreSections(dataToRestore, schemaVersion: normalizedVersion!);
       },
       rollback: (snapshot) async {
-        if (snapshot is! Map) {
-          throw const FormatException('Backup rollback snapshot is invalid.');
-        }
+        if (snapshot is! Map) throw const FormatException('Backup rollback snapshot is invalid.');
         await adapter.restore(Map<String, Object?>.from(snapshot));
       },
     );
@@ -97,9 +86,7 @@ class LocalBackupService {
     if (rawData is! Map) throw const FormatException('Backup data is invalid.');
     final selected = <String, Object?>{};
     for (final entry in rawData.entries) {
-      if (entry.key is! String) {
-        throw const FormatException('Backup section key is invalid.');
-      }
+      if (entry.key is! String) throw const FormatException('Backup section key is invalid.');
       final section = entry.key as String;
       if (BackupManifest.sectionsForVersion(preview.version!).contains(section)) {
         selected[section] = entry.value;
@@ -108,10 +95,7 @@ class LocalBackupService {
     return Map<String, Object?>.unmodifiable(selected);
   }
 
-  Map<String, Object?> _mergeSections(
-    Map<String, Object?> current,
-    Map<String, Object?> incoming,
-  ) {
+  Map<String, Object?> _mergeSections(Map<String, Object?> current, Map<String, Object?> incoming) {
     final merged = <String, Object?>{};
     for (final section in BackupManifest.includedSections) {
       final currentSection = current[section];
@@ -147,22 +131,10 @@ class LocalBackupService {
     };
   }
 
-  Object? _mergePreferenceValue({
-    required String section,
-    required String key,
-    required Object? current,
-    required Object? incoming,
-    required bool hasIncoming,
-  }) {
+  Object? _mergePreferenceValue({required String section, required String key, required Object? current, required Object? incoming, required bool hasIncoming}) {
     if (!hasIncoming) return current;
     if (current == null) return incoming;
-
-    if (section == 'memorization' &&
-        const {
-          'memorized_pages_v1',
-          'memorization_practice_days_v1',
-          'memorization_plan_missed_days_v1',
-        }.contains(key)) {
+    if (section == 'memorization' && const {'memorized_pages_v1', 'memorization_practice_days_v1', 'memorization_plan_missed_days_v1'}.contains(key)) {
       return _mergeStringLists(current, incoming);
     }
     if (section == 'memorization' && key == 'memorization_page_progress_v1') {
@@ -176,10 +148,7 @@ class LocalBackupService {
 
   Object? _mergeStringLists(Object? current, Object? incoming) {
     if (current is! List || incoming is! List) return incoming;
-    final values = <String>{
-      ...current.whereType<String>(),
-      ...incoming.whereType<String>(),
-    }.toList()
+    final values = <String>{...current.whereType<String>(), ...incoming.whereType<String>()}.toList()
       ..sort((a, b) {
         final aInt = int.tryParse(a);
         final bInt = int.tryParse(b);
@@ -196,10 +165,7 @@ class LocalBackupService {
       final incomingDecoded = jsonDecode(incoming);
       if (currentDecoded is! Map || incomingDecoded is! Map) return incoming;
       final merged = <String, Object?>{};
-      final keys = <String>{
-        ...currentDecoded.keys.whereType<String>(),
-        ...incomingDecoded.keys.whereType<String>(),
-      };
+      final keys = <String>{...currentDecoded.keys.whereType<String>(), ...incomingDecoded.keys.whereType<String>()};
       for (final key in keys) {
         final local = currentDecoded[key];
         final remote = incomingDecoded[key];
@@ -222,10 +188,8 @@ class LocalBackupService {
     DateTime? timestamp(Map value) {
       final reviewed = value['lastReviewedAt'];
       final memorized = value['memorizedAt'];
-      return DateTime.tryParse(reviewed?.toString() ?? '') ??
-          DateTime.tryParse(memorized?.toString() ?? '');
+      return DateTime.tryParse(reviewed?.toString() ?? '') ?? DateTime.tryParse(memorized?.toString() ?? '');
     }
-
     final localTime = timestamp(local);
     final incomingTime = timestamp(incoming);
     if (localTime == null) return incoming;
@@ -246,7 +210,6 @@ class LocalBackupService {
           byId[event['id'] as String] = event;
         }
       }
-
       addEvents(currentDecoded);
       addEvents(incomingDecoded);
       final merged = byId.values.toList(growable: false)
@@ -255,7 +218,7 @@ class LocalBackupService {
           final bDate = b is Map ? b['occurredAt']?.toString() ?? '' : '';
           return bDate.compareTo(aDate);
         });
-      return jsonEncode(merged.take(400).toList(growable: false));
+      return jsonEncode(merged.take(4000).toList(growable: false));
     } on FormatException {
       return incoming;
     }
