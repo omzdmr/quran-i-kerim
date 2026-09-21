@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../l10n/strings/qada_fasting_strings.dart';
 import '../../navigation/app_navigation.dart';
 import '../prayer/presentation/prayer_screen.dart';
 import '../prayer/presentation/qibla_launcher_screen.dart';
 import '../profile/downloads_screen.dart';
 import 'dhikr_counter_screen.dart';
+import 'qada_fasting_screen.dart';
 
 class DiscoverScreen extends StatelessWidget {
   const DiscoverScreen({super.key});
@@ -33,6 +35,13 @@ class DiscoverScreen extends StatelessWidget {
       HapticFeedback.selectionClick();
       Navigator.of(context).push(
         MaterialPageRoute<void>(builder: (_) => const DhikrCounterScreen()),
+      );
+    }
+
+    void openQadaFasting() {
+      HapticFeedback.selectionClick();
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const QadaFastingScreen()),
       );
     }
 
@@ -78,6 +87,15 @@ class DiscoverScreen extends StatelessWidget {
             Icons.touch_app_outlined,
             l10n.text('dhikrCounter'),
             onTap: openDhikr,
+          ),
+          const SizedBox(height: 12),
+          _Shortcut(
+            Icons.event_repeat_rounded,
+            qadaFastingText(
+              Localizations.localeOf(context).languageCode,
+              'title',
+            ),
+            onTap: openQadaFasting,
           ),
           const SizedBox(height: 12),
           Row(
