@@ -33,8 +33,6 @@ jobs:
           flutter --version
           xcodebuild -version
 
-      # The iOS project is source-controlled. Never regenerate it here: doing
-      # so would make CI validate Flutter's template instead of our native code.
       - name: Validate committed iOS scaffold
         run: |
           test -f ios/Runner.xcodeproj/project.pbxproj
@@ -66,14 +64,15 @@ jobs:
           grep -q "BackupExclusionCoordinator.swift in Sources" ios/Runner.xcodeproj/project.pbxproj
           grep -q "BackupExclusionChannel.swift in Sources" ios/Runner.xcodeproj/project.pbxproj
           grep -q "com.omzdmr.quran_i_kerim/backup_exclusion" ios/Runner/BackupExclusionChannel.swift
-          grep -q "excludeReproducibleContent" ios/Runner/BackupExclusionChannel.swift
-          grep -q "getBackupExclusionStatus" ios/Runner/BackupExclusionChannel.swift
+          grep -q "com.omzdmr.quran_i_kerim/location_heading" ios/Runner/BackupExclusionChannel.swift
+          grep -q "requestWhenInUsePermission" ios/Runner/BackupExclusionChannel.swift
+          grep -q "startLocationUpdates" ios/Runner/BackupExclusionChannel.swift
+          grep -q "startHeadingUpdates" ios/Runner/BackupExclusionChannel.swift
+          grep -q "LocationHeadingChannel(binaryMessenger: messenger)" ios/Runner/AppDelegate.swift
           grep -q "NSLocationWhenInUseUsageDescription" ios/Runner/Info.plist
           grep -q "NSMicrophoneUsageDescription" ios/Runner/Info.plist
           /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes:0" ios/Runner/Info.plist | grep -qx audio
 
-      # This native compiler gate stays useful even when a shared Flutter asset
-      # blocks bundle assembly later in the job.
       - name: Type-check native lifecycle and storage
         run: |
           xcrun --sdk iphonesimulator swiftc \
@@ -114,8 +113,6 @@ jobs:
             CODE_SIGNING_ALLOWED=NO > /tmp/runner-build-settings.txt
           grep -q "PRODUCT_BUNDLE_IDENTIFIER = com.omzdmr.quranIKerim" /tmp/runner-build-settings.txt
           grep -q "IPHONEOS_DEPLOYMENT_TARGET = 15.0" /tmp/runner-build-settings.txt
-          # CocoaPods is expected to add integration references to the generated
-          # Xcode graph. Source-controlled native files must remain unchanged.
           git diff --exit-code -- \
             ios/Runner \
             ios/Podfile \
@@ -128,16 +125,11 @@ jobs:
       - name: Analyze shared app without modifying it
         run: flutter analyze lib --no-fatal-infos
 
-      # Shared tests are evidence only on this staging branch. A shared asset or
-      # feature regression must not hide the native iOS compiler result.
       - name: Run shared tests
         id: shared_tests
         continue-on-error: true
         run: flutter test
 
-      # iOS Simulator supports debug/profile compilation, not release mode.
-      # This is our signing-independent native compiler/plugin gate; a real
-      # device archive remains a separate Apple signing/provisioning gate.
       - name: Build iOS simulator app
         if: steps.ios_pods.outcome == 'success'
         id: ios_build
@@ -170,24 +162,16 @@ jobs:
         if: always()
         run: |
           failed=0
-
           if [[ "${{ steps.ios_pods.outcome }}" != "success" ]]; then
             echo "::error::CocoaPods could not integrate the committed Runner project."
             failed=1
           fi
-
           if [[ "${{ steps.shared_tests.outcome }}" != "success" ]]; then
             echo "::error::Shared Flutter tests failed on this staging snapshot."
-            echo "Shared-code correction belongs to CI/Feature ownership; refresh/rebase before landing."
             failed=1
           fi
-
-          if [[ "${{ steps.ios_pods.outcome }}" == "success" && "${{ steps.ios_build.outcome }}" != "success" ]]; then
-            echo "::error::The signing-independent iOS simulator build failed."
-            echo "The earlier native Swift and backup-exclusion checks remain independent results."
+          if [[ "${{ steps.ios_build.outcome }}" != "success" ]]; then
+            echo "::error::iOS simulator build failed."
             failed=1
           fi
-
-          if [[ "$failed" -ne 0 ]]; then
-            exit 1
-          fi
+          exit "$failed"
