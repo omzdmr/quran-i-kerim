@@ -60,7 +60,9 @@ void main() {
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
 
-    final semantics = tester.getSemantics(find.byType(ListTile));
+    final row = find.bySemanticsLabel(RegExp('5,.*Not reviewed yet'));
+    expect(row, findsOneWidget);
+    final semantics = tester.getSemantics(row);
     expect(semantics.hasAction(SemanticsAction.tap), isTrue);
     expect(semantics.label, contains('5'));
   });
