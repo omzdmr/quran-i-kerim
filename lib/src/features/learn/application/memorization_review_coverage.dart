@@ -71,7 +71,7 @@ MemorizationReviewCoverage buildMemorizationReviewCoverage({
       neverReviewed++;
     } else {
       final reviewedDay = DateTime(reviewedAt.year, reviewedAt.month, reviewedAt.day);
-      ageDays = today.difference(reviewedDay).inDays.clamp(0, 1000000);
+      ageDays = today.difference(reviewedDay).inDays.clamp(0, 1000000).toInt();
       if (ageDays >= overdueAfterDays) {
         freshness = MemorizationReviewFreshness.overdue;
         overdue++;
