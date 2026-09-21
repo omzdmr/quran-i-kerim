@@ -2,13 +2,13 @@ import Foundation
 
 /// Applies Apple's "do not back up" resource flag to reproducible content.
 ///
-/// The shared download layer chooses which payload is reproducible. This native
-/// boundary only accepts a relative path inside a known application container
-/// directory, preventing accidental access outside the app sandbox.
+/// Only Application Support and Caches are accepted. Documents is deliberately
+/// excluded from this native boundary because it is the natural home for
+/// user-created/exported data; a shared-layer mistake must not silently remove
+/// that data from iCloud/device backups.
 final class BackupExclusionCoordinator {
   enum StorageArea: String {
     case applicationSupport
-    case documents
     case caches
   }
 
@@ -35,11 +35,13 @@ final class BackupExclusionCoordinator {
   struct Status {
     let exists: Bool
     let isExcludedFromBackup: Bool
+    let storageArea: StorageArea
 
     var dictionary: [String: Any] {
       [
         "exists": exists,
         "isExcludedFromBackup": isExcludedFromBackup,
+        "storageArea": storageArea.rawValue,
       ]
     }
   }
@@ -55,17 +57,17 @@ final class BackupExclusionCoordinator {
     storageArea rawStorageArea: String,
     relativePath: String
   ) throws -> Status {
-    let url = try resolvedURL(
+    let resolved = try resolvedURL(
       storageArea: rawStorageArea,
       relativePath: relativePath
     )
-    guard fileManager.fileExists(atPath: url.path) else {
+    guard fileManager.fileExists(atPath: resolved.url.path) else {
       throw ExclusionError.itemDoesNotExist
     }
 
     var values = URLResourceValues()
     values.isExcludedFromBackup = true
-    var mutableURL = url
+    var mutableURL = resolved.url
     try mutableURL.setResourceValues(values)
 
     return try status(
@@ -78,28 +80,33 @@ final class BackupExclusionCoordinator {
     storageArea rawStorageArea: String,
     relativePath: String
   ) throws -> Status {
-    let url = try resolvedURL(
+    let resolved = try resolvedURL(
       storageArea: rawStorageArea,
       relativePath: relativePath
     )
-    let exists = fileManager.fileExists(atPath: url.path)
+    let exists = fileManager.fileExists(atPath: resolved.url.path)
     guard exists else {
-      return Status(exists: false, isExcludedFromBackup: false)
+      return Status(
+        exists: false,
+        isExcludedFromBackup: false,
+        storageArea: resolved.storageArea
+      )
     }
 
-    let values = try url.resourceValues(
+    let values = try resolved.url.resourceValues(
       forKeys: [.isExcludedFromBackupKey]
     )
     return Status(
       exists: true,
-      isExcludedFromBackup: values.isExcludedFromBackup ?? false
+      isExcludedFromBackup: values.isExcludedFromBackup ?? false,
+      storageArea: resolved.storageArea
     )
   }
 
   private func resolvedURL(
     storageArea rawStorageArea: String,
     relativePath: String
-  ) throws -> URL {
+  ) throws -> (url: URL, storageArea: StorageArea) {
     guard let storageArea = StorageArea(rawValue: rawStorageArea) else {
       throw ExclusionError.unsupportedStorageArea(rawStorageArea)
     }
@@ -136,7 +143,7 @@ final class BackupExclusionCoordinator {
     guard candidate.path.hasPrefix(basePrefix) else {
       throw ExclusionError.invalidRelativePath
     }
-    return candidate
+    return (candidate, storageArea)
   }
 
   private func baseURL(for storageArea: StorageArea) -> URL? {
@@ -144,8 +151,6 @@ final class BackupExclusionCoordinator {
     switch storageArea {
     case .applicationSupport:
       directory = .applicationSupportDirectory
-    case .documents:
-      directory = .documentDirectory
     case .caches:
       directory = .cachesDirectory
     }
