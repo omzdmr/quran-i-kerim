@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../application/prayer_notification_self_test_store.dart';
 import '../application/prayer_notification_service.dart';
 import 'prayer_notification_self_test_strings.dart';
 
@@ -14,6 +15,7 @@ class PrayerNotificationSelfTestButton extends StatefulWidget {
 }
 
 class _PrayerNotificationSelfTestButtonState extends State<PrayerNotificationSelfTestButton> {
+  static const _store = PrayerNotificationSelfTestStore();
   bool _sending = false;
   bool _awaitingConfirmation = false;
 
@@ -48,8 +50,10 @@ class _PrayerNotificationSelfTestButtonState extends State<PrayerNotificationSel
     }
   }
 
-  void _confirm(bool received) {
+  Future<void> _confirm(bool received) async {
     final copy = prayerNotificationSelfTestStrings(context);
+    await _store.save(received ? PrayerNotificationProbeOutcome.received : PrayerNotificationProbeOutcome.notReceived);
+    if (!mounted) return;
     setState(() => _awaitingConfirmation = false);
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
