@@ -10,8 +10,7 @@ import '../prayer/presentation/prayer_screen.dart';
 import '../prayer/presentation/qibla_launcher_screen.dart';
 import '../profile/downloads_screen.dart';
 import 'dhikr_counter_screen.dart';
-import 'qada_fasting_archive_screen.dart';
-import 'qada_fasting_screen.dart';
+import 'qada_fasting_hub_screen.dart';
 import 'travel_tools_screen.dart';
 
 class DiscoverScreen extends StatelessWidget {
@@ -58,9 +57,7 @@ class DiscoverScreen extends StatelessWidget {
           const SizedBox(height: 12),
           _Shortcut(Icons.touch_app_outlined, l10n.text('dhikrCounter'), onTap: () => push(const DhikrCounterScreen())),
           const SizedBox(height: 12),
-          _Shortcut(Icons.event_repeat_rounded, qadaFastingText(locale, 'title'), onTap: () => push(const QadaFastingScreen())),
-          const SizedBox(height: 12),
-          _Shortcut(Icons.backup_outlined, _qadaBackupLabels[locale] ?? _qadaBackupLabels['en']!, onTap: () => push(const QadaFastingArchiveScreen())),
+          _Shortcut(Icons.event_repeat_rounded, qadaFastingText(locale, 'title'), onTap: () => push(const QadaFastingHubScreen())),
           const SizedBox(height: 12),
           _Shortcut(Icons.luggage_outlined, _travelLabels[locale] ?? _travelLabels['en']!, onTap: () => push(const TravelToolsScreen())),
           const SizedBox(height: 12),
@@ -79,10 +76,6 @@ class DiscoverScreen extends StatelessWidget {
 
 const _travelLabels = <String, String>{
   'tr': 'Seyahat araçları', 'en': 'Travel tools', 'fr': 'Outils de voyage', 'ar': 'أدوات السفر', 'az': 'Səyahət alətləri', 'ru': 'Инструменты поездки',
-};
-
-const _qadaBackupLabels = <String, String>{
-  'tr': 'Kaza defteri yedeği', 'en': 'Qada ledger backup', 'fr': 'Sauvegarde du registre', 'ar': 'نسخة سجل القضاء', 'az': 'Qəza dəftəri yedəyi', 'ru': 'Резервная копия када',
 };
 
 class _PrayerFeatureCard extends StatelessWidget {
