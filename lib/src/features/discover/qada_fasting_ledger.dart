@@ -44,18 +44,25 @@ class QadaFastingLedger {
     if (days < 1 || days > maxBalanceDays) throw ArgumentError.value(days, 'days', 'Must be between 1 and $maxBalanceDays');
     if (remainingDays + days > maxBalanceDays) throw StateError('Debt would exceed the safe qada balance limit');
     _validateYear(sourceRamadanYear); _ensureCapacity();
-    return _append(QadaFastingEntry(id: id ?? _newEntryId(createdAt), kind: QadaFastingEntryKind.debt, days: days, occurredOn: _dateOnly(occurredOn), createdAt: createdAt.toUtc(), sourceRamadanYear: sourceRamadanYear, estimatedSource: estimatedSource || sourceRamadanYear == null, note: _cleanNote(note)));
+    return _append(QadaFastingEntry(id: _resolveEntryId(id, createdAt), kind: QadaFastingEntryKind.debt, days: days, occurredOn: _dateOnly(occurredOn), createdAt: createdAt.toUtc(), sourceRamadanYear: sourceRamadanYear, estimatedSource: estimatedSource || sourceRamadanYear == null, note: _cleanNote(note)));
   }
   QadaFastingLedger complete({int days = 1, required DateTime occurredOn, required DateTime createdAt, int? sourceRamadanYear, bool attributeWhenUnambiguous = true, String? note, String? id}) {
     if (days < 1 || days > remainingDays) throw StateError('Completion exceeds remaining qada balance'); _validateYear(sourceRamadanYear); _ensureCapacity();
     final resolvedYear = sourceRamadanYear ?? (attributeWhenUnambiguous ? unambiguousCompletionRamadanYear : null); if (resolvedYear != null && days > remainingForRamadan(resolvedYear)) throw StateError('Completion exceeds remaining qada balance for Ramadan $resolvedYear');
-    return _append(QadaFastingEntry(id: id ?? _newEntryId(createdAt), kind: QadaFastingEntryKind.completion, days: days, occurredOn: _dateOnly(occurredOn), createdAt: createdAt.toUtc(), sourceRamadanYear: resolvedYear, note: _cleanNote(note)));
+    return _append(QadaFastingEntry(id: _resolveEntryId(id, createdAt), kind: QadaFastingEntryKind.completion, days: days, occurredOn: _dateOnly(occurredOn), createdAt: createdAt.toUtc(), sourceRamadanYear: resolvedYear, note: _cleanNote(note)));
   }
   QadaFastingLedger correctBalance({required int targetDays, required DateTime occurredOn, required DateTime createdAt, String? note, String? id}) {
     if (targetDays < 0 || targetDays > maxBalanceDays) throw ArgumentError.value(targetDays, 'targetDays'); final delta = targetDays - remainingDays; if (delta == 0) return this; _ensureCapacity();
-    return _append(QadaFastingEntry(id: id ?? _newEntryId(createdAt), kind: QadaFastingEntryKind.correction, days: delta, occurredOn: _dateOnly(occurredOn), createdAt: createdAt.toUtc(), note: _cleanNote(note)));
+    return _append(QadaFastingEntry(id: _resolveEntryId(id, createdAt), kind: QadaFastingEntryKind.correction, days: delta, occurredOn: _dateOnly(occurredOn), createdAt: createdAt.toUtc(), note: _cleanNote(note)));
   }
   void _ensureCapacity() { if (entries.length >= maxEntries) throw StateError('Qada fasting ledger has reached its safe local event limit'); }
+  String _resolveEntryId(String? requested, DateTime createdAt) {
+    if (requested == null) return _newEntryId(createdAt);
+    final value = requested.trim();
+    if (value.isEmpty || value.length > 128) throw ArgumentError.value(requested, 'id', 'Must contain 1 to 128 characters');
+    if (entries.any((entry) => entry.id == value)) throw StateError('Qada fasting event id already exists');
+    return value;
+  }
   String _newEntryId(DateTime value) { final base = _entryId(value); final used = entries.map((entry) => entry.id).toSet(); if (!used.contains(base)) return base; var suffix = 2; while (used.contains('$base-$suffix')) { suffix++; } return '$base-$suffix'; }
   QadaFastingLedger _append(QadaFastingEntry entry) => QadaFastingLedger(<QadaFastingEntry>[...entries, entry]);
   String encode() => jsonEncode(<String, Object?>{'formatVersion': formatVersion, 'entries': entries.map((entry) => entry.toJson()).toList(growable: false)});
