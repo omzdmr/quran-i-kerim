@@ -48,10 +48,7 @@ class LocalBackupService {
     final decoded = jsonDecode(encoded);
     final incoming = _validatedSections(decoded);
     final current = await adapter.captureSections();
-    return importPlanner.build(
-      currentSections: current,
-      incomingSections: incoming,
-    );
+    return importPlanner.build(currentSections: current, incomingSections: incoming);
   }
 
   Future<void> restoreJson(
@@ -80,10 +77,7 @@ class LocalBackupService {
           final current = await adapter.captureSections();
           dataToRestore = _mergeSections(current, normalizedData!);
         }
-        await adapter.restoreSections(
-          dataToRestore,
-          schemaVersion: normalizedVersion!,
-        );
+        await adapter.restoreSections(dataToRestore, schemaVersion: normalizedVersion!);
       },
       rollback: (snapshot) async {
         if (snapshot is! Map) {
@@ -100,9 +94,7 @@ class LocalBackupService {
       throw const FormatException('Backup is not restorable.');
     }
     final rawData = decoded['data'];
-    if (rawData is! Map) {
-      throw const FormatException('Backup data is invalid.');
-    }
+    if (rawData is! Map) throw const FormatException('Backup data is invalid.');
     final selected = <String, Object?>{};
     for (final entry in rawData.entries) {
       if (entry.key is! String) {
@@ -173,16 +165,12 @@ class LocalBackupService {
         }.contains(key)) {
       return _mergeStringLists(current, incoming);
     }
-
     if (section == 'memorization' && key == 'memorization_page_progress_v1') {
-      return _mergeJsonObjectStrings(current, incoming);
+      return _mergePageProgress(current, incoming);
     }
-
-    if (section == 'memorizationPractice' &&
-        key == 'memorization_practice_history_v1') {
+    if (section == 'memorizationPractice' && key == 'memorization_practice_history_v1') {
       return _mergeJsonEventLists(current, incoming);
     }
-
     return incoming;
   }
 
@@ -192,25 +180,57 @@ class LocalBackupService {
       ...current.whereType<String>(),
       ...incoming.whereType<String>(),
     }.toList()
-      ..sort();
+      ..sort((a, b) {
+        final aInt = int.tryParse(a);
+        final bInt = int.tryParse(b);
+        if (aInt != null && bInt != null) return aInt.compareTo(bInt);
+        return a.compareTo(b);
+      });
     return values;
   }
 
-  Object? _mergeJsonObjectStrings(Object? current, Object? incoming) {
+  Object? _mergePageProgress(Object? current, Object? incoming) {
     if (current is! String || incoming is! String) return incoming;
     try {
       final currentDecoded = jsonDecode(current);
       final incomingDecoded = jsonDecode(incoming);
       if (currentDecoded is! Map || incomingDecoded is! Map) return incoming;
-      return jsonEncode(<String, Object?>{
-        for (final entry in currentDecoded.entries)
-          if (entry.key is String) entry.key as String: entry.value,
-        for (final entry in incomingDecoded.entries)
-          if (entry.key is String) entry.key as String: entry.value,
-      });
+      final merged = <String, Object?>{};
+      final keys = <String>{
+        ...currentDecoded.keys.whereType<String>(),
+        ...incomingDecoded.keys.whereType<String>(),
+      };
+      for (final key in keys) {
+        final local = currentDecoded[key];
+        final remote = incomingDecoded[key];
+        if (local == null) {
+          merged[key] = remote;
+        } else if (remote == null) {
+          merged[key] = local;
+        } else {
+          merged[key] = _newerProgress(local, remote);
+        }
+      }
+      return jsonEncode(merged);
     } on FormatException {
       return incoming;
     }
+  }
+
+  Object? _newerProgress(Object? local, Object? incoming) {
+    if (local is! Map || incoming is! Map) return incoming;
+    DateTime? timestamp(Map value) {
+      final reviewed = value['lastReviewedAt'];
+      final memorized = value['memorizedAt'];
+      return DateTime.tryParse(reviewed?.toString() ?? '') ??
+          DateTime.tryParse(memorized?.toString() ?? '');
+    }
+
+    final localTime = timestamp(local);
+    final incomingTime = timestamp(incoming);
+    if (localTime == null) return incoming;
+    if (incomingTime == null) return local;
+    return incomingTime.isAfter(localTime) ? incoming : local;
   }
 
   Object? _mergeJsonEventLists(Object? current, Object? incoming) {
@@ -219,7 +239,6 @@ class LocalBackupService {
       final currentDecoded = jsonDecode(current);
       final incomingDecoded = jsonDecode(incoming);
       if (currentDecoded is! List || incomingDecoded is! List) return incoming;
-
       final byId = <String, Object?>{};
       void addEvents(List<dynamic> events) {
         for (final event in events) {
