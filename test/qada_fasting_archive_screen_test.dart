@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quran_i_kerim/src/features/discover/qada_fasting_archive_screen.dart';
 import 'package:quran_i_kerim/src/features/discover/qada_fasting_ledger.dart';
@@ -15,12 +16,13 @@ void main() {
       MaterialApp(
         locale: locale,
         supportedLocales: const [
-          Locale('tr'),
-          Locale('en'),
-          Locale('fr'),
-          Locale('ar'),
-          Locale('az'),
-          Locale('ru'),
+          Locale('tr'), Locale('en'), Locale('fr'),
+          Locale('ar'), Locale('az'), Locale('ru'),
+        ],
+        localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
         ],
         home: const QadaFastingArchiveScreen(),
       ),
@@ -53,10 +55,11 @@ void main() {
     );
     expect(notesSwitch.value, isFalse);
     expect(find.text('Taşınabilir yedek oluştur'), findsOneWidget);
+    expect(find.text('Dosyadan yedek içe aktar'), findsOneWidget);
     expect(find.text('Panodan yedek içe aktar'), findsOneWidget);
   });
 
-  testWidgets('empty ledger disables export but leaves restore available', (
+  testWidgets('empty ledger disables export but leaves both restore paths available', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -64,8 +67,29 @@ void main() {
 
     final export = tester.widget<FilledButton>(find.byType(FilledButton).first);
     expect(export.onPressed, isNull);
-    final restore = tester.widget<OutlinedButton>(find.byType(OutlinedButton));
-    expect(restore.onPressed, isNotNull);
+    expect(
+      tester.widget<OutlinedButton>(find.byType(OutlinedButton)).onPressed,
+      isNotNull,
+    );
+    expect(
+      tester.widget<TextButton>(
+        find.widgetWithText(TextButton, 'Import backup from clipboard'),
+      ).onPressed,
+      isNotNull,
+    );
+  });
+
+  testWidgets('Arabic backup screen is localized and RTL', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    await pumpScreen(tester, locale: const Locale('ar'));
+
+    expect(find.text('نسخة سجل القضاء'), findsOneWidget);
+    expect(find.text('استيراد ملف نسخة احتياطية'), findsOneWidget);
+    expect(find.text('Import backup file'), findsNothing);
+    expect(
+      tester.widget<Directionality>(find.byType(Directionality).first).textDirection,
+      TextDirection.rtl,
+    );
   });
 
   testWidgets('large text keeps backup and restore actions reachable', (
@@ -86,6 +110,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(QadaFastingArchiveScreen), findsOneWidget);
+    expect(find.byIcon(Icons.folder_open_rounded), findsOneWidget);
     expect(find.byIcon(Icons.content_paste_rounded), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
