@@ -5,9 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 class TravelMeetingPoint {
   const TravelMeetingPoint({required this.name, required this.address, required this.note, required this.updatedAt});
 
-  static const maxNameLength = 120;
-  static const maxAddressLength = 500;
-  static const maxNoteLength = 1000;
+  static const maxNameLength = 1000;
+  static const maxAddressLength = 5000;
+  static const maxNoteLength = 10000;
 
   final String name;
   final String address;
@@ -17,12 +17,7 @@ class TravelMeetingPoint {
   bool get isEmpty => name.trim().isEmpty && address.trim().isEmpty && note.trim().isEmpty;
   bool get isValid => name.length <= maxNameLength && address.length <= maxAddressLength && note.length <= maxNoteLength;
 
-  Map<String, Object> toJson() => <String, Object>{
-        'name': name,
-        'address': address,
-        'note': note,
-        'updatedAt': updatedAt.toUtc().toIso8601String(),
-      };
+  Map<String, Object> toJson() => <String, Object>{'name': name, 'address': address, 'note': note, 'updatedAt': updatedAt.toUtc().toIso8601String()};
 
   static TravelMeetingPoint? fromJson(Object? raw) {
     if (raw is! Map) return null;
