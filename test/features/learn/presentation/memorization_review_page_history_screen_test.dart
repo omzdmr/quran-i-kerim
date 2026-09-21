@@ -24,7 +24,7 @@ void main() {
         home: MemorizationReviewPageHistoryScreen(page: 12),
       );
 
-  testWidgets('shows contexts and allows a mistaken event to be removed', (tester) async {
+  testWidgets('shows persisted review contexts and dates', (tester) async {
     SharedPreferences.setMockInitialValues({});
     await store.record(
       page: 12,
@@ -41,18 +41,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('In prayer'), findsOneWidget);
     expect(find.text('Solo review'), findsOneWidget);
-
-    await tester.tap(find.byTooltip('Delete').first);
-    await tester.pumpAndSettle();
-    expect(find.text('Delete review record?'), findsOneWidget);
-    await tester.tap(find.text('Delete'));
-    await tester.pumpAndSettle();
-
-    final history = await store.load();
-    expect(history.eventsForPage(12).length, 1);
+    expect(find.byIcon(Icons.delete_outline_rounded), findsNothing);
+    expect((await store.load()).eventsForPage(12).length, 2);
   });
 
-  testWidgets('legacy page can still open study with no detailed events', (tester) async {
+  testWidgets('legacy page explains missing detailed events', (tester) async {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
