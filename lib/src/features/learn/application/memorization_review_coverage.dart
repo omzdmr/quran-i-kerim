@@ -22,8 +22,9 @@ class MemorizationReviewCoverageItem {
   final MemorizationSelfAssessment? selfAssessment;
 
   bool get needsAttention =>
-      freshness == MemorizationReviewFreshness.neverReviewed ||
-      freshness == MemorizationReviewFreshness.overdue;
+      freshness == MemorizationReviewFreshness.overdue ||
+      (freshness == MemorizationReviewFreshness.neverReviewed &&
+          (ageDays == null || ageDays! >= 1));
 }
 
 class MemorizationReviewCoverage {
@@ -42,7 +43,7 @@ class MemorizationReviewCoverage {
   final int freshCount;
 
   int get total => items.length;
-  int get needsAttentionCount => neverReviewedCount + overdueCount;
+  int get needsAttentionCount => items.where((item) => item.needsAttention).length;
   double get coveredFraction => total == 0 ? 0 : (total - neverReviewedCount) / total;
 }
 
