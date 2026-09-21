@@ -17,7 +17,17 @@ final class NowPlayingChannel {
   static let name = "com.omzdmr.quran_i_kerim/now_playing"; private let coordinator: NowPlayingCoordinator; private let channel: FlutterMethodChannel
   init(binaryMessenger: FlutterBinaryMessenger, coordinator: NowPlayingCoordinator = NowPlayingCoordinator()) { self.coordinator = coordinator; channel = FlutterMethodChannel(name: Self.name, binaryMessenger: binaryMessenger); coordinator.onRemoteCommand = { [weak channel] command, position in var payload: [String: Any] = ["command": command.rawValue]; if let position { payload["positionSeconds"] = position }; channel?.invokeMethod("remoteCommand", arguments: payload) }; coordinator.start(); channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) } }
   func detach() { channel.setMethodCallHandler(nil); coordinator.onRemoteCommand = nil; coordinator.stop() }
-  private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) { switch call.method { case "updateNowPlaying": guard let args = call.arguments as? [String: Any], let title = args["title"] as? String, !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { result(FlutterError(code: "invalid_now_playing_metadata", message: "A non-empty title is required.", details: nil)); return }; let elapsed = (args["elapsedSeconds"] as? NSNumber)?.doubleValue ?? 0, rate = (args["playbackRate"] as? NSNumber)?.doubleValue ?? 0, duration = (args["durationSeconds"] as? NSNumber)?.doubleValue; guard elapsed.isFinite, elapsed >= 0, rate.isFinite, rate >= 0, duration == nil || (duration!.isFinite && duration! > 0) else { result(FlutterError(code: "invalid_now_playing_timing", message: "Playback timing values are invalid.", details: nil)); return }; coordinator.update(.init(title: title, subtitle: args["subtitle"] as? String, albumTitle: args["albumTitle"] as? String, duration: duration, elapsed: elapsed, playbackRate: rate)); result(nil); case "clearNowPlaying": coordinator.clear(); result(nil); default: result(FlutterMethodNotImplemented) } }
+  private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    switch call.method {
+    case "updateNowPlaying":
+      guard let args = call.arguments as? [String: Any], let title = args["title"] as? String, !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { result(FlutterError(code: "invalid_now_playing_metadata", message: "A non-empty title is required.", details: nil)); return }
+      let elapsed = (args["elapsedSeconds"] as? NSNumber)?.doubleValue ?? 0, rate = (args["playbackRate"] as? NSNumber)?.doubleValue ?? 0, duration = (args["durationSeconds"] as? NSNumber)?.doubleValue
+      guard elapsed.isFinite, elapsed >= 0, rate.isFinite, rate >= 0, duration == nil || (duration!.isFinite && duration! > 0) else { result(FlutterError(code: "invalid_now_playing_timing", message: "Playback timing values are invalid.", details: nil)); return }
+      coordinator.update(.init(title: title, subtitle: args["subtitle"] as? String, albumTitle: args["albumTitle"] as? String, duration: duration, elapsed: elapsed, playbackRate: rate, canGoNext: args["canGoNext"] as? Bool ?? true, canGoPrevious: args["canGoPrevious"] as? Bool ?? true)); result(nil)
+    case "clearNowPlaying": coordinator.clear(); result(nil)
+    default: result(FlutterMethodNotImplemented)
+    }
+  }
 }
 
 final class AudioLifecycleChannel {
@@ -39,25 +49,11 @@ final class NotificationPermissionChannel {
 }
 
 final class LocationHeadingChannel: NSObject, CLLocationManagerDelegate {
-  static let name = "com.omzdmr.quran_i_kerim/location_heading"
-  private let manager: CLLocationManager; private let channel: FlutterMethodChannel
-  private var locationStreaming = false, headingStreaming = false
-  private var orientationObserver: NSObjectProtocol?
+  static let name = "com.omzdmr.quran_i_kerim/location_heading"; private let manager: CLLocationManager; private let channel: FlutterMethodChannel
+  private var locationStreaming = false, headingStreaming = false; private var orientationObserver: NSObjectProtocol?
   init(binaryMessenger: FlutterBinaryMessenger, manager: CLLocationManager = CLLocationManager()) { self.manager = manager; channel = FlutterMethodChannel(name: Self.name, binaryMessenger: binaryMessenger); super.init(); manager.delegate = self; manager.desiredAccuracy = kCLLocationAccuracyHundredMeters; manager.distanceFilter = 25; manager.headingFilter = 2; UIDevice.current.beginGeneratingDeviceOrientationNotifications(); orientationObserver = NotificationCenter.default.addObserver(forName: UIDevice.orientationDidChangeNotification, object: nil, queue: .main) { [weak self] _ in self?.updateHeadingOrientation() }; updateHeadingOrientation(); channel.setMethodCallHandler { [weak self] call, result in self?.handleLocationHeading(call, result: result) } }
   func detach() { stopAll(); channel.setMethodCallHandler(nil); manager.delegate = nil; if let orientationObserver { NotificationCenter.default.removeObserver(orientationObserver); self.orientationObserver = nil }; UIDevice.current.endGeneratingDeviceOrientationNotifications() }
-  private func handleLocationHeading(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-    switch call.method {
-    case "getAuthorizationStatus": result(Self.authorizationName(manager.authorizationStatus))
-    case "requestWhenInUsePermission": manager.requestWhenInUseAuthorization(); result(nil)
-    case "getCapabilityStatus": result(["locationServicesEnabled": CLLocationManager.locationServicesEnabled(), "headingAvailable": CLLocationManager.headingAvailable(), "authorizationStatus": Self.authorizationName(manager.authorizationStatus), "orientationAwareHeading": true, "trueNorthWhenAuthorized": true])
-    case "startLocationUpdates": guard CLLocationManager.locationServicesEnabled() else { result(FlutterError(code: "location_services_disabled", message: "Location Services are disabled.", details: nil)); return }; guard Self.canReadLocation(manager.authorizationStatus) else { result(FlutterError(code: "location_permission_required", message: "Foreground location permission is required.", details: nil)); return }; locationStreaming = true; reconcileLocationUpdates(); result(nil)
-    case "stopLocationUpdates": locationStreaming = false; reconcileLocationUpdates(); result(nil)
-    case "startHeadingUpdates": guard CLLocationManager.headingAvailable() else { result(FlutterError(code: "heading_unavailable", message: "Compass heading is unavailable on this device.", details: nil)); return }; updateHeadingOrientation(); headingStreaming = true; reconcileLocationUpdates(); manager.startUpdatingHeading(); result(nil)
-    case "stopHeadingUpdates": headingStreaming = false; manager.stopUpdatingHeading(); reconcileLocationUpdates(); result(nil)
-    case "stopAll": stopAll(); result(nil)
-    default: result(FlutterMethodNotImplemented)
-    }
-  }
+  private func handleLocationHeading(_ call: FlutterMethodCall, result: @escaping FlutterResult) { switch call.method { case "getAuthorizationStatus": result(Self.authorizationName(manager.authorizationStatus)); case "requestWhenInUsePermission": manager.requestWhenInUseAuthorization(); result(nil); case "getCapabilityStatus": result(["locationServicesEnabled": CLLocationManager.locationServicesEnabled(), "headingAvailable": CLLocationManager.headingAvailable(), "authorizationStatus": Self.authorizationName(manager.authorizationStatus), "orientationAwareHeading": true, "trueNorthWhenAuthorized": true]); case "startLocationUpdates": guard CLLocationManager.locationServicesEnabled() else { result(FlutterError(code: "location_services_disabled", message: "Location Services are disabled.", details: nil)); return }; guard Self.canReadLocation(manager.authorizationStatus) else { result(FlutterError(code: "location_permission_required", message: "Foreground location permission is required.", details: nil)); return }; locationStreaming = true; reconcileLocationUpdates(); result(nil); case "stopLocationUpdates": locationStreaming = false; reconcileLocationUpdates(); result(nil); case "startHeadingUpdates": guard CLLocationManager.headingAvailable() else { result(FlutterError(code: "heading_unavailable", message: "Compass heading is unavailable on this device.", details: nil)); return }; updateHeadingOrientation(); headingStreaming = true; reconcileLocationUpdates(); manager.startUpdatingHeading(); result(nil); case "stopHeadingUpdates": headingStreaming = false; manager.stopUpdatingHeading(); reconcileLocationUpdates(); result(nil); case "stopAll": stopAll(); result(nil); default: result(FlutterMethodNotImplemented) } }
   private func reconcileLocationUpdates() { let headingNeedsTrueNorth = headingStreaming && CLLocationManager.locationServicesEnabled() && Self.canReadLocation(manager.authorizationStatus); if locationStreaming || headingNeedsTrueNorth { manager.startUpdatingLocation() } else { manager.stopUpdatingLocation() } }
   private func updateHeadingOrientation() { switch UIDevice.current.orientation { case .portrait: manager.headingOrientation = .portrait; case .portraitUpsideDown: manager.headingOrientation = .portraitUpsideDown; case .landscapeLeft: manager.headingOrientation = .landscapeLeft; case .landscapeRight: manager.headingOrientation = .landscapeRight; default: break } }
   private func stopAll() { locationStreaming = false; headingStreaming = false; manager.stopUpdatingLocation(); manager.stopUpdatingHeading() }
