@@ -6,6 +6,7 @@ import '../../data/translation_catalog.dart';
 import '../../navigation/app_navigation.dart';
 import '../../settings/app_settings.dart';
 import 'reader_archive_context.dart';
+import 'reader_reading_history.dart';
 
 class ReaderArchiveScreen extends StatefulWidget {
   const ReaderArchiveScreen({super.key});
@@ -16,6 +17,13 @@ class ReaderArchiveScreen extends StatefulWidget {
 
 class _ReaderArchiveScreenState extends State<ReaderArchiveScreen> {
   String _filter = 'all';
+  late Future<List<ReaderHistoryEntry>> _historyFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _historyFuture = ReaderReadingHistoryRepository.instance.load();
+  }
 
   String _text(String languageCode, String key) {
     const values = <String, Map<String, String>>{
@@ -124,7 +132,7 @@ class _ReaderArchiveScreenState extends State<ReaderArchiveScreen> {
           selectionKey: entry.key,
           timestamp: settings.archiveTimestamp('note', entry.key),
           note: entry.value,
-          sourceCode: settings.noteSourceForKey(entry.key),
+          sourceCode: settings.noteSourceEntries[entry.key],
         ),
     ]..sort((a, b) => b.timestamp.compareTo(a.timestamp));
     final visible = _filter == 'all'
@@ -178,17 +186,34 @@ class _ReaderArchiveScreenState extends State<ReaderArchiveScreen> {
                 Expanded(
                   child: visible.isEmpty
                       ? Center(child: Text(_text(languageCode, 'emptyFilter')))
-                      : ListView.separated(
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-                          itemCount: visible.length,
-                          separatorBuilder: (_, _) => const SizedBox(height: 8),
-                          itemBuilder: (context, index) => _ArchiveTile(
-                            item: visible[index],
-                            languageCode: languageCode,
-                            label: _text(languageCode, visible[index].kind),
-                            sourceLabel: _text(languageCode, 'source'),
-                            fallbackSourceId: settings.selectedQuranSourceId,
-                          ),
+                      : FutureBuilder<List<ReaderHistoryEntry>>(
+                          future: _historyFuture,
+                          initialData: const <ReaderHistoryEntry>[],
+                          builder: (context, historySnapshot) {
+                            final history = historySnapshot.data ??
+                                const <ReaderHistoryEntry>[];
+                            return ListView.separated(
+                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                              itemCount: visible.length,
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(height: 8),
+                              itemBuilder: (context, index) {
+                                final item = visible[index];
+                                return _ArchiveTile(
+                                  item: item,
+                                  languageCode: languageCode,
+                                  label: _text(languageCode, item.kind),
+                                  sourceLabel: _text(languageCode, 'source'),
+                                  historySourceId: recentReaderSourceForArchive(
+                                    item.selectionKey,
+                                    history,
+                                  ),
+                                  fallbackSourceId:
+                                      settings.selectedQuranSourceId,
+                                );
+                              },
+                            );
+                          },
                         ),
                 ),
               ],
@@ -235,6 +260,7 @@ class _ArchiveTile extends StatelessWidget {
     required this.languageCode,
     required this.label,
     required this.sourceLabel,
+    required this.historySourceId,
     required this.fallbackSourceId,
   });
 
@@ -242,6 +268,7 @@ class _ArchiveTile extends StatelessWidget {
   final String languageCode;
   final String label;
   final String sourceLabel;
+  final String? historySourceId;
   final String fallbackSourceId;
 
   @override
@@ -250,6 +277,7 @@ class _ArchiveTile extends StatelessWidget {
     final target = parseReaderArchiveContext(
       selectionKey: item.selectionKey,
       sourceCode: item.sourceCode,
+      historySourceId: historySourceId,
       fallbackSourceId: fallbackSourceId,
     );
     final source = target == null ? null : translationById(target.sourceId);
