@@ -6,3 +6,8 @@
 "Prayer information needs to be refreshed in the app" = "Информацию о намазе нужно обновить в приложении";
 "Prayer Times" = "Время намаза";
 "Shows the next prayer from your on-device schedule." = "Показывает следующий намаз по расписанию, сохранённому на устройстве.";
+"Location changed" = "Местоположение изменилось";
+"Prayer times need refresh" = "Время намаза нужно обновить";
+"Prayer times need refresh after a time zone change" = "После смены часового пояса время намаза нужно обновить";
+"Prayer information is out of date. Open the app to refresh" = "Информация о намазе устарела. Откройте приложение для обновления";
+"Prayer information cannot be shown safely. Open the app to refresh" = "Информацию о намазе нельзя надёжно показать. Откройте приложение для обновления";
