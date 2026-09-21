@@ -6,3 +6,8 @@
 "Prayer information needs to be refreshed in the app" = "Namaz vakti bilgisinin uygulamada yenilenmesi gerekiyor";
 "Prayer Times" = "Namaz Vakitleri";
 "Shows the next prayer from your on-device schedule." = "Cihazındaki programa göre sıradaki namazı gösterir.";
+"Location changed" = "Konum değişti";
+"Prayer times need refresh" = "Namaz vakitleri yenilenmeli";
+"Prayer times need refresh after a time zone change" = "Saat dilimi değiştiği için namaz vakitlerinin yenilenmesi gerekiyor";
+"Prayer information is out of date. Open the app to refresh" = "Namaz vakti bilgisi güncel değil. Yenilemek için uygulamayı aç";
+"Prayer information cannot be shown safely. Open the app to refresh" = "Namaz vakti bilgisi güvenli biçimde gösterilemiyor. Yenilemek için uygulamayı aç";
