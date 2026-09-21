@@ -37,6 +37,7 @@ jobs:
           grep -q 'components.host == "prayer"' ios/Runner/AppDelegate.swift
           grep -q 'maxImportBytes: Int64 = 64' ios/Runner/AppDelegate.swift
           grep -q 'deleteImportedFile' ios/Runner/AppDelegate.swift
+          grep -q 'activePresenterResolution": true' ios/Runner/AppDelegate.swift
           grep -q 'FileProtectionType.completeUntilFirstUserAuthentication' ios/Runner/AppDelegate.swift
           grep -q 'NotificationPermissionChannel.selfTestIdentifier' ios/Runner/AppDelegate.swift
           grep -q 'completionHandler(\[.banner, .sound\])' ios/Runner/AppDelegate.swift
