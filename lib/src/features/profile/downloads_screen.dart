@@ -6,6 +6,7 @@ import '../../data/translation_catalog.dart';
 import '../../data/translation_repository.dart';
 import '../../settings/app_settings.dart';
 import '../reader/offline_audio_manager.dart';
+import '../reader/offline_audio_pack_manifest.dart';
 import '../reader/reader_audio_cache.dart';
 
 class DownloadsScreen extends StatefulWidget {
@@ -195,10 +196,29 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                             children: [
                               for (final item in entry.value)
                                 ListTile(
+                                  leading: Icon(
+                                    item.readiness ==
+                                            OfflineAudioPackReadiness.ready
+                                        ? Icons.offline_pin_rounded
+                                        : item.readiness ==
+                                              OfflineAudioPackReadiness
+                                                  .needsRepair
+                                        ? Icons.warning_amber_rounded
+                                        : Icons.downloading_rounded,
+                                    color: item.readiness ==
+                                            OfflineAudioPackReadiness.ready
+                                        ? scheme.primary
+                                        : item.readiness ==
+                                              OfflineAudioPackReadiness
+                                                  .needsRepair
+                                        ? scheme.error
+                                        : scheme.tertiary,
+                                  ),
                                   title: Text(surahByNumber(item.surah).nameTr),
                                   subtitle: Text(
-                                    '${item.downloadedAyahs} ${copy.verse} · ${_formatBytes(item.bytes)}',
+                                    '${item.downloadedAyahs}/${item.verseCount} ${copy.verse} · ${_formatBytes(item.bytes)}\n${copy.packStatus(item.readiness)}',
                                   ),
+                                  isThreeLine: true,
                                   trailing: IconButton(
                                     onPressed: () async {
                                       await OfflineAudioManager.instance
@@ -369,12 +389,20 @@ String _formatBytes(int bytes) {
 class _DownloadsCopy {
   const _DownloadsCopy(this.languageCode);
   final String languageCode;
-  String _pick(String tr, String en, String ar, String az, String ru) =>
+  String _pick(
+    String tr,
+    String en,
+    String ar,
+    String az,
+    String ru, [
+    String? fr,
+  ]) =>
       switch (languageCode) {
         'tr' => tr,
         'ar' => ar,
         'az' => az,
         'ru' => ru,
+        'fr' => fr ?? en,
         _ => en,
       };
   String get title => _pick(
@@ -462,6 +490,40 @@ class _DownloadsCopy {
   );
   String get surah => _pick('sure', 'surahs', 'سور', 'surə', 'сур');
   String get verse => _pick('ayet', 'verses', 'آية', 'ayə', 'аятов');
+  String packStatus(OfflineAudioPackReadiness readiness) => switch (readiness) {
+    OfflineAudioPackReadiness.ready => _pick(
+      'Çevrimdışı hazır',
+      'Ready offline',
+      'جاهز دون اتصال',
+      'Oflayn hazırdır',
+      'Готово офлайн',
+      'Prêt hors ligne',
+    ),
+    OfflineAudioPackReadiness.needsRepair => _pick(
+      'Onarım gerekiyor · Reader’dan onar',
+      'Needs repair · repair from Reader',
+      'يحتاج إلى إصلاح · أصلحه من القارئ',
+      'Bərpa lazımdır · Reader-dan bərpa et',
+      'Требуется исправление · откройте Reader',
+      'Réparation requise · ouvrir Reader',
+    ),
+    OfflineAudioPackReadiness.incomplete => _pick(
+      'Bekliyor · Reader’dan devam et',
+      'Pending · resume from Reader',
+      'قيد الانتظار · تابع من القارئ',
+      'Gözləyir · Reader-dan davam et',
+      'Ожидает · продолжите в Reader',
+      'En attente · reprendre dans Reader',
+    ),
+    OfflineAudioPackReadiness.notInstalled => _pick(
+      'Yeniden indirme bekliyor',
+      'Waiting to be downloaded again',
+      'في انتظار إعادة التنزيل',
+      'Yenidən endirilməni gözləyir',
+      'Ожидает повторной загрузки',
+      'En attente d’un nouveau téléchargement',
+    ),
+  };
   String get deleteAll => _pick(
     'Bu sesi tamamen sil',
     'Delete all for this voice',

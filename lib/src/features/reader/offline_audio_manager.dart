@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'offline_audio_pack_manifest.dart';
+
+export 'offline_audio_pack_manifest.dart' show OfflineAudioPackReadiness;
 import 'resumable_file_download.dart';
 
 enum AudioNetworkKind { wifi, mobile, offline, other }
