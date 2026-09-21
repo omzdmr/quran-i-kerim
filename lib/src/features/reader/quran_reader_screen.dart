@@ -92,6 +92,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
     }
     _autoScrollTimer?.cancel();
     _autoScrollTimer = null;
+    _saveVisibleReadingPosition();
     if (_focusController.keepAwake) {
       unawaited(WakelockPlus.disable());
     }
@@ -600,6 +601,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
           position.pixels +
           (_focusController.autoScrollSpeed.pixelsPerSecond * .05);
       if (next >= position.maxScrollExtent) {
+        _saveVisibleReadingPosition();
         _focusController.setAutoScroll(false);
         return;
       }
@@ -791,6 +793,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
                   onPressed: () {
                     if (_focusController.autoScroll) {
                       _focusController.pauseAutoScrollForInteraction();
+                      _saveVisibleReadingPosition();
                     } else {
                       _focusController.setAutoScroll(true);
                     }
