@@ -14,8 +14,7 @@ void main() {
           return const SizedBox();
         }),
       ));
-
-      for (final value in [copy.send, copy.sent, copy.denied, copy.failed, copy.confirmPrompt, copy.received, copy.notReceived, copy.receivedAck, copy.notReceivedHelp]) {
+      for (final value in [copy.send, copy.sent, copy.denied, copy.failed, copy.confirmPrompt, copy.received, copy.notReceived, copy.receivedAck, copy.notReceivedHelp, copy.lastVerified]) {
         expect(value.trim(), isNotEmpty);
       }
     });
@@ -33,5 +32,6 @@ void main() {
     ));
     expect(copy.send, 'Send test notification');
     expect(copy.confirmPrompt, 'Did you actually see or hear the notification?');
+    expect(copy.lastVerified, 'Last user verification');
   });
 }
