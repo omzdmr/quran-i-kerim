@@ -34,6 +34,15 @@ void main() {
     expect(source, englishTranslationId);
   });
 
+  test('runtime-discovered history source identity remains restorable', () {
+    final context = parseReaderArchiveContext(
+      selectionKey: '18:10',
+      historySourceId: 'quranenc_runtime_12345',
+      fallbackSourceId: arabicOriginalSourceId,
+    );
+    expect(context?.sourceId, 'quranenc_runtime_12345');
+  });
+
   test('saved reference cannot point beyond the surah verse count', () {
     expect(parseReaderArchiveReference('1:8'), isNull);
     expect(parseReaderArchiveReference('2:287'), isNull);
