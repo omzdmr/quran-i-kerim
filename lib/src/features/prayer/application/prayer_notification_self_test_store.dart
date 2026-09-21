@@ -25,7 +25,13 @@ class PrayerNotificationSelfTestStore {
       final confirmedAt = raw['confirmedAt'];
       if (outcome is! String || confirmedAt is! String) return null;
       final parsed = DateTime.tryParse(confirmedAt);
-      final parsedOutcome = PrayerNotificationProbeOutcome.values.where((value) => value.name == outcome).firstOrNull;
+      PrayerNotificationProbeOutcome? parsedOutcome;
+      for (final value in PrayerNotificationProbeOutcome.values) {
+        if (value.name == outcome) {
+          parsedOutcome = value;
+          break;
+        }
+      }
       if (parsed == null || parsedOutcome == null) return null;
       return PrayerNotificationProbeRecord(outcome: parsedOutcome, confirmedAt: parsed.toLocal());
     } on FormatException {
