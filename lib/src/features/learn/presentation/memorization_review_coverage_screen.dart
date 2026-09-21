@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../l10n/app_localizations.dart';
 import '../../../l10n/generated/generated_app_localizations.dart';
 import '../application/memorization_progress_store.dart';
 import '../application/memorization_review_coverage.dart';
@@ -156,7 +155,7 @@ class _MemorizationReviewCoverageScreenState
                 pageLabel: l10n.memorizePages,
                 reviewLabel: l10n.memorizeTodayReview,
                 neverReviewedLabel: copy.neverReviewed,
-                daysLabel: AppLocalizations.of(context).text('daysUnit'),
+                daysLabel: copy.days,
                 assessmentLabel: switch (item.selfAssessment) {
                   MemorizationSelfAssessment.struggled =>
                     l10n.memorizeTestStruggled,
@@ -294,11 +293,13 @@ class _CoverageCopy {
     required this.batch,
     required this.remaining,
     required this.neverReviewed,
+    required this.days,
   });
 
   final String batch;
   final String remaining;
   final String neverReviewed;
+  final String days;
 
   String batchSummary(MemorizationReviewSession session) {
     final base = '$batch: ${session.sessionSize}';
@@ -319,30 +320,36 @@ const _copies = <String, _CoverageCopy>{
     batch: 'Bu tekrar turu',
     remaining: 'Sonraya kalan',
     neverReviewed: 'Henüz tekrar edilmedi',
+    days: 'gün',
   ),
   'en': _CoverageCopy(
     batch: 'This review round',
     remaining: 'Remaining later',
     neverReviewed: 'Not reviewed yet',
+    days: 'days',
   ),
   'ar': _CoverageCopy(
     batch: 'جولة المراجعة هذه',
     remaining: 'المتبقي لاحقًا',
     neverReviewed: 'لم تتم مراجعته بعد',
+    days: 'يوم',
   ),
   'az': _CoverageCopy(
     batch: 'Bu təkrar turu',
     remaining: 'Sonraya qalan',
     neverReviewed: 'Hələ təkrar edilməyib',
+    days: 'gün',
   ),
   'ru': _CoverageCopy(
     batch: 'Этот подход повторения',
     remaining: 'Останется на потом',
     neverReviewed: 'Ещё не повторялось',
+    days: 'дн.',
   ),
   'fr': _CoverageCopy(
     batch: 'Cette session de révision',
     remaining: 'À revoir ensuite',
     neverReviewed: 'Pas encore révisée',
+    days: 'jours',
   ),
 };
