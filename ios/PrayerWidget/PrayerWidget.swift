@@ -36,10 +36,7 @@ private struct PrayerProvider: TimelineProvider {
 private struct PrayerWidgetView: View {
   let entry: PrayerEntry
   @Environment(\.widgetFamily) private var family
-  var body: some View {
-    Group { if entry.canShowDetails, let snapshot = entry.snapshot, let nextAt = snapshot.nextPrayerAt { prayerContent(snapshot, nextAt) } else if entry.snapshot?.privacyMode == "redacted" { stateContent(icon: "lock.fill", title: "Prayer times hidden", accessibility: "Prayer times hidden for privacy") } else { staleContent } }
-      .containerBackground(.fill.tertiary, for: .widget).widgetURL(URL(string: "quranikerim://prayer"))
-  }
+  var body: some View { Group { if entry.canShowDetails, let snapshot = entry.snapshot, let nextAt = snapshot.nextPrayerAt { prayerContent(snapshot, nextAt) } else { unavailableContent } }.containerBackground(.fill.tertiary, for: .widget).widgetURL(URL(string: "quranikerim://prayer")) }
 
   @ViewBuilder private func prayerContent(_ snapshot: PrayerSnapshot, _ nextAt: Date) -> some View {
     let name = snapshot.displayName ?? snapshot.nextPrayerID ?? String(localized: "Prayer")
@@ -57,11 +54,13 @@ private struct PrayerWidgetView: View {
     }
   }
 
-  @ViewBuilder private var staleContent: some View {
-    if family == .accessoryCircular || family == .accessoryInline {
-      let redacted = entry.snapshot?.privacyMode == "redacted"
-      Label { if redacted { Text("Prayer times hidden") } else { Text("Open app to refresh") } } icon: { Image(systemName: redacted ? "lock.fill" : "arrow.clockwise") }
-        .accessibilityLabel(redacted ? Text("Prayer times hidden for privacy") : Text("Prayer information needs to be refreshed in the app"))
+  @ViewBuilder private var unavailableContent: some View {
+    if entry.snapshot?.privacyMode == "redacted" {
+      if family == .accessoryCircular || family == .accessoryInline {
+        Label { Text("Prayer times hidden") } icon: { Image(systemName: "lock.fill") }.accessibilityLabel(Text("Prayer times hidden for privacy"))
+      } else { stateContent(icon: "lock.fill", title: "Prayer times hidden", accessibility: "Prayer times hidden for privacy") }
+    } else if family == .accessoryCircular || family == .accessoryInline {
+      Label { Text("Open app to refresh") } icon: { Image(systemName: "arrow.clockwise") }.accessibilityLabel(Text("Prayer information needs to be refreshed in the app"))
     } else if let snapshot = entry.snapshot {
       switch snapshot.freshness(at: entry.date) {
       case .timeZoneChanged: stateContent(icon: "globe", title: "Location changed", accessibility: "Prayer times need refresh after a time zone change")
