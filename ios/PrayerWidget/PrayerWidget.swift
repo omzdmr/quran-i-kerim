@@ -22,10 +22,20 @@ private struct PrayerProvider: TimelineProvider {
   private func load() -> PrayerSnapshot? { guard let data = UserDefaults(suiteName: appGroup)?.data(forKey: snapshotKey), let snapshot = try? decoder.decode(PrayerSnapshot.self, from: data), snapshot.version == 1 else { return nil }; return snapshot }
 }
 
+private struct WidgetBackgroundModifier: ViewModifier {
+  @ViewBuilder func body(content: Content) -> some View {
+    if #available(iOSApplicationExtension 17.0, *) {
+      content.containerBackground(.fill.tertiary, for: .widget)
+    } else {
+      content.padding().background(Color(.secondarySystemBackground))
+    }
+  }
+}
+
 private struct PrayerWidgetView: View {
   let entry: PrayerEntry
   @Environment(\.widgetFamily) private var family
-  var body: some View { Group { if entry.canShowDetails, let snapshot = entry.snapshot, let nextAt = snapshot.nextPrayerAt { prayerContent(snapshot, nextAt) } else { unavailableContent } }.containerBackground(.fill.tertiary, for: .widget).widgetURL(URL(string: "quranikerim://prayer")) }
+  var body: some View { Group { if entry.canShowDetails, let snapshot = entry.snapshot, let nextAt = snapshot.nextPrayerAt { prayerContent(snapshot, nextAt) } else { unavailableContent } }.modifier(WidgetBackgroundModifier()).widgetURL(URL(string: "quranikerim://prayer")) }
 
   private func prayerName(_ snapshot: PrayerSnapshot) -> String {
     if let displayName = snapshot.displayName?.trimmingCharacters(in: .whitespacesAndNewlines), !displayName.isEmpty { return displayName }
