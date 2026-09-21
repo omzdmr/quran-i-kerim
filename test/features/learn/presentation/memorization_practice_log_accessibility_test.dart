@@ -33,16 +33,32 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    final solo = find.bySemanticsLabel('Solo review');
+    expect(solo, findsOneWidget);
     expect(
-      tester.getSemantics(find.text('Solo review')),
-      matchesSemantics(label: 'Solo review', hint: 'My own review session', isButton: true, isSelected: true, hasTapAction: true),
+      tester.getSemantics(solo),
+      matchesSemantics(
+        label: 'Solo review',
+        hint: 'My own review session',
+        isButton: true,
+        isSelected: true,
+        hasTapAction: true,
+      ),
     );
 
     await tester.tap(find.text('In prayer'));
     await tester.pump();
+    final prayer = find.bySemanticsLabel('In prayer');
+    expect(prayer, findsOneWidget);
     expect(
-      tester.getSemantics(find.text('In prayer')),
-      matchesSemantics(label: 'In prayer', hint: 'I recited this memorization in prayer', isButton: true, isSelected: true, hasTapAction: true),
+      tester.getSemantics(prayer),
+      matchesSemantics(
+        label: 'In prayer',
+        hint: 'I recited this memorization in prayer',
+        isButton: true,
+        isSelected: true,
+        hasTapAction: true,
+      ),
     );
   });
 }
