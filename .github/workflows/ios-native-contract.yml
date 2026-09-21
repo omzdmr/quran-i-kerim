@@ -23,6 +23,7 @@ jobs:
         run: |
           python3 ios/NativeTests/validate_project_graph.py
           python3 ios/NativeTests/validate_widget_localizations.py
+          python3 ios/NativeTests/validate_widget_prayer_names.py
           plutil -lint ios/Runner/Info.plist
           plutil -lint ios/Runner/PrivacyInfo.xcprivacy
           plutil -lint ios/PrayerWidget/Info.plist
