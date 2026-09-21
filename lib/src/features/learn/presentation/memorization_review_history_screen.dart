@@ -5,7 +5,7 @@ import '../application/memorization_practice_history_store.dart';
 import '../application/memorization_progress_store.dart';
 import '../application/memorization_review_history.dart';
 import 'memorization_practice_log_screen.dart';
-import 'memorization_study_screen.dart';
+import 'memorization_review_page_history_screen.dart';
 
 class MemorizationReviewHistoryScreen extends StatefulWidget {
   const MemorizationReviewHistoryScreen({super.key});
@@ -54,7 +54,7 @@ class _MemorizationReviewHistoryScreenState
 
   Future<void> _openPage(int page) async {
     await Navigator.of(context).push<void>(
-      MaterialPageRoute(builder: (_) => MemorizationStudyScreen(page: page)),
+      MaterialPageRoute(builder: (_) => MemorizationReviewPageHistoryScreen(page: page)),
     );
     await _load();
   }
@@ -161,20 +161,15 @@ class _SummaryCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(copy.summary,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        )),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
                 const SizedBox(height: 14),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    Chip(avatar: const Icon(Icons.calendar_month_outlined, size: 18),
-                        label: Text('${copy.last30Days} ${summary.recentEvents}')),
-                    Chip(avatar: const Icon(Icons.history_rounded, size: 18),
-                        label: Text('${copy.totalReviews} ${summary.totalEvents}')),
-                    Chip(avatar: const Icon(Icons.menu_book_outlined, size: 18),
-                        label: Text('${copy.reviewedPages} ${summary.reviewedPageCount}')),
+                    Chip(avatar: const Icon(Icons.calendar_month_outlined, size: 18), label: Text('${copy.last30Days} ${summary.recentEvents}')),
+                    Chip(avatar: const Icon(Icons.history_rounded, size: 18), label: Text('${copy.totalReviews} ${summary.totalEvents}')),
+                    Chip(avatar: const Icon(Icons.menu_book_outlined, size: 18), label: Text('${copy.reviewedPages} ${summary.reviewedPageCount}')),
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -189,12 +184,7 @@ class _SummaryCard extends StatelessWidget {
 }
 
 class _HistoryTile extends StatelessWidget {
-  const _HistoryTile({
-    required this.page,
-    required this.pageLabel,
-    required this.copy,
-    required this.onTap,
-  });
+  const _HistoryTile({required this.page, required this.pageLabel, required this.copy, required this.onTap});
   final MemorizationReviewHistoryPage page;
   final String pageLabel;
   final _HistoryCopy copy;
@@ -204,9 +194,12 @@ class _HistoryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final latest = page.latestReviewAt;
     final date = latest == null ? copy.noDate : MaterialLocalizations.of(context).formatMediumDate(latest);
-    final contexts = page.contexts.map(copy.contextLabel).join(', ');
-    final detail = '${copy.last30Days}: ${page.recentReviews} · '
-        '${copy.totalReviews}: ${page.totalReviews} · $date';
+    final contexts = page.hasDetailedHistory
+        ? page.contexts.map(copy.contextLabel).join(', ')
+        : copy.legacyDetail;
+    final detail = page.hasDetailedHistory
+        ? '${copy.last30Days}: ${page.recentReviews} · ${copy.totalReviews}: ${page.totalReviews} · $date'
+        : '${copy.lastReview}: $date';
     return Semantics(
       button: true,
       label: '$pageLabel ${page.page}. $detail. $contexts',
@@ -214,7 +207,7 @@ class _HistoryTile extends StatelessWidget {
       child: ExcludeSemantics(
         child: Card(
           child: ListTile(
-            leading: const Icon(Icons.history_toggle_off_rounded),
+            leading: Icon(page.hasDetailedHistory ? Icons.history_toggle_off_rounded : Icons.history_rounded),
             title: Text('$pageLabel ${page.page}'),
             subtitle: Text('$detail\n$contexts'),
             isThreeLine: true,
@@ -228,14 +221,9 @@ class _HistoryTile extends StatelessWidget {
 }
 
 class _HistoryCopy {
-  const _HistoryCopy({
-    required this.title, required this.summary, required this.last30Days,
-    required this.totalReviews, required this.reviewedPages, required this.localOnly,
-    required this.empty, required this.all, required this.solo, required this.prayer,
-    required this.someone, required this.noDate, required this.logReview,
-  });
+  const _HistoryCopy({required this.title, required this.summary, required this.last30Days, required this.totalReviews, required this.reviewedPages, required this.localOnly, required this.empty, required this.all, required this.solo, required this.prayer, required this.someone, required this.noDate, required this.logReview, required this.lastReview, required this.legacyDetail});
   final String title, summary, last30Days, totalReviews, reviewedPages, localOnly;
-  final String empty, all, solo, prayer, someone, noDate, logReview;
+  final String empty, all, solo, prayer, someone, noDate, logReview, lastReview, legacyDetail;
 
   String filterLabel(MemorizationReviewHistoryFilter filter) => switch (filter) {
     MemorizationReviewHistoryFilter.all => all,
@@ -252,10 +240,10 @@ class _HistoryCopy {
 }
 
 const _copies = <String, _HistoryCopy>{
-  'tr': _HistoryCopy(title: 'Tekrar geçmişi', summary: 'Tekrar görünümü', last30Days: 'Son 30 gün', totalReviews: 'Toplam tekrar', reviewedPages: 'Tekrar edilen sayfa', localOnly: 'Bu geçmiş cihazında tutulur ve yedekleme kapsamındadır.', empty: 'Bu filtre için henüz tekrar kaydı yok.', all: 'Tümü', solo: 'Tek başına', prayer: 'Namazda', someone: 'Birine okudum', noDate: 'Tarih yok', logReview: 'Tekrar kaydet'),
-  'en': _HistoryCopy(title: 'Review history', summary: 'Review overview', last30Days: 'Last 30 days', totalReviews: 'Total reviews', reviewedPages: 'Reviewed pages', localOnly: 'This history stays on your device and is included in backup.', empty: 'There is no review history for this filter yet.', all: 'All', solo: 'Solo', prayer: 'In prayer', someone: 'Recited to someone', noDate: 'No date', logReview: 'Log review'),
-  'fr': _HistoryCopy(title: 'Historique des révisions', summary: 'Vue des révisions', last30Days: '30 derniers jours', totalReviews: 'Révisions totales', reviewedPages: 'Pages révisées', localOnly: 'Cet historique reste sur votre appareil et est inclus dans la sauvegarde.', empty: 'Aucun historique pour ce filtre.', all: 'Tout', solo: 'Seul', prayer: 'En prière', someone: 'Récité à quelqu’un', noDate: 'Sans date', logReview: 'Enregistrer'),
-  'ar': _HistoryCopy(title: 'سجل المراجعة', summary: 'ملخص المراجعة', last30Days: 'آخر 30 يومًا', totalReviews: 'إجمالي المراجعات', reviewedPages: 'الصفحات المراجعة', localOnly: 'يبقى هذا السجل على جهازك ويُضمّن في النسخة الاحتياطية.', empty: 'لا يوجد سجل مراجعة لهذا المرشح بعد.', all: 'الكل', solo: 'منفردًا', prayer: 'في الصلاة', someone: 'قرأت على شخص', noDate: 'بدون تاريخ', logReview: 'تسجيل مراجعة'),
-  'az': _HistoryCopy(title: 'Təkrar tarixçəsi', summary: 'Təkrar icmalı', last30Days: 'Son 30 gün', totalReviews: 'Ümumi təkrar', reviewedPages: 'Təkrar edilən səhifələr', localOnly: 'Bu tarixçə cihazınızda qalır və ehtiyat nüsxəyə daxildir.', empty: 'Bu filtr üçün hələ tarixçə yoxdur.', all: 'Hamısı', solo: 'Tək', prayer: 'Namazda', someone: 'Birinə oxudum', noDate: 'Tarix yoxdur', logReview: 'Təkrarı qeyd et'),
-  'ru': _HistoryCopy(title: 'История повторений', summary: 'Обзор повторений', last30Days: 'Последние 30 дней', totalReviews: 'Всего повторений', reviewedPages: 'Повторённые страницы', localOnly: 'История хранится на устройстве и входит в резервную копию.', empty: 'Для этого фильтра пока нет истории.', all: 'Все', solo: 'Самостоятельно', prayer: 'В молитве', someone: 'Читал другому', noDate: 'Без даты', logReview: 'Записать повторение'),
+  'tr': _HistoryCopy(title: 'Tekrar geçmişi', summary: 'Tekrar görünümü', last30Days: 'Son 30 gün', totalReviews: 'Toplam tekrar', reviewedPages: 'Tekrar edilen sayfa', localOnly: 'Bu geçmiş cihazında tutulur ve yedekleme kapsamındadır.', empty: 'Bu filtre için henüz tekrar kaydı yok.', all: 'Tümü', solo: 'Tek başına', prayer: 'Namazda', someone: 'Birine okudum', noDate: 'Tarih yok', logReview: 'Tekrar kaydet', lastReview: 'Son tekrar', legacyDetail: 'Eski kayıttan geldi; ayrıntılı tekrar sayısı bilinmiyor'),
+  'en': _HistoryCopy(title: 'Review history', summary: 'Review overview', last30Days: 'Last 30 days', totalReviews: 'Total reviews', reviewedPages: 'Reviewed pages', localOnly: 'This history stays on your device and is included in backup.', empty: 'There is no review history for this filter yet.', all: 'All', solo: 'Solo', prayer: 'In prayer', someone: 'Recited to someone', noDate: 'No date', logReview: 'Log review', lastReview: 'Last review', legacyDetail: 'From older data; detailed review count is unavailable'),
+  'fr': _HistoryCopy(title: 'Historique des révisions', summary: 'Vue des révisions', last30Days: '30 derniers jours', totalReviews: 'Révisions totales', reviewedPages: 'Pages révisées', localOnly: 'Cet historique reste sur votre appareil et est inclus dans la sauvegarde.', empty: 'Aucun historique pour ce filtre.', all: 'Tout', solo: 'Seul', prayer: 'En prière', someone: 'Récité à quelqu’un', noDate: 'Sans date', logReview: 'Enregistrer', lastReview: 'Dernière révision', legacyDetail: 'Donnée ancienne ; le nombre détaillé de révisions est indisponible'),
+  'ar': _HistoryCopy(title: 'سجل المراجعة', summary: 'ملخص المراجعة', last30Days: 'آخر 30 يومًا', totalReviews: 'إجمالي المراجعات', reviewedPages: 'الصفحات المراجعة', localOnly: 'يبقى هذا السجل على جهازك ويُضمّن في النسخة الاحتياطية.', empty: 'لا يوجد سجل مراجعة لهذا المرشح بعد.', all: 'الكل', solo: 'منفردًا', prayer: 'في الصلاة', someone: 'قرأت على شخص', noDate: 'بدون تاريخ', logReview: 'تسجيل مراجعة', lastReview: 'آخر مراجعة', legacyDetail: 'بيانات قديمة؛ عدد المراجعات التفصيلي غير متاح'),
+  'az': _HistoryCopy(title: 'Təkrar tarixçəsi', summary: 'Təkrar icmalı', last30Days: 'Son 30 gün', totalReviews: 'Ümumi təkrar', reviewedPages: 'Təkrar edilən səhifələr', localOnly: 'Bu tarixçə cihazınızda qalır və ehtiyat nüsxəyə daxildir.', empty: 'Bu filtr üçün hələ tarixçə yoxdur.', all: 'Hamısı', solo: 'Tək', prayer: 'Namazda', someone: 'Birinə oxudum', noDate: 'Tarix yoxdur', logReview: 'Təkrarı qeyd et', lastReview: 'Son təkrar', legacyDetail: 'Köhnə məlumatdır; ətraflı təkrar sayı məlum deyil'),
+  'ru': _HistoryCopy(title: 'История повторений', summary: 'Обзор повторений', last30Days: 'Последние 30 дней', totalReviews: 'Всего повторений', reviewedPages: 'Повторённые страницы', localOnly: 'История хранится на устройстве и входит в резервную копию.', empty: 'Для этого фильтра пока нет истории.', all: 'Все', solo: 'Самостоятельно', prayer: 'В молитве', someone: 'Читал другому', noDate: 'Без даты', logReview: 'Записать повторение', lastReview: 'Последнее повторение', legacyDetail: 'Старые данные; подробное число повторений недоступно'),
 };
