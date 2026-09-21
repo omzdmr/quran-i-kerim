@@ -32,6 +32,25 @@ void main() {
     );
   });
 
+  test('matches alternate surah aliases even when UI language differs', () {
+    expect(
+      readerArchiveMatchesQuery(
+        query: 'Baqarah 255',
+        selectionKey: '2:255',
+        languageCode: 'tr',
+      ),
+      isTrue,
+    );
+    expect(
+      readerArchiveMatchesQuery(
+        query: 'Bakara 255',
+        selectionKey: '2:255',
+        languageCode: 'en',
+      ),
+      isTrue,
+    );
+  });
+
   test('matches private note text locally without indexing it elsewhere', () {
     expect(
       readerArchiveMatchesQuery(
