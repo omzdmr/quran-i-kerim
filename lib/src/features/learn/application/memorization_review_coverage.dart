@@ -69,6 +69,13 @@ int _ageInDays(DateTime nowDay, DateTime value) {
   return nowDay.difference(valueDay).inDays.clamp(0, 1000000).toInt();
 }
 
+int _assessmentPriority(MemorizationSelfAssessment? value) => switch (value) {
+      MemorizationSelfAssessment.struggled => 0,
+      MemorizationSelfAssessment.assisted => 1,
+      MemorizationSelfAssessment.independent => 2,
+      null => 3,
+    };
+
 MemorizationReviewCoverage buildMemorizationReviewCoverage({
   required MemorizationProgressSnapshot progress,
   required DateTime now,
@@ -138,6 +145,9 @@ MemorizationReviewCoverage buildMemorizationReviewCoverage({
     if (priority != 0) return priority;
     final age = (b.ageDays ?? -1).compareTo(a.ageDays ?? -1);
     if (age != 0) return age;
+    final assessment = _assessmentPriority(a.selfAssessment)
+        .compareTo(_assessmentPriority(b.selfAssessment));
+    if (assessment != 0) return assessment;
     return a.page.compareTo(b.page);
   });
 
