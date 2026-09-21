@@ -334,6 +334,7 @@ class _QadaFastingScreenState extends State<QadaFastingScreen> {
               children: [
                 Semantics(
                   container: true,
+                  excludeSemantics: true,
                   label: '${_text('privacy')} ${_text('backupNotice')}',
                   child: Container(
                     padding: const EdgeInsets.all(16),
@@ -374,6 +375,7 @@ class _QadaFastingScreenState extends State<QadaFastingScreen> {
                 const SizedBox(height: 18),
                 Semantics(
                   container: true,
+                  excludeSemantics: true,
                   label:
                       '${_text('remaining')}: ${_ledger.remainingDays} ${_text('days')}',
                   child: Container(
@@ -458,6 +460,7 @@ class _QadaFastingScreenState extends State<QadaFastingScreen> {
                     children: [
                       for (final group in debtGroups)
                         Semantics(
+                          excludeSemantics: true,
                           label:
                               '${group.key == null ? _text('unknownYear') : 'Ramadan ${group.key}'}, ${group.value} ${_text('days')}',
                           child: Chip(
@@ -557,6 +560,7 @@ class _HistoryCard extends StatelessWidget {
     ];
     return Semantics(
       container: true,
+      excludeSemantics: true,
       label:
           '$title, ${delta > 0 ? '+' : ''}$delta ${text('days')}, ${details.join(', ')}',
       child: Card(

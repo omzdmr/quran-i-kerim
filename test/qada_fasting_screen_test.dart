@@ -13,6 +13,9 @@ void main() {
   testWidgets('user can record debt and an explicit completed fast', (
     tester,
   ) async {
+    final semantics = tester.ensureSemantics();
+    addTearDown(semantics.dispose);
+
     await tester.pumpWidget(
       const MaterialApp(
         locale: Locale('en'),
