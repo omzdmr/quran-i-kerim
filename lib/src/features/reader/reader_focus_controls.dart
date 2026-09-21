@@ -61,6 +61,7 @@ class ReaderFocusControls extends StatelessWidget {
             SwitchListTile.adaptive(
               secondary: const Icon(Icons.lightbulb_outline_rounded),
               title: Text(text('keepScreenAwake')),
+              subtitle: Text(text('keepScreenAwakeHint')),
               value: controller.keepAwake,
               onChanged: onKeepAwakeChanged,
             ),
@@ -95,6 +96,16 @@ class ReaderFocusControls extends StatelessWidget {
                           onAutoScrollSpeedChanged(speed),
                     ),
                 ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 18, 12, 0),
+              child: Text(
+                text('focusSessionHint'),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  height: 1.4,
+                ),
               ),
             ),
           ],

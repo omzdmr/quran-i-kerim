@@ -25,6 +25,8 @@ void main() {
       'lineFocus': 'Line focus',
       'lineFocusHint': 'Keep the reading band clear',
       'keepScreenAwake': 'Keep screen awake',
+      'keepScreenAwakeHint': 'May use more battery',
+      'focusSessionHint': 'Resets when leaving Reader',
       'autoScroll': 'Auto-scroll',
       'autoScrollHint': 'Pauses on manual scrolling',
       'scrollSpeedSlow': 'Slow',
