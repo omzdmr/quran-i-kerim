@@ -81,4 +81,32 @@ void main() {
     expect(beforeAssessment, isNot(contains('lastReviewedAt')));
     expect(find.byIcon(Icons.check_circle_outline_rounded), findsOneWidget);
   });
+
+  testWidgets('assisted outcome is stored before moving on', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'memorized_pages_v1': <String>['4', '5'],
+      'memorization_page_progress_v1':
+          '{"4":{"memorizedAt":"2026-01-01T00:00:00.000"},'
+          '"5":{"memorizedAt":"2026-01-01T00:00:00.000"}}',
+    });
+    const session = MemorizationReviewSession(
+      pages: <int>[4, 5],
+      totalAttentionPages: 2,
+    );
+
+    await tester.pumpWidget(app(session));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.menu_book_rounded));
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.help_outline_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.text('2/2'), findsOneWidget);
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString('memorization_page_progress_v1')!;
+    expect(raw, contains('assisted'));
+    expect(raw, contains('lastReviewedAt'));
+  });
 }
