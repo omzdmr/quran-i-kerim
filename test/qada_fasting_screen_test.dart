@@ -52,6 +52,31 @@ void main() {
     expect(find.bySemanticsLabel('Remaining: 2 days'), findsOneWidget);
     expect(find.text('Qada fast completed'), findsOneWidget);
 
+    expect(find.text('Calendar'), findsOneWidget);
+    expect(find.text('Export'), findsOneWidget);
+
+    await tester.tap(find.text('Calendar'));
+    await tester.pumpAndSettle();
+    expect(find.text('Record calendar'), findsOneWidget);
+    expect(find.text('Qada fast completed'), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.close_rounded));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Export'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        'Records are shared as a CSV file. Private notes are excluded by default.',
+      ),
+      findsOneWidget,
+    );
+    final notesSwitch = tester.widget<SwitchListTile>(
+      find.byKey(const ValueKey<String>('qada-export-private-notes')),
+    );
+    expect(notesSwitch.value, isFalse);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
     await tester.pumpWidget(

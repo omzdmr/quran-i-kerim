@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../l10n/strings/qada_fasting_strings.dart';
+import 'qada_fasting_export.dart';
 import 'qada_fasting_ledger.dart';
 
 class QadaFastingScreen extends StatefulWidget {
@@ -13,6 +15,7 @@ class QadaFastingScreen extends StatefulWidget {
 
 class _QadaFastingScreenState extends State<QadaFastingScreen> {
   static const _store = QadaFastingStore();
+  static const _exportService = QadaFastingExportFileService();
 
   QadaFastingLedger _ledger = QadaFastingLedger();
   bool _loading = true;
@@ -315,6 +318,162 @@ class _QadaFastingScreenState extends State<QadaFastingScreen> {
     HapticFeedback.lightImpact();
   }
 
+  Future<void> _openCalendar() async {
+    final firstDate = _ledger.earliestOccurredOn;
+    final latestDate = _ledger.latestOccurredOn;
+    if (firstDate == null || latestDate == null) return;
+    var selected = latestDate;
+    final today = DateTime.now();
+    final lastDate = latestDate.isAfter(today) ? latestDate : today;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          final dayEntries = _ledger.entriesOn(selected).reversed.toList(
+            growable: false,
+          );
+          final dayDelta = dayEntries.fold<int>(
+            0,
+            (sum, entry) => sum + entry.balanceDelta,
+          );
+          return FractionallySizedBox(
+            heightFactor: .9,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 8, 0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _text('calendarTitle'),
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
+                        onPressed: () => Navigator.pop(sheetContext),
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+                    ],
+                  ),
+                ),
+                CalendarDatePicker(
+                  initialDate: selected,
+                  firstDate: firstDate,
+                  lastDate: lastDate,
+                  onDateChanged: (value) =>
+                      setSheetState(() => selected = value),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Semantics(
+                    container: true,
+                    label:
+                        '${_formatDate(context, selected)}, ${_text('dayChange')}: $dayDelta ${_text('days')}',
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _formatDate(context, selected),
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                        Text(
+                          '${_text('dayChange')}: ${dayDelta > 0 ? '+' : ''}$dayDelta',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: dayEntries.isEmpty
+                      ? Center(child: Text(_text('noEntriesDate')))
+                      : ListView(
+                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                          children: [
+                            for (final entry in dayEntries)
+                              _HistoryCard(entry: entry, text: _text),
+                          ],
+                        ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _exportLedger() async {
+    var includePrivateNotes = false;
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(_text('exportTitle')),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(_text('exportBody')),
+              const SizedBox(height: 12),
+              SwitchListTile(
+                key: const ValueKey<String>('qada-export-private-notes'),
+                contentPadding: EdgeInsets.zero,
+                value: includePrivateNotes,
+                title: Text(_text('includePrivateNotes')),
+                subtitle: Text(_text('includePrivateNotesWarning')),
+                onChanged: (value) =>
+                    setDialogState(() => includePrivateNotes = value),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(_text('cancel')),
+            ),
+            FilledButton.icon(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              icon: const Icon(Icons.ios_share_rounded),
+              label: Text(_text('shareExport')),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (accepted != true || !mounted) return;
+
+    try {
+      final file = await _exportService.createFile(
+        _ledger,
+        includePrivateNotes: includePrivateNotes,
+      );
+      if (!mounted) return;
+      final box = context.findRenderObject() as RenderBox?;
+      await SharePlus.instance.share(
+        ShareParams(
+          files: <XFile>[XFile(file.path, mimeType: 'text/csv')],
+          title: _text('exportTitle'),
+          sharePositionOrigin: box == null
+              ? null
+              : box.localToGlobal(Offset.zero) & box.size,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_text('exportFailed'))));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -442,6 +601,16 @@ class _QadaFastingScreenState extends State<QadaFastingScreen> {
                       onPressed: _correctBalance,
                       icon: const Icon(Icons.tune_rounded),
                       label: Text(_text('correctBalance')),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _ledger.entries.isEmpty ? null : _openCalendar,
+                      icon: const Icon(Icons.calendar_month_rounded),
+                      label: Text(_text('calendar')),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _ledger.entries.isEmpty ? null : _exportLedger,
+                      icon: const Icon(Icons.ios_share_rounded),
+                      label: Text(_text('export')),
                     ),
                   ],
                 ),
