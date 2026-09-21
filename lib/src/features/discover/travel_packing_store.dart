@@ -50,7 +50,8 @@ class TravelPackingStore {
   }
 
   Future<void> save(List<TravelPackingItem> items) async {
-    if (items.length > maxItems || items.any((item) => !item.isValid)) {
+    final ids = <String>{};
+    if (items.length > maxItems || items.any((item) => !item.isValid || !ids.add(item.id))) {
       throw const FormatException('Travel packing list is too large or invalid.');
     }
     final prefs = await SharedPreferences.getInstance();
