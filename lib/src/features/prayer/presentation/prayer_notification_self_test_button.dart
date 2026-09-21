@@ -51,12 +51,12 @@ class _PrayerNotificationSelfTestButtonState extends State<PrayerNotificationSel
   void _confirm(bool received) {
     final copy = prayerNotificationSelfTestStrings(context);
     setState(() => _awaitingConfirmation = false);
-    final messenger = ScaffoldMessenger.of(context)
+    ScaffoldMessenger.of(context)
       ..clearSnackBars()
-      ..showSnackBar(SnackBar(content: Text(received ? copy.receivedAck : copy.notReceivedHelp)));
-    if (!received) {
-      messenger.showSnackBar(SnackBar(content: Text(copy.notReceivedHelp), duration: const Duration(seconds: 6)));
-    }
+      ..showSnackBar(SnackBar(
+        content: Text(received ? copy.receivedAck : copy.notReceivedHelp),
+        duration: received ? const Duration(seconds: 3) : const Duration(seconds: 6),
+      ));
   }
 
   @override
