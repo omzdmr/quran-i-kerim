@@ -13,10 +13,15 @@ void main() {
     expect(find.text('Carte de communication alimentaire'), findsOneWidget);
     await tester.enterText(find.byType(TextField).at(0), 'Français');
     await tester.enterText(find.byType(TextField).at(1), 'Texte vérifié par utilisateur');
+    await tester.enterText(find.byType(TextField).at(2), 'Ne pas montrer au personnel');
     await tester.tap(find.text('Afficher la carte'));
     await tester.pumpAndSettle();
     expect(find.text('Texte vérifié par utilisateur'), findsOneWidget);
-    expect((await const TravelDietaryCardStore().load())?.languageLabel, 'Français');
+    expect(find.text('Ne pas montrer au personnel'), findsNothing);
+    expect(find.text('Note privée enregistrée ; elle reste masquée sur la carte.'), findsOneWidget);
+    final saved = await const TravelDietaryCardStore().load();
+    expect(saved?.languageLabel, 'Français');
+    expect(saved?.note, 'Ne pas montrer au personnel');
   });
 
   testWidgets('empty card is rejected without leaving editor', (tester) async {
