@@ -85,6 +85,9 @@ class _QuranAreaScreenState extends State<QuranAreaScreen> {
     final savedCount = settings.bookmarkKeys.length +
         settings.noteEntries.length +
         settings.highlightEntries.length;
+    final savedTooltip = savedCount == 0
+        ? savedLabel
+        : '$savedLabel, $savedCount';
 
     return SafeArea(
       child: Column(
@@ -113,20 +116,13 @@ class _QuranAreaScreenState extends State<QuranAreaScreen> {
                           ),
                         ),
                         const SizedBox(width: 6),
-                        Semantics(
-                          button: true,
-                          excludeSemantics: true,
-                          label: savedCount == 0
-                              ? savedLabel
-                              : '$savedLabel, $savedCount',
-                          child: Badge(
-                            isLabelVisible: savedCount > 0,
-                            label: Text(savedCount > 99 ? '99+' : '$savedCount'),
-                            child: IconButton(
-                              onPressed: _openSavedActivity,
-                              tooltip: savedLabel,
-                              icon: const Icon(Icons.bookmarks_outlined),
-                            ),
+                        Badge(
+                          isLabelVisible: savedCount > 0,
+                          label: Text(savedCount > 99 ? '99+' : '$savedCount'),
+                          child: IconButton(
+                            onPressed: _openSavedActivity,
+                            tooltip: savedTooltip,
+                            icon: const Icon(Icons.bookmarks_outlined),
                           ),
                         ),
                       ],
