@@ -10,6 +10,7 @@ class ReaderFocusControls extends StatelessWidget {
     required this.text,
     required this.onFullScreenChanged,
     required this.onKeepAwakeChanged,
+    required this.onAutoScrollSpeedChanged,
     super.key,
   });
 
@@ -17,6 +18,7 @@ class ReaderFocusControls extends StatelessWidget {
   final ReaderFocusText text;
   final Future<void> Function(bool enabled) onFullScreenChanged;
   final Future<void> Function(bool enabled) onKeepAwakeChanged;
+  final ValueChanged<ReaderAutoScrollSpeed> onAutoScrollSpeedChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -90,7 +92,7 @@ class ReaderFocusControls extends StatelessWidget {
                       }),
                       selected: controller.autoScrollSpeed == speed,
                       onSelected: (_) =>
-                          controller.setAutoScrollSpeed(speed),
+                          onAutoScrollSpeedChanged(speed),
                     ),
                 ],
               ),

@@ -46,6 +46,7 @@ void main() {
               keepAwakeRequested = enabled;
               controller.setKeepAwake(enabled);
             },
+            onAutoScrollSpeedChanged: controller.setAutoScrollSpeed,
           ),
         ),
       ),

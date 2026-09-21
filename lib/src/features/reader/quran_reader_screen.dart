@@ -24,6 +24,7 @@ import '../settings/quran_translation_catalog_screen.dart';
 import 'reader_audio_sheet.dart';
 import 'reader_focus_controller.dart';
 import 'reader_focus_controls.dart';
+import 'reader_focus_preferences.dart';
 import 'reader_navigation.dart';
 import 'reader_mixed_verse_list.dart';
 import 'reader_note_sheet.dart';
@@ -51,6 +52,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
   bool _manualReaderScroll = false;
   late final ReaderAudioController _audioController;
   late final ReaderFocusController _focusController;
+  late final ReaderFocusPreferencesStore _focusPreferences;
   Timer? _autoScrollTimer;
   final Set<int> _selectedAyahs = <int>{};
   final ScrollController _scrollController = ScrollController();
@@ -67,8 +69,10 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
     WidgetsBinding.instance.addObserver(this);
     _audioController = ReaderAudioController();
     _audioController.addListener(_handleAudioChanged);
+    _focusPreferences = const ReaderFocusPreferencesStore();
     _focusController = ReaderFocusController()
       ..addListener(_handleFocusChanged);
+    unawaited(_restoreFocusPreferences());
     AppNavigation.instance.readerRequest.addListener(_handleReaderRequest);
   }
 
@@ -565,6 +569,17 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
     setState(() => _readerChromeVisible = visible);
   }
 
+  Future<void> _restoreFocusPreferences() async {
+    final speed = await _focusPreferences.loadAutoScrollSpeed();
+    if (!mounted) return;
+    _focusController.setAutoScrollSpeed(speed);
+  }
+
+  void _setAutoScrollSpeed(ReaderAutoScrollSpeed speed) {
+    _focusController.setAutoScrollSpeed(speed);
+    unawaited(_focusPreferences.saveAutoScrollSpeed(speed));
+  }
+
   void _handleFocusChanged() {
     if (!mounted) return;
     _syncAutoScrollTimer();
@@ -633,6 +648,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
           text: l10n.text,
           onFullScreenChanged: _setReaderFullScreen,
           onKeepAwakeChanged: _setReaderKeepAwake,
+          onAutoScrollSpeedChanged: _setAutoScrollSpeed,
         ),
       ),
     );

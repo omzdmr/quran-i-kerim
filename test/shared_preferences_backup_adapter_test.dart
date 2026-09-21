@@ -24,6 +24,7 @@ void main() {
       'prayer_notification_profile': 'discreet',
       'prayer_hijri_offset': 1,
       'reader_experience_preset_v1': 'essential',
+      'reader_auto_scroll_speed_v1': 'slow',
       'reading_plan_state_v1': '{"active":{"preset":"quran30"}}',
       'prayer_city_id': '__device_location__',
       'prayer_device_latitude': 41.123456,
@@ -44,6 +45,7 @@ void main() {
     expect(snapshot['prayer_notification_ids'], <String>['fajr', 'isha']);
     expect(snapshot['prayer_notification_profile'], 'discreet');
     expect(snapshot['reader_experience_preset_v1'], 'essential');
+    expect(snapshot['reader_auto_scroll_speed_v1'], 'slow');
     expect(snapshot['reading_plan_state_v1'], isNotNull);
     expect(snapshot, isNot(contains('prayer_city_id')));
     for (final key in SharedPreferencesBackupAdapter.excludedPrayerLocationKeys) {
@@ -192,6 +194,39 @@ void main() {
     await adapter.restoreSections(sections);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getString('reader_experience_preset_v1'), 'essential');
+  });
+
+  test('Reader auto-scroll speed survives a current backup round trip', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'reader_auto_scroll_speed_v1': 'fast',
+    });
+
+    final sections = await adapter.captureSections();
+    expect(
+      (sections['preferences'] as Map)['reader_auto_scroll_speed_v1'],
+      'fast',
+    );
+
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    await adapter.restoreSections(sections);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('reader_auto_scroll_speed_v1'), 'fast');
+  });
+
+  test('version six restore preserves the newer auto-scroll speed', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'reader_auto_scroll_speed_v1': 'slow',
+    });
+
+    await adapter.restoreSections(
+      <String, Object?>{
+        'preferences': <String, Object?>{},
+      },
+      schemaVersion: 6,
+    );
+
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('reader_auto_scroll_speed_v1'), 'slow');
   });
 
   test('version five restore preserves the new Reader preset', () async {
