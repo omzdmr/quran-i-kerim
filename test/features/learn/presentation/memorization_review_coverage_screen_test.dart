@@ -42,7 +42,7 @@ void main() {
 
     expect(find.byIcon(Icons.new_releases_outlined), findsOneWidget);
     expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
-    expect(find.byIcon(Icons.check_circle_outline_rounded), findsWidgets);
+    expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
 
     await tester.tap(find.byType(ChoiceChip).last);
     await tester.pump();
@@ -63,5 +63,21 @@ void main() {
     final semantics = tester.getSemantics(find.byType(ListTile));
     expect(semantics.hasAction(SemanticsAction.tap), isTrue);
     expect(semantics.label, contains('5'));
+  });
+
+  testWidgets('hides review start when every memorized page is fresh', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'memorized_pages_v1': <String>['8'],
+      'memorization_page_progress_v1':
+          '{"8":{"memorizedAt":"2026-08-01T00:00:00.000",'
+          '"lastReviewedAt":"2099-01-01T00:00:00.000",'
+          '"selfAssessment":"independent"}}',
+    });
+
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
+    expect(find.byIcon(Icons.check_circle_outline_rounded), findsWidgets);
   });
 }
