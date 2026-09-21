@@ -1,10 +1,10 @@
 import 'memorization_review_coverage.dart';
 
-/// A local-only review session derived from the user's memorized-page coverage.
+/// A local-only interaction batch derived from review coverage.
 ///
-/// This deliberately does not replace HIFZ_SYSTEM scheduling. It turns the
-/// coverage ledger into a small, bounded action queue so an overdue backlog
-/// never becomes an intimidating all-or-nothing task.
+/// This deliberately does not replace HIFZ_SYSTEM scheduling or remove work
+/// from the adaptive daily queue. It only gives the coverage screen a bounded
+/// "start here" batch while still exposing the full attention backlog count.
 class MemorizationReviewSession {
   const MemorizationReviewSession({
     required this.pages,
@@ -16,7 +16,8 @@ class MemorizationReviewSession {
 
   bool get isEmpty => pages.isEmpty;
   int get sessionSize => pages.length;
-  int get deferredCount => (totalAttentionPages - pages.length).clamp(0, 1000000);
+  int get deferredCount =>
+      (totalAttentionPages - pages.length).clamp(0, 1000000).toInt();
 }
 
 MemorizationReviewSession buildMemorizationReviewSession({
