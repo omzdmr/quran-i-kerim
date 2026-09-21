@@ -7,6 +7,7 @@ import '../../l10n/generated/generated_app_localizations.dart';
 import '../learn/presentation/learn_lessons_overview.dart';
 import '../learn/presentation/learn_reference_overview.dart';
 import '../learn/presentation/memorization_overview.dart';
+import '../learn/presentation/memorization_review_coverage_screen.dart';
 
 class QuranLearnOverview extends StatefulWidget {
   const QuranLearnOverview({super.key});
@@ -22,6 +23,15 @@ class _QuranLearnOverviewState extends State<QuranLearnOverview> {
     if (_tab == index) return;
     HapticFeedback.selectionClick();
     setState(() => _tab = index);
+  }
+
+  Future<void> _openReviewCoverage() async {
+    HapticFeedback.selectionClick();
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => const MemorizationReviewCoverageScreen(),
+      ),
+    );
   }
 
   @override
@@ -51,7 +61,23 @@ class _QuranLearnOverviewState extends State<QuranLearnOverview> {
           duration: const Duration(milliseconds: 160),
           child: switch (_tab) {
             0 => const LearnLessonsOverview(key: ValueKey('lessons')),
-            1 => const MemorizationOverview(key: ValueKey('memorize')),
+            1 => Column(
+                key: const ValueKey('memorize'),
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Semantics(
+                    button: true,
+                    label: l10n.memorizeTodayReview,
+                    child: OutlinedButton.icon(
+                      onPressed: _openReviewCoverage,
+                      icon: const Icon(Icons.history_toggle_off_rounded),
+                      label: Text(l10n.memorizeTodayReview),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const MemorizationOverview(),
+                ],
+              ),
             _ => const LearnReferenceOverview(key: ValueKey('articles')),
           },
         ),
