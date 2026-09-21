@@ -35,10 +35,15 @@ jobs:
           grep -q '"universalLink": false' ios/Runner/AppDelegate.swift
           grep -q 'components.host == "prayer"' ios/Runner/AppDelegate.swift
           grep -q 'maxImportBytes: Int64 = 64' ios/Runner/AppDelegate.swift
+          grep -q 'deleteImportedFile' ios/Runner/AppDelegate.swift
+          grep -q 'FileProtectionType.completeUntilFirstUserAuthentication' ios/Runner/AppDelegate.swift
+          grep -q 'NotificationPermissionChannel.selfTestIdentifier' ios/Runner/AppDelegate.swift
+          grep -q 'completionHandler(\[.banner, .sound\])' ios/Runner/AppDelegate.swift
           grep -q 'orientationAwareHeading": true' ios/Runner/BackupExclusionChannel.swift
           grep -q 'trueNorthWhenAuthorized": true' ios/Runner/BackupExclusionChannel.swift
           grep -q 'headingNeedsTrueNorth' ios/Runner/BackupExclusionChannel.swift
           grep -q 'headingOrientation = .landscapeLeft' ios/Runner/BackupExclusionChannel.swift
+          grep -q 'canGoNext' ios/Runner/BackupExclusionChannel.swift
           grep -q 'bluetoothMicrophone": true' ios/Runner/MicrophoneRecordingChannel.swift
           grep -q '\.allowBluetooth' ios/Runner/MicrophoneRecordingChannel.swift
           grep -q 'CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements' ios/Runner.xcodeproj/project.pbxproj
