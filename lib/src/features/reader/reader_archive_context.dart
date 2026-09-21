@@ -18,7 +18,7 @@ class ReaderArchiveReference {
 /// A canonical location plus the display layer that should be restored.
 ///
 /// Surah/ayah identity is deliberately independent from translation identity.
-/// Changing a meal must never turn a saved item into a different ayah.
+/// Changing a translation must never turn a saved item into a different ayah.
 class ReaderArchiveContext {
   const ReaderArchiveContext({
     required this.surah,
@@ -97,7 +97,7 @@ String? recentReaderSourceForArchive(
 }
 
 /// Source precedence is explicit artifact provenance, exact historical context,
-/// then the user's current Reader source. Unknown runtime source IDs are kept
+/// then the user's current Reader source. Unknown runtime history IDs are kept
 /// verbatim so locally installed discovered translations remain restorable.
 ReaderArchiveContext? parseReaderArchiveContext({
   required String selectionKey,
@@ -110,8 +110,8 @@ ReaderArchiveContext? parseReaderArchiveContext({
 
   final sourceId = readerSourceIdForArchiveCode(sourceCode) ??
       readerSourceIdForArchiveCode(historySourceId) ??
-      readerSourceIdForArchiveCode(fallbackSourceId) ??
       _nonEmpty(historySourceId) ??
+      readerSourceIdForArchiveCode(fallbackSourceId) ??
       _nonEmpty(fallbackSourceId);
   if (sourceId == null) return null;
 
