@@ -22,6 +22,8 @@ void main() {
       'focusReading': 'Focus reading',
       'fullScreen': 'Full screen',
       'dimScreen': 'Dim screen',
+      'lineFocus': 'Line focus',
+      'lineFocusHint': 'Keep the reading band clear',
       'keepScreenAwake': 'Keep screen awake',
       'autoScroll': 'Auto-scroll',
       'autoScrollHint': 'Pauses on manual scrolling',
@@ -62,6 +64,11 @@ void main() {
     await tester.pump();
     expect(controller.dimmed, isTrue);
 
+    await tester.tap(find.text('Line focus'));
+    await tester.pump();
+    expect(controller.lineFocus, isTrue);
+    expect(controller.dimmed, isFalse);
+
     await tester.tap(find.text('Keep screen awake'));
     await tester.pump();
     expect(keepAwakeRequested, isTrue);
@@ -74,6 +81,31 @@ void main() {
     await tester.tap(find.text('Auto-scroll'));
     await tester.pump();
     expect(controller.autoScroll, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('line focus leaves a readable central band', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(320, 640));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: Stack(
+            children: [
+              Positioned.fill(child: ColoredBox(color: Colors.white)),
+              Positioned.fill(child: ReaderLineFocusOverlay()),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final band = find.byKey(
+      const ValueKey<String>('reader-line-focus-band'),
+    );
+    expect(band, findsOneWidget);
+    expect(tester.getSize(band).height, 132);
     expect(tester.takeException(), isNull);
   });
 }
