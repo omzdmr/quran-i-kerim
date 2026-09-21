@@ -34,6 +34,13 @@ class _TravelDietaryCardScreenState extends State<TravelDietaryCardScreen> {
     setState(() => _present = true);
   }
 
+  Future<void> _copyStaffText(_Copy c) async {
+    await Clipboard.setData(ClipboardData(text: _staffText.text.trim()));
+    if (!mounted) return;
+    HapticFeedback.selectionClick();
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(c.copied)));
+  }
+
   @override Widget build(BuildContext context) {
     final c = _Copy.forLocale(Localizations.localeOf(context));
     final theme = Theme.of(context);
@@ -44,16 +51,19 @@ class _TravelDietaryCardScreenState extends State<TravelDietaryCardScreen> {
         if (!_present) ...[
           TextField(controller: _language, maxLength: 80, decoration: InputDecoration(labelText: c.language)),
           TextField(controller: _staffText, maxLength: 1200, minLines: 5, maxLines: 10, decoration: InputDecoration(labelText: c.staffText, helperText: c.staffHelp)),
-          TextField(controller: _note, maxLength: 300, minLines: 2, maxLines: 4, decoration: InputDecoration(labelText: c.note)),
+          TextField(controller: _note, maxLength: 300, minLines: 2, maxLines: 4, decoration: InputDecoration(labelText: c.note, helperText: c.noteHelp)),
           FilledButton.icon(onPressed: _save, icon: const Icon(Icons.badge_outlined), label: Text(c.present)),
         ] else ...[
           Semantics(container: true, label: '${c.staffText}: ${_staffText.text}', child: Card(child: Padding(padding: const EdgeInsets.all(24), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             if (_language.text.trim().isNotEmpty) Text(_language.text.trim(), style: theme.textTheme.labelLarge),
             const SizedBox(height: 12), SelectableText(_staffText.text.trim(), textAlign: TextAlign.center, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800, height: 1.45)),
-            if (_note.text.trim().isNotEmpty) ...[const Divider(height: 32), Text(_note.text.trim())],
           ]))),
           const SizedBox(height: 12),
-          OutlinedButton.icon(onPressed: () => setState(() => _present = false), icon: const Icon(Icons.edit_outlined), label: Text(c.edit)),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            OutlinedButton.icon(onPressed: () => _copyStaffText(c), icon: const Icon(Icons.copy_rounded), label: Text(c.copy)),
+            OutlinedButton.icon(onPressed: () => setState(() => _present = false), icon: const Icon(Icons.edit_outlined), label: Text(c.edit)),
+          ]),
+          if (_note.text.trim().isNotEmpty) Padding(padding: const EdgeInsets.only(top: 12), child: Text(c.privateNoteSaved, style: theme.textTheme.bodySmall)),
         ],
         const SizedBox(height: 18), Text(c.trust, style: theme.textTheme.bodySmall),
       ]),
@@ -62,15 +72,15 @@ class _TravelDietaryCardScreenState extends State<TravelDietaryCardScreen> {
 }
 
 class _Copy {
-  const _Copy(this.title,this.explanation,this.language,this.staffText,this.staffHelp,this.note,this.save,this.present,this.edit,this.required,this.trust);
-  final String title, explanation, language, staffText, staffHelp, note, save, present, edit, required, trust;
+  const _Copy(this.title,this.explanation,this.language,this.staffText,this.staffHelp,this.note,this.noteHelp,this.save,this.present,this.edit,this.copy,this.copied,this.privateNoteSaved,this.required,this.trust);
+  final String title, explanation, language, staffText, staffHelp, note, noteHelp, save, present, edit, copy, copied, privateNoteSaved, required, trust;
   static _Copy forLocale(Locale locale) => _all[locale.languageCode] ?? _all['en']!;
 }
 const _all = <String,_Copy>{
- 'tr': _Copy('Yemek iletişim kartı','Restoran çalışanına göstermek istediğiniz, doğruluğunu bildiğiniz metni cihazda saklayın. İnternetsiz çalışır.','Dil / bölge','Çalışana gösterilecek metin','Metni kendiniz veya güvendiğiniz bir çeviriden girin.','Kendinize not','Kaydet','Kartı göster','Düzenle','Gösterilecek metin boş olamaz.','Bu kart bir restoranı veya yemeği helal olarak onaylamaz; yalnızca sizin yazdığınız isteği gösterir.'),
- 'en': _Copy('Dietary communication card','Keep text you trust on-device and show it to restaurant staff offline.','Language / region','Text shown to staff','Enter your own text or a translation you trust.','Private note','Save','Show card','Edit','Staff-facing text cannot be empty.','This card does not certify a restaurant or dish as halal; it only displays the request you entered.'),
- 'fr': _Copy('Carte de communication alimentaire','Conservez sur l’appareil un texte fiable à montrer au personnel, même hors ligne.','Langue / région','Texte à montrer au personnel','Saisissez votre texte ou une traduction de confiance.','Note privée','Enregistrer','Afficher la carte','Modifier','Le texte à afficher ne peut pas être vide.','Cette carte ne certifie ni un restaurant ni un plat halal ; elle affiche uniquement votre demande.'),
- 'ar': _Copy('بطاقة التواصل الغذائي','احفظ على الجهاز نصًا تثق به لعرضه على موظفي المطعم دون اتصال.','اللغة / المنطقة','النص المعروض للموظف','أدخل نصك أو ترجمة تثق بها.','ملاحظة خاصة','حفظ','عرض البطاقة','تعديل','لا يمكن أن يكون النص فارغًا.','هذه البطاقة لا تصدّق مطعمًا أو طبقًا على أنه حلال؛ بل تعرض فقط الطلب الذي أدخلته.'),
- 'az': _Copy('Qida ünsiyyət kartı','Etibar etdiyiniz mətni cihazda saxlayın və oflayn halda işçiyə göstərin.','Dil / bölgə','İşçiyə göstəriləcək mətn','Öz mətninizi və ya etibar etdiyiniz tərcüməni daxil edin.','Şəxsi qeyd','Yadda saxla','Kartı göstər','Düzəlt','Göstəriləcək mətn boş ola bilməz.','Bu kart restoranı və ya yeməyi halal kimi təsdiqləmir; yalnız daxil etdiyiniz tələbi göstərir.'),
- 'ru': _Copy('Карточка питания','Храните доверенный текст на устройстве и показывайте персоналу без интернета.','Язык / регион','Текст для персонала','Введите свой текст или перевод, которому доверяете.','Личная заметка','Сохранить','Показать карточку','Изменить','Текст для персонала не может быть пустым.','Карточка не подтверждает халяльность ресторана или блюда; она лишь показывает введённую вами просьбу.'),
+ 'tr': _Copy('Yemek iletişim kartı','Restoran çalışanına göstermek istediğiniz, doğruluğunu bildiğiniz metni cihazda saklayın. İnternetsiz çalışır.','Dil / bölge','Çalışana gösterilecek metin','Metni kendiniz veya güvendiğiniz bir çeviriden girin.','Kendinize not','Bu not kart gösterilirken gizli kalır.','Kaydet','Kartı göster','Düzenle','Metni kopyala','Metin kopyalandı','Özel not kaydedildi; çalışan kartında gösterilmiyor.','Gösterilecek metin boş olamaz.','Bu kart bir restoranı veya yemeği helal olarak onaylamaz; yalnızca sizin yazdığınız isteği gösterir.'),
+ 'en': _Copy('Dietary communication card','Keep text you trust on-device and show it to restaurant staff offline.','Language / region','Text shown to staff','Enter your own text or a translation you trust.','Private note','This note stays hidden while presenting the card.','Save','Show card','Edit','Copy text','Text copied','Private note saved; it is hidden from the staff card.','Staff-facing text cannot be empty.','This card does not certify a restaurant or dish as halal; it only displays the request you entered.'),
+ 'fr': _Copy('Carte de communication alimentaire','Conservez sur l’appareil un texte fiable à montrer au personnel, même hors ligne.','Langue / région','Texte à montrer au personnel','Saisissez votre texte ou une traduction de confiance.','Note privée','Cette note reste masquée lors de la présentation.','Enregistrer','Afficher la carte','Modifier','Copier le texte','Texte copié','Note privée enregistrée ; elle reste masquée sur la carte.','Le texte à afficher ne peut pas être vide.','Cette carte ne certifie ni un restaurant ni un plat halal ; elle affiche uniquement votre demande.'),
+ 'ar': _Copy('بطاقة التواصل الغذائي','احفظ على الجهاز نصًا تثق به لعرضه على موظفي المطعم دون اتصال.','اللغة / المنطقة','النص المعروض للموظف','أدخل نصك أو ترجمة تثق بها.','ملاحظة خاصة','تبقى هذه الملاحظة مخفية عند عرض البطاقة.','حفظ','عرض البطاقة','تعديل','نسخ النص','تم نسخ النص','تم حفظ الملاحظة الخاصة ولن تظهر في بطاقة الموظف.','لا يمكن أن يكون النص فارغًا.','هذه البطاقة لا تصدّق مطعمًا أو طبقًا على أنه حلال؛ بل تعرض فقط الطلب الذي أدخلته.'),
+ 'az': _Copy('Qida ünsiyyət kartı','Etibar etdiyiniz mətni cihazda saxlayın və oflayn halda işçiyə göstərin.','Dil / bölgə','İşçiyə göstəriləcək mətn','Öz mətninizi və ya etibar etdiyiniz tərcüməni daxil edin.','Şəxsi qeyd','Kart göstərilərkən bu qeyd gizli qalır.','Yadda saxla','Kartı göstər','Düzəlt','Mətni kopyala','Mətn kopyalandı','Şəxsi qeyd saxlanıldı və işçi kartında göstərilmir.','Göstəriləcək mətn boş ola bilməz.','Bu kart restoranı və ya yeməyi halal kimi təsdiqləmir; yalnız daxil etdiyiniz tələbi göstərir.'),
+ 'ru': _Copy('Карточка питания','Храните доверенный текст на устройстве и показывайте персоналу без интернета.','Язык / регион','Текст для персонала','Введите свой текст или перевод, которому доверяете.','Личная заметка','Эта заметка скрыта при показе карточки.','Сохранить','Показать карточку','Изменить','Копировать текст','Текст скопирован','Личная заметка сохранена и скрыта от персонала.','Текст для персонала не может быть пустым.','Карточка не подтверждает халяльность ресторана или блюда; она лишь показывает введённую вами просьбу.'),
 };
