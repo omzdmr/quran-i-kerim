@@ -30,25 +30,11 @@ import UniformTypeIdentifiers
     return super.application(app, open: url, options: options) || accepted
   }
 
-  override func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
-    let accepted = userActivity.webpageURL.flatMap { deepLinkChannel?.receive($0) } ?? false
-    return super.application(application, continue: userActivity, restorationHandler: restorationHandler) || accepted
-  }
-
   override func applicationWillTerminate(_ application: UIApplication) {
-    deepLinkChannel?.detach()
-    nativeShareChannel?.detach()
-    microphoneRecordingChannel?.detach()
-    nativeLifecycleStateChannel?.markCleanTermination()
-    nativeLifecycleStateChannel?.detach()
-    widgetSnapshotChannel?.detach()
-    documentHandoffChannel?.detach()
-    locationHeadingChannel?.detach()
-    notificationPermissionChannel?.detach()
-    audioLifecycleChannel?.detach()
-    nowPlayingChannel?.detach()
-    backupExclusionChannel?.detach()
-    audioSessionCoordinator.stop()
+    deepLinkChannel?.detach(); nativeShareChannel?.detach(); microphoneRecordingChannel?.detach()
+    nativeLifecycleStateChannel?.markCleanTermination(); nativeLifecycleStateChannel?.detach(); widgetSnapshotChannel?.detach()
+    documentHandoffChannel?.detach(); locationHeadingChannel?.detach(); notificationPermissionChannel?.detach()
+    audioLifecycleChannel?.detach(); nowPlayingChannel?.detach(); backupExclusionChannel?.detach(); audioSessionCoordinator.stop()
     super.applicationWillTerminate(application)
   }
 
@@ -69,12 +55,11 @@ import UniformTypeIdentifiers
   }
 }
 
-/// Buffers native URL/universal-link ingress until Flutter is ready, avoiding cold-start loss.
-/// Routing semantics remain owned by the shared layer. Only the app's private custom scheme and
-/// HTTPS links are admitted; arbitrary third-party schemes never cross this boundary.
+/// Buffers the app-owned widget URL until Flutter is ready, avoiding cold-start loss.
+/// Universal links are deliberately not advertised until an Associated Domains entitlement and
+/// owned web domain are configured; this boundary accepts only the private app scheme.
 final class DeepLinkChannel {
   static let channelName = "app.quranikerim/native_deep_link"
-
   private let channel: FlutterMethodChannel
   private var pending: [String] = []
   private let maxPending = 8
@@ -87,10 +72,7 @@ final class DeepLinkChannel {
   @discardableResult
   func receive(_ url: URL) -> Bool {
     guard let normalized = normalizedURLString(url) else { return false }
-    if pending.last != normalized {
-      pending.append(normalized)
-      if pending.count > maxPending { pending.removeFirst(pending.count - maxPending) }
-    }
+    if pending.last != normalized { pending.append(normalized); if pending.count > maxPending { pending.removeFirst(pending.count - maxPending) } }
     channel.invokeMethod("linkReceived", arguments: ["url": normalized])
     return true
   }
@@ -99,7 +81,7 @@ final class DeepLinkChannel {
 
   private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
-    case "capabilities": result(["customScheme": true, "universalLink": true, "coldStartBuffer": true, "maxPending": maxPending])
+    case "capabilities": result(["customScheme": true, "universalLink": false, "coldStartBuffer": true, "maxPending": maxPending])
     case "pendingLinks": result(pending)
     case "consumePendingLinks": let links = pending; pending.removeAll(); result(links)
     case "clearPendingLinks": pending.removeAll(); result(nil)
@@ -108,13 +90,10 @@ final class DeepLinkChannel {
   }
 
   private func normalizedURLString(_ url: URL) -> String? {
-    guard let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "quranikerim" else { return nil }
-    guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
-    components.scheme = scheme
+    guard url.scheme?.lowercased() == "quranikerim", var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
+    components.scheme = "quranikerim"
     components.host = components.host?.lowercased()
-    if scheme == "quranikerim" {
-      guard components.host == "prayer" || components.host == "reader" || components.host == "hifz" else { return nil }
-    }
+    guard components.host == "prayer" || components.host == "reader" || components.host == "hifz" else { return nil }
     return components.url?.absoluteString
   }
 }
@@ -129,10 +108,8 @@ final class DocumentHandoffChannel: NSObject, UIDocumentPickerDelegate {
   private var temporaryExportURL: URL?
 
   init(binaryMessenger: FlutterBinaryMessenger, presenter: UIViewController) {
-    channel = FlutterMethodChannel(name: Self.channelName, binaryMessenger: binaryMessenger)
-    self.presenter = presenter
-    super.init()
-    channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) }
+    channel = FlutterMethodChannel(name: Self.channelName, binaryMessenger: binaryMessenger); self.presenter = presenter
+    super.init(); channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) }
   }
 
   func detach() { finish(nil); channel.setMethodCallHandler(nil) }
@@ -158,19 +135,16 @@ final class DocumentHandoffChannel: NSObject, UIDocumentPickerDelegate {
       try FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
       let staged = tempDirectory.appendingPathComponent(preferredName, isDirectory: false)
       try? FileManager.default.removeItem(at: staged); try FileManager.default.copyItem(at: source, to: staged)
-      var values = URLResourceValues(); values.isExcludedFromBackup = true
-      var mutable = staged; try mutable.setResourceValues(values)
+      var values = URLResourceValues(); values.isExcludedFromBackup = true; var mutable = staged; try mutable.setResourceValues(values)
       temporaryExportURL = staged; pendingResult = result
-      let picker = UIDocumentPickerViewController(forExporting: [staged], asCopy: true)
-      picker.delegate = self; picker.modalPresentationStyle = .formSheet; presenter.present(picker, animated: true)
+      let picker = UIDocumentPickerViewController(forExporting: [staged], asCopy: true); picker.delegate = self; picker.modalPresentationStyle = .formSheet; presenter.present(picker, animated: true)
     } catch { cleanupExport(); result(FlutterError(code: "export_failed", message: error.localizedDescription, details: nil)) }
   }
 
   private func importFile(result: @escaping FlutterResult) {
     guard let presenter else { result(FlutterError(code: "no_presenter", message: "No view controller is available.", details: nil)); return }
     pendingResult = result
-    let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.data], asCopy: true)
-    picker.allowsMultipleSelection = false; picker.delegate = self; picker.modalPresentationStyle = .formSheet; presenter.present(picker, animated: true)
+    let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.data], asCopy: true); picker.allowsMultipleSelection = false; picker.delegate = self; picker.modalPresentationStyle = .formSheet; presenter.present(picker, animated: true)
   }
 
   func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) { finish(["status": "cancelled"]) }
@@ -179,36 +153,29 @@ final class DocumentHandoffChannel: NSObject, UIDocumentPickerDelegate {
     guard let picked = urls.first else { finish(["status": "cancelled"]); return }
     let scoped = picked.startAccessingSecurityScopedResource(); defer { if scoped { picked.stopAccessingSecurityScopedResource() } }
     do {
-      let inbox = try importDirectory()
-      let destination = uniqueDestination(in: inbox, filename: sanitizedFilename(picked.lastPathComponent) ?? "import.quranbackup")
+      let inbox = try importDirectory(); let destination = uniqueDestination(in: inbox, filename: sanitizedFilename(picked.lastPathComponent) ?? "import.quranbackup")
       try FileManager.default.copyItem(at: picked, to: destination)
-      var values = URLResourceValues(); values.isExcludedFromBackup = true
-      var mutable = destination; try mutable.setResourceValues(values)
-      let attributes = try FileManager.default.attributesOfItem(atPath: destination.path)
-      let size = (attributes[.size] as? NSNumber)?.int64Value ?? 0
+      var values = URLResourceValues(); values.isExcludedFromBackup = true; var mutable = destination; try mutable.setResourceValues(values)
+      let attributes = try FileManager.default.attributesOfItem(atPath: destination.path); let size = (attributes[.size] as? NSNumber)?.int64Value ?? 0
       finish(["status": "selected", "path": destination.path, "filename": destination.lastPathComponent, "size": size])
     } catch { finish(error: FlutterError(code: "import_failed", message: error.localizedDescription, details: nil)) }
   }
 
   private func importDirectory() throws -> URL {
     let base = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-    let directory = base.appendingPathComponent("ImportedUserBackups", isDirectory: true)
-    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-    var values = URLResourceValues(); values.isExcludedFromBackup = true
-    var mutable = directory; try mutable.setResourceValues(values); return directory
+    let directory = base.appendingPathComponent("ImportedUserBackups", isDirectory: true); try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    var values = URLResourceValues(); values.isExcludedFromBackup = true; var mutable = directory; try mutable.setResourceValues(values); return directory
   }
 
   private func uniqueDestination(in directory: URL, filename: String) -> URL {
-    let base = URL(fileURLWithPath: filename).deletingPathExtension().lastPathComponent
-    let ext = URL(fileURLWithPath: filename).pathExtension
-    var candidate = directory.appendingPathComponent(filename); var index = 2
+    let base = URL(fileURLWithPath: filename).deletingPathExtension().lastPathComponent, ext = URL(fileURLWithPath: filename).pathExtension
+    var candidate = directory.appendingPathComponent(filename), index = 2
     while FileManager.default.fileExists(atPath: candidate.path) { candidate = directory.appendingPathComponent(ext.isEmpty ? "\(base)-\(index)" : "\(base)-\(index).\(ext)"); index += 1 }
     return candidate
   }
 
   private func sanitizedFilename(_ value: String?) -> String? {
-    guard let value else { return nil }
-    let leaf = URL(fileURLWithPath: value).lastPathComponent.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard let value else { return nil }; let leaf = URL(fileURLWithPath: value).lastPathComponent.trimmingCharacters(in: .whitespacesAndNewlines)
     return (!leaf.isEmpty && leaf != "." && leaf != "..") ? leaf : nil
   }
 
