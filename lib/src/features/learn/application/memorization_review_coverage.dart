@@ -14,6 +14,9 @@ class MemorizationReviewCoverageItem {
 
   final int page;
   final MemorizationReviewFreshness freshness;
+
+  /// Days since the latest review/practice. For never-reviewed pages this is
+  /// days since the page was first marked memorized, when that date is known.
   final int? ageDays;
   final DateTime? lastReviewedAt;
   final MemorizationSelfAssessment? selfAssessment;
@@ -49,6 +52,11 @@ DateTime? _latest(DateTime? left, DateTime? right) {
   return left.isAfter(right) ? left : right;
 }
 
+int _ageInDays(DateTime nowDay, DateTime value) {
+  final valueDay = DateTime(value.year, value.month, value.day);
+  return nowDay.difference(valueDay).inDays.clamp(0, 1000000).toInt();
+}
+
 MemorizationReviewCoverage buildMemorizationReviewCoverage({
   required MemorizationProgressSnapshot progress,
   required DateTime now,
@@ -77,10 +85,11 @@ MemorizationReviewCoverage buildMemorizationReviewCoverage({
 
     if (reviewedAt == null) {
       freshness = MemorizationReviewFreshness.neverReviewed;
+      final memorizedAt = pageProgress?.memorizedAt;
+      if (memorizedAt != null) ageDays = _ageInDays(today, memorizedAt);
       neverReviewed++;
     } else {
-      final reviewedDay = DateTime(reviewedAt.year, reviewedAt.month, reviewedAt.day);
-      ageDays = today.difference(reviewedDay).inDays.clamp(0, 1000000).toInt();
+      ageDays = _ageInDays(today, reviewedAt);
       if (ageDays >= overdueAfterDays) {
         freshness = MemorizationReviewFreshness.overdue;
         overdue++;
@@ -112,7 +121,7 @@ MemorizationReviewCoverage buildMemorizationReviewCoverage({
   items.sort((a, b) {
     final freshness = rank(a.freshness).compareTo(rank(b.freshness));
     if (freshness != 0) return freshness;
-    final age = (b.ageDays ?? 1000001).compareTo(a.ageDays ?? 1000001);
+    final age = (b.ageDays ?? -1).compareTo(a.ageDays ?? -1);
     if (age != 0) return age;
     return a.page.compareTo(b.page);
   });
