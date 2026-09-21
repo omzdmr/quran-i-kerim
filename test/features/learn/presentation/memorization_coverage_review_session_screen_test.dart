@@ -109,4 +109,30 @@ void main() {
     expect(raw, contains('assisted'));
     expect(raw, contains('lastReviewedAt'));
   });
+
+  testWidgets('skip advances without falsely recording a review', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'memorized_pages_v1': <String>['9', '10'],
+      'memorization_page_progress_v1':
+          '{"9":{"memorizedAt":"2026-01-01T00:00:00.000"},'
+          '"10":{"memorizedAt":"2026-01-01T00:00:00.000"}}',
+    });
+    const session = MemorizationReviewSession(
+      pages: <int>[9, 10],
+      totalAttentionPages: 2,
+    );
+
+    await tester.pumpWidget(app(session));
+    await tester.pumpAndSettle();
+    expect(find.text('1/2'), findsOneWidget);
+    expect(find.text('Skip for now'), findsOneWidget);
+
+    await tester.tap(find.text('Skip for now'));
+    await tester.pumpAndSettle();
+    expect(find.text('2/2'), findsOneWidget);
+
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString('memorization_page_progress_v1')!;
+    expect(raw, isNot(contains('lastReviewedAt')));
+  });
 }
