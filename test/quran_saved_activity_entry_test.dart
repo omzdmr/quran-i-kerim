@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,13 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('Quran area exposes saved activity without adding a fourth section', (
-    tester,
-  ) async {
-    SharedPreferences.setMockInitialValues(<String, Object>{});
-    final settings = AppSettings();
-    await settings.load();
-
+  Future<void> pumpArea(WidgetTester tester, AppSettings settings) async {
     await tester.pumpWidget(
       AppSettingsScope(
         settings: settings,
@@ -36,6 +32,15 @@ void main() {
       ),
     );
     await tester.pump();
+  }
+
+  testWidgets('Quran area exposes saved activity without adding a fourth section', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final settings = AppSettings();
+    await settings.load();
+    await pumpArea(tester, settings);
 
     expect(find.text('Read'), findsOneWidget);
     expect(find.text('Learn'), findsOneWidget);
@@ -47,5 +52,21 @@ void main() {
 
     expect(find.byType(ReaderArchiveScreen), findsOneWidget);
     expect(find.text('Saved activity'), findsOneWidget);
+  });
+
+  testWidgets('archive entry shows combined bookmark, note and highlight count', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'bookmarks': <String>['2:255', '36:1'],
+      'verse_notes': jsonEncode(<String, String>{'18:10': 'note'}),
+      'verse_highlights': jsonEncode(<String, String>{'94:5': 'yellow'}),
+    });
+    final settings = AppSettings();
+    await settings.load();
+    await pumpArea(tester, settings);
+
+    expect(find.text('4'), findsOneWidget);
+    expect(find.bySemanticsLabel('Saved activity, 4'), findsOneWidget);
   });
 }
