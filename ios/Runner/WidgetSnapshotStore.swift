@@ -34,7 +34,7 @@ struct WidgetPrayerSnapshot: Codable, Equatable {
     self.privacyMode = privacyMode
   }
 
-  func freshness(at date: Date, currentTimeZone: TimeZone = .current) -> Freshness {
+  func freshness(at date: Date, currentTimeZone: TimeZone = .autoupdatingCurrent) -> Freshness {
     guard version == Self.schemaVersion else { return .unsupportedSchema }
     guard generatedAt <= date else { return .generatedInFuture }
     guard date < validUntil else { return .expired }
@@ -43,11 +43,11 @@ struct WidgetPrayerSnapshot: Codable, Equatable {
     return .fresh
   }
 
-  func isFresh(at date: Date, currentTimeZone: TimeZone = .current) -> Bool {
+  func isFresh(at date: Date, currentTimeZone: TimeZone = .autoupdatingCurrent) -> Bool {
     freshness(at: date, currentTimeZone: currentTimeZone) == .fresh
   }
 
-  func presentation(at date: Date, currentTimeZone: TimeZone = .current) -> Presentation {
+  func presentation(at date: Date, currentTimeZone: TimeZone = .autoupdatingCurrent) -> Presentation {
     guard freshness(at: date, currentTimeZone: currentTimeZone) == .fresh else { return .stale }
     guard privacyMode == .standard else { return .redacted }
     guard let nextPrayerID, let nextPrayerAt else { return .stale }
@@ -126,17 +126,27 @@ final class WidgetSnapshotStore {
     return try? decoder.decode(WidgetPrayerSnapshot.self, from: data)
   }
 
-  func freshness(now: Date = Date(), timeZone: TimeZone = .current) -> WidgetPrayerSnapshot.Freshness? {
+  func freshness(now: Date = Date(), timeZone: TimeZone = .autoupdatingCurrent) -> WidgetPrayerSnapshot.Freshness? {
     load()?.freshness(at: now, currentTimeZone: timeZone)
   }
 
-  func presentation(now: Date = Date(), timeZone: TimeZone = .current) -> WidgetPrayerSnapshot.Presentation {
+  func presentation(now: Date = Date(), timeZone: TimeZone = .autoupdatingCurrent) -> WidgetPrayerSnapshot.Presentation {
     load()?.presentation(at: now, currentTimeZone: timeZone) ?? .stale
   }
 
   @discardableResult
-  func purgeIfStale(now: Date = Date(), timeZone: TimeZone = .current) -> Bool {
+  func purgeIfStale(now: Date = Date(), timeZone: TimeZone = .autoupdatingCurrent) -> Bool {
     guard let snapshot = load(), !snapshot.isFresh(at: now, currentTimeZone: timeZone) else { return false }
+    clear()
+    return true
+  }
+
+  @discardableResult
+  func purgeIfPolicyChanged(currentFingerprint: String) -> Bool {
+    let normalized = currentFingerprint.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !normalized.isEmpty,
+          let snapshot = load(),
+          snapshot.calculationFingerprint != normalized else { return false }
     clear()
     return true
   }
