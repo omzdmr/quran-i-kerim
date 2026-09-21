@@ -3,7 +3,7 @@ import 'package:quran_i_kerim/src/data/backup/backup_manifest.dart';
 
 void main() {
   test('current schema includes user-created progress and safe preferences', () {
-    expect(BackupManifest.schemaVersion, 7);
+    expect(BackupManifest.schemaVersion, 8);
     expect(BackupManifest.includedSections, containsAll(<String>{
       'reading',
       'bookmarks',
@@ -37,6 +37,7 @@ void main() {
     expect(BackupManifest.isVersionSupported(5), isTrue);
     expect(BackupManifest.isVersionSupported(6), isTrue);
     expect(BackupManifest.isVersionSupported(7), isTrue);
+    expect(BackupManifest.isVersionSupported(8), isTrue);
     expect(BackupManifest.sectionsForVersion(1), isNot(contains('learning')));
     expect(BackupManifest.sectionsForVersion(2), contains('learning'));
     expect(BackupManifest.sectionsForVersion(2), isNot(contains('dhikr')));
@@ -48,6 +49,7 @@ void main() {
     expect(BackupManifest.sectionsForVersion(5), contains('readingPlans'));
     expect(BackupManifest.sectionsForVersion(6), contains('readingPlans'));
     expect(BackupManifest.sectionsForVersion(7), contains('readingPlans'));
+    expect(BackupManifest.sectionsForVersion(8), contains('readingPlans'));
   });
 
   test('unknown and excluded sections never leak into selected data', () {

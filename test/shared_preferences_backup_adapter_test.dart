@@ -25,6 +25,9 @@ void main() {
       'prayer_hijri_offset': 1,
       'reader_experience_preset_v1': 'essential',
       'reader_auto_scroll_speed_v1': 'slow',
+      'offline_audio_pack_intents_v1': <String>[
+        '{"storageKey":"reciter_128","surah":2,"verseCount":286}',
+      ],
       'reading_plan_state_v1': '{"active":{"preset":"quran30"}}',
       'prayer_city_id': '__device_location__',
       'prayer_device_latitude': 41.123456,
@@ -46,6 +49,7 @@ void main() {
     expect(snapshot['prayer_notification_profile'], 'discreet');
     expect(snapshot['reader_experience_preset_v1'], 'essential');
     expect(snapshot['reader_auto_scroll_speed_v1'], 'slow');
+    expect(snapshot['offline_audio_pack_intents_v1'], hasLength(1));
     expect(snapshot['reading_plan_state_v1'], isNotNull);
     expect(snapshot, isNot(contains('prayer_city_id')));
     for (final key in SharedPreferencesBackupAdapter.excludedPrayerLocationKeys) {
@@ -211,6 +215,49 @@ void main() {
     await adapter.restoreSections(sections);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getString('reader_auto_scroll_speed_v1'), 'fast');
+  });
+
+  test('offline pack intent survives backup without audio payload', () async {
+    const intent =
+        '{"storageKey":"reciter_128","surah":2,"verseCount":286}';
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'offline_audio_pack_intents_v1': <String>[intent],
+      'audio_cache_internal': 'large-media-bytes',
+    });
+
+    final sections = await adapter.captureSections();
+    expect(
+      (sections['preferences'] as Map)['offline_audio_pack_intents_v1'],
+      <String>[intent],
+    );
+    expect(sections.toString(), isNot(contains('large-media-bytes')));
+
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    await adapter.restoreSections(sections);
+    final prefs = await SharedPreferences.getInstance();
+    expect(
+      prefs.getStringList('offline_audio_pack_intents_v1'),
+      <String>[intent],
+    );
+  });
+
+  test('version seven restore preserves newer offline pack intent', () async {
+    const intent =
+        '{"storageKey":"reciter_128","surah":2,"verseCount":286}';
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'offline_audio_pack_intents_v1': <String>[intent],
+    });
+
+    await adapter.restoreSections(
+      <String, Object?>{'preferences': <String, Object?>{}},
+      schemaVersion: 7,
+    );
+
+    final prefs = await SharedPreferences.getInstance();
+    expect(
+      prefs.getStringList('offline_audio_pack_intents_v1'),
+      <String>[intent],
+    );
   });
 
   test('version six restore preserves the newer auto-scroll speed', () async {

@@ -57,6 +57,7 @@ class SharedPreferencesBackupAdapter {
     'home_quick_actions_v1',
     'reader_experience_preset_v1',
     'reader_auto_scroll_speed_v1',
+    'offline_audio_pack_intents_v1',
   };
 
   static const Set<String> dhikrKeys = <String>{
@@ -257,6 +258,11 @@ class SharedPreferencesBackupAdapter {
     if (schemaVersion <= 6 && section == 'preferences') {
       keys = keys
           .where((key) => key != 'reader_auto_scroll_speed_v1')
+          .toSet();
+    }
+    if (schemaVersion <= 7 && section == 'preferences') {
+      keys = keys
+          .where((key) => key != 'offline_audio_pack_intents_v1')
           .toSet();
     }
     return keys;

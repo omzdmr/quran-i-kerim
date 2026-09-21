@@ -3,7 +3,7 @@ import 'package:quran_i_kerim/src/features/reader/offline_audio_pack_manifest.da
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  const manifest = OfflineAudioPackManifest(
+  final manifest = OfflineAudioPackManifest(
     storageKey: 'reciter_128',
     surah: 1,
     verseCount: 3,
