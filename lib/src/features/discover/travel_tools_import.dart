@@ -10,15 +10,13 @@ class TravelToolsImportPreview {
 }
 
 class TravelToolsImport {
-  const TravelToolsImport({
-    this.meetingPointStore = const TravelMeetingPointStore(),
-    this.packingStore = const TravelPackingStore(),
-  });
-
+  const TravelToolsImport({this.meetingPointStore = const TravelMeetingPointStore(), this.packingStore = const TravelPackingStore()});
+  static const maxEncodedLength = 1024 * 1024;
   final TravelMeetingPointStore meetingPointStore;
   final TravelPackingStore packingStore;
 
   TravelToolsImportPreview parse(String encoded) {
+    if (encoded.length > maxEncodedLength) throw const FormatException('Travel tools export is too large.');
     final raw = jsonDecode(encoded);
     if (raw is! Map || raw['schema'] != 'quran-i-kerim.travel-tools' || raw['version'] != 1) {
       throw const FormatException('Unsupported travel tools export.');
@@ -27,7 +25,9 @@ class TravelToolsImport {
     final meetingPoint = meetingRaw == null ? null : TravelMeetingPoint.fromJson(meetingRaw);
     if (meetingRaw != null && meetingPoint == null) throw const FormatException('Invalid meeting point.');
     final packingRaw = raw['packing'];
-    if (packingRaw is! List) throw const FormatException('Invalid packing list.');
+    if (packingRaw is! List || packingRaw.length > TravelPackingStore.maxItems) {
+      throw const FormatException('Invalid packing list.');
+    }
     final packing = <TravelPackingItem>[];
     final ids = <String>{};
     for (final entry in packingRaw) {
