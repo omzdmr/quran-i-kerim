@@ -14,9 +14,6 @@ class MemorizationReviewCoverageItem {
 
   final int page;
   final MemorizationReviewFreshness freshness;
-
-  /// Days since the latest review/practice. For never-reviewed pages this is
-  /// days since the page was first marked memorized, when that date is known.
   final int? ageDays;
   final DateTime? lastReviewedAt;
   final MemorizationSelfAssessment? selfAssessment;
@@ -52,9 +49,6 @@ class MemorizationReviewCoverage {
     return null;
   }
 
-  /// Portion of memorized pages whose review age is still inside the current
-  /// freshness window. An ancient review does not make the coverage bar look
-  /// healthy merely because the page was touched once years ago.
   double get coveredFraction => total == 0 ? 0 : (agingCount + freshCount) / total;
 }
 
@@ -76,6 +70,20 @@ int _assessmentPriority(MemorizationSelfAssessment? value) => switch (value) {
       null => 3,
     };
 
+Map<int, DateTime> _latestPracticeByPage(
+  MemorizationPracticeHistorySnapshot? history,
+) {
+  final latest = <int, DateTime>{};
+  if (history == null) return latest;
+  for (final event in history.events) {
+    final previous = latest[event.page];
+    if (previous == null || event.occurredAt.isAfter(previous)) {
+      latest[event.page] = event.occurredAt;
+    }
+  }
+  return latest;
+}
+
 MemorizationReviewCoverage buildMemorizationReviewCoverage({
   required MemorizationProgressSnapshot progress,
   required DateTime now,
@@ -88,6 +96,7 @@ MemorizationReviewCoverage buildMemorizationReviewCoverage({
   }
 
   final today = DateTime(now.year, now.month, now.day);
+  final latestPracticeAt = _latestPracticeByPage(practiceHistory);
   final items = <MemorizationReviewCoverageItem>[];
   var neverReviewed = 0;
   var overdue = 0;
@@ -97,8 +106,10 @@ MemorizationReviewCoverage buildMemorizationReviewCoverage({
   final pages = progress.memorizedPages.toList()..sort();
   for (final page in pages) {
     final pageProgress = progress.progressForPage(page);
-    final practiceAt = practiceHistory?.latestForPage(page)?.occurredAt;
-    final reviewedAt = _latest(pageProgress?.lastReviewedAt, practiceAt);
+    final reviewedAt = _latest(
+      pageProgress?.lastReviewedAt,
+      latestPracticeAt[page],
+    );
     int? ageDays;
     late MemorizationReviewFreshness freshness;
 
