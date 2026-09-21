@@ -24,9 +24,6 @@ void main() {
         'archive_times': jsonEncode(<String, String>{'note|2:255': '100'}),
       });
 
-      // A fresh settings instance represents process restart. The currently
-      // selected Reader layer is Arabic, while the saved note was created from
-      // the English meaning layer.
       final restartedSettings = AppSettings();
       await restartedSettings.load();
       expect(restartedSettings.selectedQuranSourceId, arabicOriginalSourceId);
@@ -39,16 +36,26 @@ void main() {
       await tester.pumpWidget(
         AppSettingsScope(
           settings: restartedSettings,
-          child: const MaterialApp(
-            locale: Locale('en'),
-            home: ReaderArchiveScreen(),
+          child: MaterialApp(
+            locale: const Locale('en'),
+            home: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => Navigator.of(context).push<void>(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const ReaderArchiveScreen(),
+                  ),
+                ),
+                child: const Text('open archive'),
+              ),
+            ),
           ),
         ),
       );
+      await tester.tap(find.text('open archive'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Remember this context'));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       final target = AppNavigation.instance.readerRequest.value;
       expect(target, isNotNull);
@@ -56,6 +63,7 @@ void main() {
       expect(target.ayah, 255);
       expect(target.sourceId, englishTranslationId);
       expect(AppNavigation.instance.tabRequest.value, AppNavigation.quranTabIndex);
+      expect(find.text('open archive'), findsOneWidget);
     },
   );
 }
