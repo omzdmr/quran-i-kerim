@@ -27,19 +27,23 @@ void main() {
     });
   });
 
-  testWidgets('French Discover opens the localized qada ledger', (tester) async {
+  testWidgets('French Discover opens qada hub then localized ledger', (tester) async {
     await tester.pumpWidget(_app(const Locale('fr')));
     await tester.pumpAndSettle();
     expect(find.text('Registre des jeûnes à rattraper'), findsOneWidget);
 
     await tester.tap(find.text('Registre des jeûnes à rattraper'));
     await tester.pumpAndSettle();
+    expect(find.text('Jeûnes à rattraper'), findsOneWidget);
+    expect(find.text('Registre'), findsOneWidget);
 
+    await tester.tap(find.text('Registre'));
+    await tester.pumpAndSettle();
     expect(find.text('J’ai rattrapé un jeûne'), findsOneWidget);
     expect(find.text('Ajouter une dette'), findsOneWidget);
   });
 
-  testWidgets('French Discover opens portable qada backup flow', (tester) async {
+  testWidgets('French qada hub opens portable backup flow', (tester) async {
     final ledger = QadaFastingLedger().addDebt(
       days: 2,
       occurredOn: DateTime(2026, 3, 1),
@@ -53,9 +57,13 @@ void main() {
 
     await tester.pumpWidget(_app(const Locale('fr')));
     await tester.pumpAndSettle();
-    expect(find.text('Sauvegarde du registre'), findsOneWidget);
+    await tester.tap(find.text('Registre des jeûnes à rattraper'));
+    await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Sauvegarde du registre'));
+    expect(find.text('Jours restants'), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
+    expect(find.text('Sauvegarde et restauration'), findsOneWidget);
+    await tester.tap(find.text('Sauvegarde et restauration'));
     await tester.pumpAndSettle();
 
     expect(find.text('Sauvegarde des jeûnes à rattraper'), findsOneWidget);
@@ -64,14 +72,21 @@ void main() {
     expect(find.text('Créer une sauvegarde portable'), findsOneWidget);
   });
 
-  testWidgets('Arabic Discover keeps qada navigation RTL', (tester) async {
+  testWidgets('Arabic qada hub and ledger keep RTL navigation', (tester) async {
     await tester.pumpWidget(_app(const Locale('ar')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('سجل صيام القضاء'));
     await tester.pumpAndSettle();
 
+    expect(find.text('صيام القضاء'), findsOneWidget);
+    expect(find.text('سجل القضاء'), findsOneWidget);
+    final hubDirectionality = tester.widget<Directionality>(
+      find.byType(Directionality).first,
+    );
+    expect(hubDirectionality.textDirection, TextDirection.rtl);
+
+    await tester.tap(find.text('سجل القضاء'));
+    await tester.pumpAndSettle();
     expect(find.text('صمت يوم قضاء'), findsOneWidget);
-    final directionality = tester.widget<Directionality>(find.byType(Directionality).first);
-    expect(directionality.textDirection, TextDirection.rtl);
   });
 }
