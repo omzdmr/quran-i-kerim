@@ -9,6 +9,15 @@ import 'package:quran_i_kerim/src/l10n/generated/generated_app_localizations.dar
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  const neverReviewed = <String, String>{
+    'tr': 'Henüz tekrar edilmedi',
+    'en': 'Not reviewed yet',
+    'ar': 'لم تتم مراجعته بعد',
+    'az': 'Hələ təkrar edilməyib',
+    'ru': 'Ещё не повторялось',
+    'fr': 'Pas encore révisée',
+  };
+
   for (final locale in AppLocalizations.supportedLocales) {
     testWidgets('coverage screen renders on narrow phone in ${locale.languageCode}',
         (tester) async {
@@ -44,6 +53,7 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.byType(ChoiceChip), findsNWidgets(2));
       expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+      expect(find.text(neverReviewed[locale.languageCode]!), findsOneWidget);
     });
   }
 }
