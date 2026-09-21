@@ -172,15 +172,19 @@ class _CoverageSummary extends StatelessWidget {
               children: [
                 Chip(
                   avatar: Icon(Icons.priority_high_rounded, color: scheme.error),
-                  label: Text('${coverage.needsAttentionCount}'),
+                  label: Text(
+                    '${l10n.memorizeTodayReview} ${coverage.needsAttentionCount}',
+                  ),
                 ),
                 Chip(
                   avatar: const Icon(Icons.schedule_rounded),
-                  label: Text('${coverage.agingCount}'),
+                  label: Text(
+                    '${l10n.memorizeWeeklyTitle} ${coverage.agingCount}',
+                  ),
                 ),
                 Chip(
                   avatar: const Icon(Icons.check_circle_outline_rounded),
-                  label: Text('${coverage.freshCount}'),
+                  label: Text('${l10n.memorizeProgress} ${coverage.freshCount}'),
                 ),
               ],
             ),
