@@ -13,6 +13,7 @@ import '../../settings/app_settings.dart';
 import '../learn/application/learn_progress_store.dart';
 import '../plans/reading_plan_store.dart';
 import '../prayer/application/prayer_notification_service.dart';
+import 'backup_restore_dialog.dart';
 import 'google_drive_backup_section.dart';
 
 class BackupSettingsScreen extends StatefulWidget {
@@ -143,37 +144,18 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
       return;
     }
 
-    final l10n = context.l10n;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.text('backupRestoreConfirmTitle')),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(l10n.text('backupRestoreConfirmBody')),
-            const SizedBox(height: 16),
-            _PreviewSummary(preview: preview),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(MaterialLocalizations.of(dialogContext).cancelButtonLabel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(l10n.text('backupRestore')),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-
-    setState(() => _busy = true);
     try {
-      await _service.restoreFile(file);
+      final plan = await _service.planImportFile(file);
+      if (!mounted) return;
+      final mode = await showDialog<BackupRestoreMode>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => BackupRestoreDialog(preview: preview, plan: plan),
+      );
+      if (mode == null || !mounted) return;
+
+      setState(() => _busy = true);
+      await _service.restoreFile(file, mode: mode);
       await _refreshRestoredAppState();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -182,7 +164,7 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
     } catch (_) {
       if (mounted) _showFailure();
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted && _busy) setState(() => _busy = false);
     }
   }
 
