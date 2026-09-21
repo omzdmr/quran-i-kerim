@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quran_i_kerim/src/data/translation_catalog.dart';
 import 'package:quran_i_kerim/src/features/reader/reader_archive_screen.dart';
@@ -54,6 +55,19 @@ void main() {
         settings: settings,
         child: MaterialApp(
           locale: locale,
+          supportedLocales: const <Locale>[
+            Locale('tr'),
+            Locale('en'),
+            Locale('fr'),
+            Locale('ar'),
+            Locale('az'),
+            Locale('ru'),
+          ],
+          localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
           home: Builder(
             builder: (context) => Scaffold(
               body: TextButton(
@@ -162,6 +176,9 @@ void main() {
     expect(find.text('Tout (3)'), findsOneWidget);
     expect(find.text('Notes (1)'), findsOneWidget);
     expect(find.text('Surlignages (1)'), findsOneWidget);
-    expect(find.text('Rechercher une sourate, un verset ou une note'), findsOneWidget);
+    expect(
+      find.text('Rechercher une sourate, un verset ou une note'),
+      findsOneWidget,
+    );
   });
 }
