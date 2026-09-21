@@ -15,18 +15,22 @@ automation should be assumed active. Current contributors must read
   Essential/Senior Reader slice: reversible persisted preference, user-owned
   backup/restore, larger interface and Reader typography/spacing, bounded line
   measure, simplified first-layer Reader/search/selection controls, plus
-  session-safe focus reading controls for fullscreen, dimming, screen wake lock
-  and three-speed auto-scroll. Manual scrolling pauses auto-scroll; lifecycle
-  handling releases wake lock in the background and restores the chosen state
-  on resume.
+  session-safe focus reading controls for true fullscreen (including app
+  chrome), dimming, line focus/reading ruler, screen wake lock and resumable
+  three-speed auto-scroll. The selected speed persists and participates in
+  user-owned backup/restore; manual scrolling pauses auto-scroll. Navigation
+  visibility handling releases all platform state when leaving either the Quran
+  tab or its Read section, while lifecycle handling safely releases/reapplies
+  state around backgrounding. Settings search deep-links to the focus controls.
 - The slice is not landed on `feature/localization-v01` yet. The integration
   workflow only runs for the feature branch; run #560 was cancelled during
   analysis after two hours, without reaching tests or APK build. Do not
   duplicate or merge this implementation without Flutter analyzer/tests/APK
   validation, including the new `wakelock_plus` platform dependency.
 - After validation, land PR #3 (or reapply it onto a newer feature HEAD without
-  force-updating either branch). Remaining work is maximum-text-size physical
-  device/accessibility QA and any issues found by the full Android/iOS builds.
+  force-updating either branch). Validate the added `wakelock_plus` dependency,
+  fullscreen system UI restoration, tab/Read-section cleanup, auto-scroll at all
+  three speeds and 200%+ text on physical Android/iOS devices.
 
 ## Shared source of truth
 Every automation must read these before acting:
