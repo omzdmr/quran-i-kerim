@@ -71,10 +71,23 @@ class LocalBackupService {
     if (current is! String) return incoming; if (incoming is! String) return current;
     final localEvents = _qadaEvents(_decodeMap(current)); final remoteEvents = _qadaEvents(_decodeMap(incoming));
     if (localEvents == null) return remoteEvents == null ? current : incoming; if (remoteEvents == null) return current;
-    final byId = <String, Map>{}; for (final event in localEvents) { byId[event['id'] as String] = event; } for (final event in remoteEvents) { byId.putIfAbsent(event['id'] as String, () => event); }
+    final byId = <String, Map>{};
+    for (final event in localEvents) { byId[event['id'] as String] = event; }
+    for (final event in remoteEvents) {
+      final id = event['id'] as String; final existing = byId[id];
+      if (existing == null) { byId[id] = event; continue; }
+      if (!_sameQadaEventIdentity(existing, event)) throw const FormatException('Merged qada fasting history contains conflicting event ids.');
+      if (existing['note'] == null && event['note'] is String) byId[id] = event;
+    }
     final events = byId.values.toList(growable: false)..sort((a, b) => (a['createdAt'] as String).compareTo(b['createdAt'] as String));
     if (!_qadaEventSetCoherent(events)) throw const FormatException('Merged qada fasting history would be inconsistent.');
     return jsonEncode(<String, Object?>{'formatVersion': 1, 'entries': events});
+  }
+
+  bool _sameQadaEventIdentity(Map a, Map b) {
+    final left = <String, Object?>{for (final entry in a.entries) if (entry.key is String && entry.key != 'note') entry.key as String: entry.value};
+    final right = <String, Object?>{for (final entry in b.entries) if (entry.key is String && entry.key != 'note') entry.key as String: entry.value};
+    return jsonEncode(left) == jsonEncode(right);
   }
 
   List<Map>? _qadaEvents(Map? document) {
