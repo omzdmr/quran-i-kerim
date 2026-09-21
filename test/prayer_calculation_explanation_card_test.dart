@@ -60,6 +60,8 @@ void main() {
   testWidgets('calculation summary exposes a semantic container', (
     tester,
   ) async {
+    final handle = tester.ensureSemantics();
+    addTearDown(handle.dispose);
     await tester.pumpWidget(
       appFor(
         PrayerCalculationExplanation.from(
@@ -72,7 +74,9 @@ void main() {
       ),
     );
 
-    final semantics = tester.getSemantics(find.byType(PrayerCalculationExplanationCard));
+    final semantics = tester.getSemantics(
+      find.byType(PrayerCalculationExplanationCard),
+    );
     expect(semantics.label, contains('Hesaplama yöntemi'));
   });
 }
