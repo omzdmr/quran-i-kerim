@@ -70,7 +70,7 @@ jobs:
         run: |
           xcrun --sdk iphonesimulator swiftc \
             -parse-as-library \
-            -target arm64-apple-ios13.0-simulator \
+            -target arm64-apple-ios14.0-simulator \
             -typecheck ios/Runner/AudioSessionCoordinator.swift
 
       - name: Get dependencies
@@ -89,7 +89,7 @@ jobs:
             -showBuildSettings \
             CODE_SIGNING_ALLOWED=NO > /tmp/runner-build-settings.txt
           grep -q "PRODUCT_BUNDLE_IDENTIFIER = com.omzdmr.quranIKerim" /tmp/runner-build-settings.txt
-          grep -q "IPHONEOS_DEPLOYMENT_TARGET = 13.0" /tmp/runner-build-settings.txt
+          grep -q "IPHONEOS_DEPLOYMENT_TARGET = 14.0" /tmp/runner-build-settings.txt
           git diff --exit-code -- \
             ios/Runner \
             ios/Runner.xcodeproj \
