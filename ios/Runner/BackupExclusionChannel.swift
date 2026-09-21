@@ -1,6 +1,7 @@
 import CoreLocation
 import Flutter
 import Foundation
+import UIKit
 import UserNotifications
 
 final class BackupExclusionChannel {
@@ -79,13 +80,9 @@ final class NotificationPermissionChannel {
     center.getNotificationSettings { [weak self] settings in
       guard let self else { return }
       guard Self.canDeliver(settings.authorizationStatus) else { DispatchQueue.main.async { result(FlutterError(code: "notification_not_authorized", message: "Notifications are not authorized for an end-to-end self-test.", details: Self.diagnostics(settings))) }; return }
-      let content = UNMutableNotificationContent()
-      content.title = Bundle.main.localizedString(forKey: "NotificationSelfTestTitle", value: "Notification test", table: "InfoPlist")
-      content.body = Bundle.main.localizedString(forKey: "NotificationSelfTestBody", value: "If you can see this, local notifications can reach this device.", table: "InfoPlist")
-      content.sound = .default; content.userInfo = ["kind": "diagnostic-self-test"]
-      let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 3, repeats: false); let request = UNNotificationRequest(identifier: Self.selfTestIdentifier, content: content, trigger: trigger)
-      center.removePendingNotificationRequests(withIdentifiers: [Self.selfTestIdentifier])
-      center.add(request) { error in DispatchQueue.main.async { if let error { result(FlutterError(code: "notification_self_test_failed", message: error.localizedDescription, details: Self.diagnostics(settings))) } else { result(["scheduled": true, "firesAfterSeconds": 3, "settings": Self.diagnostics(settings)]) } } }
+      let content = UNMutableNotificationContent(); content.title = Bundle.main.localizedString(forKey: "NotificationSelfTestTitle", value: "Notification test", table: "InfoPlist"); content.body = Bundle.main.localizedString(forKey: "NotificationSelfTestBody", value: "If you can see this, local notifications can reach this device.", table: "InfoPlist"); content.sound = .default; content.userInfo = ["kind": "diagnostic-self-test"]
+      let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 3, repeats: false), request = UNNotificationRequest(identifier: Self.selfTestIdentifier, content: content, trigger: trigger)
+      center.removePendingNotificationRequests(withIdentifiers: [Self.selfTestIdentifier]); center.add(request) { error in DispatchQueue.main.async { if let error { result(FlutterError(code: "notification_self_test_failed", message: error.localizedDescription, details: Self.diagnostics(settings))) } else { result(["scheduled": true, "firesAfterSeconds": 3, "settings": Self.diagnostics(settings)]) } } }
     }
   }
   private static func canDeliver(_ status: UNAuthorizationStatus) -> Bool { status == .authorized || status == .provisional || status == .ephemeral }
@@ -100,21 +97,47 @@ final class LocationHeadingChannel: NSObject, CLLocationManagerDelegate {
   private let channel: FlutterMethodChannel
   private var locationStreaming = false
   private var headingStreaming = false
-  init(binaryMessenger: FlutterBinaryMessenger, manager: CLLocationManager = CLLocationManager()) { self.manager = manager; channel = FlutterMethodChannel(name: Self.name, binaryMessenger: binaryMessenger); super.init(); manager.delegate = self; manager.desiredAccuracy = kCLLocationAccuracyHundredMeters; manager.distanceFilter = 25; manager.headingFilter = 2; channel.setMethodCallHandler { [weak self] call, result in self?.handleLocationHeading(call, result: result) } }
-  func detach() { stopAll(); channel.setMethodCallHandler(nil); manager.delegate = nil }
+  private var orientationObserver: NSObjectProtocol?
+
+  init(binaryMessenger: FlutterBinaryMessenger, manager: CLLocationManager = CLLocationManager()) {
+    self.manager = manager; channel = FlutterMethodChannel(name: Self.name, binaryMessenger: binaryMessenger); super.init()
+    manager.delegate = self; manager.desiredAccuracy = kCLLocationAccuracyHundredMeters; manager.distanceFilter = 25; manager.headingFilter = 2
+    UIDevice.current.beginGeneratingDeviceOrientationNotifications()
+    orientationObserver = NotificationCenter.default.addObserver(forName: UIDevice.orientationDidChangeNotification, object: nil, queue: .main) { [weak self] _ in self?.updateHeadingOrientation() }
+    updateHeadingOrientation()
+    channel.setMethodCallHandler { [weak self] call, result in self?.handleLocationHeading(call, result: result) }
+  }
+
+  func detach() {
+    stopAll(); channel.setMethodCallHandler(nil); manager.delegate = nil
+    if let orientationObserver { NotificationCenter.default.removeObserver(orientationObserver); self.orientationObserver = nil }
+    UIDevice.current.endGeneratingDeviceOrientationNotifications()
+  }
+
   private func handleLocationHeading(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
     case "getAuthorizationStatus": result(Self.authorizationName(manager.authorizationStatus))
     case "requestWhenInUsePermission": manager.requestWhenInUseAuthorization(); result(nil)
-    case "getCapabilityStatus": result(["locationServicesEnabled": CLLocationManager.locationServicesEnabled(), "headingAvailable": CLLocationManager.headingAvailable(), "authorizationStatus": Self.authorizationName(manager.authorizationStatus)])
+    case "getCapabilityStatus": result(["locationServicesEnabled": CLLocationManager.locationServicesEnabled(), "headingAvailable": CLLocationManager.headingAvailable(), "authorizationStatus": Self.authorizationName(manager.authorizationStatus), "orientationAwareHeading": true])
     case "startLocationUpdates": guard CLLocationManager.locationServicesEnabled() else { result(FlutterError(code: "location_services_disabled", message: "Location Services are disabled.", details: nil)); return }; guard Self.canReadLocation(manager.authorizationStatus) else { result(FlutterError(code: "location_permission_required", message: "Foreground location permission is required.", details: nil)); return }; locationStreaming = true; manager.startUpdatingLocation(); result(nil)
     case "stopLocationUpdates": locationStreaming = false; manager.stopUpdatingLocation(); result(nil)
-    case "startHeadingUpdates": guard CLLocationManager.headingAvailable() else { result(FlutterError(code: "heading_unavailable", message: "Compass heading is unavailable on this device.", details: nil)); return }; headingStreaming = true; manager.startUpdatingHeading(); result(nil)
+    case "startHeadingUpdates": guard CLLocationManager.headingAvailable() else { result(FlutterError(code: "heading_unavailable", message: "Compass heading is unavailable on this device.", details: nil)); return }; updateHeadingOrientation(); headingStreaming = true; manager.startUpdatingHeading(); result(nil)
     case "stopHeadingUpdates": headingStreaming = false; manager.stopUpdatingHeading(); result(nil)
     case "stopAll": stopAll(); result(nil)
     default: result(FlutterMethodNotImplemented)
     }
   }
+
+  private func updateHeadingOrientation() {
+    switch UIDevice.current.orientation {
+    case .portrait: manager.headingOrientation = .portrait
+    case .portraitUpsideDown: manager.headingOrientation = .portraitUpsideDown
+    case .landscapeLeft: manager.headingOrientation = .landscapeLeft
+    case .landscapeRight: manager.headingOrientation = .landscapeRight
+    default: break
+    }
+  }
+
   private func stopAll() { locationStreaming = false; headingStreaming = false; manager.stopUpdatingLocation(); manager.stopUpdatingHeading() }
   func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) { channel.invokeMethod("authorizationChanged", arguments: ["status": Self.authorizationName(manager.authorizationStatus)]) }
   func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) { guard locationStreaming, let location = locations.last, location.horizontalAccuracy >= 0 else { return }; channel.invokeMethod("locationChanged", arguments: ["latitude": location.coordinate.latitude, "longitude": location.coordinate.longitude, "horizontalAccuracyMeters": location.horizontalAccuracy, "timestampMilliseconds": location.timestamp.timeIntervalSince1970 * 1000]) }
