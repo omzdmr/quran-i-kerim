@@ -23,7 +23,7 @@ class QadaFastingEntry {
 
 class QadaFastingLedger {
   QadaFastingLedger([Iterable<QadaFastingEntry> entries = const []]) : entries = List<QadaFastingEntry>.unmodifiable(entries.toList()..sort((a, b) => a.createdAt.compareTo(b.createdAt)));
-  static const int formatVersion = 1; static const int maxEntries = 20000;
+  static const int formatVersion = 1; static const int maxEntries = 20000; static const int maxBalanceDays = 3650;
   final List<QadaFastingEntry> entries;
   int get remainingDays => entries.fold<int>(0, (sum, entry) => sum + entry.balanceDelta);
   int get recordedDebtDays => entries.where((entry) => entry.kind == QadaFastingEntryKind.debt).fold<int>(0, (sum, entry) => sum + entry.days);
@@ -41,7 +41,9 @@ class QadaFastingLedger {
   DateTime? nextRecordedDate(DateTime day) { final target = _dateOnly(day); for (final date in recordedDates) { if (date.isAfter(target)) return date; } return null; }
 
   QadaFastingLedger addDebt({required int days, required DateTime occurredOn, required DateTime createdAt, int? sourceRamadanYear, bool estimatedSource = false, String? note, String? id}) {
-    if (days < 1 || days > 3650) throw ArgumentError.value(days, 'days', 'Must be between 1 and 3650'); _validateYear(sourceRamadanYear); _ensureCapacity();
+    if (days < 1 || days > maxBalanceDays) throw ArgumentError.value(days, 'days', 'Must be between 1 and $maxBalanceDays');
+    if (remainingDays + days > maxBalanceDays) throw StateError('Debt would exceed the safe qada balance limit');
+    _validateYear(sourceRamadanYear); _ensureCapacity();
     return _append(QadaFastingEntry(id: id ?? _newEntryId(createdAt), kind: QadaFastingEntryKind.debt, days: days, occurredOn: _dateOnly(occurredOn), createdAt: createdAt.toUtc(), sourceRamadanYear: sourceRamadanYear, estimatedSource: estimatedSource || sourceRamadanYear == null, note: _cleanNote(note)));
   }
   QadaFastingLedger complete({int days = 1, required DateTime occurredOn, required DateTime createdAt, int? sourceRamadanYear, bool attributeWhenUnambiguous = true, String? note, String? id}) {
@@ -50,7 +52,7 @@ class QadaFastingLedger {
     return _append(QadaFastingEntry(id: id ?? _newEntryId(createdAt), kind: QadaFastingEntryKind.completion, days: days, occurredOn: _dateOnly(occurredOn), createdAt: createdAt.toUtc(), sourceRamadanYear: resolvedYear, note: _cleanNote(note)));
   }
   QadaFastingLedger correctBalance({required int targetDays, required DateTime occurredOn, required DateTime createdAt, String? note, String? id}) {
-    if (targetDays < 0 || targetDays > 3650) throw ArgumentError.value(targetDays, 'targetDays'); final delta = targetDays - remainingDays; if (delta == 0) return this; _ensureCapacity();
+    if (targetDays < 0 || targetDays > maxBalanceDays) throw ArgumentError.value(targetDays, 'targetDays'); final delta = targetDays - remainingDays; if (delta == 0) return this; _ensureCapacity();
     return _append(QadaFastingEntry(id: id ?? _newEntryId(createdAt), kind: QadaFastingEntryKind.correction, days: delta, occurredOn: _dateOnly(occurredOn), createdAt: createdAt.toUtc(), note: _cleanNote(note)));
   }
   void _ensureCapacity() { if (entries.length >= maxEntries) throw StateError('Qada fasting ledger has reached its safe local event limit'); }
@@ -69,14 +71,14 @@ class QadaFastingLedger {
     } catch (_) { return QadaFastingLedger(); }
   }
   static bool _isCoherentEventSet(List<QadaFastingEntry> entries) {
-    final balance = entries.fold<int>(0, (sum, entry) => sum + entry.balanceDelta); if (balance < 0 || balance > 3650) return false;
+    final balance = entries.fold<int>(0, (sum, entry) => sum + entry.balanceDelta); if (balance < 0 || balance > maxBalanceDays) return false;
     final debtByYear = <int, int>{}; final completionByYear = <int, int>{};
     for (final entry in entries) { final year = entry.sourceRamadanYear; if (year == null) continue; if (entry.kind == QadaFastingEntryKind.debt) debtByYear[year] = (debtByYear[year] ?? 0) + entry.days; if (entry.kind == QadaFastingEntryKind.completion) completionByYear[year] = (completionByYear[year] ?? 0) + entry.days; }
     for (final item in completionByYear.entries) { if (item.value > (debtByYear[item.key] ?? 0)) return false; } return true;
   }
   static List<QadaFastingEntry> _salvageSequentially(List<QadaFastingEntry> candidates) {
     final accepted = <QadaFastingEntry>[]; var balance = 0; final debtByYear = <int, int>{}; final completionByYear = <int, int>{};
-    for (final entry in candidates) { final next = balance + entry.balanceDelta; if (next < 0 || next > 3650) continue; final year = entry.sourceRamadanYear; if (year != null && entry.kind == QadaFastingEntryKind.debt) debtByYear[year] = (debtByYear[year] ?? 0) + entry.days; if (year != null && entry.kind == QadaFastingEntryKind.completion) { final nextCompletion = (completionByYear[year] ?? 0) + entry.days; if (nextCompletion > (debtByYear[year] ?? 0)) continue; completionByYear[year] = nextCompletion; } balance = next; accepted.add(entry); }
+    for (final entry in candidates) { final next = balance + entry.balanceDelta; if (next < 0 || next > maxBalanceDays) continue; final year = entry.sourceRamadanYear; if (year != null && entry.kind == QadaFastingEntryKind.debt) debtByYear[year] = (debtByYear[year] ?? 0) + entry.days; if (year != null && entry.kind == QadaFastingEntryKind.completion) { final nextCompletion = (completionByYear[year] ?? 0) + entry.days; if (nextCompletion > (debtByYear[year] ?? 0)) continue; completionByYear[year] = nextCompletion; } balance = next; accepted.add(entry); }
     return accepted;
   }
 }
