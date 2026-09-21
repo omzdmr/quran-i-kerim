@@ -13,6 +13,7 @@ import UniformTypeIdentifiers
   private var documentHandoffChannel: DocumentHandoffChannel?
   private var widgetSnapshotChannel: WidgetSnapshotChannel?
   private var nativeLifecycleStateChannel: NativeLifecycleStateChannel?
+  private var microphoneRecordingChannel: MicrophoneRecordingChannel?
 
   override func application(
     _ application: UIApplication,
@@ -25,6 +26,7 @@ import UniformTypeIdentifiers
   }
 
   override func applicationWillTerminate(_ application: UIApplication) {
+    microphoneRecordingChannel?.detach()
     nativeLifecycleStateChannel?.markCleanTermination()
     nativeLifecycleStateChannel?.detach()
     widgetSnapshotChannel?.detach()
@@ -52,6 +54,7 @@ import UniformTypeIdentifiers
     documentHandoffChannel = DocumentHandoffChannel(binaryMessenger: messenger, presenter: controller)
     widgetSnapshotChannel = WidgetSnapshotChannel(binaryMessenger: messenger)
     nativeLifecycleStateChannel = NativeLifecycleStateChannel(binaryMessenger: messenger)
+    microphoneRecordingChannel = MicrophoneRecordingChannel(binaryMessenger: messenger)
   }
 }
 
