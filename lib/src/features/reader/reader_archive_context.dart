@@ -1,3 +1,4 @@
+import '../../data/surah_catalog.dart';
 import '../../data/translation_catalog.dart';
 import 'reader_reading_history.dart';
 
@@ -50,12 +51,16 @@ ReaderArchiveReference? parseReaderArchiveReference(String selectionKey) {
   if (separator <= 0 || separator == selectionKey.length - 1) return null;
 
   final surah = int.tryParse(selectionKey.substring(0, separator));
-  if (surah == null || surah < 1 || surah > 114) return null;
+  if (surah == null || surah < 1 || surah > surahCatalog.length) return null;
 
   final ayahPart = selectionKey.substring(separator + 1);
   final firstPart = ayahPart.split(RegExp(r'[-,]')).first.trim();
   final ayah = int.tryParse(firstPart);
-  if (ayah == null || ayah < 1) return null;
+  if (ayah == null ||
+      ayah < 1 ||
+      ayah > surahCatalog[surah - 1].verseCount) {
+    return null;
+  }
 
   return ReaderArchiveReference(
     surah: surah,
