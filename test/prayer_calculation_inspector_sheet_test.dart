@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:quran_i_kerim/src/features/prayer/domain/prayer_calculation_explanation.dart';
 import 'package:quran_i_kerim/src/features/prayer/domain/prayer_models.dart';
 import 'package:quran_i_kerim/src/features/prayer/presentation/prayer_calculation_inspector_sheet.dart';
+import 'package:quran_i_kerim/src/l10n/app_localizations.dart';
 
 void main() {
   final explanation = PrayerCalculationExplanation.from(
@@ -21,15 +22,19 @@ void main() {
     localDate: DateTime(2026, 9, 21),
   );
 
+  Widget appFor(Widget child) => MaterialApp(
+    locale: const Locale('tr'),
+    localizationsDelegates: const [AppLocalizations.delegate],
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: Scaffold(body: child),
+  );
+
   testWidgets('shows privacy-safe place and selected prayer offset', (tester) async {
     await tester.pumpWidget(
-      MaterialApp(
-        locale: const Locale('tr'),
-        home: Scaffold(
-          body: PrayerCalculationInspectorSheet(
-            explanation: explanation,
-            prayerId: 'fajr',
-          ),
+      appFor(
+        PrayerCalculationInspectorSheet(
+          explanation: explanation,
+          prayerId: 'fajr',
         ),
       ),
     );
@@ -59,13 +64,10 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
-        locale: const Locale('tr'),
-        home: Scaffold(
-          body: PrayerCalculationInspectorSheet(
-            explanation: explanation,
-            prayerId: 'fajr',
-          ),
+      appFor(
+        PrayerCalculationInspectorSheet(
+          explanation: explanation,
+          prayerId: 'fajr',
         ),
       ),
     );
