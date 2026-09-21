@@ -7,6 +7,7 @@ import WidgetKit
 
 final class WidgetSnapshotChannel {
   static let channelName = "app.quranikerim/native_widget_snapshot"
+  static let widgetKind = "PrayerTimesWidget"
 
   private let channel: FlutterMethodChannel
   private let store: WidgetSnapshotStore?
@@ -76,6 +77,8 @@ final class WidgetSnapshotChannel {
         "systemTimeInvalidation": true,
         "timeZoneInvalidation": true,
         "foregroundRevalidation": true,
+        "targetedTimelineReload": true,
+        "widgetKind": Self.widgetKind,
       ])
     case "publish":
       publish(call.arguments, result: result)
@@ -237,7 +240,7 @@ final class WidgetSnapshotChannel {
   private func reloadWidgets() {
 #if canImport(WidgetKit)
     if #available(iOS 14.0, *) {
-      WidgetCenter.shared.reloadAllTimelines()
+      WidgetCenter.shared.reloadTimelines(ofKind: Self.widgetKind)
     }
 #endif
   }
