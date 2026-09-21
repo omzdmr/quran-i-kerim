@@ -7,57 +7,94 @@ import '../../navigation/app_navigation.dart';
 import '../../settings/app_settings.dart';
 import 'reader_archive_context.dart';
 
-class ReaderArchiveScreen extends StatelessWidget {
+class ReaderArchiveScreen extends StatefulWidget {
   const ReaderArchiveScreen({super.key});
+
+  @override
+  State<ReaderArchiveScreen> createState() => _ReaderArchiveScreenState();
+}
+
+class _ReaderArchiveScreenState extends State<ReaderArchiveScreen> {
+  String _filter = 'all';
 
   String _text(String languageCode, String key) {
     const values = <String, Map<String, String>>{
       'tr': {
         'title': 'Kaydedilenler',
         'empty': 'Henüz kaydedilmiş ayet, not veya vurgu yok.',
+        'emptyFilter': 'Bu filtrede henüz bir kayıt yok.',
+        'all': 'Tümü',
         'bookmark': 'Kaydedilen ayet',
+        'bookmarks': 'Kayıtlar',
         'highlight': 'Vurgulanan ayet',
+        'highlights': 'Vurgular',
         'note': 'Not',
+        'notes': 'Notlar',
         'source': 'Görüntüleme kaynağı',
       },
       'en': {
         'title': 'Saved activity',
         'empty': 'No saved verses, notes or highlights yet.',
+        'emptyFilter': 'Nothing saved in this filter yet.',
+        'all': 'All',
         'bookmark': 'Saved verse',
+        'bookmarks': 'Saved',
         'highlight': 'Highlighted verse',
+        'highlights': 'Highlights',
         'note': 'Note',
+        'notes': 'Notes',
         'source': 'Display source',
       },
       'fr': {
         'title': 'Éléments enregistrés',
         'empty': 'Aucun verset, note ou surlignage enregistré.',
+        'emptyFilter': 'Aucun élément dans ce filtre.',
+        'all': 'Tout',
         'bookmark': 'Verset enregistré',
+        'bookmarks': 'Enregistrés',
         'highlight': 'Verset surligné',
+        'highlights': 'Surlignages',
         'note': 'Note',
+        'notes': 'Notes',
         'source': 'Source d’affichage',
       },
       'ar': {
         'title': 'المحفوظات',
         'empty': 'لا توجد آيات أو ملاحظات أو تمييزات محفوظة بعد.',
+        'emptyFilter': 'لا توجد عناصر محفوظة في هذا التصنيف.',
+        'all': 'الكل',
         'bookmark': 'آية محفوظة',
+        'bookmarks': 'المحفوظات',
         'highlight': 'آية مميزة',
+        'highlights': 'التمييزات',
         'note': 'ملاحظة',
+        'notes': 'الملاحظات',
         'source': 'مصدر العرض',
       },
       'az': {
         'title': 'Yadda saxlanılanlar',
         'empty': 'Hələ yadda saxlanmış ayə, qeyd və ya vurğu yoxdur.',
+        'emptyFilter': 'Bu filtrdə hələ heç nə yoxdur.',
+        'all': 'Hamısı',
         'bookmark': 'Yadda saxlanmış ayə',
+        'bookmarks': 'Yadda saxlanılanlar',
         'highlight': 'Vurğulanmış ayə',
+        'highlights': 'Vurğular',
         'note': 'Qeyd',
+        'notes': 'Qeydlər',
         'source': 'Göstərmə mənbəyi',
       },
       'ru': {
         'title': 'Сохранённое',
         'empty': 'Пока нет сохранённых аятов, заметок или выделений.',
+        'emptyFilter': 'В этом фильтре пока ничего нет.',
+        'all': 'Все',
         'bookmark': 'Сохранённый аят',
+        'bookmarks': 'Сохранённые',
         'highlight': 'Выделенный аят',
+        'highlights': 'Выделения',
         'note': 'Заметка',
+        'notes': 'Заметки',
         'source': 'Источник отображения',
       },
     };
@@ -90,6 +127,9 @@ class ReaderArchiveScreen extends StatelessWidget {
           sourceCode: settings.noteSourceForKey(entry.key),
         ),
     ]..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    final visible = _filter == 'all'
+        ? items
+        : items.where((item) => item.kind == _filter).toList(growable: false);
 
     return Scaffold(
       appBar: AppBar(title: Text(_text(languageCode, 'title'))),
@@ -103,18 +143,72 @@ class ReaderArchiveScreen extends StatelessWidget {
                 ),
               ),
             )
-          : ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-              itemCount: items.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 8),
-              itemBuilder: (context, index) => _ArchiveTile(
-                item: items[index],
-                languageCode: languageCode,
-                label: _text(languageCode, items[index].kind),
-                sourceLabel: _text(languageCode, 'source'),
-                fallbackSourceId: settings.selectedQuranSourceId,
-              ),
+          : Column(
+              children: [
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  child: Row(
+                    children: [
+                      _filterChip(languageCode, 'all', 'all', items.length),
+                      const SizedBox(width: 8),
+                      _filterChip(
+                        languageCode,
+                        'bookmark',
+                        'bookmarks',
+                        items.where((item) => item.kind == 'bookmark').length,
+                      ),
+                      const SizedBox(width: 8),
+                      _filterChip(
+                        languageCode,
+                        'note',
+                        'notes',
+                        items.where((item) => item.kind == 'note').length,
+                      ),
+                      const SizedBox(width: 8),
+                      _filterChip(
+                        languageCode,
+                        'highlight',
+                        'highlights',
+                        items.where((item) => item.kind == 'highlight').length,
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: visible.isEmpty
+                      ? Center(child: Text(_text(languageCode, 'emptyFilter')))
+                      : ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                          itemCount: visible.length,
+                          separatorBuilder: (_, _) => const SizedBox(height: 8),
+                          itemBuilder: (context, index) => _ArchiveTile(
+                            item: visible[index],
+                            languageCode: languageCode,
+                            label: _text(languageCode, visible[index].kind),
+                            sourceLabel: _text(languageCode, 'source'),
+                            fallbackSourceId: settings.selectedQuranSourceId,
+                          ),
+                        ),
+                ),
+              ],
             ),
+    );
+  }
+
+  Widget _filterChip(
+    String languageCode,
+    String value,
+    String labelKey,
+    int count,
+  ) {
+    return FilterChip(
+      selected: _filter == value,
+      label: Text('${_text(languageCode, labelKey)} ($count)'),
+      onSelected: (_) {
+        HapticFeedback.selectionClick();
+        setState(() => _filter = value);
+      },
     );
   }
 }
