@@ -7,6 +7,13 @@ void main() {
   testWidgets('focus sheet exposes reversible accessible reading controls', (
     tester,
   ) async {
+    final semantics = tester.ensureSemantics();
+    addTearDown(semantics.dispose);
+    await tester.binding.setSurfaceSize(const Size(320, 640));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
     final controller = ReaderFocusController();
     addTearDown(controller.dispose);
     var fullScreenRequested = false;
@@ -67,5 +74,6 @@ void main() {
     await tester.tap(find.text('Auto-scroll'));
     await tester.pump();
     expect(controller.autoScroll, isTrue);
+    expect(tester.takeException(), isNull);
   });
 }
