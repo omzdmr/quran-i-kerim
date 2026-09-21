@@ -19,6 +19,7 @@ void main() {
     expect(coverage.needsAttentionCount, 0);
     expect(coverage.items.single.needsAttention, isFalse);
     expect(coverage.items.single.ageDays, 0);
+    expect(coverage.coveredFraction, 1);
   });
 
   test('untouched page enters attention queue the following day', () {
@@ -36,5 +37,6 @@ void main() {
     expect(coverage.needsAttentionCount, 1);
     expect(coverage.items.single.needsAttention, isTrue);
     expect(coverage.items.single.ageDays, 1);
+    expect(coverage.coveredFraction, 0);
   });
 }
