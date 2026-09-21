@@ -6,7 +6,6 @@ import '../../data/backup/local_backup_service.dart';
 
 class BackupRestoreDialog extends StatefulWidget {
   const BackupRestoreDialog({super.key, required this.preview, required this.plan});
-
   final BackupPreview preview;
   final BackupImportPlan plan;
 
@@ -22,7 +21,6 @@ class _BackupRestoreDialogState extends State<BackupRestoreDialog> {
     final copy = BackupRestoreCopy.forLocale(Localizations.localeOf(context));
     final scheme = Theme.of(context).colorScheme;
     final plan = widget.plan;
-
     return AlertDialog(
       title: Text(copy.title),
       content: SingleChildScrollView(
@@ -47,6 +45,26 @@ class _BackupRestoreDialogState extends State<BackupRestoreDialog> {
                 ),
               ),
             ),
+            const SizedBox(height: 16),
+            Semantics(
+              container: true,
+              label: copy.safetyNote,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: scheme.primaryContainer.withValues(alpha: 0.55),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.shield_outlined, color: scheme.onPrimaryContainer),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(copy.safetyNote, style: TextStyle(color: scheme.onPrimaryContainer))),
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(height: 18),
             Text(copy.chooseMode, style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: 8),
@@ -54,9 +72,7 @@ class _BackupRestoreDialogState extends State<BackupRestoreDialog> {
               contentPadding: EdgeInsets.zero,
               groupValue: _mode,
               value: BackupRestoreMode.merge,
-              onChanged: (value) {
-                if (value != null) setState(() => _mode = value);
-              },
+              onChanged: (value) { if (value != null) setState(() => _mode = value); },
               title: Text(copy.mergeTitle),
               subtitle: Text(copy.mergeBody),
             ),
@@ -64,9 +80,7 @@ class _BackupRestoreDialogState extends State<BackupRestoreDialog> {
               contentPadding: EdgeInsets.zero,
               groupValue: _mode,
               value: BackupRestoreMode.replace,
-              onChanged: (value) {
-                if (value != null) setState(() => _mode = value);
-              },
+              onChanged: (value) { if (value != null) setState(() => _mode = value); },
               title: Text(copy.replaceTitle),
               subtitle: Text(copy.replaceBody),
             ),
@@ -75,14 +89,11 @@ class _BackupRestoreDialogState extends State<BackupRestoreDialog> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(color: scheme.errorContainer, borderRadius: BorderRadius.circular(12)),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.warning_amber_rounded, color: scheme.onErrorContainer),
-                    const SizedBox(width: 10),
-                    Expanded(child: Text(copy.replaceWarning, style: TextStyle(color: scheme.onErrorContainer))),
-                  ],
-                ),
+                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Icon(Icons.warning_amber_rounded, color: scheme.onErrorContainer),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(copy.replaceWarning, style: TextStyle(color: scheme.onErrorContainer))),
+                ]),
               ),
             ],
           ],
@@ -102,42 +113,25 @@ class _CountChip extends StatelessWidget {
   final String label;
   final int count;
   final bool emphasized;
-
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Chip(
-      avatar: Icon(icon, size: 18),
-      label: Text('$label: $count'),
-      backgroundColor: emphasized ? scheme.tertiaryContainer : null,
-    );
+    return Chip(avatar: Icon(icon, size: 18), label: Text('$label: $count'), backgroundColor: emphasized ? scheme.tertiaryContainer : null);
   }
 }
 
 class BackupRestoreCopy {
-  const BackupRestoreCopy({required this.title, required this.intro, required this.conflicts, required this.incomingOnly, required this.localOnly, required this.chooseMode, required this.mergeTitle, required this.mergeBody, required this.replaceTitle, required this.replaceBody, required this.replaceWarning, required this.continueLabel});
-  final String title;
-  final String intro;
-  final String conflicts;
-  final String incomingOnly;
-  final String localOnly;
-  final String chooseMode;
-  final String mergeTitle;
-  final String mergeBody;
-  final String replaceTitle;
-  final String replaceBody;
-  final String replaceWarning;
-  final String continueLabel;
-
+  const BackupRestoreCopy({required this.title, required this.intro, required this.conflicts, required this.incomingOnly, required this.localOnly, required this.safetyNote, required this.chooseMode, required this.mergeTitle, required this.mergeBody, required this.replaceTitle, required this.replaceBody, required this.replaceWarning, required this.continueLabel});
+  final String title, intro, conflicts, incomingOnly, localOnly, safetyNote, chooseMode, mergeTitle, mergeBody, replaceTitle, replaceBody, replaceWarning, continueLabel;
   String summarySemantics(BackupImportPlan plan) => '$conflicts: ${plan.conflictingRecords}. $incomingOnly: ${plan.incomingOnlyRecords}. $localOnly: ${plan.localOnlyRecords}.';
   static BackupRestoreCopy forLocale(Locale locale) => _copies[locale.languageCode] ?? _copies['en']!;
 }
 
 const _copies = <String, BackupRestoreCopy>{
-  'tr': BackupRestoreCopy(title: 'Yedeği nasıl geri yükleyelim?', intro: 'Dosya mevcut cihaz verinizle karşılaştırıldı. Devam etmeden önce neyin değişeceğini kontrol edin.', conflicts: 'Çakışan', incomingOnly: 'Yalnız yedekte', localOnly: 'Yalnız cihazda', chooseMode: 'Geri yükleme biçimi', mergeTitle: 'Birleştir', mergeBody: 'Cihazdaki verileri korur; yedekteki yeni ve güncel kayıtları üzerine ekler.', replaceTitle: 'Değiştir', replaceBody: 'Yedekte bulunan bölümleri yedekteki durumla değiştirir.', replaceWarning: 'Değiştir seçeneği, yedekte olmayan yerel kayıtları ilgili bölümlerden kaldırabilir.', continueLabel: 'Devam et'),
-  'en': BackupRestoreCopy(title: 'How should this backup be restored?', intro: 'The file was compared with data on this device. Review what will change before continuing.', conflicts: 'Conflicts', incomingOnly: 'Backup only', localOnly: 'Device only', chooseMode: 'Restore mode', mergeTitle: 'Merge', mergeBody: 'Keeps device data and applies new or updated records from the backup.', replaceTitle: 'Replace', replaceBody: 'Replaces included sections with the state stored in the backup.', replaceWarning: 'Replace may remove local records from included sections when they are absent from the backup.', continueLabel: 'Continue'),
-  'ar': BackupRestoreCopy(title: 'كيف تريد استعادة النسخة؟', intro: 'تمت مقارنة الملف ببيانات هذا الجهاز. راجع التغييرات قبل المتابعة.', conflicts: 'متعارضة', incomingOnly: 'في النسخة فقط', localOnly: 'في الجهاز فقط', chooseMode: 'طريقة الاستعادة', mergeTitle: 'دمج', mergeBody: 'يحافظ على بيانات الجهاز ويضيف السجلات الجديدة أو المحدّثة من النسخة.', replaceTitle: 'استبدال', replaceBody: 'يستبدل الأقسام المشمولة بالحالة المحفوظة في النسخة.', replaceWarning: 'قد يؤدي الاستبدال إلى حذف سجلات محلية غير موجودة في النسخة.', continueLabel: 'متابعة'),
-  'az': BackupRestoreCopy(title: 'Yedək necə bərpa edilsin?', intro: 'Fayl bu cihazdakı məlumatlarla müqayisə edildi. Davam etməzdən əvvəl dəyişiklikləri yoxlayın.', conflicts: 'Ziddiyyətli', incomingOnly: 'Yalnız yedəkdə', localOnly: 'Yalnız cihazda', chooseMode: 'Bərpa üsulu', mergeTitle: 'Birləşdir', mergeBody: 'Cihaz məlumatlarını saxlayır və yedəkdəki yeni və yenilənmiş qeydləri əlavə edir.', replaceTitle: 'Əvəz et', replaceBody: 'Daxil edilmiş bölmələri yedəkdə saxlanılan vəziyyətlə əvəz edir.', replaceWarning: 'Əvəz etmə yedəkdə olmayan yerli qeydləri silə bilər.', continueLabel: 'Davam et'),
-  'ru': BackupRestoreCopy(title: 'Как восстановить эту копию?', intro: 'Файл сравнен с данными на устройстве. Проверьте изменения перед продолжением.', conflicts: 'Конфликты', incomingOnly: 'Только в копии', localOnly: 'Только на устройстве', chooseMode: 'Режим восстановления', mergeTitle: 'Объединить', mergeBody: 'Сохраняет данные устройства и применяет новые или обновлённые записи из копии.', replaceTitle: 'Заменить', replaceBody: 'Заменяет включённые разделы состоянием из резервной копии.', replaceWarning: 'Замена может удалить локальные записи, которых нет в резервной копии.', continueLabel: 'Продолжить'),
-  'fr': BackupRestoreCopy(title: 'Comment restaurer cette sauvegarde ?', intro: 'Le fichier a été comparé aux données de cet appareil. Vérifiez les changements avant de continuer.', conflicts: 'Conflits', incomingOnly: 'Sauvegarde seulement', localOnly: 'Appareil seulement', chooseMode: 'Mode de restauration', mergeTitle: 'Fusionner', mergeBody: 'Conserve les données de l’appareil et applique les éléments nouveaux ou mis à jour de la sauvegarde.', replaceTitle: 'Remplacer', replaceBody: 'Remplace les sections incluses par l’état enregistré dans la sauvegarde.', replaceWarning: 'Le remplacement peut supprimer des éléments locaux absents de la sauvegarde.', continueLabel: 'Continuer'),
+  'tr': BackupRestoreCopy(title: 'Yedeği nasıl geri yükleyelim?', intro: 'Dosya mevcut cihaz verinizle karşılaştırıldı. Devam etmeden önce neyin değişeceğini kontrol edin.', conflicts: 'Çakışan', incomingOnly: 'Yalnız yedekte', localOnly: 'Yalnız cihazda', safetyNote: 'Devam etmeden hemen önce cihazınızdaki mevcut verilerin otomatik güvenlik kopyası alınır. Sonradan fikrinizi değiştirirseniz bu kopyayı Son yedekler bölümünden geri yükleyebilirsiniz.', chooseMode: 'Geri yükleme biçimi', mergeTitle: 'Birleştir', mergeBody: 'Cihazdaki verileri korur; yedekteki yeni ve güncel kayıtları üzerine ekler.', replaceTitle: 'Değiştir', replaceBody: 'Yedekte bulunan bölümleri yedekteki durumla değiştirir.', replaceWarning: 'Değiştir seçeneği, yedekte olmayan yerel kayıtları ilgili bölümlerden kaldırabilir.', continueLabel: 'Devam et'),
+  'en': BackupRestoreCopy(title: 'How should this backup be restored?', intro: 'The file was compared with data on this device. Review what will change before continuing.', conflicts: 'Conflicts', incomingOnly: 'Backup only', localOnly: 'Device only', safetyNote: 'A safety copy of the current device data is created automatically just before restore. If you change your mind, restore that copy from Recent backups.', chooseMode: 'Restore mode', mergeTitle: 'Merge', mergeBody: 'Keeps device data and applies new or updated records from the backup.', replaceTitle: 'Replace', replaceBody: 'Replaces included sections with the state stored in the backup.', replaceWarning: 'Replace may remove local records from included sections when they are absent from the backup.', continueLabel: 'Continue'),
+  'ar': BackupRestoreCopy(title: 'كيف تريد استعادة النسخة؟', intro: 'تمت مقارنة الملف ببيانات هذا الجهاز. راجع التغييرات قبل المتابعة.', conflicts: 'متعارضة', incomingOnly: 'في النسخة فقط', localOnly: 'في الجهاز فقط', safetyNote: 'سيتم إنشاء نسخة أمان تلقائية لبيانات الجهاز الحالية قبل الاستعادة مباشرة. يمكنك استعادتها لاحقًا من النسخ الأخيرة.', chooseMode: 'طريقة الاستعادة', mergeTitle: 'دمج', mergeBody: 'يحافظ على بيانات الجهاز ويضيف السجلات الجديدة أو المحدّثة من النسخة.', replaceTitle: 'استبدال', replaceBody: 'يستبدل الأقسام المشمولة بالحالة المحفوظة في النسخة.', replaceWarning: 'قد يؤدي الاستبدال إلى حذف سجلات محلية غير موجودة في النسخة.', continueLabel: 'متابعة'),
+  'az': BackupRestoreCopy(title: 'Yedək necə bərpa edilsin?', intro: 'Fayl bu cihazdakı məlumatlarla müqayisə edildi. Davam etməzdən əvvəl dəyişiklikləri yoxlayın.', conflicts: 'Ziddiyyətli', incomingOnly: 'Yalnız yedəkdə', localOnly: 'Yalnız cihazda', safetyNote: 'Bərpadan dərhal əvvəl cihazdakı cari məlumatların avtomatik təhlükəsizlik nüsxəsi yaradılır. Fikrinizi dəyişsəniz, onu Son yedəklərdən bərpa edə bilərsiniz.', chooseMode: 'Bərpa üsulu', mergeTitle: 'Birləşdir', mergeBody: 'Cihaz məlumatlarını saxlayır və yedəkdəki yeni və yenilənmiş qeydləri əlavə edir.', replaceTitle: 'Əvəz et', replaceBody: 'Daxil edilmiş bölmələri yedəkdə saxlanılan vəziyyətlə əvəz edir.', replaceWarning: 'Əvəz etmə yedəkdə olmayan yerli qeydləri silə bilər.', continueLabel: 'Davam et'),
+  'ru': BackupRestoreCopy(title: 'Как восстановить эту копию?', intro: 'Файл сравнен с данными на устройстве. Проверьте изменения перед продолжением.', conflicts: 'Конфликты', incomingOnly: 'Только в копии', localOnly: 'Только на устройстве', safetyNote: 'Перед восстановлением автоматически создаётся защитная копия текущих данных устройства. Её можно восстановить позже из списка последних копий.', chooseMode: 'Режим восстановления', mergeTitle: 'Объединить', mergeBody: 'Сохраняет данные устройства и применяет новые или обновлённые записи из копии.', replaceTitle: 'Заменить', replaceBody: 'Заменяет включённые разделы состоянием из резервной копии.', replaceWarning: 'Замена может удалить локальные записи, которых нет в резервной копии.', continueLabel: 'Продолжить'),
+  'fr': BackupRestoreCopy(title: 'Comment restaurer cette sauvegarde ?', intro: 'Le fichier a été comparé aux données de cet appareil. Vérifiez les changements avant de continuer.', conflicts: 'Conflits', incomingOnly: 'Sauvegarde seulement', localOnly: 'Appareil seulement', safetyNote: 'Une copie de sécurité des données actuelles est créée automatiquement juste avant la restauration. Vous pourrez la restaurer ensuite depuis les sauvegardes récentes.', chooseMode: 'Mode de restauration', mergeTitle: 'Fusionner', mergeBody: 'Conserve les données de l’appareil et applique les éléments nouveaux ou mis à jour de la sauvegarde.', replaceTitle: 'Remplacer', replaceBody: 'Remplace les sections incluses par l’état enregistré dans la sauvegarde.', replaceWarning: 'Le remplacement peut supprimer des éléments locaux absents de la sauvegarde.', continueLabel: 'Continuer'),
 };
