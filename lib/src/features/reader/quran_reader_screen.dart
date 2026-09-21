@@ -81,12 +81,10 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       if (_focusController.keepAwake) {
-        unawaited(WakelockPlus.enable());
+        unawaited(_setReaderKeepAwake(true));
       }
       if (_focusController.fullScreen) {
-        unawaited(
-          SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky),
-        );
+        unawaited(_setReaderFullScreen(true));
       }
       _syncAutoScrollTimer();
       return;
@@ -95,7 +93,23 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
     _autoScrollTimer = null;
     _saveVisibleReadingPosition();
     if (_focusController.keepAwake) {
-      unawaited(WakelockPlus.disable());
+      unawaited(_releaseWakeLockSafely());
+    }
+  }
+
+  Future<void> _releaseWakeLockSafely() async {
+    try {
+      await WakelockPlus.disable();
+    } catch (_) {
+      // Best effort during lifecycle cleanup; the OS also releases it.
+    }
+  }
+
+  Future<void> _restoreSystemUiSafely() async {
+    try {
+      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    } catch (_) {
+      // Best effort while leaving Reader or disposing the widget.
     }
   }
 
@@ -107,12 +121,10 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
     final release = _focusController.leaveSession();
     AppNavigation.instance.setReaderFullScreenActive(false);
     if (release.releaseWakeLock) {
-      unawaited(WakelockPlus.disable());
+      unawaited(_releaseWakeLockSafely());
     }
     if (release.exitFullScreen) {
-      unawaited(
-        SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge),
-      );
+      unawaited(_restoreSystemUiSafely());
     }
   }
 
@@ -145,12 +157,10 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
     _autoScrollTimer?.cancel();
     _focusController.removeListener(_handleFocusChanged);
     if (_focusController.keepAwake) {
-      unawaited(WakelockPlus.disable());
+      unawaited(_releaseWakeLockSafely());
     }
     if (_focusController.fullScreen) {
-      unawaited(
-        SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge),
-      );
+      unawaited(_restoreSystemUiSafely());
     }
     _focusController.dispose();
     AppNavigation.instance.setReaderFullScreenActive(false);
