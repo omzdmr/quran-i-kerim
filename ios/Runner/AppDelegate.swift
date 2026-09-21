@@ -12,6 +12,7 @@ import UniformTypeIdentifiers
   private var locationHeadingChannel: LocationHeadingChannel?
   private var documentHandoffChannel: DocumentHandoffChannel?
   private var widgetSnapshotChannel: WidgetSnapshotChannel?
+  private var nativeLifecycleStateChannel: NativeLifecycleStateChannel?
 
   override func application(
     _ application: UIApplication,
@@ -24,6 +25,8 @@ import UniformTypeIdentifiers
   }
 
   override func applicationWillTerminate(_ application: UIApplication) {
+    nativeLifecycleStateChannel?.markCleanTermination()
+    nativeLifecycleStateChannel?.detach()
     widgetSnapshotChannel?.detach()
     documentHandoffChannel?.detach()
     locationHeadingChannel?.detach()
@@ -48,13 +51,12 @@ import UniformTypeIdentifiers
     locationHeadingChannel = LocationHeadingChannel(binaryMessenger: messenger)
     documentHandoffChannel = DocumentHandoffChannel(binaryMessenger: messenger, presenter: controller)
     widgetSnapshotChannel = WidgetSnapshotChannel(binaryMessenger: messenger)
+    nativeLifecycleStateChannel = NativeLifecycleStateChannel(binaryMessenger: messenger)
   }
 }
 
 /// Native Files/iCloud Drive handoff for user-owned portable backup files.
-///
-/// This deliberately does not know the app's backup schema. Flutter remains the owner of
-/// serialization/merge policy; iOS only provides a privacy-preserving document boundary.
+/// Shared Flutter remains the owner of serialization and merge policy.
 final class DocumentHandoffChannel: NSObject, UIDocumentPickerDelegate {
   private static let channelName = "app.quranikerim/native_document_handoff"
   private let channel: FlutterMethodChannel
