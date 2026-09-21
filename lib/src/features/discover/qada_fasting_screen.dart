@@ -374,6 +374,7 @@ class _QadaFastingScreenState extends State<QadaFastingScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Semantics(
                     container: true,
+                    excludeSemantics: true,
                     label:
                         '${_formatDate(context, selected)}, ${_text('dayChange')}: $dayDelta ${_text('days')}',
                     child: Row(

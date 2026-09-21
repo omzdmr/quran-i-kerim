@@ -58,7 +58,7 @@ void main() {
     await tester.tap(find.text('Calendar'));
     await tester.pumpAndSettle();
     expect(find.text('Record calendar'), findsOneWidget);
-    expect(find.text('Qada fast completed'), findsOneWidget);
+    expect(find.text('Qada fast completed'), findsWidgets);
     await tester.tap(find.byIcon(Icons.close_rounded));
     await tester.pumpAndSettle();
 

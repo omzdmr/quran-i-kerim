@@ -221,7 +221,7 @@ const Map<String, Map<String, String>> qadaFastingStrings = {
     'includePrivateNotes': 'Inclure les notes privées',
     'includePrivateNotesWarning': 'Les notes peuvent contenir des informations sensibles.',
     'shareExport': 'Partager le fichier',
-    'exportFailed': 'L’exportation n’a pas pu être terminée.'
+    'exportFailed': 'L’exportation n’a pas pu être terminée.',
     'empty': 'Aucune entrée. Ajoutez un solde initial connu ou estimé.',
     'sourceYear': 'Année hégirienne du Ramadan (facultatif)',
     'unknownYear': 'Année inconnue / estimée',
