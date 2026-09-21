@@ -30,6 +30,6 @@ void main() {
     addTearDown(handle.dispose);
     await tester.pumpWidget(app(const TravelPackingScreen(), locale: const Locale('en')));
     await tester.pumpAndSettle();
-    expect(find.bySemanticsLabel(contains('Ready: 0 / 0')), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp(r'Ready: 0 / 0')), findsOneWidget);
   });
 }
