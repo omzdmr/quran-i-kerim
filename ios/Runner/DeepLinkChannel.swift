@@ -15,26 +15,24 @@ final class DeepLinkChannel {
     channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) }
   }
 
-  func receive(_ url: URL) {
-    guard let normalized = normalizedURLString(url) else { return }
+  @discardableResult
+  func receive(_ url: URL) -> Bool {
+    guard let normalized = normalizedURLString(url) else { return false }
     if pending.last != normalized {
       pending.append(normalized)
       if pending.count > maxPending { pending.removeFirst(pending.count - maxPending) }
     }
     channel.invokeMethod("linkReceived", arguments: ["url": normalized])
+    return true
   }
 
-  func detach() {
-    channel.setMethodCallHandler(nil)
-    pending.removeAll()
-  }
+  func detach() { channel.setMethodCallHandler(nil); pending.removeAll() }
 
   private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
     case "capabilities": result(["customScheme": true, "universalLink": true, "coldStartBuffer": true, "maxPending": maxPending])
     case "pendingLinks": result(pending)
-    case "consumePendingLinks":
-      let links = pending; pending.removeAll(); result(links)
+    case "consumePendingLinks": let links = pending; pending.removeAll(); result(links)
     case "clearPendingLinks": pending.removeAll(); result(nil)
     default: result(FlutterMethodNotImplemented)
     }
