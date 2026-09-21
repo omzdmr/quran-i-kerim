@@ -9,18 +9,12 @@ void main() {
   });
 
   testWidgets('Discover opens offline travel meeting point', (tester) async {
-    await tester.pumpWidget(const MaterialApp(
-      locale: Locale('tr'),
-      home: Scaffold(body: DiscoverScreen()),
-    ));
+    await tester.pumpWidget(const MaterialApp(locale: Locale('tr'), home: Scaffold(body: DiscoverScreen())));
     await tester.pumpAndSettle();
 
-    await tester.scrollUntilVisible(
-      find.text('Seyahat buluşma noktası'),
-      180,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(find.text('Seyahat buluşma noktası'));
+    await tester.scrollUntilVisible(find.text('Buluşma noktası'), 180, scrollable: find.byType(Scrollable).first);
+    expect(find.text('Seyahat listesi'), findsOneWidget);
+    await tester.tap(find.text('Buluşma noktası'));
     await tester.pumpAndSettle();
 
     expect(find.text('Buluşma noktası'), findsOneWidget);
