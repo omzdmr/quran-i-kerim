@@ -85,8 +85,9 @@ class LocalBackupService {
   }
 
   bool _sameQadaEventIdentity(Map a, Map b) {
-    final left = <String, Object?>{for (final entry in a.entries) if (entry.key is String && entry.key != 'note') entry.key as String: entry.value};
-    final right = <String, Object?>{for (final entry in b.entries) if (entry.key is String && entry.key != 'note') entry.key as String: entry.value};
+    bool identityKey(Object? key) => key is String && key != 'note' && key != 'createdAt';
+    final left = <String, Object?>{for (final entry in a.entries) if (identityKey(entry.key)) entry.key as String: entry.value};
+    final right = <String, Object?>{for (final entry in b.entries) if (identityKey(entry.key)) entry.key as String: entry.value};
     return jsonEncode(left) == jsonEncode(right);
   }
 
