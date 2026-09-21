@@ -5,6 +5,7 @@ import '../../../l10n/generated/generated_app_localizations.dart';
 import '../application/memorization_review_coverage.dart';
 import '../application/memorization_review_coverage_store.dart';
 import '../application/memorization_review_session.dart';
+import 'memorization_coverage_review_session_screen.dart';
 import 'memorization_study_scaffold.dart';
 import 'memorization_study_screen.dart';
 
@@ -41,6 +42,16 @@ class _MemorizationReviewCoverageScreenState
           page: page,
           initialMode: MemorizationStudyMode.memorize,
         ),
+      ),
+    );
+    await _load();
+  }
+
+  Future<void> _openSession(MemorizationReviewSession session) async {
+    if (session.isEmpty) return;
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => MemorizationCoverageReviewSessionScreen(session: session),
       ),
     );
     await _load();
@@ -90,7 +101,7 @@ class _MemorizationReviewCoverageScreenState
               label:
                   '${l10n.memorizeOpenNext}, ${l10n.memorizePages} $nextPage. ${copy.batchSemantics(session)}',
               child: FilledButton.icon(
-                onPressed: () => _openPage(nextPage),
+                onPressed: () => _openSession(session),
                 icon: const Icon(Icons.play_arrow_rounded),
                 label: Text(
                   '${l10n.memorizeOpenNext} · ${l10n.memorizePages} $nextPage',
