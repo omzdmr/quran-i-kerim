@@ -29,6 +29,7 @@ void main() {
     expect(controller.lineFocus, isFalse);
     expect(controller.keepAwake, isFalse);
     expect(controller.autoScroll, isFalse);
+    expect(controller.autoScrollPaused, isFalse);
     expect(controller.autoScrollSpeed, ReaderAutoScrollSpeed.normal);
   });
 
@@ -56,6 +57,11 @@ void main() {
     expect(controller.pauseAutoScrollForInteraction(), isTrue);
     expect(controller.pauseAutoScrollForInteraction(), isFalse);
     expect(controller.autoScroll, isFalse);
+    expect(controller.autoScrollPaused, isTrue);
+
+    controller.setAutoScroll(true);
+    expect(controller.autoScroll, isTrue);
+    expect(controller.autoScrollPaused, isFalse);
     expect(controller.dimmed, isTrue);
     expect(controller.keepAwake, isTrue);
   });

@@ -774,25 +774,48 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
                 ),
               ),
             ),
-          if (_focusController.autoScroll)
+          if (_focusController.autoScroll ||
+              _focusController.autoScrollPaused)
             Positioned(
               right: 16,
               bottom: 150,
               child: Semantics(
                 button: true,
-                label: l10n.text('pauseAutoScroll'),
+                label: l10n.text(
+                  _focusController.autoScroll
+                      ? 'pauseAutoScroll'
+                      : 'resumeAutoScroll',
+                ),
                 child: FloatingActionButton(
-                  heroTag: 'reader-auto-scroll-pause',
-                  onPressed: () => _focusController.setAutoScroll(false),
-                  tooltip: l10n.text('pauseAutoScroll'),
-                  child: const Icon(Icons.pause_rounded),
+                  heroTag: 'reader-auto-scroll-toggle',
+                  onPressed: () {
+                    if (_focusController.autoScroll) {
+                      _focusController.pauseAutoScrollForInteraction();
+                    } else {
+                      _focusController.setAutoScroll(true);
+                    }
+                  },
+                  tooltip: l10n.text(
+                    _focusController.autoScroll
+                        ? 'pauseAutoScroll'
+                        : 'resumeAutoScroll',
+                  ),
+                  child: Icon(
+                    _focusController.autoScroll
+                        ? Icons.pause_rounded
+                        : Icons.play_arrow_rounded,
+                  ),
                 ),
               ),
             ),
           if (_audioController.isPlaying && !_audioFollowEnabled)
             Positioned(
               right: 16,
-              bottom: _focusController.autoScroll ? 214 : 150,
+              bottom:
+                  (_focusController.autoScroll ||
+                      _focusController.autoScrollPaused)
+                  ? 214
+                  : 150,
               child: FilledButton.tonalIcon(
                 onPressed: () {
                   setState(() {
