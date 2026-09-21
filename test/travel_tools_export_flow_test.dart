@@ -24,14 +24,17 @@ void main() {
     expect((json['meetingPoint'] as Map<String, dynamic>)['name'], 'Camp');
 
     await store.clear();
-    expect(await store.load(), isNull);
     await tester.tap(find.text('Restore from clipboard'));
     await tester.pumpAndSettle();
-    expect(find.text('Restore travel data?'), findsOneWidget);
     expect(find.textContaining('Camp'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(await store.load(), isNull);
+
+    await tester.tap(find.text('Restore from clipboard'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Restore'));
     await tester.pumpAndSettle();
-
     expect((await store.load())?.name, 'Camp');
     expect(find.text('Travel data restored'), findsOneWidget);
   });
