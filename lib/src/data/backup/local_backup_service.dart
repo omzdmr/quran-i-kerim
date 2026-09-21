@@ -10,13 +10,7 @@ import 'shared_preferences_backup_adapter.dart';
 enum BackupRestoreMode { merge, replace }
 
 class LocalBackupService {
-  const LocalBackupService({
-    this.adapter = const SharedPreferencesBackupAdapter(),
-    this.previewParser = const BackupPreviewParser(),
-    this.importPlanner = const BackupImportPlanner(),
-    this.restoreCoordinator = const BackupRestoreCoordinator(),
-  });
-
+  const LocalBackupService({this.adapter = const SharedPreferencesBackupAdapter(), this.previewParser = const BackupPreviewParser(), this.importPlanner = const BackupImportPlanner(), this.restoreCoordinator = const BackupRestoreCoordinator()});
   final SharedPreferencesBackupAdapter adapter;
   final BackupPreviewParser previewParser;
   final BackupImportPlanner importPlanner;
@@ -26,12 +20,9 @@ class LocalBackupService {
     final sections = await adapter.captureSections();
     return BackupDocument(version: BackupManifest.schemaVersion, createdAt: (now ?? DateTime.now()).toUtc(), data: BackupManifest.selectBackupData(sections));
   }
-
   Future<String> exportJson({DateTime? now}) async => (await createDocument(now: now)).encode();
   BackupPreview previewDecoded(Object? decoded) => previewParser.parse(decoded);
-  BackupPreview previewJson(String encoded) {
-    try { return previewParser.parse(jsonDecode(encoded)); } on FormatException { return previewParser.parse(null); }
-  }
+  BackupPreview previewJson(String encoded) { try { return previewParser.parse(jsonDecode(encoded)); } on FormatException { return previewParser.parse(null); } }
 
   Future<BackupImportPlan> planImportJson(String encoded) async {
     final decoded = jsonDecode(encoded);
@@ -40,17 +31,12 @@ class LocalBackupService {
     return importPlanner.build(currentSections: current, incomingSections: incoming);
   }
 
-  Future<void> restoreJson(String encoded, {BackupRestoreMode mode = BackupRestoreMode.replace}) async =>
-      restoreDecoded(jsonDecode(encoded), mode: mode);
-
+  Future<void> restoreJson(String encoded, {BackupRestoreMode mode = BackupRestoreMode.replace}) async => restoreDecoded(jsonDecode(encoded), mode: mode);
   Future<void> restoreDecoded(Object? decoded, {BackupRestoreMode mode = BackupRestoreMode.replace}) async {
     Map<String, Object?>? normalizedData;
     int? normalizedVersion;
     await restoreCoordinator.restore(
-      validate: () async {
-        normalizedData = _validatedSections(decoded);
-        normalizedVersion = previewParser.parse(decoded).version;
-      },
+      validate: () async { normalizedData = _validatedSections(decoded); normalizedVersion = previewParser.parse(decoded).version; },
       captureSnapshot: adapter.capture,
       applyRestore: () async {
         var dataToRestore = normalizedData!;
@@ -90,10 +76,7 @@ class LocalBackupService {
         final currentMap = _stringMap(currentSection);
         final incomingMap = _stringMap(incomingSection);
         final keys = <String>{...currentMap.keys, ...incomingMap.keys};
-        merged[section] = <String, Object?>{
-          for (final key in keys)
-            key: _mergePreferenceValue(section: section, key: key, current: currentMap[key], incoming: incomingMap[key], hasIncoming: incomingMap.containsKey(key)),
-        };
+        merged[section] = <String, Object?>{for (final key in keys) key: _mergePreferenceValue(section: section, key: key, current: currentMap[key], incoming: incomingMap[key], hasIncoming: incomingMap.containsKey(key))};
       } else if (incoming.containsKey(section)) {
         merged[section] = incomingSection;
       } else if (current.containsKey(section)) {
@@ -114,6 +97,7 @@ class LocalBackupService {
     if (section == 'memorization' && const {'memorized_pages_v1', 'memorization_practice_days_v1', 'memorization_plan_missed_days_v1'}.contains(key)) return _mergeStringLists(current, incoming);
     if (section == 'memorization' && key == 'memorization_page_progress_v1') return _mergePageProgress(current, incoming);
     if (section == 'memorizationPractice' && key == 'memorization_practice_history_v1') return _mergeJsonEventLists(current, incoming);
+    if (section == 'fasting' && key == 'qada_fasting_ledger_v1') return _mergeQadaLedger(current, incoming);
     return incoming;
   }
 
@@ -122,89 +106,89 @@ class LocalBackupService {
     final remote = incoming is List && incoming.every((value) => value is String) ? incoming.cast<String>() : null;
     if (local == null) return remote ?? incoming;
     if (remote == null) return local;
-    final values = <String>{...local, ...remote}.toList()
-      ..sort((a, b) {
-        final aInt = int.tryParse(a);
-        final bInt = int.tryParse(b);
-        if (aInt != null && bInt != null) return aInt.compareTo(bInt);
-        return a.compareTo(b);
-      });
+    final values = <String>{...local, ...remote}.toList()..sort((a, b) { final aInt = int.tryParse(a); final bInt = int.tryParse(b); if (aInt != null && bInt != null) return aInt.compareTo(bInt); return a.compareTo(b); });
     return values;
   }
 
-  Map<dynamic, dynamic>? _decodeMap(String value) {
-    try { final decoded = jsonDecode(value); return decoded is Map ? decoded : null; } on FormatException { return null; }
-  }
-
-  List<dynamic>? _decodeList(String value) {
-    try { final decoded = jsonDecode(value); return decoded is List ? decoded : null; } on FormatException { return null; }
-  }
+  Map<dynamic, dynamic>? _decodeMap(String value) { try { final decoded = jsonDecode(value); return decoded is Map ? decoded : null; } on FormatException { return null; } }
+  List<dynamic>? _decodeList(String value) { try { final decoded = jsonDecode(value); return decoded is List ? decoded : null; } on FormatException { return null; } }
 
   Object? _mergePageProgress(Object? current, Object? incoming) {
     if (current is! String) return incoming;
     if (incoming is! String) return current;
-    final currentDecoded = _decodeMap(current);
-    final incomingDecoded = _decodeMap(incoming);
+    final currentDecoded = _decodeMap(current); final incomingDecoded = _decodeMap(incoming);
     if (currentDecoded == null) return incomingDecoded == null ? current : incoming;
     if (incomingDecoded == null) return current;
     final merged = <String, Object?>{};
     final keys = <String>{...currentDecoded.keys.whereType<String>(), ...incomingDecoded.keys.whereType<String>()};
     for (final key in keys) {
-      final local = currentDecoded[key];
-      final remote = incomingDecoded[key];
-      if (local == null) {
-        merged[key] = remote;
-      } else if (remote == null) {
-        merged[key] = local;
-      } else {
-        merged[key] = _newerProgress(local, remote);
-      }
+      final local = currentDecoded[key]; final remote = incomingDecoded[key];
+      if (local == null) merged[key] = remote; else if (remote == null) merged[key] = local; else merged[key] = _newerProgress(local, remote);
     }
     return jsonEncode(merged);
   }
 
   Object? _newerProgress(Object? local, Object? incoming) {
-    if (local is! Map) return incoming;
-    if (incoming is! Map) return local;
-    DateTime? timestamp(Map value) =>
-        DateTime.tryParse(value['lastReviewedAt']?.toString() ?? '') ??
-        DateTime.tryParse(value['memorizedAt']?.toString() ?? '');
-    final localTime = timestamp(local);
-    final incomingTime = timestamp(incoming);
+    if (local is! Map) return incoming; if (incoming is! Map) return local;
+    DateTime? timestamp(Map value) => DateTime.tryParse(value['lastReviewedAt']?.toString() ?? '') ?? DateTime.tryParse(value['memorizedAt']?.toString() ?? '');
+    final localTime = timestamp(local); final incomingTime = timestamp(incoming);
     if (localTime == null) return incomingTime == null ? local : incoming;
     if (incomingTime == null) return local;
     return incomingTime.isAfter(localTime) ? incoming : local;
   }
 
   bool _validPracticeEvent(Map event) {
-    final id = event['id'];
-    final page = event['page'];
-    final context = event['context'];
-    final occurredAt = event['occurredAt'];
-    return id is String && id.trim().isNotEmpty && page is int && page > 0 &&
-        context is String && const {'soloReview', 'prayer', 'recitedToSomeone'}.contains(context) &&
-        occurredAt is String && DateTime.tryParse(occurredAt) != null;
+    final id = event['id']; final page = event['page']; final context = event['context']; final occurredAt = event['occurredAt'];
+    return id is String && id.trim().isNotEmpty && page is int && page > 0 && context is String && const {'soloReview', 'prayer', 'recitedToSomeone'}.contains(context) && occurredAt is String && DateTime.tryParse(occurredAt) != null;
   }
 
   Object? _mergeJsonEventLists(Object? current, Object? incoming) {
-    if (current is! String) return incoming;
-    if (incoming is! String) return current;
-    final currentDecoded = _decodeList(current);
-    final incomingDecoded = _decodeList(incoming);
+    if (current is! String) return incoming; if (incoming is! String) return current;
+    final currentDecoded = _decodeList(current); final incomingDecoded = _decodeList(incoming);
     if (currentDecoded == null) return incomingDecoded == null ? current : incoming;
     if (incomingDecoded == null) return current;
-
     final byId = <String, Map>{};
-    void addEvents(List<dynamic> events) {
-      for (final event in events) {
-        if (event is! Map || !_validPracticeEvent(event)) continue;
-        byId[event['id'] as String] = event;
-      }
-    }
-    addEvents(currentDecoded);
-    addEvents(incomingDecoded);
-    final merged = byId.values.toList(growable: false)
-      ..sort((a, b) => (b['occurredAt'] as String).compareTo(a['occurredAt'] as String));
+    void addEvents(List<dynamic> events) { for (final event in events) { if (event is! Map || !_validPracticeEvent(event)) continue; byId[event['id'] as String] = event; } }
+    addEvents(currentDecoded); addEvents(incomingDecoded);
+    final merged = byId.values.toList(growable: false)..sort((a, b) => (b['occurredAt'] as String).compareTo(a['occurredAt'] as String));
     return jsonEncode(merged.take(4000).toList(growable: false));
+  }
+
+  Object? _mergeQadaLedger(Object? current, Object? incoming) {
+    if (current is! String) return incoming;
+    if (incoming is! String) return current;
+    final local = _decodeMap(current);
+    final remote = _decodeMap(incoming);
+    final localEvents = _qadaEvents(local);
+    final remoteEvents = _qadaEvents(remote);
+    if (localEvents == null) return remoteEvents == null ? current : incoming;
+    if (remoteEvents == null) return current;
+
+    // Qada entries are immutable events. Keep the local version on an ID
+    // collision, then add remote-only events. This prevents merge restore from
+    // silently rewriting a user's existing private worship history.
+    final byId = <String, Map>{};
+    for (final event in localEvents) {
+      byId[event['id'] as String] = event;
+    }
+    for (final event in remoteEvents) {
+      byId.putIfAbsent(event['id'] as String, () => event);
+    }
+    final events = byId.values.toList(growable: false)
+      ..sort((a, b) => (a['createdAt'] as String).compareTo(b['createdAt'] as String));
+    return jsonEncode(<String, Object?>{'formatVersion': 1, 'entries': events});
+  }
+
+  List<Map>? _qadaEvents(Map? document) {
+    if (document == null || document['formatVersion'] != 1 || document['entries'] is! List) return null;
+    final result = <Map>[];
+    final ids = <String>{};
+    for (final raw in document['entries'] as List) {
+      if (raw is! Map) return null;
+      final id = raw['id']; final kind = raw['kind']; final days = raw['days']; final occurredOn = raw['occurredOn']; final createdAt = raw['createdAt'];
+      if (id is! String || id.trim().isEmpty || !ids.add(id) || kind is! String || !const {'debt', 'completion', 'correction'}.contains(kind) || days is! int || days == 0 || occurredOn is! String || DateTime.tryParse(occurredOn) == null || createdAt is! String || DateTime.tryParse(createdAt) == null) return null;
+      result.add(raw);
+    }
+    return result;
   }
 }
