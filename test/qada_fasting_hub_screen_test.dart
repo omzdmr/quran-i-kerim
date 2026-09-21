@@ -54,6 +54,30 @@ void main() {
     expect(find.text('Yedekle ve geri yükle'), findsOneWidget);
   });
 
+  testWidgets('hub reloads summary after returning from ledger', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    await tester.pumpWidget(app(const Locale('tr')));
+    await tester.pumpAndSettle();
+    expect(find.text('0'), findsWidgets);
+
+    await tester.tap(find.text('Kaza defteri'));
+    await tester.pumpAndSettle();
+
+    final updated = QadaFastingLedger().addDebt(
+      days: 4,
+      occurredOn: DateTime(2026, 3, 1),
+      createdAt: DateTime.utc(2026, 9, 22),
+      sourceRamadanYear: 1447,
+      id: 'updated-outside-hub',
+    );
+    await const QadaFastingStore().save(updated);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    expect(find.text('4'), findsOneWidget);
+    expect(find.text('1'), findsOneWidget);
+  });
+
   testWidgets('hub exposes Arabic RTL labels without falling back to English', (
     tester,
   ) async {
