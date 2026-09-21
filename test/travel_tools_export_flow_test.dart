@@ -8,14 +8,10 @@ import 'package:quran_i_kerim/src/features/discover/travel_meeting_point_store.d
 import 'package:quran_i_kerim/src/features/discover/travel_tools_screen.dart';
 
 void main() {
-  testWidgets('travel export is explicit and user initiated', (tester) async {
+  testWidgets('travel export and restore are explicit user actions', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
-    await const TravelMeetingPointStore().save(TravelMeetingPoint(
-      name: 'Camp',
-      address: 'North gate',
-      note: '',
-      updatedAt: DateTime(2026, 9, 22),
-    ));
+    const store = TravelMeetingPointStore();
+    await store.save(TravelMeetingPoint(name: 'Camp', address: 'North gate', note: '', updatedAt: DateTime(2026, 9, 22)));
 
     await tester.pumpWidget(const MaterialApp(home: TravelToolsScreen()));
     await tester.pumpAndSettle();
@@ -26,6 +22,17 @@ void main() {
     final clipboard = await Clipboard.getData(Clipboard.kTextPlain);
     final json = jsonDecode(clipboard!.text!) as Map<String, dynamic>;
     expect((json['meetingPoint'] as Map<String, dynamic>)['name'], 'Camp');
-    expect(find.text('Travel data copied'), findsOneWidget);
+
+    await store.clear();
+    expect(await store.load(), isNull);
+    await tester.tap(find.text('Restore from clipboard'));
+    await tester.pumpAndSettle();
+    expect(find.text('Restore travel data?'), findsOneWidget);
+    expect(find.textContaining('Camp'), findsOneWidget);
+    await tester.tap(find.text('Restore'));
+    await tester.pumpAndSettle();
+
+    expect((await store.load())?.name, 'Camp');
+    expect(find.text('Travel data restored'), findsOneWidget);
   });
 }
