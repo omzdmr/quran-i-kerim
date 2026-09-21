@@ -2,6 +2,7 @@ import '../../data/surah_catalog.dart';
 import '../../data/translation_catalog.dart';
 import 'reader_reading_history.dart';
 
+/// Canonical Qur'an location recovered from a persisted archive selection key.
 class ReaderArchiveReference {
   const ReaderArchiveReference({
     required this.surah,
@@ -14,6 +15,10 @@ class ReaderArchiveReference {
   final String selectionKey;
 }
 
+/// A canonical location plus the display layer that should be restored.
+///
+/// Surah/ayah identity is deliberately independent from translation identity.
+/// Changing a meal must never turn a saved item into a different ayah.
 class ReaderArchiveContext {
   const ReaderArchiveContext({
     required this.surah,
@@ -35,6 +40,7 @@ String? _nonEmpty(String? value) {
   return normalized == null || normalized.isEmpty ? null : normalized;
 }
 
+/// Converts old short source codes and current stable IDs to a stable source ID.
 String? readerSourceIdForArchiveCode(String? code) {
   final normalized = _nonEmpty(code);
   if (normalized == null) return null;
@@ -46,6 +52,8 @@ String? readerSourceIdForArchiveCode(String? code) {
   return null;
 }
 
+/// Parses the first ayah of single/range/sparse saved selections and rejects
+/// references outside the canonical verse count of their surah.
 ReaderArchiveReference? parseReaderArchiveReference(String selectionKey) {
   final separator = selectionKey.indexOf(':');
   if (separator <= 0 || separator == selectionKey.length - 1) return null;
@@ -69,6 +77,9 @@ ReaderArchiveReference? parseReaderArchiveReference(String selectionKey) {
   );
 }
 
+/// Best-effort migration for older bookmarks/highlights that did not persist a
+/// source themselves. Exact-ayah Reader history is used, never a neighbouring
+/// ayah, and the newest valid source wins.
 String? recentReaderSourceForArchive(
   String selectionKey,
   Iterable<ReaderHistoryEntry> history,
@@ -85,6 +96,9 @@ String? recentReaderSourceForArchive(
   return _nonEmpty(newest?.sourceId);
 }
 
+/// Source precedence is explicit artifact provenance, exact historical context,
+/// then the user's current Reader source. Unknown runtime source IDs are kept
+/// verbatim so locally installed discovered translations remain restorable.
 ReaderArchiveContext? parseReaderArchiveContext({
   required String selectionKey,
   String? sourceCode,
