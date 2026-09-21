@@ -4,6 +4,7 @@ import '../../../l10n/generated/generated_app_localizations.dart';
 import '../application/memorization_review_coverage.dart';
 import '../application/memorization_review_coverage_store.dart';
 import '../application/memorization_review_session.dart';
+import 'memorization_study_scaffold.dart';
 import 'memorization_study_screen.dart';
 
 class MemorizationReviewCoverageScreen extends StatefulWidget {
