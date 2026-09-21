@@ -32,6 +32,17 @@ class _TravelPackingScreenState extends State<TravelPackingScreen> {
     });
   }
 
+  Future<void> _persist(List<TravelPackingItem> next) async {
+    final previous = _items;
+    setState(() => _items = List.unmodifiable(next));
+    try {
+      await _store.save(next);
+    } catch (_) {
+      if (mounted) setState(() => _items = previous);
+      rethrow;
+    }
+  }
+
   Future<void> _add() async {
     final label = _controller.text.trim();
     if (label.isEmpty) return;
@@ -40,24 +51,17 @@ class _TravelPackingScreenState extends State<TravelPackingScreen> {
       label: label,
       packed: false,
     );
-    final next = [..._items, item];
-    await _store.save(next);
-    if (!mounted) return;
     _controller.clear();
-    setState(() => _items = List.unmodifiable(next));
+    await _persist([..._items, item]);
   }
 
-  Future<void> _toggle(TravelPackingItem item, bool value) async {
-    final next = [for (final current in _items) current.id == item.id ? current.copyWith(packed: value) : current];
-    await _store.save(next);
-    if (mounted) setState(() => _items = List.unmodifiable(next));
-  }
+  Future<void> _toggle(TravelPackingItem item, bool value) => _persist([
+        for (final current in _items)
+          current.id == item.id ? current.copyWith(packed: value) : current,
+      ]);
 
-  Future<void> _remove(TravelPackingItem item) async {
-    final next = _items.where((current) => current.id != item.id).toList(growable: false);
-    await _store.save(next);
-    if (mounted) setState(() => _items = List.unmodifiable(next));
-  }
+  Future<void> _remove(TravelPackingItem item) =>
+      _persist(_items.where((current) => current.id != item.id).toList(growable: false));
 
   @override
   void dispose() {
