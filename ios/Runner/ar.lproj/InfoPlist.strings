@@ -1,3 +1,5 @@
 "CFBundleDisplayName" = "القرآن الكريم";
 "NSLocationWhenInUseUsageDescription" = "يُستخدم موقعك فقط بعد إذنك لحساب مواقيت الصلاة واتجاه القبلة.";
 "NSMicrophoneUsageDescription" = "يُستخدم الميكروفون فقط عندما تختار تسجيل تلاوتك الخاصة للمراجعة والحفظ.";
+"NotificationSelfTestTitle" = "اختبار الإشعارات";
+"NotificationSelfTestBody" = "إذا ظهر لك هذا الإشعار، فالإشعارات المحلية تصل إلى هذا الجهاز.";
