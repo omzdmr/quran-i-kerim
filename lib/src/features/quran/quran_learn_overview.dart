@@ -38,6 +38,7 @@ class _QuranLearnOverviewState extends State<QuranLearnOverview> {
     if (_tab == index) return;
     HapticFeedback.selectionClick();
     setState(() => _tab = index);
+    if (index == 1) _loadReviewCoverage();
   }
 
   Future<void> _openReviewCoverage() async {
@@ -87,10 +88,13 @@ class _QuranLearnOverviewState extends State<QuranLearnOverview> {
                   Semantics(
                     button: true,
                     label: reviewLabel,
-                    child: OutlinedButton.icon(
-                      onPressed: _openReviewCoverage,
-                      icon: const Icon(Icons.history_toggle_off_rounded),
-                      label: Text(reviewLabel),
+                    onTap: _openReviewCoverage,
+                    child: ExcludeSemantics(
+                      child: OutlinedButton.icon(
+                        onPressed: _openReviewCoverage,
+                        icon: const Icon(Icons.history_toggle_off_rounded),
+                        label: Text(reviewLabel),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),
