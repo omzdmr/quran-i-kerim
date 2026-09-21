@@ -29,6 +29,8 @@ class AppNavigation {
   static final AppNavigation instance = AppNavigation._();
 
   final ValueNotifier<int?> tabRequest = ValueNotifier<int?>(null);
+  final ValueNotifier<int> activeTabIndex =
+      ValueNotifier<int>(homeTabIndex);
   final ValueNotifier<ReaderTarget?> readerRequest =
       ValueNotifier<ReaderTarget?>(null);
   final ValueNotifier<int> quranReadRequest = ValueNotifier<int>(0);

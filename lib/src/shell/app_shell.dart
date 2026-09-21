@@ -37,6 +37,7 @@ class _AppShellState extends State<AppShell> {
   void initState() {
     super.initState();
     AppNavigation.instance.tabRequest.addListener(_handleTabRequest);
+    AppNavigation.instance.activeTabIndex.value = _index;
   }
 
   @override
@@ -57,6 +58,7 @@ class _AppShellState extends State<AppShell> {
     if (safe == _index) return;
     AppNavigation.instance.setReaderSelectionActive(false);
     setState(() => _index = safe);
+    AppNavigation.instance.activeTabIndex.value = safe;
     if (haptic) HapticFeedback.selectionClick();
   }
 
@@ -110,6 +112,9 @@ class _AppShellState extends State<AppShell> {
       _navigationDragDx = null;
       _draggingNavigation = false;
     });
+    if (target != null) {
+      AppNavigation.instance.activeTabIndex.value = target;
+    }
   }
 
   void _cancelNavigationDrag() {
