@@ -231,10 +231,13 @@ class _MemorizationCoverageReviewSessionScreenState
                   Semantics(
                     button: true,
                     label: copy.defer,
-                    child: TextButton.icon(
-                      onPressed: _saving ? null : _deferCurrent,
-                      icon: const Icon(Icons.skip_next_rounded),
-                      label: Text(copy.defer),
+                    onTap: _saving ? null : _deferCurrent,
+                    child: ExcludeSemantics(
+                      child: TextButton.icon(
+                        onPressed: _saving ? null : _deferCurrent,
+                        icon: const Icon(Icons.skip_next_rounded),
+                        label: Text(copy.defer),
+                      ),
                     ),
                   ),
                 ],
