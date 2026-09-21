@@ -26,20 +26,32 @@ private struct PrayerWidgetView: View {
   let entry: PrayerEntry
   @Environment(\.widgetFamily) private var family
   var body: some View { Group { if entry.canShowDetails, let snapshot = entry.snapshot, let nextAt = snapshot.nextPrayerAt { prayerContent(snapshot, nextAt) } else { unavailableContent } }.containerBackground(.fill.tertiary, for: .widget).widgetURL(URL(string: "quranikerim://prayer")) }
+
+  private func prayerName(_ snapshot: PrayerSnapshot) -> String {
+    if let displayName = snapshot.displayName?.trimmingCharacters(in: .whitespacesAndNewlines), !displayName.isEmpty { return displayName }
+    guard let rawID = snapshot.nextPrayerID?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() else { return String(localized: "Prayer") }
+    let key: String
+    switch rawID.replacingOccurrences(of: "_", with: "").replacingOccurrences(of: "-", with: "") {
+    case "fajr", "imsak": key = "Fajr"
+    case "sunrise", "shuruq", "shurooq": key = "Sunrise"
+    case "dhuhr", "zuhr", "noon": key = "Dhuhr"
+    case "asr": key = "Asr"
+    case "maghrib", "sunset": key = "Maghrib"
+    case "isha", "ishaa": key = "Isha"
+    default: return String(localized: "Prayer")
+    }
+    return String(localized: String.LocalizationValue(key))
+  }
+
   @ViewBuilder private func prayerContent(_ snapshot: PrayerSnapshot, _ nextAt: Date) -> some View {
-    let name = snapshot.displayName ?? snapshot.nextPrayerID ?? String(localized: "Prayer")
+    let name = prayerName(snapshot)
     switch family {
     case .accessoryInline: Label { Text("\(name) \(nextAt, style: .timer)").lineLimit(1) } icon: { Image(systemName: "clock") }.privacySensitive().accessibilityElement(children: .ignore).accessibilityLabel(Text("\(name), \(nextAt.formatted(date: .omitted, time: .shortened))"))
     case .accessoryCircular: VStack(spacing: 1) { Image(systemName: "clock").font(.caption2).accessibilityHidden(true); Text(nextAt, style: .timer).font(.caption2.monospacedDigit()).minimumScaleFactor(0.65) }.privacySensitive().accessibilityElement(children: .ignore).accessibilityLabel(Text("\(name), \(nextAt.formatted(date: .omitted, time: .shortened))"))
     case .accessoryRectangular: HStack { VStack(alignment: .leading, spacing: 1) { Text(name).font(.headline).lineLimit(1); Text(nextAt, style: .timer).font(.caption.monospacedDigit()) }; Spacer(minLength: 4); Image(systemName: "clock").accessibilityHidden(true) }.privacySensitive().accessibilityElement(children: .combine).accessibilityLabel(Text("\(name), \(nextAt.formatted(date: .omitted, time: .shortened))"))
     case .systemMedium: HStack(spacing: 14) { VStack(alignment: .leading, spacing: 4) { Label(name, systemImage: "moon.stars.fill").font(.headline).lineLimit(1); Text(nextAt, style: .time).font(.title3.weight(.semibold)).monospacedDigit() }; Spacer(minLength: 8); VStack(alignment: .trailing, spacing: 2) { Text("Time remaining").font(.caption).foregroundStyle(.secondary); Text(nextAt, style: .timer).font(.title2.monospacedDigit()).minimumScaleFactor(0.7).lineLimit(1) } }.privacySensitive().accessibilityElement(children: .ignore).accessibilityLabel(Text("\(name), \(nextAt.formatted(date: .omitted, time: .shortened))"))
     case .systemLarge: VStack(alignment: .leading, spacing: 16) { HStack { Label(name, systemImage: "moon.stars.fill").font(.title2.weight(.semibold)).lineLimit(1); Spacer(); Image(systemName: "clock").font(.title3).accessibilityHidden(true) }; Spacer(minLength: 0); Text(nextAt, style: .time).font(.system(.largeTitle, design: .rounded, weight: .semibold)).monospacedDigit().minimumScaleFactor(0.65).lineLimit(1); VStack(alignment: .leading, spacing: 4) { Text("Time remaining").font(.headline).foregroundStyle(.secondary); Text(nextAt, style: .timer).font(.system(.title, design: .rounded).monospacedDigit()).minimumScaleFactor(0.6).lineLimit(1) }; Spacer(minLength: 0) }.privacySensitive().accessibilityElement(children: .ignore).accessibilityLabel(Text("\(name), \(nextAt.formatted(date: .omitted, time: .shortened))"))
-    case .systemExtraLarge:
-      HStack(spacing: 32) {
-        VStack(alignment: .leading, spacing: 14) { Label(name, systemImage: "moon.stars.fill").font(.title.weight(.semibold)).lineLimit(2); Spacer(minLength: 0); Text(nextAt, style: .time).font(.system(.largeTitle, design: .rounded, weight: .semibold)).monospacedDigit().minimumScaleFactor(0.6).lineLimit(1); Spacer(minLength: 0) }
-        Divider().accessibilityHidden(true)
-        VStack(alignment: .leading, spacing: 10) { Image(systemName: "clock").font(.title).accessibilityHidden(true); Text("Time remaining").font(.title3).foregroundStyle(.secondary); Text(nextAt, style: .timer).font(.system(.title, design: .rounded, weight: .medium)).monospacedDigit().minimumScaleFactor(0.55).lineLimit(1); Spacer(minLength: 0) }.frame(maxWidth: .infinity, alignment: .leading)
-      }.privacySensitive().accessibilityElement(children: .ignore).accessibilityLabel(Text("\(name), \(nextAt.formatted(date: .omitted, time: .shortened))"))
+    case .systemExtraLarge: HStack(spacing: 32) { VStack(alignment: .leading, spacing: 14) { Label(name, systemImage: "moon.stars.fill").font(.title.weight(.semibold)).lineLimit(2); Spacer(minLength: 0); Text(nextAt, style: .time).font(.system(.largeTitle, design: .rounded, weight: .semibold)).monospacedDigit().minimumScaleFactor(0.6).lineLimit(1); Spacer(minLength: 0) }; Divider().accessibilityHidden(true); VStack(alignment: .leading, spacing: 10) { Image(systemName: "clock").font(.title).accessibilityHidden(true); Text("Time remaining").font(.title3).foregroundStyle(.secondary); Text(nextAt, style: .timer).font(.system(.title, design: .rounded, weight: .medium)).monospacedDigit().minimumScaleFactor(0.55).lineLimit(1); Spacer(minLength: 0) }.frame(maxWidth: .infinity, alignment: .leading) }.privacySensitive().accessibilityElement(children: .ignore).accessibilityLabel(Text("\(name), \(nextAt.formatted(date: .omitted, time: .shortened))"))
     default: VStack(alignment: .leading, spacing: 4) { Text(name).font(.headline).lineLimit(1).minimumScaleFactor(0.75); Text(nextAt, style: .timer).font(.title3.monospacedDigit()).accessibilityLabel("Time remaining"); Text(nextAt, style: .time).font(.caption).foregroundStyle(.secondary) }.privacySensitive().accessibilityElement(children: .combine)
     }
   }
