@@ -53,7 +53,9 @@ void main() {
 
   test('file service writes a dated UTF-8 file without private notes', () async {
     final directory = await Directory.systemTemp.createTemp('qada-export-test');
-    addTearDown(() => directory.delete(recursive: true));
+    addTearDown(() async {
+      await directory.delete(recursive: true);
+    });
     final service = QadaFastingExportFileService(
       directoryProvider: () async => directory,
     );
