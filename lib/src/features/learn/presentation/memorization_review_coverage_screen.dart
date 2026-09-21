@@ -65,6 +65,7 @@ class _MemorizationReviewCoverageScreenState
     GeneratedAppLocalizations l10n,
     MemorizationReviewCoverage coverage,
   ) {
+    final copy = _CoverageCopy.forLocale(Localizations.localeOf(context));
     final visibleItems = _attentionOnly
         ? coverage.items.where((item) => item.needsAttention).toList()
         : coverage.items;
@@ -87,24 +88,23 @@ class _MemorizationReviewCoverageScreenState
             Semantics(
               button: true,
               label:
-                  '${l10n.memorizeOpenNext}, ${l10n.memorizePages} $nextPage, ${session.sessionSize} / ${session.totalAttentionPages}',
+                  '${l10n.memorizeOpenNext}, ${l10n.memorizePages} $nextPage. ${copy.batchSemantics(session)}',
               child: FilledButton.icon(
                 onPressed: () => _openPage(nextPage),
                 icon: const Icon(Icons.play_arrow_rounded),
                 label: Text(
-                  '${l10n.memorizeOpenNext} · ${l10n.memorizePages} $nextPage · ${session.sessionSize}/${session.totalAttentionPages}',
+                  '${l10n.memorizeOpenNext} · ${l10n.memorizePages} $nextPage',
                 ),
               ),
             ),
-            if (session.deferredCount > 0)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  '${l10n.memorizeTodayReview}: ${session.sessionSize} · ${l10n.memorizeProgress}: ${session.deferredCount}',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                copy.batchSummary(session),
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall,
               ),
+            ),
           ],
           const SizedBox(height: 12),
           Wrap(
@@ -252,3 +252,35 @@ class _CoveragePageTile extends StatelessWidget {
     );
   }
 }
+
+class _CoverageCopy {
+  const _CoverageCopy({
+    required this.batch,
+    required this.remaining,
+  });
+
+  final String batch;
+  final String remaining;
+
+  String batchSummary(MemorizationReviewSession session) {
+    final base = '$batch: ${session.sessionSize}';
+    return session.deferredCount == 0
+        ? base
+        : '$base · $remaining: ${session.deferredCount}';
+  }
+
+  String batchSemantics(MemorizationReviewSession session) =>
+      batchSummary(session).replaceAll('·', '.');
+
+  static _CoverageCopy forLocale(Locale locale) =>
+      _copies[locale.languageCode] ?? _copies['en']!;
+}
+
+const _copies = <String, _CoverageCopy>{
+  'tr': _CoverageCopy(batch: 'Bu tekrar turu', remaining: 'Sonraya kalan'),
+  'en': _CoverageCopy(batch: 'This review round', remaining: 'Remaining later'),
+  'ar': _CoverageCopy(batch: 'جولة المراجعة هذه', remaining: 'المتبقي لاحقًا'),
+  'az': _CoverageCopy(batch: 'Bu təkrar turu', remaining: 'Sonraya qalan'),
+  'ru': _CoverageCopy(batch: 'Этот подход повторения', remaining: 'Останется на потом'),
+  'fr': _CoverageCopy(batch: 'Cette session de révision', remaining: 'À revoir ensuite'),
+};
