@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../l10n/generated/generated_app_localizations.dart';
 import '../application/memorization_review_coverage.dart';
 import '../application/memorization_review_coverage_store.dart';
+import '../application/memorization_review_session.dart';
 import 'memorization_study_screen.dart';
 
 class MemorizationReviewCoverageScreen extends StatefulWidget {
@@ -33,7 +34,12 @@ class _MemorizationReviewCoverageScreenState
 
   Future<void> _openPage(int page) async {
     await Navigator.of(context).push<void>(
-      MaterialPageRoute(builder: (_) => MemorizationStudyScreen(page: page)),
+      MaterialPageRoute(
+        builder: (_) => MemorizationStudyScreen(
+          page: page,
+          initialMode: MemorizationStudyMode.memorize,
+        ),
+      ),
     );
     await _load();
   }
@@ -60,9 +66,9 @@ class _MemorizationReviewCoverageScreenState
     final visibleItems = _attentionOnly
         ? coverage.items.where((item) => item.needsAttention).toList()
         : coverage.items;
-    final nextAttention = coverage.items
-        .where((item) => item.needsAttention)
-        .firstOrNull;
+    final session = buildMemorizationReviewSession(coverage: coverage);
+    final nextPage = session.isEmpty ? null : session.pages.first;
+
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView(
@@ -74,15 +80,29 @@ class _MemorizationReviewCoverageScreenState
                 '${l10n.memorizeTodayReview}: ${coverage.needsAttentionCount} / ${coverage.total}',
             child: _CoverageSummary(coverage: coverage),
           ),
-          if (nextAttention != null) ...[
+          if (nextPage != null) ...[
             const SizedBox(height: 12),
-            FilledButton.icon(
-              onPressed: () => _openPage(nextAttention.page),
-              icon: const Icon(Icons.play_arrow_rounded),
-              label: Text(
-                '${l10n.memorizeOpenNext} · ${l10n.memorizePages} ${nextAttention.page}',
+            Semantics(
+              button: true,
+              label:
+                  '${l10n.memorizeOpenNext}, ${l10n.memorizePages} $nextPage, ${session.sessionSize} / ${session.totalAttentionPages}',
+              child: FilledButton.icon(
+                onPressed: () => _openPage(nextPage),
+                icon: const Icon(Icons.play_arrow_rounded),
+                label: Text(
+                  '${l10n.memorizeOpenNext} · ${l10n.memorizePages} $nextPage · ${session.sessionSize}/${session.totalAttentionPages}',
+                ),
               ),
             ),
+            if (session.deferredCount > 0)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  '${l10n.memorizeTodayReview}: ${session.sessionSize} · ${l10n.memorizeProgress}: ${session.deferredCount}',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
           ],
           const SizedBox(height: 12),
           Wrap(
@@ -223,12 +243,5 @@ class _CoveragePageTile extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-extension _FirstOrNull<T> on Iterable<T> {
-  T? get firstOrNull {
-    final iterator = this.iterator;
-    return iterator.moveNext() ? iterator.current : null;
   }
 }
