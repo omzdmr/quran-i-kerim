@@ -18,167 +18,75 @@ import UniformTypeIdentifiers
   private var deepLinkChannel: DeepLinkChannel?
 
   override func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-    audioSessionCoordinator.start()
-    GeneratedPluginRegistrant.register(with: self)
-    configureNativeChannels()
+    audioSessionCoordinator.start(); GeneratedPluginRegistrant.register(with: self); configureNativeChannels()
     if let url = launchOptions?[.url] as? URL { _ = deepLinkChannel?.receive(url) }
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
-
-  override func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
-    let accepted = deepLinkChannel?.receive(url) ?? false
-    return super.application(app, open: url, options: options) || accepted
-  }
-
+  override func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool { let accepted = deepLinkChannel?.receive(url) ?? false; return super.application(app, open: url, options: options) || accepted }
   override func applicationWillTerminate(_ application: UIApplication) {
-    deepLinkChannel?.detach(); nativeShareChannel?.detach(); microphoneRecordingChannel?.detach()
-    nativeLifecycleStateChannel?.markCleanTermination(); nativeLifecycleStateChannel?.detach(); widgetSnapshotChannel?.detach()
-    documentHandoffChannel?.detach(); locationHeadingChannel?.detach(); notificationPermissionChannel?.detach()
-    audioLifecycleChannel?.detach(); nowPlayingChannel?.detach(); backupExclusionChannel?.detach(); audioSessionCoordinator.stop()
-    super.applicationWillTerminate(application)
+    deepLinkChannel?.detach(); nativeShareChannel?.detach(); microphoneRecordingChannel?.detach(); nativeLifecycleStateChannel?.markCleanTermination(); nativeLifecycleStateChannel?.detach(); widgetSnapshotChannel?.detach(); documentHandoffChannel?.detach(); locationHeadingChannel?.detach(); notificationPermissionChannel?.detach(); audioLifecycleChannel?.detach(); nowPlayingChannel?.detach(); backupExclusionChannel?.detach(); audioSessionCoordinator.stop(); super.applicationWillTerminate(application)
   }
-
   private func configureNativeChannels() {
     guard let controller = window?.rootViewController as? FlutterViewController else { NSLog("Unable to install native channels: Flutter view controller unavailable."); return }
     let messenger = controller.binaryMessenger
-    backupExclusionChannel = BackupExclusionChannel(binaryMessenger: messenger)
-    nowPlayingChannel = NowPlayingChannel(binaryMessenger: messenger)
-    audioLifecycleChannel = AudioLifecycleChannel(binaryMessenger: messenger)
-    notificationPermissionChannel = NotificationPermissionChannel(binaryMessenger: messenger)
-    locationHeadingChannel = LocationHeadingChannel(binaryMessenger: messenger)
-    documentHandoffChannel = DocumentHandoffChannel(binaryMessenger: messenger, presenter: controller)
-    widgetSnapshotChannel = WidgetSnapshotChannel(binaryMessenger: messenger)
-    nativeLifecycleStateChannel = NativeLifecycleStateChannel(binaryMessenger: messenger)
-    microphoneRecordingChannel = MicrophoneRecordingChannel(binaryMessenger: messenger)
-    nativeShareChannel = NativeShareChannel(binaryMessenger: messenger, presenter: controller)
-    deepLinkChannel = DeepLinkChannel(binaryMessenger: messenger)
+    backupExclusionChannel = BackupExclusionChannel(binaryMessenger: messenger); nowPlayingChannel = NowPlayingChannel(binaryMessenger: messenger); audioLifecycleChannel = AudioLifecycleChannel(binaryMessenger: messenger); notificationPermissionChannel = NotificationPermissionChannel(binaryMessenger: messenger); locationHeadingChannel = LocationHeadingChannel(binaryMessenger: messenger); documentHandoffChannel = DocumentHandoffChannel(binaryMessenger: messenger, presenter: controller); widgetSnapshotChannel = WidgetSnapshotChannel(binaryMessenger: messenger); nativeLifecycleStateChannel = NativeLifecycleStateChannel(binaryMessenger: messenger); microphoneRecordingChannel = MicrophoneRecordingChannel(binaryMessenger: messenger); nativeShareChannel = NativeShareChannel(binaryMessenger: messenger, presenter: controller); deepLinkChannel = DeepLinkChannel(binaryMessenger: messenger)
   }
 }
 
-/// Buffers the app-owned widget URL until Flutter is ready, avoiding cold-start loss.
-/// Universal links are deliberately not advertised until an Associated Domains entitlement and
-/// owned web domain are configured; this boundary accepts only the private app scheme.
 final class DeepLinkChannel {
   static let channelName = "app.quranikerim/native_deep_link"
   private let channel: FlutterMethodChannel
   private var pending: [String] = []
   private let maxPending = 8
-
-  init(binaryMessenger: FlutterBinaryMessenger) {
-    channel = FlutterMethodChannel(name: Self.channelName, binaryMessenger: binaryMessenger)
-    channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) }
-  }
-
-  @discardableResult
-  func receive(_ url: URL) -> Bool {
-    guard let normalized = normalizedURLString(url) else { return false }
-    if pending.last != normalized { pending.append(normalized); if pending.count > maxPending { pending.removeFirst(pending.count - maxPending) } }
-    channel.invokeMethod("linkReceived", arguments: ["url": normalized])
-    return true
-  }
-
+  init(binaryMessenger: FlutterBinaryMessenger) { channel = FlutterMethodChannel(name: Self.channelName, binaryMessenger: binaryMessenger); channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) } }
+  @discardableResult func receive(_ url: URL) -> Bool { guard let normalized = normalizedURLString(url) else { return false }; if pending.last != normalized { pending.append(normalized); if pending.count > maxPending { pending.removeFirst(pending.count - maxPending) } }; channel.invokeMethod("linkReceived", arguments: ["url": normalized]); return true }
   func detach() { channel.setMethodCallHandler(nil); pending.removeAll() }
-
-  private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-    switch call.method {
-    case "capabilities": result(["customScheme": true, "universalLink": false, "coldStartBuffer": true, "maxPending": maxPending])
-    case "pendingLinks": result(pending)
-    case "consumePendingLinks": let links = pending; pending.removeAll(); result(links)
-    case "clearPendingLinks": pending.removeAll(); result(nil)
-    default: result(FlutterMethodNotImplemented)
-    }
-  }
-
-  private func normalizedURLString(_ url: URL) -> String? {
-    guard url.scheme?.lowercased() == "quranikerim", var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
-    components.scheme = "quranikerim"
-    components.host = components.host?.lowercased()
-    guard components.host == "prayer" || components.host == "reader" || components.host == "hifz" else { return nil }
-    return components.url?.absoluteString
-  }
+  private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) { switch call.method { case "capabilities": result(["customScheme": true, "universalLink": false, "coldStartBuffer": true, "maxPending": maxPending]); case "pendingLinks": result(pending); case "consumePendingLinks": let links = pending; pending.removeAll(); result(links); case "clearPendingLinks": pending.removeAll(); result(nil); default: result(FlutterMethodNotImplemented) } }
+  private func normalizedURLString(_ url: URL) -> String? { guard url.scheme?.lowercased() == "quranikerim", var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }; components.scheme = "quranikerim"; components.host = components.host?.lowercased(); guard components.host == "prayer" || components.host == "reader" || components.host == "hifz" else { return nil }; return components.url?.absoluteString }
 }
 
-/// Native Files/iCloud Drive handoff for user-owned portable backup files.
-/// Shared Flutter remains the owner of serialization and merge policy.
 final class DocumentHandoffChannel: NSObject, UIDocumentPickerDelegate {
   private static let channelName = "app.quranikerim/native_document_handoff"
+  private static let maxImportBytes: Int64 = 64 * 1024 * 1024
   private let channel: FlutterMethodChannel
   private weak var presenter: UIViewController?
   private var pendingResult: FlutterResult?
   private var temporaryExportURL: URL?
-
-  init(binaryMessenger: FlutterBinaryMessenger, presenter: UIViewController) {
-    channel = FlutterMethodChannel(name: Self.channelName, binaryMessenger: binaryMessenger); self.presenter = presenter
-    super.init(); channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) }
-  }
-
+  init(binaryMessenger: FlutterBinaryMessenger, presenter: UIViewController) { channel = FlutterMethodChannel(name: Self.channelName, binaryMessenger: binaryMessenger); self.presenter = presenter; super.init(); channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) } }
   func detach() { finish(nil); channel.setMethodCallHandler(nil) }
-
   private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     guard pendingResult == nil else { result(FlutterError(code: "busy", message: "A document handoff is already active.", details: nil)); return }
-    switch call.method {
-    case "exportFile": exportFile(call.arguments, result: result)
-    case "importFile": importFile(result: result)
-    case "capabilities": result(["files": true, "icloudDrive": true, "securityScopedImport": true, "copyOnImport": true])
-    default: result(FlutterMethodNotImplemented)
-    }
+    switch call.method { case "exportFile": exportFile(call.arguments, result: result); case "importFile": importFile(result: result); case "capabilities": result(["files": true, "icloudDrive": true, "securityScopedImport": true, "copyOnImport": true, "maxImportBytes": Self.maxImportBytes]); default: result(FlutterMethodNotImplemented) }
   }
-
   private func exportFile(_ arguments: Any?, result: @escaping FlutterResult) {
     guard let args = arguments as? [String: Any], let sourcePath = args["path"] as? String, !sourcePath.isEmpty else { result(FlutterError(code: "invalid_arguments", message: "exportFile requires a non-empty path.", details: nil)); return }
     let source = URL(fileURLWithPath: sourcePath).standardizedFileURL
     guard FileManager.default.fileExists(atPath: source.path), !source.hasDirectoryPath else { result(FlutterError(code: "missing_file", message: "The export source is not a file.", details: nil)); return }
     guard let presenter else { result(FlutterError(code: "no_presenter", message: "No view controller is available.", details: nil)); return }
-    let preferredName = sanitizedFilename(args["filename"] as? String) ?? source.lastPathComponent
-    let tempDirectory = FileManager.default.temporaryDirectory.appendingPathComponent("quran-user-exports", isDirectory: true)
-    do {
-      try FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
-      let staged = tempDirectory.appendingPathComponent(preferredName, isDirectory: false)
-      try? FileManager.default.removeItem(at: staged); try FileManager.default.copyItem(at: source, to: staged)
-      var values = URLResourceValues(); values.isExcludedFromBackup = true; var mutable = staged; try mutable.setResourceValues(values)
-      temporaryExportURL = staged; pendingResult = result
-      let picker = UIDocumentPickerViewController(forExporting: [staged], asCopy: true); picker.delegate = self; picker.modalPresentationStyle = .formSheet; presenter.present(picker, animated: true)
-    } catch { cleanupExport(); result(FlutterError(code: "export_failed", message: error.localizedDescription, details: nil)) }
+    let preferredName = sanitizedFilename(args["filename"] as? String) ?? source.lastPathComponent, tempDirectory = FileManager.default.temporaryDirectory.appendingPathComponent("quran-user-exports", isDirectory: true)
+    do { try FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true); let staged = tempDirectory.appendingPathComponent(preferredName, isDirectory: false); try? FileManager.default.removeItem(at: staged); try FileManager.default.copyItem(at: source, to: staged); var values = URLResourceValues(); values.isExcludedFromBackup = true; var mutable = staged; try mutable.setResourceValues(values); temporaryExportURL = staged; pendingResult = result; let picker = UIDocumentPickerViewController(forExporting: [staged], asCopy: true); picker.delegate = self; picker.modalPresentationStyle = .formSheet; presenter.present(picker, animated: true) } catch { cleanupExport(); result(FlutterError(code: "export_failed", message: error.localizedDescription, details: nil)) }
   }
-
-  private func importFile(result: @escaping FlutterResult) {
-    guard let presenter else { result(FlutterError(code: "no_presenter", message: "No view controller is available.", details: nil)); return }
-    pendingResult = result
-    let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.data], asCopy: true); picker.allowsMultipleSelection = false; picker.delegate = self; picker.modalPresentationStyle = .formSheet; presenter.present(picker, animated: true)
-  }
-
+  private func importFile(result: @escaping FlutterResult) { guard let presenter else { result(FlutterError(code: "no_presenter", message: "No view controller is available.", details: nil)); return }; pendingResult = result; let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.data], asCopy: true); picker.allowsMultipleSelection = false; picker.delegate = self; picker.modalPresentationStyle = .formSheet; presenter.present(picker, animated: true) }
   func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) { finish(["status": "cancelled"]) }
-
   func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
     guard let picked = urls.first else { finish(["status": "cancelled"]); return }
     let scoped = picked.startAccessingSecurityScopedResource(); defer { if scoped { picked.stopAccessingSecurityScopedResource() } }
     do {
-      let inbox = try importDirectory(); let destination = uniqueDestination(in: inbox, filename: sanitizedFilename(picked.lastPathComponent) ?? "import.quranbackup")
+      let sourceValues = try picked.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])
+      guard sourceValues.isRegularFile == true else { finish(error: FlutterError(code: "import_not_file", message: "The selected item is not a regular file.", details: nil)); return }
+      let sourceSize = Int64(sourceValues.fileSize ?? 0)
+      guard sourceSize >= 0 && sourceSize <= Self.maxImportBytes else { finish(error: FlutterError(code: "import_too_large", message: "The selected backup exceeds the 64 MB portable-backup limit.", details: ["maxBytes": Self.maxImportBytes, "size": sourceSize])); return }
+      let inbox = try importDirectory(), destination = uniqueDestination(in: inbox, filename: sanitizedFilename(picked.lastPathComponent) ?? "import.quranbackup")
       try FileManager.default.copyItem(at: picked, to: destination)
       var values = URLResourceValues(); values.isExcludedFromBackup = true; var mutable = destination; try mutable.setResourceValues(values)
-      let attributes = try FileManager.default.attributesOfItem(atPath: destination.path); let size = (attributes[.size] as? NSNumber)?.int64Value ?? 0
+      let attributes = try FileManager.default.attributesOfItem(atPath: destination.path), size = (attributes[.size] as? NSNumber)?.int64Value ?? 0
+      guard size <= Self.maxImportBytes else { try? FileManager.default.removeItem(at: destination); finish(error: FlutterError(code: "import_too_large", message: "The copied backup exceeds the 64 MB portable-backup limit.", details: ["maxBytes": Self.maxImportBytes, "size": size])); return }
       finish(["status": "selected", "path": destination.path, "filename": destination.lastPathComponent, "size": size])
     } catch { finish(error: FlutterError(code: "import_failed", message: error.localizedDescription, details: nil)) }
   }
-
-  private func importDirectory() throws -> URL {
-    let base = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-    let directory = base.appendingPathComponent("ImportedUserBackups", isDirectory: true); try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-    var values = URLResourceValues(); values.isExcludedFromBackup = true; var mutable = directory; try mutable.setResourceValues(values); return directory
-  }
-
-  private func uniqueDestination(in directory: URL, filename: String) -> URL {
-    let base = URL(fileURLWithPath: filename).deletingPathExtension().lastPathComponent, ext = URL(fileURLWithPath: filename).pathExtension
-    var candidate = directory.appendingPathComponent(filename), index = 2
-    while FileManager.default.fileExists(atPath: candidate.path) { candidate = directory.appendingPathComponent(ext.isEmpty ? "\(base)-\(index)" : "\(base)-\(index).\(ext)"); index += 1 }
-    return candidate
-  }
-
-  private func sanitizedFilename(_ value: String?) -> String? {
-    guard let value else { return nil }; let leaf = URL(fileURLWithPath: value).lastPathComponent.trimmingCharacters(in: .whitespacesAndNewlines)
-    return (!leaf.isEmpty && leaf != "." && leaf != "..") ? leaf : nil
-  }
-
+  private func importDirectory() throws -> URL { let base = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true), directory = base.appendingPathComponent("ImportedUserBackups", isDirectory: true); try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true); var values = URLResourceValues(); values.isExcludedFromBackup = true; var mutable = directory; try mutable.setResourceValues(values); return directory }
+  private func uniqueDestination(in directory: URL, filename: String) -> URL { let base = URL(fileURLWithPath: filename).deletingPathExtension().lastPathComponent, ext = URL(fileURLWithPath: filename).pathExtension; var candidate = directory.appendingPathComponent(filename), index = 2; while FileManager.default.fileExists(atPath: candidate.path) { candidate = directory.appendingPathComponent(ext.isEmpty ? "\(base)-\(index)" : "\(base)-\(index).\(ext)"); index += 1 }; return candidate }
+  private func sanitizedFilename(_ value: String?) -> String? { guard let value else { return nil }; let leaf = URL(fileURLWithPath: value).lastPathComponent.trimmingCharacters(in: .whitespacesAndNewlines); return (!leaf.isEmpty && leaf != "." && leaf != "..") ? leaf : nil }
   private func finish(_ payload: Any?) { guard let result = pendingResult else { cleanupExport(); return }; pendingResult = nil; cleanupExport(); result(payload) }
   private func finish(error: FlutterError) { guard let result = pendingResult else { cleanupExport(); return }; pendingResult = nil; cleanupExport(); result(error) }
   private func cleanupExport() { if let temporaryExportURL { try? FileManager.default.removeItem(at: temporaryExportURL) }; temporaryExportURL = nil }
