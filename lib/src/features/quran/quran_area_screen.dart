@@ -115,6 +115,7 @@ class _QuranAreaScreenState extends State<QuranAreaScreen> {
                         const SizedBox(width: 6),
                         Semantics(
                           button: true,
+                          excludeSemantics: true,
                           label: savedCount == 0
                               ? savedLabel
                               : '$savedLabel, $savedCount',
