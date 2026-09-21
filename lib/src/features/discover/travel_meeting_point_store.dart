@@ -3,12 +3,11 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class TravelMeetingPoint {
-  const TravelMeetingPoint({
-    required this.name,
-    required this.address,
-    required this.note,
-    required this.updatedAt,
-  });
+  const TravelMeetingPoint({required this.name, required this.address, required this.note, required this.updatedAt});
+
+  static const maxNameLength = 120;
+  static const maxAddressLength = 500;
+  static const maxNoteLength = 1000;
 
   final String name;
   final String address;
@@ -16,6 +15,7 @@ class TravelMeetingPoint {
   final DateTime updatedAt;
 
   bool get isEmpty => name.trim().isEmpty && address.trim().isEmpty && note.trim().isEmpty;
+  bool get isValid => name.length <= maxNameLength && address.length <= maxAddressLength && note.length <= maxNoteLength;
 
   Map<String, Object> toJson() => <String, Object>{
         'name': name,
@@ -30,23 +30,16 @@ class TravelMeetingPoint {
     final address = raw['address'];
     final note = raw['note'];
     final updatedAt = raw['updatedAt'];
-    if (name is! String || address is! String || note is! String || updatedAt is! String) {
-      return null;
-    }
+    if (name is! String || address is! String || note is! String || updatedAt is! String) return null;
     final parsed = DateTime.tryParse(updatedAt);
     if (parsed == null) return null;
-    return TravelMeetingPoint(
-      name: name,
-      address: address,
-      note: note,
-      updatedAt: parsed.toLocal(),
-    );
+    final point = TravelMeetingPoint(name: name.trim(), address: address.trim(), note: note.trim(), updatedAt: parsed.toLocal());
+    return point.isValid ? point : null;
   }
 }
 
 class TravelMeetingPointStore {
   const TravelMeetingPointStore();
-
   static const storageKey = 'travel_meeting_point_v1';
 
   Future<TravelMeetingPoint?> load() async {
@@ -61,6 +54,7 @@ class TravelMeetingPointStore {
   }
 
   Future<void> save(TravelMeetingPoint value) async {
+    if (!value.isValid) throw const FormatException('Travel meeting point is too large.');
     final prefs = await SharedPreferences.getInstance();
     if (value.isEmpty) {
       await prefs.remove(storageKey);
