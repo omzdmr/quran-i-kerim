@@ -712,6 +712,15 @@ Users value developers who actually implement sensible feedback.
 
 ## V15 — additional complaint-derived reliability and transparency requirements
 
+### Per-prayer “Why this time?” explainability
+Every displayed prayer time must be auditable from the local inputs that produced it.
+- Provide a read-only explanation sheet showing selected place/location freshness at privacy-safe precision, local date/timezone, calculation authority/method, relevant Fajr/Isha angles, Asr school, high-latitude rule, manual per-prayer offset and any mosque/manual timetable override with source/version.
+- Clearly distinguish calculated adhan, mosque iqamah and manual/authorized timetable values.
+- Record and explain the latest material change such as location, DST/timezone, method, school or offset; never silently alter an existing choice.
+- Allow a privacy-safe diagnostic snapshot to be copied/exported, excluding precise coordinates by default.
+- Explain legitimate method differences without presenting one valid jurisprudential method as universally correct. All method/authority descriptions remain sourced and versioned.
+- This inspector works offline from the same typed inputs used by the calculation engine and requires no account/backend.
+
 ### Notification deduplication and storm protection
 Prayer notifications must be idempotent.
 - Every scheduled notification has a stable logical key: prayer/date/place/profile/type.
