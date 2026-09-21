@@ -334,7 +334,7 @@ class _QadaFastingScreenState extends State<QadaFastingScreen> {
               children: [
                 Semantics(
                   container: true,
-                  label: _text('privacy'),
+                  label: '${_text('privacy')} ${_text('backupNotice')}',
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -347,9 +347,24 @@ class _QadaFastingScreenState extends State<QadaFastingScreen> {
                         Icon(Icons.lock_outline_rounded, color: scheme.secondary),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: Text(
-                            _text('privacy'),
-                            style: TextStyle(color: scheme.onSecondaryContainer),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _text('privacy'),
+                                style: TextStyle(
+                                  color: scheme.onSecondaryContainer,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                _text('backupNotice'),
+                                style: TextStyle(
+                                  color: scheme.onSecondaryContainer,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],

@@ -22,6 +22,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.bySemanticsLabel('Remaining: 0 days'), findsOneWidget);
+    expect(
+      find.text(
+        'This ledger is stored locally and is included only when you create a backup.',
+      ),
+      findsOneWidget,
+    );
     await tester.tap(find.text('Add debt'));
     await tester.pumpAndSettle();
     await tester.enterText(

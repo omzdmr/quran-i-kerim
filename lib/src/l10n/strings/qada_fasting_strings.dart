@@ -1,7 +1,7 @@
 const Map<String, Map<String, String>> qadaFastingStrings = {
   'tr': {
     'title': 'Kaza orucu defteri',
-    'subtitle': 'Yalnızca senin girdiğin kayıtlar · Bu cihazda özel',
+    'subtitle': 'Yalnızca senin girdiğin kayıtlar · Yerel olarak saklanır',
     'remaining': 'Kalan',
     'recorded': 'Kaydedilen borç',
     'completed': 'Tutulan',
@@ -26,10 +26,11 @@ const Map<String, Map<String, String>> qadaFastingStrings = {
     'invalidDays': 'Geçerli bir gün sayısı gir.',
     'noDebt': 'Kalan kaza borcu yok.',
     'privacy': 'Uygulama dini hüküm çıkarmaz; yalnızca senin girdiğin kayıtları saklar.',
+    'backupNotice': 'Bu defter cihazda saklanır ve yalnızca sen yedek oluşturduğunda yedeğine eklenir.',
   },
   'en': {
     'title': 'Qada fasting ledger',
-    'subtitle': 'Only records you enter · Private on this device',
+    'subtitle': 'Only records you enter · Stored locally',
     'remaining': 'Remaining',
     'recorded': 'Recorded debt',
     'completed': 'Completed',
@@ -54,10 +55,11 @@ const Map<String, Map<String, String>> qadaFastingStrings = {
     'invalidDays': 'Enter a valid number of days.',
     'noDebt': 'No remaining qada balance.',
     'privacy': 'The app does not infer religious rulings; it only stores records you enter.',
+    'backupNotice': 'This ledger is stored locally and is included only when you create a backup.',
   },
   'ar': {
     'title': 'سجل صيام القضاء',
-    'subtitle': 'السجلات التي تدخلها فقط · خاصة على هذا الجهاز',
+    'subtitle': 'السجلات التي تدخلها فقط · محفوظة محليًا',
     'remaining': 'المتبقي',
     'recorded': 'الدين المسجل',
     'completed': 'تم قضاؤه',
@@ -82,10 +84,11 @@ const Map<String, Map<String, String>> qadaFastingStrings = {
     'invalidDays': 'أدخل عدد أيام صالحًا.',
     'noDebt': 'لا يوجد رصيد قضاء متبقٍ.',
     'privacy': 'لا يستنبط التطبيق أحكامًا شرعية؛ بل يحفظ السجلات التي تدخلها فقط.',
+    'backupNotice': 'يُحفظ هذا السجل محليًا ولا يُضاف إلى النسخة الاحتياطية إلا عندما تنشئها أنت.',
   },
   'az': {
     'title': 'Qəza orucu dəftəri',
-    'subtitle': 'Yalnız daxil etdiyin qeydlər · Bu cihazda məxfi',
+    'subtitle': 'Yalnız daxil etdiyin qeydlər · Yerli saxlanılır',
     'remaining': 'Qalan',
     'recorded': 'Qeyd olunan borc',
     'completed': 'Tutulan',
@@ -110,10 +113,11 @@ const Map<String, Map<String, String>> qadaFastingStrings = {
     'invalidDays': 'Düzgün gün sayı daxil et.',
     'noDebt': 'Qalan qəza borcu yoxdur.',
     'privacy': 'Tətbiq dini hökm çıxarmır; yalnız daxil etdiyin qeydləri saxlayır.',
+    'backupNotice': 'Bu dəftər yerli saxlanılır və yalnız sən yedək yaratdıqda yedəyə əlavə olunur.',
   },
   'ru': {
     'title': 'Учёт постов када',
-    'subtitle': 'Только ваши записи · Конфиденциально на устройстве',
+    'subtitle': 'Только ваши записи · Хранятся локально',
     'remaining': 'Осталось',
     'recorded': 'Записано долга',
     'completed': 'Выполнено',
@@ -138,10 +142,11 @@ const Map<String, Map<String, String>> qadaFastingStrings = {
     'invalidDays': 'Введите допустимое число дней.',
     'noDebt': 'Долга када не осталось.',
     'privacy': 'Приложение не выносит религиозных решений, а лишь хранит введённые вами записи.',
+    'backupNotice': 'Реестр хранится локально и попадает в копию только при создании вами резервной копии.',
   },
   'fr': {
     'title': 'Registre des jeûnes à rattraper',
-    'subtitle': 'Uniquement vos saisies · Privé sur cet appareil',
+    'subtitle': 'Uniquement vos saisies · Stockées localement',
     'remaining': 'Restant',
     'recorded': 'Dette enregistrée',
     'completed': 'Rattrapés',
@@ -166,6 +171,7 @@ const Map<String, Map<String, String>> qadaFastingStrings = {
     'invalidDays': 'Saisissez un nombre de jours valide.',
     'noDebt': 'Aucun jeûne à rattraper.',
     'privacy': 'L’application ne déduit aucune règle religieuse ; elle conserve uniquement vos saisies.',
+    'backupNotice': 'Ce registre est stocké localement et n’est inclus que lorsque vous créez une sauvegarde.',
   },
 };
 
