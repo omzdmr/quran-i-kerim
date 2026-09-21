@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
 
+import 'backup_import_plan.dart';
 import 'backup_preview.dart';
 import 'local_backup_service.dart';
 
@@ -72,6 +73,11 @@ class BackupFileService {
   Future<BackupPreview> previewFile(File file) async {
     final encoded = await _readImport(file);
     return backupService.previewJson(encoded);
+  }
+
+  Future<BackupImportPlan> planImportFile(File file) async {
+    final encoded = await _readImport(file);
+    return backupService.planImportJson(encoded);
   }
 
   Future<void> restoreFile(
