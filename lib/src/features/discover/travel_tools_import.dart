@@ -25,9 +25,7 @@ class TravelToolsImport {
     }
     final meetingRaw = raw['meetingPoint'];
     final meetingPoint = meetingRaw == null ? null : TravelMeetingPoint.fromJson(meetingRaw);
-    if (meetingRaw != null && meetingPoint == null) {
-      throw const FormatException('Invalid meeting point.');
-    }
+    if (meetingRaw != null && meetingPoint == null) throw const FormatException('Invalid meeting point.');
     final packingRaw = raw['packing'];
     if (packingRaw is! List) throw const FormatException('Invalid packing list.');
     final packing = <TravelPackingItem>[];
@@ -41,11 +39,23 @@ class TravelToolsImport {
   }
 
   Future<void> apply(TravelToolsImportPreview preview) async {
-    if (preview.meetingPoint == null) {
-      await meetingPointStore.clear();
-    } else {
-      await meetingPointStore.save(preview.meetingPoint!);
+    final previousMeeting = await meetingPointStore.load();
+    final previousPacking = await packingStore.load();
+    try {
+      if (preview.meetingPoint == null) {
+        await meetingPointStore.clear();
+      } else {
+        await meetingPointStore.save(preview.meetingPoint!);
+      }
+      await packingStore.save(preview.packing);
+    } catch (_) {
+      if (previousMeeting == null) {
+        await meetingPointStore.clear();
+      } else {
+        await meetingPointStore.save(previousMeeting);
+      }
+      await packingStore.save(previousPacking);
+      rethrow;
     }
-    await packingStore.save(preview.packing);
   }
 }
