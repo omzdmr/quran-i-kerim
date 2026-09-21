@@ -25,10 +25,10 @@ void main() {
     expect(await const TravelDietaryCardStore().load(), isNull);
     final oversized = List.filled(TravelDietaryCard.maxStaffTextLength + 1, 'x').join();
     expect(TravelDietaryCard.fromJson({'languageLabel':'x','staffText':oversized,'note':''}), isNull);
-    expect(() => const TravelDietaryCardStore().save(TravelDietaryCard(languageLabel:'x', staffText:'ok', note:'x')), returnsNormally);
+    await expectLater(const TravelDietaryCardStore().save(TravelDietaryCard(languageLabel:'x', staffText:oversized)), throwsArgumentError);
   });
 
   test('empty staff-facing text cannot be saved', () async {
-    expect(() => const TravelDietaryCardStore().save(const TravelDietaryCard(languageLabel: 'x', staffText: '   ')), throwsArgumentError);
+    await expectLater(const TravelDietaryCardStore().save(const TravelDietaryCard(languageLabel: 'x', staffText: '   ')), throwsArgumentError);
   });
 }
