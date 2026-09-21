@@ -6,3 +6,8 @@
 "Prayer information needs to be refreshed in the app" = "يجب تحديث معلومات الصلاة في التطبيق";
 "Prayer Times" = "أوقات الصلاة";
 "Shows the next prayer from your on-device schedule." = "يعرض الصلاة التالية من الجدول المحفوظ على جهازك.";
+"Location changed" = "تغيّر الموقع";
+"Prayer times need refresh" = "يجب تحديث أوقات الصلاة";
+"Prayer times need refresh after a time zone change" = "يجب تحديث أوقات الصلاة بعد تغيّر المنطقة الزمنية";
+"Prayer information is out of date. Open the app to refresh" = "معلومات الصلاة غير محدثة. افتح التطبيق للتحديث";
+"Prayer information cannot be shown safely. Open the app to refresh" = "لا يمكن عرض معلومات الصلاة بشكل موثوق. افتح التطبيق للتحديث";
