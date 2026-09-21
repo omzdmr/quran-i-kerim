@@ -101,11 +101,14 @@ class _MemorizationReviewCoverageScreenState
               button: true,
               label:
                   '${l10n.memorizeOpenNext}, ${l10n.memorizePages} $nextPage. ${copy.batchSemantics(session)}',
-              child: FilledButton.icon(
-                onPressed: () => _openSession(session),
-                icon: const Icon(Icons.play_arrow_rounded),
-                label: Text(
-                  '${l10n.memorizeOpenNext} · ${l10n.memorizePages} $nextPage',
+              onTap: () => _openSession(session),
+              child: ExcludeSemantics(
+                child: FilledButton.icon(
+                  onPressed: () => _openSession(session),
+                  icon: const Icon(Icons.play_arrow_rounded),
+                  label: Text(
+                    '${l10n.memorizeOpenNext} · ${l10n.memorizePages} $nextPage',
+                  ),
                 ),
               ),
             ),
