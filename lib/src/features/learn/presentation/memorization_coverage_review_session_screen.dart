@@ -82,10 +82,24 @@ class _MemorizationCoverageReviewSessionScreenState
     });
   }
 
+  void _deferCurrent() {
+    if (_currentPage == null || _saving) return;
+    HapticFeedback.selectionClick();
+    if (_index >= widget.session.pages.length - 1) {
+      Navigator.of(context).pop(false);
+      return;
+    }
+    setState(() {
+      _index += 1;
+      _awaitingAssessment = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = GeneratedAppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
+    final copy = _SessionCopy.forLocale(Localizations.localeOf(context));
     final page = _currentPage;
     final total = widget.session.pages.length;
     final completed = _index.clamp(0, total);
@@ -213,9 +227,37 @@ class _MemorizationCoverageReviewSessionScreenState
                         minimumSize: const Size.fromHeight(56),
                       ),
                     ),
+                  const SizedBox(height: 10),
+                  Semantics(
+                    button: true,
+                    label: copy.defer,
+                    child: TextButton.icon(
+                      onPressed: _saving ? null : _deferCurrent,
+                      icon: const Icon(Icons.skip_next_rounded),
+                      label: Text(copy.defer),
+                    ),
+                  ),
                 ],
               ),
       ),
     );
   }
 }
+
+class _SessionCopy {
+  const _SessionCopy(this.defer);
+
+  final String defer;
+
+  static _SessionCopy forLocale(Locale locale) =>
+      _copies[locale.languageCode] ?? _copies['en']!;
+}
+
+const _copies = <String, _SessionCopy>{
+  'tr': _SessionCopy('Şimdilik geç'),
+  'en': _SessionCopy('Skip for now'),
+  'ar': _SessionCopy('تخطَّ الآن'),
+  'az': _SessionCopy('Hələlik keç'),
+  'ru': _SessionCopy('Пока пропустить'),
+  'fr': _SessionCopy('Passer pour l’instant'),
+};
