@@ -37,6 +37,24 @@ void main() {
     expect(coverage.coveredFraction, .75);
   });
 
+  test('oldest never-reviewed page is first even when page number is larger', () {
+    final coverage = buildMemorizationReviewCoverage(
+      progress: MemorizationProgressSnapshot(
+        memorizedPages: const {10, 500},
+        practiceDays: const {},
+        pageProgress: {
+          10: MemorizationPageProgress(memorizedAt: DateTime(2026, 9, 20)),
+          500: MemorizationPageProgress(memorizedAt: DateTime(2026, 8, 1)),
+        },
+      ),
+      now: DateTime(2026, 9, 22),
+    );
+
+    expect(coverage.items.map((item) => item.page), [500, 10]);
+    expect(coverage.items.first.ageDays, 52);
+    expect(coverage.items.last.ageDays, 2);
+  });
+
   test('real practice event counts as review coverage', () {
     final coverage = buildMemorizationReviewCoverage(
       progress: MemorizationProgressSnapshot(
