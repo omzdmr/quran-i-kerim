@@ -8,12 +8,14 @@ void main() {
     navigation.reportQuranSection(AppNavigation.quranReadSectionIndex);
     navigation.reportActiveTab(AppNavigation.homeTabIndex);
     navigation.setReaderFullScreenActive(false);
+    navigation.consumeTabRequest();
   });
 
   tearDown(() {
     navigation.reportQuranSection(AppNavigation.quranReadSectionIndex);
     navigation.reportActiveTab(AppNavigation.homeTabIndex);
     navigation.setReaderFullScreenActive(false);
+    navigation.consumeTabRequest();
   });
 
   test('Reader visibility requires both Quran tab and Read section', () {
