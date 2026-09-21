@@ -14,15 +14,19 @@ automation should be assumed active. Current contributors must read
 - Draft PR #3 on `automation/feature-roadmap` implements the adopted P1
   Essential/Senior Reader slice: reversible persisted preference, user-owned
   backup/restore, larger interface and Reader typography/spacing, bounded line
-  measure, simplified first-layer Reader/search/selection controls and focused
-  regressions.
+  measure, simplified first-layer Reader/search/selection controls, plus
+  session-safe focus reading controls for fullscreen, dimming, screen wake lock
+  and three-speed auto-scroll. Manual scrolling pauses auto-scroll; lifecycle
+  handling releases wake lock in the background and restores the chosen state
+  on resume.
 - The slice is not landed on `feature/localization-v01` yet. The integration
-  workflow only runs for the feature branch, while the latest pre-existing
-  feature code run (#560) is still in progress at analysis. Do not duplicate
-  this implementation or merge it without Flutter analyzer/tests/APK validation.
+  workflow only runs for the feature branch; run #560 was cancelled during
+  analysis after two hours, without reaching tests or APK build. Do not
+  duplicate or merge this implementation without Flutter analyzer/tests/APK
+  validation, including the new `wakelock_plus` platform dependency.
 - After validation, land PR #3 (or reapply it onto a newer feature HEAD without
-  force-updating either branch). Remaining preset scope is full-screen, dimming,
-  keep-awake, simple auto-scroll and maximum-text-size device/accessibility QA.
+  force-updating either branch). Remaining work is maximum-text-size physical
+  device/accessibility QA and any issues found by the full Android/iOS builds.
 
 ## Shared source of truth
 Every automation must read these before acting:

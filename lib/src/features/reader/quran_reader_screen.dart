@@ -763,7 +763,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
               child: Semantics(
                 button: true,
                 label: l10n.text('pauseAutoScroll'),
-                child: FloatingActionButton.small(
+                child: FloatingActionButton(
                   heroTag: 'reader-auto-scroll-pause',
                   onPressed: () => _focusController.setAutoScroll(false),
                   tooltip: l10n.text('pauseAutoScroll'),
@@ -1059,6 +1059,9 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
     return NotificationListener<ScrollNotification>(
       onNotification: (notification) {
         if (notification is UserScrollNotification && _selectedAyahs.isEmpty) {
+          if (notification.direction != ScrollDirection.idle) {
+            _focusController.pauseAutoScrollForInteraction();
+          }
           if (notification.direction != ScrollDirection.idle &&
               _audioController.isPlaying) {
             _manualReaderScroll = true;
@@ -1082,7 +1085,6 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
       child: Listener(
         behavior: HitTestBehavior.translucent,
         onPointerDown: (_) {
-          _focusController.pauseAutoScrollForInteraction();
           _horizontalDragDistance = 0;
           _verticalPointerDistance = 0;
         },
