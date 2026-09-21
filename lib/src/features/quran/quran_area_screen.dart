@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../l10n/generated/generated_app_localizations.dart';
 import '../../navigation/app_navigation.dart';
 import '../reader/quran_reader_screen.dart';
+import '../reader/reader_archive_screen.dart';
 import 'quran_learn_overview.dart';
 import 'quran_progress_overview.dart';
 
@@ -60,9 +61,27 @@ class _QuranAreaScreenState extends State<QuranAreaScreen> {
     AppNavigation.instance.reportQuranSection(index);
   }
 
+  Future<void> _openSavedActivity() async {
+    HapticFeedback.selectionClick();
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => const ReaderArchiveScreen(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = GeneratedAppLocalizations.of(context)!;
+    final languageCode = Localizations.localeOf(context).languageCode;
+    final savedLabel = switch (languageCode) {
+      'tr' => 'Kaydedilenler',
+      'fr' => 'Éléments enregistrés',
+      'ar' => 'المحفوظات',
+      'az' => 'Yadda saxlanılanlar',
+      'ru' => 'Сохранённое',
+      _ => 'Saved activity',
+    };
 
     return SafeArea(
       child: Column(
@@ -76,15 +95,31 @@ class _QuranAreaScreenState extends State<QuranAreaScreen> {
                 child: AbsorbPointer(
                   absorbing: selectionActive,
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(18, 12, 18, 8),
-                    child: _SectionSwitcher(
-                      selectedIndex: _section,
-                      labels: [
-                        l10n.quranTabRead,
-                        l10n.quranTabLearn,
-                        l10n.quranTabProgress,
+                    padding: const EdgeInsets.fromLTRB(18, 12, 12, 8),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _SectionSwitcher(
+                            selectedIndex: _section,
+                            labels: [
+                              l10n.quranTabRead,
+                              l10n.quranTabLearn,
+                              l10n.quranTabProgress,
+                            ],
+                            onSelected: _selectSection,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Semantics(
+                          button: true,
+                          label: savedLabel,
+                          child: IconButton(
+                            onPressed: _openSavedActivity,
+                            tooltip: savedLabel,
+                            icon: const Icon(Icons.bookmarks_outlined),
+                          ),
+                        ),
                       ],
-                      onSelected: _selectSection,
                     ),
                   ),
                 ),
