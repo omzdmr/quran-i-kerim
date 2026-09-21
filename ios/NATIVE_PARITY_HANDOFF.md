@@ -8,6 +8,8 @@ This file describes the native contracts exposed by `automation/ios-parity`. Sha
 
 Do not calculate prayer times inside the extension. The widget is a consumer of the shared layer's already-approved schedule.
 
+The `PrayerWidget` target is embedded by Runner and has the same App Group entitlement. Its source supports system small, system medium and accessory rectangular families, Dynamic Type, VoiceOver-friendly states, privacy redaction, six native locales, and a validity-bound timeline refresh. The app remains iOS 15+, while this first widget target is iOS 17+ because it uses the modern widget container background API.
+
 ## Lifecycle restore (`app.quranikerim/native_lifecycle_state`)
 
 - `snapshot`: launch count, launch time, prior clean-termination flag, last background/foreground timestamps and background gap.
@@ -38,6 +40,10 @@ The presenter is popover-safe on iPad. Shared code owns the rendered text and mu
 ## Notification diagnostics (`com.omzdmr.quran_i_kerim/notification_permission`)
 
 In addition to permission request/status, native code exposes `getNotificationDiagnostics`, `scheduleNotificationSelfTest`, and `cancelNotificationSelfTest`. The self-test schedules a local notification three seconds later only when authorization can deliver notifications. This is intended for a user-invoked troubleshooting screen, not an automatic background probe.
+
+## Privacy manifests
+
+Runner declares Apple's required-reason API categories for app-owned/shared `UserDefaults` (`CA92.1`, `1C8F.1`) and app-container file metadata (`C617.1`). The widget has its own privacy manifest declaring App Group `UserDefaults` use (`1C8F.1`), because it is a separate executable. Before App Store landing, ensure `PrayerWidget/PrivacyInfo.xcprivacy` has target membership and verify it exists inside the built `.appex`; the file is committed but that resource-membership gate is intentionally left explicit until CI validates the new target graph.
 
 ## Deep link draft
 
