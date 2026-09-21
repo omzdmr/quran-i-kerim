@@ -6,3 +6,8 @@
 "Prayer information needs to be refreshed in the app" = "Prayer information needs to be refreshed in the app";
 "Prayer Times" = "Prayer Times";
 "Shows the next prayer from your on-device schedule." = "Shows the next prayer from your on-device schedule.";
+"Location changed" = "Location changed";
+"Prayer times need refresh" = "Prayer times need refresh";
+"Prayer times need refresh after a time zone change" = "Prayer times need refresh after a time zone change";
+"Prayer information is out of date. Open the app to refresh" = "Prayer information is out of date. Open the app to refresh";
+"Prayer information cannot be shown safely. Open the app to refresh" = "Prayer information cannot be shown safely. Open the app to refresh";
