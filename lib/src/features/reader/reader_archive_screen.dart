@@ -6,6 +6,7 @@ import '../../data/translation_catalog.dart';
 import '../../navigation/app_navigation.dart';
 import '../../settings/app_settings.dart';
 import 'reader_archive_context.dart';
+import 'reader_archive_search.dart';
 import 'reader_reading_history.dart';
 
 class ReaderArchiveScreen extends StatefulWidget {
@@ -17,6 +18,7 @@ class ReaderArchiveScreen extends StatefulWidget {
 
 class _ReaderArchiveScreenState extends State<ReaderArchiveScreen> {
   String _filter = 'all';
+  String _query = '';
   late Future<List<ReaderHistoryEntry>> _historyFuture;
 
   @override
@@ -31,6 +33,8 @@ class _ReaderArchiveScreenState extends State<ReaderArchiveScreen> {
         'title': 'Kaydedilenler',
         'empty': 'Henüz kaydedilmiş ayet, not veya vurgu yok.',
         'emptyFilter': 'Bu filtrede henüz bir kayıt yok.',
+        'noResults': 'Aramana uyan bir kayıt bulunamadı.',
+        'search': 'Sure, ayet veya notlarda ara',
         'all': 'Tümü',
         'bookmark': 'Kaydedilen ayet',
         'bookmarks': 'Kayıtlar',
@@ -44,6 +48,8 @@ class _ReaderArchiveScreenState extends State<ReaderArchiveScreen> {
         'title': 'Saved activity',
         'empty': 'No saved verses, notes or highlights yet.',
         'emptyFilter': 'Nothing saved in this filter yet.',
+        'noResults': 'No saved item matches your search.',
+        'search': 'Search surah, verse or notes',
         'all': 'All',
         'bookmark': 'Saved verse',
         'bookmarks': 'Saved',
@@ -57,6 +63,8 @@ class _ReaderArchiveScreenState extends State<ReaderArchiveScreen> {
         'title': 'Éléments enregistrés',
         'empty': 'Aucun verset, note ou surlignage enregistré.',
         'emptyFilter': 'Aucun élément dans ce filtre.',
+        'noResults': 'Aucun élément ne correspond à votre recherche.',
+        'search': 'Rechercher une sourate, un verset ou une note',
         'all': 'Tout',
         'bookmark': 'Verset enregistré',
         'bookmarks': 'Enregistrés',
@@ -70,6 +78,8 @@ class _ReaderArchiveScreenState extends State<ReaderArchiveScreen> {
         'title': 'المحفوظات',
         'empty': 'لا توجد آيات أو ملاحظات أو تمييزات محفوظة بعد.',
         'emptyFilter': 'لا توجد عناصر محفوظة في هذا التصنيف.',
+        'noResults': 'لا توجد عناصر محفوظة تطابق البحث.',
+        'search': 'ابحث في السورة أو الآية أو الملاحظات',
         'all': 'الكل',
         'bookmark': 'آية محفوظة',
         'bookmarks': 'المحفوظات',
@@ -83,6 +93,8 @@ class _ReaderArchiveScreenState extends State<ReaderArchiveScreen> {
         'title': 'Yadda saxlanılanlar',
         'empty': 'Hələ yadda saxlanmış ayə, qeyd və ya vurğu yoxdur.',
         'emptyFilter': 'Bu filtrdə hələ heç nə yoxdur.',
+        'noResults': 'Axtarışa uyğun yadda saxlanmış nəticə yoxdur.',
+        'search': 'Surə, ayə və ya qeydlərdə axtar',
         'all': 'Hamısı',
         'bookmark': 'Yadda saxlanmış ayə',
         'bookmarks': 'Yadda saxlanılanlar',
@@ -96,6 +108,8 @@ class _ReaderArchiveScreenState extends State<ReaderArchiveScreen> {
         'title': 'Сохранённое',
         'empty': 'Пока нет сохранённых аятов, заметок или выделений.',
         'emptyFilter': 'В этом фильтре пока ничего нет.',
+        'noResults': 'По вашему запросу ничего не найдено.',
+        'search': 'Поиск по суре, аяту или заметкам',
         'all': 'Все',
         'bookmark': 'Сохранённый аят',
         'bookmarks': 'Сохранённые',
@@ -135,9 +149,20 @@ class _ReaderArchiveScreenState extends State<ReaderArchiveScreen> {
           sourceCode: settings.noteSourceEntries[entry.key],
         ),
     ]..sort((a, b) => b.timestamp.compareTo(a.timestamp));
-    final visible = _filter == 'all'
+    final kindFiltered = _filter == 'all'
         ? items
         : items.where((item) => item.kind == _filter).toList(growable: false);
+    final visible = kindFiltered
+        .where(
+          (item) => readerArchiveMatchesQuery(
+            query: _query,
+            selectionKey: item.selectionKey,
+            languageCode: languageCode,
+            note: item.note,
+            sourceCode: item.sourceCode,
+          ),
+        )
+        .toList(growable: false);
 
     return Scaffold(
       appBar: AppBar(title: Text(_text(languageCode, 'title'))),
@@ -153,6 +178,26 @@ class _ReaderArchiveScreenState extends State<ReaderArchiveScreen> {
             )
           : Column(
               children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                  child: TextField(
+                    textInputAction: TextInputAction.search,
+                    onChanged: (value) => setState(() => _query = value),
+                    decoration: InputDecoration(
+                      hintText: _text(languageCode, 'search'),
+                      prefixIcon: const Icon(Icons.search_rounded),
+                      suffixIcon: _query.isEmpty
+                          ? null
+                          : IconButton(
+                              tooltip: MaterialLocalizations.of(context)
+                                  .deleteButtonTooltip,
+                              onPressed: () => setState(() => _query = ''),
+                              icon: const Icon(Icons.close_rounded),
+                            ),
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
+                ),
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
@@ -185,7 +230,14 @@ class _ReaderArchiveScreenState extends State<ReaderArchiveScreen> {
                 ),
                 Expanded(
                   child: visible.isEmpty
-                      ? Center(child: Text(_text(languageCode, 'emptyFilter')))
+                      ? Center(
+                          child: Text(
+                            _query.trim().isEmpty
+                                ? _text(languageCode, 'emptyFilter')
+                                : _text(languageCode, 'noResults'),
+                            textAlign: TextAlign.center,
+                          ),
+                        )
                       : FutureBuilder<List<ReaderHistoryEntry>>(
                           future: _historyFuture,
                           initialData: const <ReaderHistoryEntry>[],
