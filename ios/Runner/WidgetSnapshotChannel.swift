@@ -16,14 +16,10 @@ final class WidgetSnapshotChannel {
   init(binaryMessenger: FlutterBinaryMessenger, store: WidgetSnapshotStore? = WidgetSnapshotStore()) {
     channel = FlutterMethodChannel(name: Self.channelName, binaryMessenger: binaryMessenger)
     self.store = store
-    channel.setMethodCallHandler { [weak self] call, result in
-      self?.handle(call, result: result)
-    }
+    channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) }
   }
 
-  func detach() {
-    channel.setMethodCallHandler(nil)
-  }
+  func detach() { channel.setMethodCallHandler(nil) }
 
   private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
@@ -34,7 +30,8 @@ final class WidgetSnapshotChannel {
         "freshnessRequired": true,
         "freshnessReason": true,
         "privacyRedaction": true,
-        "stalePurge": true
+        "stalePurge": true,
+        "policyInvalidation": true
       ])
     case "publish":
       publish(call.arguments, result: result)
@@ -46,11 +43,25 @@ final class WidgetSnapshotChannel {
       let purged = store?.purgeIfStale() ?? false
       if purged { reloadWidgets() }
       result(["purged": purged])
+    case "invalidatePolicy":
+      invalidatePolicy(call.arguments, result: result)
     case "status":
       result(statusPayload())
     default:
       result(FlutterMethodNotImplemented)
     }
+  }
+
+  private func invalidatePolicy(_ arguments: Any?, result: @escaping FlutterResult) {
+    guard let args = arguments as? [String: Any],
+          let fingerprint = args["calculationFingerprint"] as? String,
+          !fingerprint.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+      result(FlutterError(code: "invalid_arguments", message: "invalidatePolicy requires calculationFingerprint.", details: nil))
+      return
+    }
+    let purged = store?.purgeIfPolicyChanged(currentFingerprint: fingerprint) ?? false
+    if purged { reloadWidgets() }
+    result(["purged": purged])
   }
 
   private func publish(_ arguments: Any?, result: @escaping FlutterResult) {
@@ -88,11 +99,7 @@ final class WidgetSnapshotChannel {
     do {
       try store.save(snapshot)
       reloadWidgets()
-      result([
-        "stored": true,
-        "validUntilMs": validUntilMs,
-        "freshness": WidgetPrayerSnapshot.Freshness.fresh.rawValue
-      ])
+      result(["stored": true, "validUntilMs": validUntilMs, "freshness": WidgetPrayerSnapshot.Freshness.fresh.rawValue])
     } catch {
       result(FlutterError(code: "snapshot_rejected", message: error.localizedDescription, details: nil))
     }
@@ -100,14 +107,8 @@ final class WidgetSnapshotChannel {
 
   private func statusPayload() -> [String: Any] {
     guard let store, let snapshot = store.load() else {
-      return [
-        "available": store != nil,
-        "hasSnapshot": false,
-        "fresh": false,
-        "freshness": "missing"
-      ]
+      return ["available": store != nil, "hasSnapshot": false, "fresh": false, "freshness": "missing"]
     }
-
     let now = Date()
     let freshness = snapshot.freshness(at: now)
     return [
@@ -118,7 +119,8 @@ final class WidgetSnapshotChannel {
       "generatedAtMs": Int64(snapshot.generatedAt.timeIntervalSince1970 * 1000),
       "validUntilMs": Int64(snapshot.validUntil.timeIntervalSince1970 * 1000),
       "timeZone": snapshot.timeZoneIdentifier,
-      "privacyMode": snapshot.privacyMode.rawValue
+      "privacyMode": snapshot.privacyMode.rawValue,
+      "calculationFingerprint": snapshot.calculationFingerprint
     ]
   }
 
@@ -132,9 +134,7 @@ final class WidgetSnapshotChannel {
 
   private func reloadWidgets() {
     #if canImport(WidgetKit)
-    if #available(iOS 14.0, *) {
-      WidgetCenter.shared.reloadAllTimelines()
-    }
+    if #available(iOS 14.0, *) { WidgetCenter.shared.reloadAllTimelines() }
     #endif
   }
 }
