@@ -11,3 +11,9 @@
 "Prayer times need refresh after a time zone change" = "يجب تحديث أوقات الصلاة بعد تغيّر المنطقة الزمنية";
 "Prayer information is out of date. Open the app to refresh" = "معلومات الصلاة غير محدثة. افتح التطبيق للتحديث";
 "Prayer information cannot be shown safely. Open the app to refresh" = "لا يمكن عرض معلومات الصلاة بشكل موثوق. افتح التطبيق للتحديث";
+"Fajr" = "الفجر";
+"Sunrise" = "الشروق";
+"Dhuhr" = "الظهر";
+"Asr" = "العصر";
+"Maghrib" = "المغرب";
+"Isha" = "العشاء";
