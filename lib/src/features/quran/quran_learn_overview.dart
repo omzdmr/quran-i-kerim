@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../l10n/generated/generated_app_localizations.dart';
+import '../learn/application/memorization_review_coverage_store.dart';
 import '../learn/presentation/learn_lessons_overview.dart';
 import '../learn/presentation/learn_reference_overview.dart';
 import '../learn/presentation/memorization_overview.dart';
@@ -17,7 +18,21 @@ class QuranLearnOverview extends StatefulWidget {
 }
 
 class _QuranLearnOverviewState extends State<QuranLearnOverview> {
+  static const _reviewCoverageStore = MemorizationReviewCoverageStore();
   int _tab = 0;
+  int _reviewAttentionCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReviewCoverage();
+  }
+
+  Future<void> _loadReviewCoverage() async {
+    final coverage = await _reviewCoverageStore.load();
+    if (!mounted) return;
+    setState(() => _reviewAttentionCount = coverage.needsAttentionCount);
+  }
 
   void _select(int index) {
     if (_tab == index) return;
@@ -32,11 +47,15 @@ class _QuranLearnOverviewState extends State<QuranLearnOverview> {
         builder: (_) => const MemorizationReviewCoverageScreen(),
       ),
     );
+    await _loadReviewCoverage();
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = GeneratedAppLocalizations.of(context)!;
+    final reviewLabel = _reviewAttentionCount == 0
+        ? l10n.memorizeTodayReview
+        : '${l10n.memorizeTodayReview} ($_reviewAttentionCount)';
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
@@ -67,11 +86,11 @@ class _QuranLearnOverviewState extends State<QuranLearnOverview> {
                 children: [
                   Semantics(
                     button: true,
-                    label: l10n.memorizeTodayReview,
+                    label: reviewLabel,
                     child: OutlinedButton.icon(
                       onPressed: _openReviewCoverage,
                       icon: const Icon(Icons.history_toggle_off_rounded),
-                      label: Text(l10n.memorizeTodayReview),
+                      label: Text(reviewLabel),
                     ),
                   ),
                   const SizedBox(height: 12),
