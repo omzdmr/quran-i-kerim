@@ -135,4 +135,28 @@ void main() {
     expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
     expect(find.byIcon(Icons.check_circle_outline_rounded), findsWidgets);
   });
+
+  testWidgets('deferring the last page keeps it in the attention queue', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'memorized_pages_v1': <String>['13'],
+      'memorization_page_progress_v1':
+          '{"13":{"memorizedAt":"2026-01-01T00:00:00.000"}}',
+    });
+
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.pumpAndSettle();
+    expect(find.text('Skip for now'), findsOneWidget);
+
+    await tester.tap(find.text('Skip for now'));
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+    final prefs = await SharedPreferences.getInstance();
+    expect(
+      prefs.getString('memorization_page_progress_v1'),
+      isNot(contains('lastReviewedAt')),
+    );
+  });
 }
