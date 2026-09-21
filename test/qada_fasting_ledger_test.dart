@@ -100,6 +100,26 @@ void main() {
     expect(QadaFastingLedger.decode('{broken').entries, isEmpty);
   });
 
+  test('calendar projection groups entries by their local worship date', () {
+    final ledger = QadaFastingLedger()
+        .addDebt(
+          days: 2,
+          occurredOn: DateTime(2025, 3, 5, 23, 30),
+          createdAt: created,
+          id: 'old',
+        )
+        .complete(
+          occurredOn: DateTime(2026, 9, 21, 8),
+          createdAt: created.add(const Duration(minutes: 1)),
+          id: 'done',
+        );
+
+    expect(ledger.earliestOccurredOn, DateTime(2025, 3, 5));
+    expect(ledger.latestOccurredOn, DateTime(2026, 9, 21));
+    expect(ledger.entriesOn(DateTime(2026, 9, 21, 22)), hasLength(1));
+    expect(ledger.entriesOn(DateTime(2026, 9, 20)), isEmpty);
+  });
+
   test('store persists across process-style reload', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     const store = QadaFastingStore();

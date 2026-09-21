@@ -119,6 +119,25 @@ class QadaFastingLedger {
     return Map<int?, int>.unmodifiable(result);
   }
 
+  DateTime? get earliestOccurredOn => entries.isEmpty
+      ? null
+      : entries
+            .map((entry) => entry.occurredOn)
+            .reduce((a, b) => a.isBefore(b) ? a : b);
+
+  DateTime? get latestOccurredOn => entries.isEmpty
+      ? null
+      : entries
+            .map((entry) => entry.occurredOn)
+            .reduce((a, b) => a.isAfter(b) ? a : b);
+
+  List<QadaFastingEntry> entriesOn(DateTime day) {
+    final target = _dateOnly(day);
+    return List<QadaFastingEntry>.unmodifiable(
+      entries.where((entry) => _dateOnly(entry.occurredOn) == target),
+    );
+  }
+
   QadaFastingLedger addDebt({
     required int days,
     required DateTime occurredOn,
