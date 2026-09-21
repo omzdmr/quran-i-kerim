@@ -7,7 +7,7 @@ import 'package:quran_i_kerim/src/features/discover/travel_packing_store.dart';
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues(<String, Object>{}));
 
-  testWidgets('user can add and pack a travel item', (tester) async {
+  testWidgets('user can add, pack and remove a travel item', (tester) async {
     await tester.pumpWidget(const MaterialApp(home: TravelPackingScreen()));
     await tester.pumpAndSettle();
 
@@ -21,8 +21,15 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Ready: 1 / 1'), findsOneWidget);
 
-    final saved = await const TravelPackingStore().load();
+    var saved = await const TravelPackingStore().load();
     expect(saved.single.label, 'Passport');
     expect(saved.single.packed, isTrue);
+
+    await tester.tap(find.byTooltip('Remove'));
+    await tester.pumpAndSettle();
+    expect(find.text('Passport'), findsNothing);
+    expect(find.text('Ready: 0 / 0'), findsOneWidget);
+    saved = await const TravelPackingStore().load();
+    expect(saved, isEmpty);
   });
 }
