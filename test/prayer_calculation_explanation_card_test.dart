@@ -3,10 +3,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:quran_i_kerim/src/features/prayer/domain/prayer_calculation_explanation.dart';
 import 'package:quran_i_kerim/src/features/prayer/domain/prayer_models.dart';
 import 'package:quran_i_kerim/src/features/prayer/presentation/prayer_calculation_explanation_card.dart';
+import 'package:quran_i_kerim/src/l10n/app_localizations.dart';
 
 void main() {
   Widget appFor(PrayerCalculationExplanation explanation) => MaterialApp(
     locale: const Locale('tr'),
+    localizationsDelegates: const [AppLocalizations.delegate],
+    supportedLocales: AppLocalizations.supportedLocales,
     home: Scaffold(
       body: PrayerCalculationExplanationCard(explanation: explanation),
     ),
