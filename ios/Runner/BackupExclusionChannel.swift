@@ -9,28 +9,16 @@ final class BackupExclusionChannel {
   static let statusMethod = "getBackupExclusionStatus"
   private let coordinator: BackupExclusionCoordinator
   private let channel: FlutterMethodChannel
-  init(binaryMessenger: FlutterBinaryMessenger, coordinator: BackupExclusionCoordinator = BackupExclusionCoordinator()) {
-    self.coordinator = coordinator; channel = FlutterMethodChannel(name: Self.name, binaryMessenger: binaryMessenger)
-    channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) }
-  }
+  init(binaryMessenger: FlutterBinaryMessenger, coordinator: BackupExclusionCoordinator = BackupExclusionCoordinator()) { self.coordinator = coordinator; channel = FlutterMethodChannel(name: Self.name, binaryMessenger: binaryMessenger); channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) } }
   func detach() { channel.setMethodCallHandler(nil) }
   private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     guard call.method == Self.excludeMethod || call.method == Self.statusMethod else { result(FlutterMethodNotImplemented); return }
     guard let arguments = call.arguments as? [String: Any], let storageArea = arguments["storageArea"] as? String, let relativePath = arguments["relativePath"] as? String else { result(FlutterError(code: "invalid_backup_exclusion_arguments", message: "storageArea and relativePath are required.", details: nil)); return }
-    do {
-      let status = call.method == Self.excludeMethod ? try coordinator.exclude(storageArea: storageArea, relativePath: relativePath) : try coordinator.status(storageArea: storageArea, relativePath: relativePath)
-      result(status.dictionary)
-    } catch { result(flutterError(from: error)) }
+    do { let status = call.method == Self.excludeMethod ? try coordinator.exclude(storageArea: storageArea, relativePath: relativePath) : try coordinator.status(storageArea: storageArea, relativePath: relativePath); result(status.dictionary) } catch { result(flutterError(from: error)) }
   }
   private func flutterError(from error: Error) -> FlutterError {
     let code: String
-    switch error {
-    case BackupExclusionCoordinator.ExclusionError.unsupportedStorageArea: code = "unsupported_backup_storage_area"
-    case BackupExclusionCoordinator.ExclusionError.invalidRelativePath: code = "invalid_backup_relative_path"
-    case BackupExclusionCoordinator.ExclusionError.baseDirectoryUnavailable: code = "backup_directory_unavailable"
-    case BackupExclusionCoordinator.ExclusionError.itemDoesNotExist: code = "backup_item_not_found"
-    default: code = "backup_exclusion_failed"
-    }
+    switch error { case BackupExclusionCoordinator.ExclusionError.unsupportedStorageArea: code = "unsupported_backup_storage_area"; case BackupExclusionCoordinator.ExclusionError.invalidRelativePath: code = "invalid_backup_relative_path"; case BackupExclusionCoordinator.ExclusionError.baseDirectoryUnavailable: code = "backup_directory_unavailable"; case BackupExclusionCoordinator.ExclusionError.itemDoesNotExist: code = "backup_item_not_found"; default: code = "backup_exclusion_failed" }
     return FlutterError(code: code, message: error.localizedDescription, details: nil)
   }
 }
@@ -41,10 +29,7 @@ final class NowPlayingChannel {
   private let channel: FlutterMethodChannel
   init(binaryMessenger: FlutterBinaryMessenger, coordinator: NowPlayingCoordinator = NowPlayingCoordinator()) {
     self.coordinator = coordinator; channel = FlutterMethodChannel(name: Self.name, binaryMessenger: binaryMessenger)
-    coordinator.onRemoteCommand = { [weak channel] command, position in
-      var payload: [String: Any] = ["command": command.rawValue]; if let position { payload["positionSeconds"] = position }
-      channel?.invokeMethod("remoteCommand", arguments: payload)
-    }
+    coordinator.onRemoteCommand = { [weak channel] command, position in var payload: [String: Any] = ["command": command.rawValue]; if let position { payload["positionSeconds"] = position }; channel?.invokeMethod("remoteCommand", arguments: payload) }
     coordinator.start(); channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) }
   }
   func detach() { channel.setMethodCallHandler(nil); coordinator.onRemoteCommand = nil; coordinator.stop() }
@@ -68,11 +53,7 @@ final class AudioLifecycleChannel {
   private var observers: [NSObjectProtocol] = []
   init(binaryMessenger: FlutterBinaryMessenger, notificationCenter: NotificationCenter = .default) {
     self.notificationCenter = notificationCenter; channel = FlutterMethodChannel(name: Self.name, binaryMessenger: binaryMessenger)
-    observers = [
-      notificationCenter.addObserver(forName: AudioSessionCoordinator.interruptionBeganNotification, object: nil, queue: .main) { [weak channel] _ in channel?.invokeMethod("interruptionBegan", arguments: nil) },
-      notificationCenter.addObserver(forName: AudioSessionCoordinator.interruptionEndedNotification, object: nil, queue: .main) { [weak channel] note in channel?.invokeMethod("interruptionEnded", arguments: ["shouldResume": note.userInfo?["shouldResume"] as? Bool ?? false]) },
-      notificationCenter.addObserver(forName: AudioSessionCoordinator.routeChangedNotification, object: nil, queue: .main) { [weak channel] note in channel?.invokeMethod("routeChanged", arguments: ["reason": note.userInfo?["reason"] as? UInt ?? 0]) },
-    ]
+    observers = [notificationCenter.addObserver(forName: AudioSessionCoordinator.interruptionBeganNotification, object: nil, queue: .main) { [weak channel] _ in channel?.invokeMethod("interruptionBegan", arguments: nil) }, notificationCenter.addObserver(forName: AudioSessionCoordinator.interruptionEndedNotification, object: nil, queue: .main) { [weak channel] note in channel?.invokeMethod("interruptionEnded", arguments: ["shouldResume": note.userInfo?["shouldResume"] as? Bool ?? false]) }, notificationCenter.addObserver(forName: AudioSessionCoordinator.routeChangedNotification, object: nil, queue: .main) { [weak channel] note in channel?.invokeMethod("routeChanged", arguments: ["reason": note.userInfo?["reason"] as? UInt ?? 0]) }]
   }
   func detach() { observers.forEach(notificationCenter.removeObserver); observers.removeAll() }
 }
@@ -82,151 +63,63 @@ final class NotificationPermissionChannel {
   static let selfTestIdentifier = "quran.notification.self-test"
   private let center: UNUserNotificationCenter
   private let channel: FlutterMethodChannel
-
-  init(binaryMessenger: FlutterBinaryMessenger, center: UNUserNotificationCenter = .current()) {
-    self.center = center
-    channel = FlutterMethodChannel(name: Self.name, binaryMessenger: binaryMessenger)
-    channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) }
-  }
-
+  init(binaryMessenger: FlutterBinaryMessenger, center: UNUserNotificationCenter = .current()) { self.center = center; channel = FlutterMethodChannel(name: Self.name, binaryMessenger: binaryMessenger); channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) } }
   func detach() { channel.setMethodCallHandler(nil) }
-
   private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
-    case "getNotificationPermissionStatus":
-      center.getNotificationSettings { settings in DispatchQueue.main.async { result(Self.statusName(settings.authorizationStatus)) } }
-    case "getNotificationDiagnostics":
-      center.getNotificationSettings { settings in
-        DispatchQueue.main.async { result(Self.diagnostics(settings)) }
-      }
-    case "requestNotificationPermission":
-      center.requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
-        DispatchQueue.main.async {
-          if let error { result(FlutterError(code: "notification_permission_failed", message: error.localizedDescription, details: nil)) }
-          else { result(["granted": granted]) }
-        }
-      }
-    case "scheduleNotificationSelfTest":
-      scheduleSelfTest(result: result)
-    case "cancelNotificationSelfTest":
-      center.removePendingNotificationRequests(withIdentifiers: [Self.selfTestIdentifier])
-      result(nil)
+    case "getNotificationPermissionStatus": center.getNotificationSettings { settings in DispatchQueue.main.async { result(Self.statusName(settings.authorizationStatus)) } }
+    case "getNotificationDiagnostics": center.getNotificationSettings { settings in DispatchQueue.main.async { result(Self.diagnostics(settings)) } }
+    case "requestNotificationPermission": center.requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in DispatchQueue.main.async { if let error { result(FlutterError(code: "notification_permission_failed", message: error.localizedDescription, details: nil)) } else { result(["granted": granted]) } } }
+    case "scheduleNotificationSelfTest": scheduleSelfTest(result: result)
+    case "cancelNotificationSelfTest": center.removePendingNotificationRequests(withIdentifiers: [Self.selfTestIdentifier]); result(nil)
     default: result(FlutterMethodNotImplemented)
     }
   }
-
   private func scheduleSelfTest(result: @escaping FlutterResult) {
     center.getNotificationSettings { [weak self] settings in
       guard let self else { return }
-      guard Self.canDeliver(settings.authorizationStatus) else {
-        DispatchQueue.main.async {
-          result(FlutterError(code: "notification_not_authorized", message: "Notifications are not authorized for an end-to-end self-test.", details: Self.diagnostics(settings)))
-        }
-        return
-      }
+      guard Self.canDeliver(settings.authorizationStatus) else { DispatchQueue.main.async { result(FlutterError(code: "notification_not_authorized", message: "Notifications are not authorized for an end-to-end self-test.", details: Self.diagnostics(settings))) }; return }
       let content = UNMutableNotificationContent()
-      content.title = NSLocalizedString("Notification test", comment: "Notification diagnostics test title")
-      content.body = NSLocalizedString("If you can see this, local notifications can reach this device.", comment: "Notification diagnostics test body")
-      content.sound = .default
-      content.userInfo = ["kind": "diagnostic-self-test"]
-      let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 3, repeats: false)
-      let request = UNNotificationRequest(identifier: Self.selfTestIdentifier, content: content, trigger: trigger)
+      content.title = Bundle.main.localizedString(forKey: "NotificationSelfTestTitle", value: "Notification test", table: "InfoPlist")
+      content.body = Bundle.main.localizedString(forKey: "NotificationSelfTestBody", value: "If you can see this, local notifications can reach this device.", table: "InfoPlist")
+      content.sound = .default; content.userInfo = ["kind": "diagnostic-self-test"]
+      let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 3, repeats: false); let request = UNNotificationRequest(identifier: Self.selfTestIdentifier, content: content, trigger: trigger)
       center.removePendingNotificationRequests(withIdentifiers: [Self.selfTestIdentifier])
-      center.add(request) { error in
-        DispatchQueue.main.async {
-          if let error {
-            result(FlutterError(code: "notification_self_test_failed", message: error.localizedDescription, details: Self.diagnostics(settings)))
-          } else {
-            result(["scheduled": true, "firesAfterSeconds": 3, "settings": Self.diagnostics(settings)])
-          }
-        }
-      }
+      center.add(request) { error in DispatchQueue.main.async { if let error { result(FlutterError(code: "notification_self_test_failed", message: error.localizedDescription, details: Self.diagnostics(settings))) } else { result(["scheduled": true, "firesAfterSeconds": 3, "settings": Self.diagnostics(settings)]) } } }
     }
   }
-
-  private static func canDeliver(_ status: UNAuthorizationStatus) -> Bool {
-    status == .authorized || status == .provisional || status == .ephemeral
-  }
-
-  private static func diagnostics(_ settings: UNNotificationSettings) -> [String: Any] {
-    [
-      "authorizationStatus": statusName(settings.authorizationStatus),
-      "alertSetting": settingName(settings.alertSetting),
-      "soundSetting": settingName(settings.soundSetting),
-      "badgeSetting": settingName(settings.badgeSetting),
-      "lockScreenSetting": settingName(settings.lockScreenSetting),
-      "notificationCenterSetting": settingName(settings.notificationCenterSetting),
-      "timeSensitiveSetting": settingName(settings.timeSensitiveSetting),
-      "scheduledDeliverySetting": settingName(settings.scheduledDeliverySetting)
-    ]
-  }
-
-  private static func settingName(_ setting: UNNotificationSetting) -> String {
-    switch setting { case .notSupported: return "notSupported"; case .disabled: return "disabled"; case .enabled: return "enabled"; @unknown default: return "unknown" }
-  }
-
-  private static func statusName(_ status: UNAuthorizationStatus) -> String {
-    switch status { case .notDetermined: return "notDetermined"; case .denied: return "denied"; case .authorized: return "authorized"; case .provisional: return "provisional"; case .ephemeral: return "ephemeral"; @unknown default: return "unknown" }
-  }
+  private static func canDeliver(_ status: UNAuthorizationStatus) -> Bool { status == .authorized || status == .provisional || status == .ephemeral }
+  private static func diagnostics(_ settings: UNNotificationSettings) -> [String: Any] { ["authorizationStatus": statusName(settings.authorizationStatus), "alertSetting": settingName(settings.alertSetting), "soundSetting": settingName(settings.soundSetting), "badgeSetting": settingName(settings.badgeSetting), "lockScreenSetting": settingName(settings.lockScreenSetting), "notificationCenterSetting": settingName(settings.notificationCenterSetting), "timeSensitiveSetting": settingName(settings.timeSensitiveSetting), "scheduledDeliverySetting": settingName(settings.scheduledDeliverySetting)] }
+  private static func settingName(_ setting: UNNotificationSetting) -> String { switch setting { case .notSupported: return "notSupported"; case .disabled: return "disabled"; case .enabled: return "enabled"; @unknown default: return "unknown" } }
+  private static func statusName(_ status: UNAuthorizationStatus) -> String { switch status { case .notDetermined: return "notDetermined"; case .denied: return "denied"; case .authorized: return "authorized"; case .provisional: return "provisional"; case .ephemeral: return "ephemeral"; @unknown default: return "unknown" } }
 }
 
-/// Foreground-only native location/compass boundary for prayer and Qibla features.
-/// Permission and sensor streams start only after explicit shared-layer calls.
 final class LocationHeadingChannel: NSObject, CLLocationManagerDelegate {
   static let name = "com.omzdmr.quran_i_kerim/location_heading"
   private let manager: CLLocationManager
   private let channel: FlutterMethodChannel
   private var locationStreaming = false
   private var headingStreaming = false
-
-  init(binaryMessenger: FlutterBinaryMessenger, manager: CLLocationManager = CLLocationManager()) {
-    self.manager = manager
-    channel = FlutterMethodChannel(name: Self.name, binaryMessenger: binaryMessenger)
-    super.init()
-    manager.delegate = self
-    manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
-    manager.distanceFilter = 25
-    manager.headingFilter = 2
-    channel.setMethodCallHandler { [weak self] call, result in self?.handleLocationHeading(call, result: result) }
-  }
-
+  init(binaryMessenger: FlutterBinaryMessenger, manager: CLLocationManager = CLLocationManager()) { self.manager = manager; channel = FlutterMethodChannel(name: Self.name, binaryMessenger: binaryMessenger); super.init(); manager.delegate = self; manager.desiredAccuracy = kCLLocationAccuracyHundredMeters; manager.distanceFilter = 25; manager.headingFilter = 2; channel.setMethodCallHandler { [weak self] call, result in self?.handleLocationHeading(call, result: result) } }
   func detach() { stopAll(); channel.setMethodCallHandler(nil); manager.delegate = nil }
-
   private func handleLocationHeading(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
     case "getAuthorizationStatus": result(Self.authorizationName(manager.authorizationStatus))
     case "requestWhenInUsePermission": manager.requestWhenInUseAuthorization(); result(nil)
     case "getCapabilityStatus": result(["locationServicesEnabled": CLLocationManager.locationServicesEnabled(), "headingAvailable": CLLocationManager.headingAvailable(), "authorizationStatus": Self.authorizationName(manager.authorizationStatus)])
-    case "startLocationUpdates":
-      guard CLLocationManager.locationServicesEnabled() else { result(FlutterError(code: "location_services_disabled", message: "Location Services are disabled.", details: nil)); return }
-      guard Self.canReadLocation(manager.authorizationStatus) else { result(FlutterError(code: "location_permission_required", message: "Foreground location permission is required.", details: nil)); return }
-      locationStreaming = true; manager.startUpdatingLocation(); result(nil)
+    case "startLocationUpdates": guard CLLocationManager.locationServicesEnabled() else { result(FlutterError(code: "location_services_disabled", message: "Location Services are disabled.", details: nil)); return }; guard Self.canReadLocation(manager.authorizationStatus) else { result(FlutterError(code: "location_permission_required", message: "Foreground location permission is required.", details: nil)); return }; locationStreaming = true; manager.startUpdatingLocation(); result(nil)
     case "stopLocationUpdates": locationStreaming = false; manager.stopUpdatingLocation(); result(nil)
-    case "startHeadingUpdates":
-      guard CLLocationManager.headingAvailable() else { result(FlutterError(code: "heading_unavailable", message: "Compass heading is unavailable on this device.", details: nil)); return }
-      headingStreaming = true; manager.startUpdatingHeading(); result(nil)
+    case "startHeadingUpdates": guard CLLocationManager.headingAvailable() else { result(FlutterError(code: "heading_unavailable", message: "Compass heading is unavailable on this device.", details: nil)); return }; headingStreaming = true; manager.startUpdatingHeading(); result(nil)
     case "stopHeadingUpdates": headingStreaming = false; manager.stopUpdatingHeading(); result(nil)
     case "stopAll": stopAll(); result(nil)
     default: result(FlutterMethodNotImplemented)
     }
   }
-
   private func stopAll() { locationStreaming = false; headingStreaming = false; manager.stopUpdatingLocation(); manager.stopUpdatingHeading() }
   func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) { channel.invokeMethod("authorizationChanged", arguments: ["status": Self.authorizationName(manager.authorizationStatus)]) }
-  func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-    guard locationStreaming, let location = locations.last, location.horizontalAccuracy >= 0 else { return }
-    channel.invokeMethod("locationChanged", arguments: ["latitude": location.coordinate.latitude, "longitude": location.coordinate.longitude, "horizontalAccuracyMeters": location.horizontalAccuracy, "timestampMilliseconds": location.timestamp.timeIntervalSince1970 * 1000])
-  }
-  func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
-    guard headingStreaming, newHeading.headingAccuracy >= 0 else { return }
-    let heading = newHeading.trueHeading >= 0 ? newHeading.trueHeading : newHeading.magneticHeading
-    channel.invokeMethod("headingChanged", arguments: ["degrees": heading, "magneticDegrees": newHeading.magneticHeading, "accuracyDegrees": newHeading.headingAccuracy, "usesTrueNorth": newHeading.trueHeading >= 0, "timestampMilliseconds": newHeading.timestamp.timeIntervalSince1970 * 1000])
-  }
-  func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-    let nsError = error as NSError; channel.invokeMethod("locationError", arguments: ["code": nsError.code, "message": nsError.localizedDescription])
-  }
+  func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) { guard locationStreaming, let location = locations.last, location.horizontalAccuracy >= 0 else { return }; channel.invokeMethod("locationChanged", arguments: ["latitude": location.coordinate.latitude, "longitude": location.coordinate.longitude, "horizontalAccuracyMeters": location.horizontalAccuracy, "timestampMilliseconds": location.timestamp.timeIntervalSince1970 * 1000]) }
+  func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) { guard headingStreaming, newHeading.headingAccuracy >= 0 else { return }; let heading = newHeading.trueHeading >= 0 ? newHeading.trueHeading : newHeading.magneticHeading; channel.invokeMethod("headingChanged", arguments: ["degrees": heading, "magneticDegrees": newHeading.magneticHeading, "accuracyDegrees": newHeading.headingAccuracy, "usesTrueNorth": newHeading.trueHeading >= 0, "timestampMilliseconds": newHeading.timestamp.timeIntervalSince1970 * 1000]) }
+  func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) { let nsError = error as NSError; channel.invokeMethod("locationError", arguments: ["code": nsError.code, "message": nsError.localizedDescription]) }
   private static func canReadLocation(_ status: CLAuthorizationStatus) -> Bool { status == .authorizedWhenInUse || status == .authorizedAlways }
-  private static func authorizationName(_ status: CLAuthorizationStatus) -> String {
-    switch status { case .notDetermined: return "notDetermined"; case .restricted: return "restricted"; case .denied: return "denied"; case .authorizedAlways: return "authorizedAlways"; case .authorizedWhenInUse: return "authorizedWhenInUse"; @unknown default: return "unknown" }
-  }
+  private static func authorizationName(_ status: CLAuthorizationStatus) -> String { switch status { case .notDetermined: return "notDetermined"; case .restricted: return "restricted"; case .denied: return "denied"; case .authorizedAlways: return "authorizedAlways"; case .authorizedWhenInUse: return "authorizedWhenInUse"; @unknown default: return "unknown" } }
 }
