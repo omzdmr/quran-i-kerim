@@ -13,8 +13,11 @@ final class WidgetSnapshotChannel {
   private var observers: [NSObjectProtocol] = []
 
   init(binaryMessenger: FlutterBinaryMessenger, store: WidgetSnapshotStore? = WidgetSnapshotStore(), notificationCenter: NotificationCenter = .default) {
-    channel = FlutterMethodChannel(name: Self.channelName, binaryMessenger: binaryMessenger); self.store = store; self.notificationCenter = notificationCenter
-    channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) }; installFreshnessObservers()
+    channel = FlutterMethodChannel(name: Self.channelName, binaryMessenger: binaryMessenger)
+    self.store = store
+    self.notificationCenter = notificationCenter
+    channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) }
+    installFreshnessObservers()
   }
   deinit { removeFreshnessObservers() }
   func detach() { removeFreshnessObservers(); channel.setMethodCallHandler(nil) }
@@ -32,10 +35,14 @@ final class WidgetSnapshotChannel {
 
   private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
-    case "capabilities": result(["schemaVersion": WidgetPrayerSnapshot.schemaVersion, "appGroup": store != nil, "freshnessRequired": true, "freshnessReason": true, "privacyRedaction": true, "stalePurge": true, "corruptPayloadQuarantine": true, "invalidationDiagnostics": true, "policyInvalidation": true, "systemTimeInvalidation": true, "timeZoneInvalidation": true, "foregroundRevalidation": true])
+    case "capabilities":
+      result(["schemaVersion": WidgetPrayerSnapshot.schemaVersion, "appGroup": store != nil, "freshnessRequired": true, "freshnessReason": true, "privacyRedaction": true, "stalePurge": true, "corruptPayloadQuarantine": true, "invalidationDiagnostics": true, "policyInvalidation": true, "systemTimeInvalidation": true, "timeZoneInvalidation": true, "foregroundRevalidation": true])
     case "publish": publish(call.arguments, result: result)
     case "clear": store?.clear(); reloadWidgets(); result(nil)
-    case "purgeIfStale": let purged = store?.purgeIfStale() ?? false; if purged { reloadWidgets() }; result(["purged": purged, "reason": store?.lastInvalidationReason() as Any])
+    case "purgeIfStale":
+      let purged = store?.purgeIfStale() ?? false
+      if purged { reloadWidgets() }
+      result(["purged": purged, "reason": store?.lastInvalidationReason() as Any])
     case "invalidatePolicy": invalidatePolicy(call.arguments, result: result)
     case "status": result(statusPayload())
     default: result(FlutterMethodNotImplemented)
@@ -67,9 +74,17 @@ final class WidgetSnapshotChannel {
     return ["available": true, "hasSnapshot": true, "fresh": freshness == .fresh, "freshness": freshness.rawValue, "generatedAtMs": Int64(snapshot.generatedAt.timeIntervalSince1970 * 1000), "validUntilMs": Int64(snapshot.validUntil.timeIntervalSince1970 * 1000), "timeZone": snapshot.timeZoneIdentifier, "privacyMode": snapshot.privacyMode.rawValue, "calculationFingerprint": snapshot.calculationFingerprint]
   }
 
-  private func number(_ value: Any?) -> Double? { if let number = value as? NSNumber { return number.doubleValue }; if let value = value as? Double { return value }; if let value = value as? Int64 { return Double(value) }; if let value = value as? Int { return Double(value) }; return nil }
-  private func reloadWidgets() { #if canImport(WidgetKit)
+  private func number(_ value: Any?) -> Double? {
+    if let number = value as? NSNumber { return number.doubleValue }
+    if let value = value as? Double { return value }
+    if let value = value as? Int64 { return Double(value) }
+    if let value = value as? Int { return Double(value) }
+    return nil
+  }
+
+  private func reloadWidgets() {
+#if canImport(WidgetKit)
     if #available(iOS 14.0, *) { WidgetCenter.shared.reloadAllTimelines() }
-    #endif
+#endif
   }
 }
