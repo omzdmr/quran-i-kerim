@@ -57,6 +57,8 @@ void main() {
   testWidgets('archive entry shows combined bookmark, note and highlight count', (
     tester,
   ) async {
+    final semantics = tester.ensureSemantics();
+    addTearDown(semantics.dispose);
     SharedPreferences.setMockInitialValues(<String, Object>{
       'bookmarks': <String>['2:255', '36:1'],
       'verse_notes': jsonEncode(<String, String>{'18:10': 'note'}),
@@ -66,7 +68,10 @@ void main() {
     await settings.load();
     await pumpArea(tester, settings);
 
-    expect(find.text('4'), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(Badge), matching: find.text('4')),
+      findsOneWidget,
+    );
     expect(find.bySemanticsLabel('Saved activity, 4'), findsOneWidget);
   });
 }
