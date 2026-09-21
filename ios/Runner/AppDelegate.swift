@@ -7,6 +7,7 @@ import UIKit
   private var backupExclusionChannel: BackupExclusionChannel?
   private var nowPlayingChannel: NowPlayingChannel?
   private var audioLifecycleChannel: AudioLifecycleChannel?
+  private var notificationPermissionChannel: NotificationPermissionChannel?
 
   override func application(
     _ application: UIApplication,
@@ -19,6 +20,7 @@ import UIKit
   }
 
   override func applicationWillTerminate(_ application: UIApplication) {
+    notificationPermissionChannel?.detach()
     audioLifecycleChannel?.detach()
     nowPlayingChannel?.detach()
     backupExclusionChannel?.detach()
@@ -31,9 +33,10 @@ import UIKit
       NSLog("Unable to install native channels: Flutter view controller unavailable.")
       return
     }
-
-    backupExclusionChannel = BackupExclusionChannel(binaryMessenger: controller.binaryMessenger)
-    nowPlayingChannel = NowPlayingChannel(binaryMessenger: controller.binaryMessenger)
-    audioLifecycleChannel = AudioLifecycleChannel(binaryMessenger: controller.binaryMessenger)
+    let messenger = controller.binaryMessenger
+    backupExclusionChannel = BackupExclusionChannel(binaryMessenger: messenger)
+    nowPlayingChannel = NowPlayingChannel(binaryMessenger: messenger)
+    audioLifecycleChannel = AudioLifecycleChannel(binaryMessenger: messenger)
+    notificationPermissionChannel = NotificationPermissionChannel(binaryMessenger: messenger)
   }
 }
