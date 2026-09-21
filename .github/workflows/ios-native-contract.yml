@@ -48,6 +48,10 @@ jobs:
           grep -q 'bluetoothMicrophone": true' ios/Runner/MicrophoneRecordingChannel.swift
           grep -q '\.allowBluetooth' ios/Runner/MicrophoneRecordingChannel.swift
           grep -q 'CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements' ios/Runner.xcodeproj/project.pbxproj
+          grep -q 'corruptPayloadQuarantine": true' ios/Runner/WidgetSnapshotChannel.swift
+          grep -q 'invalidationDiagnostics": true' ios/Runner/WidgetSnapshotChannel.swift
+          grep -q 'case .systemLarge:' ios/PrayerWidget/PrayerWidget.swift
+          grep -q '\.systemLarge' ios/PrayerWidget/PrayerWidget.swift
       - name: Build and inspect standalone WidgetKit extension
         run: |
           rm -rf /tmp/quran-widget-build
