@@ -51,6 +51,22 @@ automation should be assumed active. Current contributors must read
   platform CI are still unavailable for the staging branch, so PR #3 remains
   draft.
 
+## Active Feature Development handoff — Private qada fasting ledger
+
+- Draft PR #3 also contains the adopted private qada-fasting ledger. Users can
+  append a known or estimated debt with an optional source Ramadan year and
+  private note, explicitly record completed fasts, and correct the current
+  balance without rewriting history. The remaining balance and source-Ramadan
+  groups are derived locally; the app does not infer religious rulings.
+- The append-only ledger fails closed on malformed, duplicate, overdrawn or
+  future-format records. Its local preference participates in user-owned backup
+  schema v9; restoring schema v8 or older preserves newer qada data rather than
+  deleting it. The UI states clearly that a user-created backup includes it.
+- Domain, persistence, six-locale parity, backup compatibility and widget-flow
+  tests are present, but Flutter tests/analyzer have not run in this worker.
+  Keep the PR draft until full validation, then land without force-updating the
+  feature branch.
+
 ## Shared source of truth
 Every automation must read these before acting:
 1. `docs/PRODUCT_MASTER_SPEC.md` — product requirements and non-negotiable decisions.
