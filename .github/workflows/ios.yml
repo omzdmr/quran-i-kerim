@@ -78,7 +78,7 @@ jobs:
         run: |
           xcrun --sdk iphonesimulator swiftc \
             -parse-as-library \
-            -target arm64-apple-ios14.0-simulator \
+            -target arm64-apple-ios15.0-simulator \
             -typecheck \
             ios/Runner/AudioSessionCoordinator.swift \
             ios/Runner/BackupExclusionCoordinator.swift
@@ -113,7 +113,7 @@ jobs:
             -showBuildSettings \
             CODE_SIGNING_ALLOWED=NO > /tmp/runner-build-settings.txt
           grep -q "PRODUCT_BUNDLE_IDENTIFIER = com.omzdmr.quranIKerim" /tmp/runner-build-settings.txt
-          grep -q "IPHONEOS_DEPLOYMENT_TARGET = 14.0" /tmp/runner-build-settings.txt
+          grep -q "IPHONEOS_DEPLOYMENT_TARGET = 15.0" /tmp/runner-build-settings.txt
           # CocoaPods is expected to add integration references to the generated
           # Xcode graph. Source-controlled native files must remain unchanged.
           git diff --exit-code -- \
