@@ -18,14 +18,25 @@ void main() {
     expect((raw['dietaryCard'] as Map<String, dynamic>)['staffText'], 'trusted phrase');
   });
 
-  test('v2 preview restores dietary card while v1 remains compatible', () async {
+  test('v2 restores dietary card and legacy v1 does not erase it', () async {
     const importer = TravelToolsImport();
     final v2 = importer.parse(jsonEncode({'schema':'quran-i-kerim.travel-tools','version':2,'meetingPoint':null,'packing':[],'dietaryCard':{'languageLabel':'fr','staffText':'texte fiable','note':''}}));
-    expect(v2.dietaryCard?.staffText, 'texte fiable');
+    expect(v2.includesDietaryCard, isTrue);
     await importer.apply(v2);
     expect((await const TravelDietaryCardStore().load())?.staffText, 'texte fiable');
+
     final v1 = importer.parse(jsonEncode({'schema':'quran-i-kerim.travel-tools','version':1,'meetingPoint':null,'packing':[]}));
-    expect(v1.dietaryCard, isNull);
+    expect(v1.includesDietaryCard, isFalse);
+    await importer.apply(v1);
+    expect((await const TravelDietaryCardStore().load())?.staffText, 'texte fiable');
+  });
+
+  test('v2 explicit null clears dietary card', () async {
+    const store = TravelDietaryCardStore();
+    await store.save(const TravelDietaryCard(languageLabel: 'x', staffText: 'old'));
+    final preview = const TravelToolsImport().parse(jsonEncode({'schema':'quran-i-kerim.travel-tools','version':2,'meetingPoint':null,'packing':[],'dietaryCard':null}));
+    await const TravelToolsImport().apply(preview);
+    expect(await store.load(), isNull);
   });
 
   test('invalid dietary card rejects whole import preview', () {
