@@ -626,6 +626,16 @@ Core Quran, prayer, Qibla, local plans, bookmarks and offline downloads must wor
 - Signing in or out must never silently destroy local progress.
 - Merge/restore choices are explicit.
 
+### Portable, versioned user-data export/import
+User-created Quran/study/worship data must remain usable beyond one install or cloud provider.
+- Offer account-free export through the system file picker in a documented, schema-versioned bundle plus a human-readable companion representation.
+- Preserve stable record IDs, canonical surah/ayah/range anchors, item type, user text, tags/collections, timestamps, source-edition context and attachment references; preserve deletion/tombstone metadata where required for safe merges.
+- Import validates schema/version/checksums, previews item counts and conflicts, and requires an explicit merge or replace choice before writing.
+- Import is transactional: deduplicate stable IDs, keep the pre-import state recoverable, never silently drop unsupported records, and show a clear success/error report.
+- Maintain golden export→import round-trip fixtures and migrations for supported older bundle versions across Android/iOS.
+- Export user-created notes, bookmarks, highlights, plans, Hifz/review state and preferences as selected by the user; never embed rights-restricted Quran/translation/tafsir/audio/font payloads. Store only legal source/version identifiers and re-download intent.
+- Full private bundles may support explicit passphrase encryption, but encryption must not turn the format into an undocumented vendor lock-in.
+
 ### Seasonal UI must be opt-in friendly
 Ramadan/seasonal Home adaptations are useful but must not hijack the product:
 - User can dismiss/minimize seasonal cards.
