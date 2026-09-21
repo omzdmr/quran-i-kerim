@@ -22,7 +22,16 @@ private struct PrayerSnapshot: Decodable {
   func freshness(at date: Date, timeZone: TimeZone = .autoupdatingCurrent) -> Freshness {
     guard version == 1 else { return .unsupportedSchema }
     guard TimeZone(identifier: timeZoneIdentifier) != nil,
-          !calculationFingerprint.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return .malformed }
+          !calculationFingerprint.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+          privacyMode == "standard" || privacyMode == "redacted",
+          generatedAt < validUntil else { return .malformed }
+    let prayerID = nextPrayerID?.trimmingCharacters(in: .whitespacesAndNewlines)
+    let hasPrayerID = !(prayerID?.isEmpty ?? true)
+    let hasPrayerTime = nextPrayerAt != nil
+    guard hasPrayerID == hasPrayerTime else { return .malformed }
+    if let nextPrayerAt {
+      guard nextPrayerAt > generatedAt, nextPrayerAt <= validUntil else { return .malformed }
+    }
     guard generatedAt <= date else { return .generatedInFuture }
     guard date < validUntil else { return .expired }
     guard timeZoneIdentifier == timeZone.identifier else { return .timeZoneChanged }
@@ -108,6 +117,15 @@ private struct PrayerWidgetView: View {
   private func prayerContent(_ snapshot: PrayerSnapshot, _ nextAt: Date) -> some View {
     let name = snapshot.displayName ?? snapshot.nextPrayerID ?? String(localized: "Prayer")
     switch family {
+    case .accessoryInline:
+      Label {
+        Text("\(name) \(nextAt, style: .timer)").lineLimit(1)
+      } icon: {
+        Image(systemName: "clock")
+      }
+      .privacySensitive()
+      .accessibilityElement(children: .ignore)
+      .accessibilityLabel(Text("\(name), \(nextAt.formatted(date: .omitted, time: .shortened))"))
     case .accessoryCircular:
       VStack(spacing: 1) {
         Image(systemName: "clock").font(.caption2).accessibilityHidden(true)
@@ -141,9 +159,12 @@ private struct PrayerWidgetView: View {
 
   @ViewBuilder
   private var staleContent: some View {
-    if family == .accessoryCircular {
-      Image(systemName: entry.snapshot?.privacyMode == "redacted" ? "lock.fill" : "arrow.clockwise")
-        .accessibilityLabel(entry.snapshot?.privacyMode == "redacted" ? Text("Prayer times hidden for privacy") : Text("Prayer information needs to be refreshed in the app"))
+    if family == .accessoryCircular || family == .accessoryInline {
+      Label(
+        entry.snapshot?.privacyMode == "redacted" ? "Prayer times hidden" : "Open app to refresh",
+        systemImage: entry.snapshot?.privacyMode == "redacted" ? "lock.fill" : "arrow.clockwise"
+      )
+      .accessibilityLabel(entry.snapshot?.privacyMode == "redacted" ? Text("Prayer times hidden for privacy") : Text("Prayer information needs to be refreshed in the app"))
     } else if let snapshot = entry.snapshot {
       switch snapshot.freshness(at: entry.date) {
       case .timeZoneChanged:
@@ -176,7 +197,7 @@ struct PrayerTimesWidget: Widget {
     StaticConfiguration(kind: kind, provider: PrayerProvider()) { PrayerWidgetView(entry: $0) }
       .configurationDisplayName("Prayer Times")
       .description("Shows the next prayer from your on-device schedule.")
-      .supportedFamilies([.systemSmall, .systemMedium, .accessoryCircular, .accessoryRectangular])
+      .supportedFamilies([.systemSmall, .systemMedium, .accessoryInline, .accessoryCircular, .accessoryRectangular])
   }
 }
 
