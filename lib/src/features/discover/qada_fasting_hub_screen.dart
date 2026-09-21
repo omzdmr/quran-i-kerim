@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'qada_fasting_archive_screen.dart';
 import 'qada_fasting_ledger.dart';
+import 'qada_fasting_ramadan_breakdown_screen.dart';
 import 'qada_fasting_screen.dart';
 
 class QadaFastingHubScreen extends StatefulWidget {
@@ -44,6 +45,7 @@ class _QadaFastingHubScreenState extends State<QadaFastingHubScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final knownOpenYears = _ledger.openRamadanYears.length;
     return Scaffold(
       appBar: AppBar(title: Text(_t('title'))),
       body: _loading
@@ -68,21 +70,9 @@ class _QadaFastingHubScreenState extends State<QadaFastingHubScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                _t('remaining'),
-                                style: Theme.of(context).textTheme.titleMedium,
-                              ),
+                              Text(_t('remaining'), style: Theme.of(context).textTheme.titleMedium),
                               const SizedBox(height: 4),
-                              Text(
-                                '${_ledger.remainingDays}',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .displaySmall
-                                    ?.copyWith(
-                                      color: scheme.primary,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                              ),
+                              Text('${_ledger.remainingDays}', style: Theme.of(context).textTheme.displaySmall?.copyWith(color: scheme.primary, fontWeight: FontWeight.w900)),
                             ],
                           ),
                         ),
@@ -90,13 +80,7 @@ class _QadaFastingHubScreenState extends State<QadaFastingHubScreen> {
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text(_t('records')),
-                            Text(
-                              '${_ledger.entries.length}',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .headlineSmall
-                                  ?.copyWith(fontWeight: FontWeight.w900),
-                            ),
+                            Text('${_ledger.entries.length}', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
                           ],
                         ),
                       ],
@@ -112,6 +96,15 @@ class _QadaFastingHubScreenState extends State<QadaFastingHubScreen> {
                 ),
                 const SizedBox(height: 12),
                 _HubCard(
+                  icon: Icons.view_timeline_rounded,
+                  title: _t('byRamadan'),
+                  subtitle: knownOpenYears > 1
+                      ? '${_t('byRamadanBody')} · $knownOpenYears ${_t('openYears')}'
+                      : _t('byRamadanBody'),
+                  onTap: () => _open(const QadaFastingRamadanBreakdownScreen()),
+                ),
+                const SizedBox(height: 12),
+                _HubCard(
                   icon: Icons.backup_outlined,
                   title: _t('backup'),
                   subtitle: _t('backupBody'),
@@ -120,12 +113,7 @@ class _QadaFastingHubScreenState extends State<QadaFastingHubScreen> {
                 const SizedBox(height: 18),
                 Semantics(
                   container: true,
-                  child: Text(
-                    _t('privacy'),
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
-                  ),
+                  child: Text(_t('privacy'), style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant)),
                 ),
               ],
             ),
@@ -134,13 +122,7 @@ class _QadaFastingHubScreenState extends State<QadaFastingHubScreen> {
 }
 
 class _HubCard extends StatelessWidget {
-  const _HubCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
+  const _HubCard({required this.icon, required this.title, required this.subtitle, required this.onTap});
   final IconData icon;
   final String title;
   final String subtitle;
@@ -165,12 +147,7 @@ class _HubCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                    ),
+                    Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
                     const SizedBox(height: 4),
                     Text(subtitle),
                   ],
@@ -187,21 +164,21 @@ class _HubCard extends StatelessWidget {
 
 const Map<String, Map<String, String>> _labels = {
   'tr': {
-    'title': 'Kaza orucu', 'remaining': 'Kalan gün', 'records': 'Kayıt', 'ledger': 'Kaza defteri', 'ledgerBody': 'Borç, tamamlanan oruç, düzeltme ve Ramazan geçmişini yönet.', 'backup': 'Yedekle ve geri yükle', 'backupBody': 'Hesap gerektirmeyen taşınabilir yedek oluştur; içe aktarmadan önce önizle.', 'privacy': 'Kayıtlar cihazda tutulur. Uygulama dini hüküm çıkarmaz; yalnızca senin girdiğin bilgileri saklar.'
+    'title': 'Kaza orucu', 'remaining': 'Kalan gün', 'records': 'Kayıt', 'ledger': 'Kaza defteri', 'ledgerBody': 'Borç, tamamlanan oruç, düzeltme ve Ramazan geçmişini yönet.', 'byRamadan': 'Ramazanlara göre', 'byRamadanBody': 'Her Ramazan için kaydedilen, tutulan ve kalan günleri gör; tuttuğun orucu doğru yıla yaz.', 'openYears': 'açık Ramazan', 'backup': 'Yedekle ve geri yükle', 'backupBody': 'Hesap gerektirmeyen taşınabilir yedek oluştur; içe aktarmadan önce önizle.', 'privacy': 'Kayıtlar cihazda tutulur. Uygulama dini hüküm çıkarmaz; yalnızca senin girdiğin bilgileri saklar.'
   },
   'en': {
-    'title': 'Qada fasting', 'remaining': 'Remaining days', 'records': 'Records', 'ledger': 'Qada ledger', 'ledgerBody': 'Manage debt, completed fasts, corrections and Ramadan history.', 'backup': 'Backup and restore', 'backupBody': 'Create an account-free portable backup and preview it before import.', 'privacy': 'Records stay on the device. The app does not infer religious rulings; it only stores what you enter.'
+    'title': 'Qada fasting', 'remaining': 'Remaining days', 'records': 'Records', 'ledger': 'Qada ledger', 'ledgerBody': 'Manage debt, completed fasts, corrections and Ramadan history.', 'byRamadan': 'By Ramadan', 'byRamadanBody': 'See recorded, completed and remaining days per Ramadan and attribute completed fasts to the right year.', 'openYears': 'open Ramadans', 'backup': 'Backup and restore', 'backupBody': 'Create an account-free portable backup and preview it before import.', 'privacy': 'Records stay on the device. The app does not infer religious rulings; it only stores what you enter.'
   },
   'fr': {
-    'title': 'Jeûnes à rattraper', 'remaining': 'Jours restants', 'records': 'Entrées', 'ledger': 'Registre', 'ledgerBody': 'Gérez les jours dus, rattrapés, les corrections et l’historique du Ramadan.', 'backup': 'Sauvegarde et restauration', 'backupBody': 'Créez une sauvegarde portable sans compte et vérifiez-la avant l’import.', 'privacy': 'Les données restent sur l’appareil. L’application conserve uniquement les informations que vous saisissez.'
+    'title': 'Jeûnes à rattraper', 'remaining': 'Jours restants', 'records': 'Entrées', 'ledger': 'Registre', 'ledgerBody': 'Gérez les jours dus, rattrapés, les corrections et l’historique du Ramadan.', 'byRamadan': 'Par Ramadan', 'byRamadanBody': 'Consultez les jours enregistrés, rattrapés et restants par Ramadan et rattachez chaque rattrapage à la bonne année.', 'openYears': 'Ramadans ouverts', 'backup': 'Sauvegarde et restauration', 'backupBody': 'Créez une sauvegarde portable sans compte et vérifiez-la avant l’import.', 'privacy': 'Les données restent sur l’appareil. L’application conserve uniquement les informations que vous saisissez.'
   },
   'ar': {
-    'title': 'صيام القضاء', 'remaining': 'الأيام المتبقية', 'records': 'السجلات', 'ledger': 'سجل القضاء', 'ledgerBody': 'إدارة الدين والصيام المقضي والتصحيحات وسجل رمضان.', 'backup': 'النسخ الاحتياطي والاستعادة', 'backupBody': 'أنشئ نسخة محمولة دون حساب وراجعها قبل الاستيراد.', 'privacy': 'تبقى السجلات على الجهاز. لا يستنبط التطبيق أحكامًا شرعية؛ بل يحفظ ما تدخله فقط.'
+    'title': 'صيام القضاء', 'remaining': 'الأيام المتبقية', 'records': 'السجلات', 'ledger': 'سجل القضاء', 'ledgerBody': 'إدارة الدين والصيام المقضي والتصحيحات وسجل رمضان.', 'byRamadan': 'حسب رمضان', 'byRamadanBody': 'اعرض المسجل والمقضي والمتبقي لكل رمضان وانسب صيام القضاء إلى السنة الصحيحة.', 'openYears': 'رمضانات مفتوحة', 'backup': 'النسخ الاحتياطي والاستعادة', 'backupBody': 'أنشئ نسخة محمولة دون حساب وراجعها قبل الاستيراد.', 'privacy': 'تبقى السجلات على الجهاز. لا يستنبط التطبيق أحكامًا شرعية؛ بل يحفظ ما تدخله فقط.'
   },
   'az': {
-    'title': 'Qəza orucu', 'remaining': 'Qalan günlər', 'records': 'Qeydlər', 'ledger': 'Qəza dəftəri', 'ledgerBody': 'Borc, tutulan oruclar, düzəlişlər və Ramazan tarixçəsini idarə et.', 'backup': 'Yedəklə və bərpa et', 'backupBody': 'Hesabsız daşına bilən yedək yarat və idxaldan əvvəl yoxla.', 'privacy': 'Qeydlər cihazda qalır. Tətbiq dini hökm çıxarmır; yalnız daxil etdiyin məlumatı saxlayır.'
+    'title': 'Qəza orucu', 'remaining': 'Qalan günlər', 'records': 'Qeydlər', 'ledger': 'Qəza dəftəri', 'ledgerBody': 'Borc, tutulan oruclar, düzəlişlər və Ramazan tarixçəsini idarə et.', 'byRamadan': 'Ramazanlara görə', 'byRamadanBody': 'Hər Ramazan üzrə qeyd olunan, tutulan və qalan günləri gör və tutduğun orucu doğru ilə aid et.', 'openYears': 'açıq Ramazan', 'backup': 'Yedəklə və bərpa et', 'backupBody': 'Hesabsız daşına bilən yedək yarat və idxaldan əvvəl yoxla.', 'privacy': 'Qeydlər cihazda qalır. Tətbiq dini hökm çıxarmır; yalnız daxil etdiyin məlumatı saxlayır.'
   },
   'ru': {
-    'title': 'Посты када', 'remaining': 'Осталось дней', 'records': 'Записи', 'ledger': 'Учёт када', 'ledgerBody': 'Управляйте долгом, выполненными постами, исправлениями и историей Рамадана.', 'backup': 'Резервная копия и восстановление', 'backupBody': 'Создайте переносимую копию без аккаунта и проверьте её перед импортом.', 'privacy': 'Записи остаются на устройстве. Приложение не выносит религиозных решений и хранит только введённые вами данные.'
+    'title': 'Посты када', 'remaining': 'Осталось дней', 'records': 'Записи', 'ledger': 'Учёт када', 'ledgerBody': 'Управляйте долгом, выполненными постами, исправлениями и историей Рамадана.', 'byRamadan': 'По Рамаданам', 'byRamadanBody': 'Смотрите записанные, выполненные и оставшиеся дни по каждому Рамадану и относите пост к нужному году.', 'openYears': 'открытых Рамаданов', 'backup': 'Резервная копия и восстановление', 'backupBody': 'Создайте переносимую копию без аккаунта и проверьте её перед импортом.', 'privacy': 'Записи остаются на устройстве. Приложение не выносит религиозных решений и хранит только введённые вами данные.'
   },
 };
