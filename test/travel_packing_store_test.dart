@@ -4,7 +4,6 @@ import 'package:quran_i_kerim/src/features/discover/travel_packing_store.dart';
 
 void main() {
   const store = TravelPackingStore();
-
   setUp(() => SharedPreferences.setMockInitialValues(<String, Object>{}));
 
   test('packing list preserves order and completion', () async {
@@ -20,12 +19,19 @@ void main() {
 
   test('invalid and duplicate records do not poison local checklist', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{
-      TravelPackingStore.storageKey:
-          '[{"id":"a","label":"Bag","packed":false},{"id":"a","label":"Duplicate","packed":true},{"bad":1}]',
+      TravelPackingStore.storageKey: '[{"id":"a","label":"Bag","packed":false},{"id":"a","label":"Duplicate","packed":true},{"bad":1}]',
     });
     final loaded = await store.load();
     expect(loaded, hasLength(1));
     expect(loaded.single.label, 'Bag');
+
+    expect(
+      () => store.save(const [
+        TravelPackingItem(id: 'same', label: 'One', packed: false),
+        TravelPackingItem(id: 'same', label: 'Two', packed: false),
+      ]),
+      throwsFormatException,
+    );
   });
 
   test('empty checklist removes persisted value', () async {
