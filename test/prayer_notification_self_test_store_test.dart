@@ -15,9 +15,15 @@ void main() {
     expect(loaded?.confirmedAt, when);
   });
 
-  test('corrupt verification record fails closed', () async {
+  test('corrupt or unknown verification record fails closed', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{
       PrayerNotificationSelfTestStore.storageKey: '{broken',
+    });
+    expect(await store.load(), isNull);
+
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      PrayerNotificationSelfTestStore.storageKey:
+          '{"outcome":"future-value","confirmedAt":"2026-09-22T00:00:00.000Z"}',
     });
     expect(await store.load(), isNull);
   });
