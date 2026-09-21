@@ -42,6 +42,8 @@ jobs:
           test -f ios/Runner.xcworkspace/contents.xcworkspacedata
           test -f ios/Runner/AppDelegate.swift
           test -f ios/Runner/AudioSessionCoordinator.swift
+          test -f ios/Runner/BackupExclusionCoordinator.swift
+          test -f ios/NativeTests/BackupExclusionCoordinatorValidation.swift
           test -f ios/Runner/Info.plist
           test -f ios/Runner/PrivacyInfo.xcprivacy
           test -f ios/Podfile
@@ -60,6 +62,7 @@ jobs:
           ruby -c ios/Podfile
           grep -q "PRODUCT_BUNDLE_IDENTIFIER = com.omzdmr.quranIKerim" ios/Runner.xcodeproj/project.pbxproj
           grep -q "AudioSessionCoordinator.swift in Sources" ios/Runner.xcodeproj/project.pbxproj
+          grep -q "BackupExclusionCoordinator.swift in Sources" ios/Runner.xcodeproj/project.pbxproj
           grep -q "NSLocationWhenInUseUsageDescription" ios/Runner/Info.plist
           grep -q "NSMicrophoneUsageDescription" ios/Runner/Info.plist
           /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes:0" ios/Runner/Info.plist | grep -qx audio
@@ -73,14 +76,25 @@ jobs:
             -target arm64-apple-ios14.0-simulator \
             -typecheck ios/Runner/AudioSessionCoordinator.swift
 
+      - name: Validate native backup exclusion boundary
+        run: |
+          swiftc \
+            ios/Runner/BackupExclusionCoordinator.swift \
+            ios/NativeTests/BackupExclusionCoordinatorValidation.swift \
+            -o /tmp/backup-exclusion-validation
+          /tmp/backup-exclusion-validation
+
       - name: Get dependencies
         run: flutter pub get
 
       - name: Install iOS pods from committed project
+        id: ios_pods
+        continue-on-error: true
         working-directory: ios
         run: pod install
 
       - name: Audit committed Xcode graph
+        if: steps.ios_pods.outcome == 'success'
         run: |
           xcodebuild \
             -workspace ios/Runner.xcworkspace \
@@ -114,6 +128,7 @@ jobs:
       # This is our signing-independent native compiler/plugin gate; a real
       # device archive remains a separate Apple signing/provisioning gate.
       - name: Build iOS simulator app
+        if: steps.ios_pods.outcome == 'success'
         id: ios_build
         continue-on-error: true
         run: flutter build ios --simulator --debug
@@ -145,15 +160,20 @@ jobs:
         run: |
           failed=0
 
+          if [[ "${{ steps.ios_pods.outcome }}" != "success" ]]; then
+            echo "::error::CocoaPods could not integrate the committed Runner project."
+            failed=1
+          fi
+
           if [[ "${{ steps.shared_tests.outcome }}" != "success" ]]; then
             echo "::error::Shared Flutter tests failed on this staging snapshot."
             echo "Shared-code correction belongs to CI/Feature ownership; refresh/rebase before landing."
             failed=1
           fi
 
-          if [[ "${{ steps.ios_build.outcome }}" != "success" ]]; then
+          if [[ "${{ steps.ios_pods.outcome }}" == "success" && "${{ steps.ios_build.outcome }}" != "success" ]]; then
             echo "::error::The signing-independent iOS simulator build failed."
-            echo "The earlier native Swift type-check remains an independent result."
+            echo "The earlier native Swift and backup-exclusion checks remain independent results."
             failed=1
           fi
 
