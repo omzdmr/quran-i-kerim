@@ -1,3 +1,4 @@
+import 'memorization_practice_history_store.dart';
 import 'memorization_progress_store.dart';
 
 enum MemorizationReviewFreshness { neverReviewed, overdue, aging, fresh }
@@ -42,9 +43,16 @@ class MemorizationReviewCoverage {
   double get coveredFraction => total == 0 ? 0 : (total - neverReviewedCount) / total;
 }
 
+DateTime? _latest(DateTime? left, DateTime? right) {
+  if (left == null) return right;
+  if (right == null) return left;
+  return left.isAfter(right) ? left : right;
+}
+
 MemorizationReviewCoverage buildMemorizationReviewCoverage({
   required MemorizationProgressSnapshot progress,
   required DateTime now,
+  MemorizationPracticeHistorySnapshot? practiceHistory,
   int agingAfterDays = 7,
   int overdueAfterDays = 14,
 }) {
@@ -62,7 +70,8 @@ MemorizationReviewCoverage buildMemorizationReviewCoverage({
   final pages = progress.memorizedPages.toList()..sort();
   for (final page in pages) {
     final pageProgress = progress.progressForPage(page);
-    final reviewedAt = pageProgress?.lastReviewedAt;
+    final practiceAt = practiceHistory?.latestForPage(page)?.occurredAt;
+    final reviewedAt = _latest(pageProgress?.lastReviewedAt, practiceAt);
     int? ageDays;
     late MemorizationReviewFreshness freshness;
 
