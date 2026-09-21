@@ -18,12 +18,10 @@ void main() {
     if (await tempRoot.exists()) await tempRoot.delete(recursive: true);
   });
 
-  BackupFileService service({int maxImportBytes = 8 * 1024 * 1024}) {
-    return BackupFileService(
-      directoryProvider: () async => tempRoot,
-      maxImportBytes: maxImportBytes,
-    );
-  }
+  BackupFileService service({int maxImportBytes = 8 * 1024 * 1024}) => BackupFileService(
+        directoryProvider: () async => tempRoot,
+        maxImportBytes: maxImportBytes,
+      );
 
   test('exports an atomic current-schema JSON file', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{
@@ -31,34 +29,31 @@ void main() {
       'dhikr_v2_selected': 'subhanallah',
       'reading_plan_state_v1': '{"active":{"preset":"quran30"}}',
     });
-
-    final file = await service().exportToFile(
-      now: DateTime.parse('2026-09-16T18:00:00+08:00'),
-    );
-
+    final file = await service().exportToFile(now: DateTime.parse('2026-09-16T18:00:00+08:00'));
     expect(await file.exists(), isTrue);
     expect(file.path, contains('quran_backups'));
     expect(file.path, endsWith('.json'));
     final decoded = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
     expect(decoded['version'], BackupManifest.schemaVersion);
     expect(decoded['createdAt'], '2026-09-16T10:00:00.000Z');
-    expect(
-      ((decoded['data'] as Map)['readingPlans'] as Map)['reading_plan_state_v1'],
-      isNotNull,
-    );
+    expect(((decoded['data'] as Map)['readingPlans'] as Map)['reading_plan_state_v1'], isNotNull);
     expect(file.parent.listSync().whereType<File>(), hasLength(1));
     expect(file.parent.listSync().any((entry) => entry.path.contains('.tmp-')), isFalse);
   });
 
-  test('lists only local backup files newest first', () async {
+  test('lists managed exports and safety snapshots newest first', () async {
     final fileService = service();
     final older = await fileService.exportToFile(now: DateTime.parse('2026-09-15T10:00:00Z'));
-    final newer = await fileService.exportToFile(now: DateTime.parse('2026-09-16T10:00:00Z'));
-    await File('${newer.parent.path}${Platform.pathSeparator}unrelated.json').writeAsString('{}');
-    await File('${newer.parent.path}${Platform.pathSeparator}quran-backup-ignore.tmp').writeAsString('{}');
-
+    final input = File('${tempRoot.path}${Platform.pathSeparator}restore.json');
+    await input.writeAsString(jsonEncode(<String, Object?>{
+      'version': BackupManifest.schemaVersion,
+      'createdAt': '2026-09-16T09:00:00Z',
+      'data': <String, Object?>{'reading': <String, Object?>{'last_surah': 36}},
+    }));
+    final receipt = await fileService.restoreFile(input, now: DateTime.parse('2026-09-16T10:00:00Z'));
+    await File('${receipt.safetySnapshot.parent.path}${Platform.pathSeparator}unrelated.json').writeAsString('{}');
     final files = await fileService.listBackupFiles();
-    expect(files.map((file) => file.path), <String>[newer.path, older.path]);
+    expect(files.map((file) => file.path), <String>[receipt.safetySnapshot.path, older.path]);
   });
 
   test('returns an empty list before the backup directory exists', () async {
@@ -67,35 +62,59 @@ void main() {
     expect(await Directory('${tempRoot.path}${Platform.pathSeparator}quran_backups').exists(), isFalse);
   });
 
-  test('previews and restores a selected version-three backup file', () async {
-    final input = File('${tempRoot.path}${Platform.pathSeparator}import.json');
-    await input.writeAsString(jsonEncode(<String, Object?>{
-      'version': 3,
-      'createdAt': '2026-09-16T10:00:00Z',
-      'data': <String, Object?>{
-        'reading': <String, Object?>{'last_surah': 36, 'last_ayah': 58},
-        'dhikr': <String, Object?>{'dhikr_v2_selected': 'alhamdulillah'},
-      },
-    }));
-
-    final fileService = service();
-    final preview = await fileService.previewFile(input);
-    expect(preview.canRestore, isTrue);
-    expect(preview.recordCounts['reading'], 2);
-
-    await fileService.restoreFile(input);
-    final prefs = await SharedPreferences.getInstance();
-    expect(prefs.getInt('last_surah'), 36);
-    expect(prefs.getInt('last_ayah'), 58);
-    expect(prefs.getString('dhikr_v2_selected'), 'alhamdulillah');
-  });
-
-  test('plans conflicts then merge preserves device-only records', () async {
+  test('restore creates a recoverable snapshot of exact pre-restore user data', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{
       'last_surah': 2,
       'last_ayah': 255,
       'theme_mode': 'dark',
     });
+    final input = File('${tempRoot.path}${Platform.pathSeparator}import.json');
+    await input.writeAsString(jsonEncode(<String, Object?>{
+      'version': BackupManifest.schemaVersion,
+      'createdAt': '2026-09-16T10:00:00Z',
+      'data': <String, Object?>{'reading': <String, Object?>{'last_surah': 36}},
+    }));
+
+    final fileService = service();
+    final receipt = await fileService.restoreFile(
+      input,
+      mode: BackupRestoreMode.replace,
+      now: DateTime.parse('2026-09-21T16:00:00Z'),
+    );
+    expect(receipt.mode, BackupRestoreMode.replace);
+    expect(receipt.restoredAt, DateTime.parse('2026-09-21T16:00:00Z'));
+    expect(_name(receipt.safetySnapshot), startsWith('quran-safety-before-restore-'));
+
+    final safety = jsonDecode(await receipt.safetySnapshot.readAsString()) as Map<String, dynamic>;
+    final reading = (safety['data'] as Map)['reading'] as Map;
+    final preferences = (safety['data'] as Map)['preferences'] as Map;
+    expect(reading['last_surah'], 2);
+    expect(reading['last_ayah'], 255);
+    expect(preferences['theme_mode'], 'dark');
+
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getInt('last_surah'), 36);
+    expect(prefs.containsKey('last_ayah'), isFalse);
+  });
+
+  test('safety snapshot itself can restore the previous state', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{'last_surah': 2, 'last_ayah': 255});
+    final input = File('${tempRoot.path}${Platform.pathSeparator}replace.json');
+    await input.writeAsString(jsonEncode(<String, Object?>{
+      'version': BackupManifest.schemaVersion,
+      'createdAt': '2026-09-21T10:00:00Z',
+      'data': <String, Object?>{'reading': <String, Object?>{'last_surah': 36}},
+    }));
+    final fileService = service();
+    final receipt = await fileService.restoreFile(input, mode: BackupRestoreMode.replace);
+    await fileService.restoreFile(receipt.safetySnapshot, mode: BackupRestoreMode.replace);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getInt('last_surah'), 2);
+    expect(prefs.getInt('last_ayah'), 255);
+  });
+
+  test('plans conflicts then merge preserves device-only records', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{'last_surah': 2, 'last_ayah': 255, 'theme_mode': 'dark'});
     final input = File('${tempRoot.path}${Platform.pathSeparator}merge.json');
     await input.writeAsString(jsonEncode(<String, Object?>{
       'version': BackupManifest.schemaVersion,
@@ -105,13 +124,11 @@ void main() {
         'preferences': <String, Object?>{'app_locale': 'tr'},
       },
     }));
-
     final fileService = service();
     final plan = await fileService.planImportFile(input);
     expect(plan.conflictingRecords, 1);
     expect(plan.incomingOnlyRecords, 1);
     expect(plan.localOnlyRecords, 2);
-
     await fileService.restoreFile(input, mode: BackupRestoreMode.merge);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getInt('last_surah'), 36);
@@ -120,33 +137,9 @@ void main() {
     expect(prefs.getString('app_locale'), 'tr');
   });
 
-  test('replace removes device-only managed records', () async {
-    SharedPreferences.setMockInitialValues(<String, Object>{
-      'last_surah': 2,
-      'last_ayah': 255,
-    });
-    final input = File('${tempRoot.path}${Platform.pathSeparator}replace.json');
-    await input.writeAsString(jsonEncode(<String, Object?>{
-      'version': BackupManifest.schemaVersion,
-      'createdAt': '2026-09-21T10:00:00Z',
-      'data': <String, Object?>{
-        'reading': <String, Object?>{'last_surah': 36},
-      },
-    }));
-
-    await service().restoreFile(input, mode: BackupRestoreMode.replace);
-    final prefs = await SharedPreferences.getInstance();
-    expect(prefs.getInt('last_surah'), 36);
-    expect(prefs.containsKey('last_ayah'), isFalse);
-  });
-
   test('accepts an import exactly at the configured byte limit', () async {
     final input = File('${tempRoot.path}${Platform.pathSeparator}limit.json');
-    final encoded = jsonEncode(<String, Object?>{
-      'version': 4,
-      'createdAt': '2026-09-16T10:00:00Z',
-      'data': <String, Object?>{},
-    });
+    final encoded = jsonEncode(<String, Object?>{'version': 4, 'createdAt': '2026-09-16T10:00:00Z', 'data': <String, Object?>{}});
     await input.writeAsString(encoded);
     final preview = await service(maxImportBytes: encoded.length).previewFile(input);
     expect(preview.canRestore, isTrue);
@@ -172,3 +165,5 @@ void main() {
     expect(prefs.getInt('last_surah'), 9);
   });
 }
+
+String _name(File file) => file.path.split(Platform.pathSeparator).last;
