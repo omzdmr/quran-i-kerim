@@ -13,20 +13,20 @@ void main() {
     final preview = importer.parse(encoded);
     expect(preview.meetingPoint?.name, 'Camp');
     expect(preview.packing.single.label, 'Passport');
-
     expect(await const TravelMeetingPointStore().load(), isNull);
     await importer.apply(preview);
     expect((await const TravelMeetingPointStore().load())?.address, 'Gate 3');
     expect((await const TravelPackingStore().load()).single.packed, isTrue);
   });
 
-  test('unknown schema and duplicate item ids are rejected without writes', () async {
+  test('invalid, duplicate and oversized payloads are rejected without writes', () async {
     const importer = TravelToolsImport();
     expect(() => importer.parse('{"schema":"other","version":1,"packing":[]}'), throwsFormatException);
     expect(
       () => importer.parse('{"schema":"quran-i-kerim.travel-tools","version":1,"meetingPoint":null,"packing":[{"id":"x","label":"A","packed":false},{"id":"x","label":"B","packed":false}]}'),
       throwsFormatException,
     );
+    expect(() => importer.parse('x' * (TravelToolsImport.maxEncodedLength + 1)), throwsFormatException);
     expect(await const TravelPackingStore().load(), isEmpty);
   });
 }
