@@ -32,6 +32,9 @@ void main() {
 
     expect(find.textContaining('bad-reference'), findsOneWidget);
     expect(find.textContaining('2:255'), findsOneWidget);
+    await tester.tap(find.textContaining('bad-reference'));
+    await tester.pump();
+    expect(AppNavigation.instance.readerRequest.value, isNull);
     expect(tester.takeException(), isNull);
   });
 
