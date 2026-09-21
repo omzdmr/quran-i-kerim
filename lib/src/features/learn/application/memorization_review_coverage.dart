@@ -116,16 +116,19 @@ MemorizationReviewCoverage buildMemorizationReviewCoverage({
     ));
   }
 
-  int rank(MemorizationReviewFreshness value) => switch (value) {
-        MemorizationReviewFreshness.neverReviewed => 0,
-        MemorizationReviewFreshness.overdue => 1,
-        MemorizationReviewFreshness.aging => 2,
-        MemorizationReviewFreshness.fresh => 3,
-      };
+  int rank(MemorizationReviewCoverageItem item) {
+    if (item.needsAttention) return 0;
+    return switch (item.freshness) {
+      MemorizationReviewFreshness.aging => 1,
+      MemorizationReviewFreshness.fresh => 2,
+      MemorizationReviewFreshness.neverReviewed => 3,
+      MemorizationReviewFreshness.overdue => 0,
+    };
+  }
 
   items.sort((a, b) {
-    final freshness = rank(a.freshness).compareTo(rank(b.freshness));
-    if (freshness != 0) return freshness;
+    final priority = rank(a).compareTo(rank(b));
+    if (priority != 0) return priority;
     final age = (b.ageDays ?? -1).compareTo(a.ageDays ?? -1);
     if (age != 0) return age;
     return a.page.compareTo(b.page);
