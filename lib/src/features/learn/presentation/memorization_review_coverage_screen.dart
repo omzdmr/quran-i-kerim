@@ -160,9 +160,11 @@ class _CoveragePageTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final age = item.ageDays;
-    final ageText = age == null ? reviewLabel : '$age';
-    final semantic = '$pageLabel ${item.page}, $reviewLabel, $ageText';
+    final reviewedAt = item.lastReviewedAt;
+    final dateText = reviewedAt == null
+        ? reviewLabel
+        : MaterialLocalizations.of(context).formatCompactDate(reviewedAt);
+    final semantic = '$pageLabel ${item.page}, $reviewLabel, $dateText';
     return Semantics(
       button: true,
       label: semantic,
@@ -170,7 +172,7 @@ class _CoveragePageTile extends StatelessWidget {
         child: ListTile(
           leading: Icon(_icon),
           title: Text('$pageLabel ${item.page}'),
-          subtitle: Text(ageText),
+          subtitle: Text(dateText),
           trailing: const Icon(Icons.chevron_right_rounded),
           onTap: onTap,
         ),
