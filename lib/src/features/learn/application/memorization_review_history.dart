@@ -11,6 +11,7 @@ class MemorizationReviewHistoryPage {
     required this.latestReviewAt,
     required this.contexts,
     required this.selfAssessment,
+    this.hasDetailedHistory = true,
   });
 
   final int page;
@@ -19,6 +20,7 @@ class MemorizationReviewHistoryPage {
   final DateTime? latestReviewAt;
   final Set<MemorizationPracticeContext> contexts;
   final MemorizationSelfAssessment? selfAssessment;
+  final bool hasDetailedHistory;
 }
 
 class MemorizationReviewHistorySummary {
@@ -34,7 +36,7 @@ class MemorizationReviewHistorySummary {
   final int recentEvents;
   final int reviewedPageCount;
 
-  bool get isEmpty => totalEvents == 0;
+  bool get isEmpty => pages.isEmpty;
 }
 
 MemorizationReviewHistorySummary buildMemorizationReviewHistory({
@@ -84,6 +86,29 @@ MemorizationReviewHistorySummary buildMemorizationReviewHistory({
         selfAssessment: progress.progressForPage(entry.key)?.selfAssessment,
       ),
     );
+  }
+
+  // Older app versions stored only lastReviewedAt. Keep that history visible
+  // instead of making an existing user's review record appear to vanish after
+  // upgrading. Context/count remain explicitly unknown until new events exist.
+  if (filter == MemorizationReviewHistoryFilter.all) {
+    for (final page in progress.memorizedPages) {
+      if (byPage.containsKey(page)) continue;
+      final pageProgress = progress.progressForPage(page);
+      final reviewedAt = pageProgress?.lastReviewedAt;
+      if (reviewedAt == null) continue;
+      pages.add(
+        MemorizationReviewHistoryPage(
+          page: page,
+          totalReviews: 0,
+          recentReviews: 0,
+          latestReviewAt: reviewedAt,
+          contexts: const <MemorizationPracticeContext>{},
+          selfAssessment: pageProgress?.selfAssessment,
+          hasDetailedHistory: false,
+        ),
+      );
+    }
   }
 
   pages.sort((a, b) {
