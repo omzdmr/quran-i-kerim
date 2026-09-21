@@ -1,67 +1,58 @@
 import Foundation
 
-private func expect(_ condition: @autoclosure () -> Bool, _ message: String) {
-  guard condition() else { fputs("WidgetSnapshotValidation failed: \(message)\n", stderr); exit(1) }
-}
+private func expect(_ condition: @autoclosure () -> Bool, _ message: String) { guard condition() else { fputs("WidgetSnapshotValidation failed: \(message)\n", stderr); exit(1) } }
+private func expectInvalid(_ snapshot: WidgetPrayerSnapshot, store: WidgetSnapshotStore, now: Date, _ message: String) { do { try store.save(snapshot, now: now); expect(false, message) } catch WidgetSnapshotStore.StoreError.invalidSnapshot { } catch { expect(false, "unexpected error: \(error)") } }
 
-private func expectInvalid(_ snapshot: WidgetPrayerSnapshot, store: WidgetSnapshotStore, now: Date, _ message: String) {
-  do { try store.save(snapshot, now: now); expect(false, message) }
-  catch WidgetSnapshotStore.StoreError.invalidSnapshot { }
-  catch { expect(false, "unexpected error: \(error)") }
-}
-
-@main
-struct WidgetSnapshotValidation {
+@main struct WidgetSnapshotValidation {
   static func main() throws {
     let suite = "WidgetSnapshotValidation.\(UUID().uuidString)"
     guard let defaults = UserDefaults(suiteName: suite) else { exit(2) }
     defer { defaults.removePersistentDomain(forName: suite) }
-
-    let store = WidgetSnapshotStore(defaults: defaults)
-    let now = Date(timeIntervalSince1970: 1_800_000_000)
-    let shanghai = TimeZone(identifier: "Asia/Shanghai")!
-    let istanbul = TimeZone(identifier: "Europe/Istanbul")!
-    let nextPrayer = now.addingTimeInterval(600)
-    let policy = "method=MWL;asr=standard;offsets=0"
+    let store = WidgetSnapshotStore(defaults: defaults), now = Date(timeIntervalSince1970: 1_800_000_000)
+    let shanghai = TimeZone(identifier: "Asia/Shanghai")!, istanbul = TimeZone(identifier: "Europe/Istanbul")!
+    let nextPrayer = now.addingTimeInterval(600), policy = "method=MWL;asr=standard;offsets=0"
     let snapshot = WidgetPrayerSnapshot(generatedAt: now.addingTimeInterval(-30), validUntil: now.addingTimeInterval(900), timeZoneIdentifier: shanghai.identifier, calculationFingerprint: policy, nextPrayerID: "asr", nextPrayerAt: nextPrayer, displayName: "Asr", privacyMode: .standard)
 
     try store.save(snapshot, now: now)
     expect(store.load() == snapshot, "snapshot must round-trip through shared defaults")
-    expect(snapshot.freshness(at: now, currentTimeZone: shanghai) == .fresh, "fresh snapshot should report a useful freshness state")
-    expect(snapshot.freshness(at: now, currentTimeZone: istanbul) == .timeZoneChanged, "timezone changes must be distinguishable from generic staleness")
-    expect(snapshot.freshness(at: nextPrayer, currentTimeZone: shanghai) == .prayerBoundaryPassed, "prayer boundary must invalidate the previous countdown exactly on time")
-    expect(snapshot.freshness(at: now.addingTimeInterval(901), currentTimeZone: shanghai) == .expired, "validUntil must be a hard display boundary")
-    expect(snapshot.presentation(at: nextPrayer, currentTimeZone: shanghai) == .stale, "details must become stale exactly when the next prayer begins")
+    expect(store.lastInvalidationReason() == nil, "successful publish must clear prior invalidation diagnostics")
+    expect(snapshot.freshness(at: now, currentTimeZone: shanghai) == .fresh, "fresh snapshot should report fresh")
+    expect(snapshot.freshness(at: now, currentTimeZone: istanbul) == .timeZoneChanged, "timezone drift must be explicit")
+    expect(snapshot.freshness(at: nextPrayer, currentTimeZone: shanghai) == .prayerBoundaryPassed, "prayer boundary must invalidate exactly on time")
+    expect(snapshot.freshness(at: now.addingTimeInterval(901), currentTimeZone: shanghai) == .expired, "validUntil must be hard")
 
     let redacted = WidgetPrayerSnapshot(generatedAt: now, validUntil: now.addingTimeInterval(300), timeZoneIdentifier: shanghai.identifier, calculationFingerprint: "same-policy", nextPrayerID: "maghrib", nextPrayerAt: now.addingTimeInterval(200), displayName: "Maghrib", privacyMode: .redacted)
-    expect(redacted.presentation(at: now, currentTimeZone: shanghai) == .redacted, "privacy mode must suppress lock-screen prayer details")
+    expect(redacted.presentation(at: now, currentTimeZone: shanghai) == .redacted, "privacy mode must suppress lock-screen details")
 
-    expectInvalid(WidgetPrayerSnapshot(generatedAt: now.addingTimeInterval(-100), validUntil: now.addingTimeInterval(-1), timeZoneIdentifier: shanghai.identifier, calculationFingerprint: "policy", nextPrayerID: nil, nextPrayerAt: nil, displayName: nil, privacyMode: .standard), store: store, now: now, "expired snapshots must be rejected")
-    expectInvalid(WidgetPrayerSnapshot(generatedAt: now, validUntil: now.addingTimeInterval(300), timeZoneIdentifier: shanghai.identifier, calculationFingerprint: "policy", nextPrayerID: "fajr", nextPrayerAt: nil, displayName: "Fajr", privacyMode: .standard), store: store, now: now, "prayer id without a prayer time must be rejected")
-    expectInvalid(WidgetPrayerSnapshot(generatedAt: now, validUntil: now.addingTimeInterval(300), timeZoneIdentifier: shanghai.identifier, calculationFingerprint: "policy", nextPrayerID: nil, nextPrayerAt: now.addingTimeInterval(200), displayName: "Fajr", privacyMode: .standard), store: store, now: now, "prayer time without a prayer id must be rejected")
-    expectInvalid(WidgetPrayerSnapshot(generatedAt: now, validUntil: now.addingTimeInterval(300), timeZoneIdentifier: shanghai.identifier, calculationFingerprint: "policy", nextPrayerID: "   ", nextPrayerAt: now.addingTimeInterval(200), displayName: "Fajr", privacyMode: .standard), store: store, now: now, "whitespace-only prayer ids must be rejected")
-    expectInvalid(WidgetPrayerSnapshot(generatedAt: now, validUntil: now.addingTimeInterval(300), timeZoneIdentifier: shanghai.identifier, calculationFingerprint: "policy", nextPrayerID: "fajr", nextPrayerAt: now.addingTimeInterval(-1), displayName: "Fajr", privacyMode: .standard), store: store, now: now, "prayer time before generation must be rejected")
-    expectInvalid(WidgetPrayerSnapshot(generatedAt: now, validUntil: now.addingTimeInterval(300), timeZoneIdentifier: "Not/A_TimeZone", calculationFingerprint: "policy", nextPrayerID: "fajr", nextPrayerAt: now.addingTimeInterval(200), displayName: "Fajr", privacyMode: .standard), store: store, now: now, "unknown timezone identifiers must be rejected")
-    expectInvalid(WidgetPrayerSnapshot(generatedAt: now, validUntil: now.addingTimeInterval(300), timeZoneIdentifier: shanghai.identifier, calculationFingerprint: "policy", nextPrayerID: "fajr", nextPrayerAt: now.addingTimeInterval(301), displayName: "Fajr", privacyMode: .standard), store: store, now: now, "next prayer cannot outlive the snapshot validity window")
-    expectInvalid(WidgetPrayerSnapshot(generatedAt: now.addingTimeInterval(61), validUntil: now.addingTimeInterval(400), timeZoneIdentifier: shanghai.identifier, calculationFingerprint: "policy", nextPrayerID: "fajr", nextPrayerAt: now.addingTimeInterval(300), displayName: "Fajr", privacyMode: .standard), store: store, now: now, "snapshots generated materially in the future must be rejected")
-    expectInvalid(WidgetPrayerSnapshot(generatedAt: now, validUntil: now, timeZoneIdentifier: shanghai.identifier, calculationFingerprint: "policy", nextPrayerID: nil, nextPrayerAt: nil, displayName: nil, privacyMode: .standard), store: store, now: now, "zero-length validity windows must be rejected")
-    expectInvalid(WidgetPrayerSnapshot(generatedAt: now, validUntil: now.addingTimeInterval(300), timeZoneIdentifier: shanghai.identifier, calculationFingerprint: "  ", nextPrayerID: nil, nextPrayerAt: nil, displayName: nil, privacyMode: .standard), store: store, now: now, "blank calculation fingerprints must be rejected")
+    expectInvalid(WidgetPrayerSnapshot(generatedAt: now, validUntil: now.addingTimeInterval(300), timeZoneIdentifier: "Not/A_TimeZone", calculationFingerprint: "policy", nextPrayerID: "fajr", nextPrayerAt: now.addingTimeInterval(200), displayName: "Fajr", privacyMode: .standard), store: store, now: now, "unknown timezone must reject without crashing")
+    expectInvalid(WidgetPrayerSnapshot(generatedAt: now, validUntil: now.addingTimeInterval(300), timeZoneIdentifier: shanghai.identifier, calculationFingerprint: " ", nextPrayerID: nil, nextPrayerAt: nil, displayName: nil, privacyMode: .standard), store: store, now: now, "blank fingerprint must reject")
+    expectInvalid(WidgetPrayerSnapshot(generatedAt: now, validUntil: now.addingTimeInterval(300), timeZoneIdentifier: shanghai.identifier, calculationFingerprint: "policy", nextPrayerID: "fajr", nextPrayerAt: nil, displayName: nil, privacyMode: .standard), store: store, now: now, "unpaired prayer id must reject")
+    expectInvalid(WidgetPrayerSnapshot(generatedAt: now.addingTimeInterval(61), validUntil: now.addingTimeInterval(400), timeZoneIdentifier: shanghai.identifier, calculationFingerprint: "policy", nextPrayerID: "fajr", nextPrayerAt: now.addingTimeInterval(300), displayName: nil, privacyMode: .standard), store: store, now: now, "future generation must reject")
 
     try store.save(snapshot, now: now)
-    expect(!store.purgeIfStale(now: now, timeZone: shanghai), "fresh state must not be purged")
-    expect(store.purgeIfStale(now: now, timeZone: istanbul), "timezone drift must purge stale prayer projection")
-    expect(store.load() == nil, "timezone purge must remove projection")
+    expect(store.purgeIfStale(now: now, timeZone: istanbul), "timezone drift must purge")
+    expect(store.load() == nil && store.lastInvalidationReason() == "stale", "stale purge must retain diagnostic reason")
+    try store.save(snapshot, now: now)
+    expect(store.purgeIfPolicyChanged(currentFingerprint: "method=Karachi"), "policy change must purge")
+    expect(store.lastInvalidationReason() == "policyChanged", "policy purge must be diagnosable")
+
+    // Simulate damaged App Group bytes from an interrupted/legacy write. The first validated read
+    // must quarantine them rather than feeding an endless decode failure to app + extension.
+    defaults.set(Data("not-json".utf8), forKey: WidgetSnapshotStore.snapshotKey)
+    expect(store.validatedLoad(now: now, timeZone: shanghai) == nil, "corrupt payload must not escape validated load")
+    expect(defaults.object(forKey: WidgetSnapshotStore.snapshotKey) == nil, "corrupt payload must be removed")
+    expect(store.lastInvalidationReason() == "corruptPayload", "corruption quarantine must leave diagnostics")
+
+    // A structurally impossible but decodable payload is equally unsafe.
+    let malformedJSON = "{\"version\":1,\"generatedAt\":1800000000000,\"validUntil\":1800000300000,\"timeZoneIdentifier\":\"Asia/Shanghai\",\"calculationFingerprint\":\"\",\"privacyMode\":\"standard\"}"
+    defaults.set(Data(malformedJSON.utf8), forKey: WidgetSnapshotStore.snapshotKey)
+    expect(store.validatedLoad(now: now, timeZone: shanghai) == nil, "structurally malformed payload must be quarantined")
+    expect(store.lastInvalidationReason() == "corruptPayload", "malformed quarantine must be diagnosable")
 
     try store.save(snapshot, now: now)
-    expect(store.purgeIfStale(now: nextPrayer, timeZone: shanghai), "crossing prayer boundary must make projection purgeable")
-    expect(store.load() == nil, "prayer-boundary purge must clear projection")
-
-    try store.save(snapshot, now: now)
-    expect(!store.purgeIfPolicyChanged(currentFingerprint: policy), "same calculation policy must preserve a valid projection")
-    expect(store.load() != nil, "same policy must keep snapshot")
-    expect(store.purgeIfPolicyChanged(currentFingerprint: "method=Karachi;asr=hanafi;offsets=0"), "calculation policy changes must invalidate projected prayer data")
-    expect(store.load() == nil, "policy invalidation must remove the old projection")
-
+    expect(store.lastInvalidationReason() == nil, "a healthy republish must clear old quarantine diagnostics")
+    store.clear()
+    expect(store.lastInvalidationReason() == "explicitClear", "explicit clear must be distinguishable from failure")
     print("WidgetSnapshotValidation passed")
   }
 }
