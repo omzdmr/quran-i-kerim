@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -142,7 +143,7 @@ class OfflineAudioManager extends ChangeNotifier {
     final readiness = inspection.ayahBytes.isEmpty && !inspection.hasPartials
         ? OfflineAudioPackReadiness.notInstalled
         : manifest == null
-        ? (inspection.ayahBytes.length >= verseCount
+        ? (inspection.manifestPresent || inspection.ayahBytes.length >= verseCount
               ? OfflineAudioPackReadiness.needsRepair
               : OfflineAudioPackReadiness.incomplete)
         : manifest.matches(
@@ -150,6 +151,7 @@ class OfflineAudioManager extends ChangeNotifier {
             expectedSurah: surah,
             expectedVerseCount: verseCount,
             actualAyahBytes: inspection.ayahBytes,
+            actualAyahSha256: inspection.ayahSha256,
             hasPartialFiles: inspection.hasPartials,
           )
         ? OfflineAudioPackReadiness.ready
@@ -334,6 +336,7 @@ class OfflineAudioManager extends ChangeNotifier {
                   expectedSurah: surah,
                   expectedVerseCount: verseCount,
                   actualAyahBytes: inspection.ayahBytes,
+                  actualAyahSha256: inspection.ayahSha256,
                   hasPartialFiles: inspection.hasPartials,
                 )
             ? OfflineAudioPackReadiness.ready
@@ -426,6 +429,7 @@ class OfflineAudioManager extends ChangeNotifier {
         surah: surah,
         verseCount: verseCount,
         ayahBytes: inspection.ayahBytes,
+        ayahSha256: inspection.ayahSha256,
         completedAt: DateTime.now().toUtc(),
       ).encode(),
       flush: true,
@@ -441,13 +445,20 @@ class OfflineAudioManager extends ChangeNotifier {
     final directory = await _surahDirectory(storageKey, surah, create: false);
     if (!await directory.exists()) return const _AudioDirectoryInspection();
     final ayahBytes = <int, int>{};
+    final ayahSha256 = <int, String>{};
     var hasPartials = false;
+    var manifestPresent = false;
     OfflineAudioPackManifest? manifest;
     await for (final entity in directory.list()) {
       if (entity is! File) continue;
       final name = entity.path.split(Platform.pathSeparator).last;
       if (name == 'pack_manifest_v1.json') {
-        manifest = OfflineAudioPackManifest.decode(await entity.readAsString());
+        manifestPresent = true;
+        try {
+          manifest = OfflineAudioPackManifest.decode(await entity.readAsString());
+        } catch (_) {
+          manifest = null;
+        }
         continue;
       }
       if (name.endsWith('.part')) {
@@ -462,12 +473,16 @@ class OfflineAudioManager extends ChangeNotifier {
           await entity.delete();
           continue;
         }
-        ayahBytes[int.parse(match.group(1)!)] = length;
+        final ayah = int.parse(match.group(1)!);
+        ayahBytes[ayah] = length;
+        ayahSha256[ayah] = (await sha256.bind(entity.openRead()).first).toString();
       } catch (_) {}
     }
     return _AudioDirectoryInspection(
       ayahBytes: Map<int, int>.unmodifiable(ayahBytes),
+      ayahSha256: Map<int, String>.unmodifiable(ayahSha256),
       hasPartials: hasPartials,
+      manifestPresent: manifestPresent,
       manifest: manifest,
     );
   }
@@ -524,12 +539,16 @@ class OfflineAudioManager extends ChangeNotifier {
 class _AudioDirectoryInspection {
   const _AudioDirectoryInspection({
     this.ayahBytes = const <int, int>{},
+    this.ayahSha256 = const <int, String>{},
     this.hasPartials = false,
+    this.manifestPresent = false,
     this.manifest,
   });
 
   final Map<int, int> ayahBytes;
+  final Map<int, String> ayahSha256;
   final bool hasPartials;
+  final bool manifestPresent;
   final OfflineAudioPackManifest? manifest;
 
   int get totalBytes => ayahBytes.values.fold(0, (sum, value) => sum + value);

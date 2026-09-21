@@ -8,6 +8,11 @@ void main() {
     surah: 1,
     verseCount: 3,
     ayahBytes: <int, int>{1: 120, 2: 140, 3: 160},
+    ayahSha256: const <int, String>{
+      1: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      2: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+      3: 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+    },
     completedAt: DateTime.utc(2026, 9, 21),
   );
 
@@ -24,6 +29,11 @@ void main() {
         expectedSurah: 1,
         expectedVerseCount: 3,
         actualAyahBytes: const <int, int>{1: 120, 2: 140, 3: 160},
+        actualAyahSha256: const <int, String>{
+      1: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      2: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+      3: 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+    },
         hasPartialFiles: false,
       ),
       isTrue,
@@ -37,6 +47,11 @@ void main() {
         expectedSurah: 1,
         expectedVerseCount: 3,
         actualAyahBytes: const <int, int>{1: 120, 2: 140},
+        actualAyahSha256: const <int, String>{
+      1: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      2: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+      3: 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+    },
         hasPartialFiles: false,
       ),
       isFalse,
@@ -47,6 +62,11 @@ void main() {
         expectedSurah: 1,
         expectedVerseCount: 3,
         actualAyahBytes: const <int, int>{1: 120, 2: 999, 3: 160},
+        actualAyahSha256: const <int, String>{
+      1: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      2: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+      3: 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+    },
         hasPartialFiles: false,
       ),
       isFalse,
@@ -57,9 +77,30 @@ void main() {
         expectedSurah: 1,
         expectedVerseCount: 3,
         actualAyahBytes: const <int, int>{1: 120, 2: 140, 3: 160},
+        actualAyahSha256: const <int, String>{
+      1: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      2: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+      3: 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+    },
         hasPartialFiles: true,
       ),
       isFalse,
+    );
+    expect(
+      manifest.matches(
+        expectedStorageKey: 'reciter_128',
+        expectedSurah: 1,
+        expectedVerseCount: 3,
+        actualAyahBytes: const <int, int>{1: 120, 2: 140, 3: 160},
+        actualAyahSha256: const <int, String>{
+          1: 'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd',
+          2: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+          3: 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+        },
+        hasPartialFiles: false,
+      ),
+      isFalse,
+      reason: 'a changed payload checksum must fail closed',
     );
     expect(
       manifest.matches(
@@ -67,6 +108,11 @@ void main() {
         expectedSurah: 1,
         expectedVerseCount: 3,
         actualAyahBytes: const <int, int>{1: 120, 2: 140, 3: 160},
+        actualAyahSha256: const <int, String>{
+      1: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      2: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+      3: 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+    },
         hasPartialFiles: false,
       ),
       isFalse,
@@ -77,7 +123,7 @@ void main() {
     expect(OfflineAudioPackManifest.decode('{broken'), isNull);
     expect(
       OfflineAudioPackManifest.decode(
-        '{"formatVersion":99,"storageKey":"x","surah":1,"verseCount":1,"completedAt":"2026-09-21T00:00:00Z","ayahBytes":{"1":12}}',
+        '{"formatVersion":99,"storageKey":"x","surah":1,"verseCount":1,"completedAt":"2026-09-21T00:00:00Z","ayahBytes":{"1":12},"ayahSha256":{"1":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}',
       ),
       isNull,
     );
