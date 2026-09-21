@@ -2,30 +2,19 @@ import 'dart:convert';
 
 class BackupImportPlan {
   const BackupImportPlan({required this.incomingRecords, required this.localRecords, required this.conflictingRecords, required this.incomingOnlyRecords, required this.localOnlyRecords});
-  final int incomingRecords;
-  final int localRecords;
-  final int conflictingRecords;
-  final int incomingOnlyRecords;
-  final int localOnlyRecords;
+  final int incomingRecords; final int localRecords; final int conflictingRecords; final int incomingOnlyRecords; final int localOnlyRecords;
   bool get hasConflicts => conflictingRecords > 0;
 }
 
 class BackupImportPlanner {
   const BackupImportPlanner();
-
   BackupImportPlan build({required Map<String, Object?> currentSections, required Map<String, Object?> incomingSections}) {
     var incomingRecords = 0; var localRecords = 0; var conflictingRecords = 0; var incomingOnlyRecords = 0; var localOnlyRecords = 0;
     final sectionNames = <String>{...currentSections.keys, ...incomingSections.keys};
     for (final section in sectionNames) {
-      final current = _records(section, currentSections[section]);
-      final incoming = _records(section, incomingSections[section]);
-      localRecords += current.length; incomingRecords += incoming.length;
+      final current = _records(section, currentSections[section]); final incoming = _records(section, incomingSections[section]); localRecords += current.length; incomingRecords += incoming.length;
       final keys = <String>{...current.keys, ...incoming.keys};
-      for (final key in keys) {
-        final hasCurrent = current.containsKey(key); final hasIncoming = incoming.containsKey(key);
-        if (hasCurrent && hasIncoming) { if (!_equivalent(current[key], incoming[key])) conflictingRecords++; }
-        else if (hasIncoming) { incomingOnlyRecords++; } else { localOnlyRecords++; }
-      }
+      for (final key in keys) { final hasCurrent = current.containsKey(key); final hasIncoming = incoming.containsKey(key); if (hasCurrent && hasIncoming) { if (!_equivalent(current[key], incoming[key])) conflictingRecords++; } else if (hasIncoming) { incomingOnlyRecords++; } else { localOnlyRecords++; } }
     }
     return BackupImportPlan(incomingRecords: incomingRecords, localRecords: localRecords, conflictingRecords: conflictingRecords, incomingOnlyRecords: incomingOnlyRecords, localOnlyRecords: localOnlyRecords);
   }
@@ -33,7 +22,13 @@ class BackupImportPlanner {
   Map<String, Object?> _records(String section, Object? value) {
     if (section == 'fasting' && value is Map) {
       final expanded = _qadaRecords(value['qada_fasting_ledger_v1']);
-      if (expanded != null) return expanded;
+      if (expanded != null) {
+        return <String, Object?>{
+          for (final entry in value.entries)
+            if (entry.key is String && entry.key != 'qada_fasting_ledger_v1') 'pref:${entry.key}': entry.value,
+          for (final entry in expanded.entries) 'qada:${entry.key}': entry.value,
+        };
+      }
     }
     if (value is Map) return <String, Object?>{for (final entry in value.entries) if (entry.key is String) entry.key as String: entry.value};
     if (value is List) return <String, Object?>{for (var index = 0; index < value.length; index++) '#$index': value[index]};
@@ -43,19 +38,11 @@ class BackupImportPlanner {
   Map<String, Object?>? _qadaRecords(Object? encoded) {
     if (encoded is! String) return null;
     try {
-      final document = jsonDecode(encoded);
-      if (document is! Map || document['formatVersion'] != 1 || document['entries'] is! List) return null;
+      final document = jsonDecode(encoded); if (document is! Map || document['formatVersion'] != 1 || document['entries'] is! List) return null;
       final records = <String, Object?>{};
-      for (final event in document['entries'] as List) {
-        if (event is! Map || event['id'] is! String || (event['id'] as String).trim().isEmpty) return null;
-        final id = event['id'] as String;
-        if (records.containsKey(id)) return null;
-        records[id] = event;
-      }
+      for (final event in document['entries'] as List) { if (event is! Map || event['id'] is! String || (event['id'] as String).trim().isEmpty) return null; final id = event['id'] as String; if (records.containsKey(id)) return null; records[id] = event; }
       return records;
-    } on FormatException {
-      return null;
-    }
+    } on FormatException { return null; }
   }
 
   bool _equivalent(Object? a, Object? b) {
