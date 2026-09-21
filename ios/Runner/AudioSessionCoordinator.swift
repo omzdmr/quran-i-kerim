@@ -32,17 +32,26 @@ final class NowPlayingCoordinator {
   private let commandCenter: MPRemoteCommandCenter
   private var commandTargets: [(MPRemoteCommand, Any)] = []
   private var ownsNowPlayingInfo = false
+  private var isStarted = false
   init(infoCenter: MPNowPlayingInfoCenter = .default(), commandCenter: MPRemoteCommandCenter = .shared()) { self.infoCenter = infoCenter; self.commandCenter = commandCenter }
-  func start() { guard commandTargets.isEmpty else { return }; register(commandCenter.playCommand, command: .play); register(commandCenter.pauseCommand, command: .pause); register(commandCenter.nextTrackCommand, command: .next); register(commandCenter.previousTrackCommand, command: .previous); let seekTarget = commandCenter.changePlaybackPositionCommand.addTarget { [weak self] event in guard let self, self.ownsNowPlayingInfo, self.commandCenter.changePlaybackPositionCommand.isEnabled, let seekEvent = event as? MPChangePlaybackPositionCommandEvent, self.onRemoteCommand != nil else { return .commandFailed }; self.onRemoteCommand?(.seek, seekEvent.positionTime); return .success }; commandTargets.append((commandCenter.changePlaybackPositionCommand, seekTarget)) }
-  func stop() { if ownsNowPlayingInfo { clear() }; for (command, target) in commandTargets { command.removeTarget(target) }; commandTargets.removeAll() }
+
+  /// Registration alone must not compete with audio_service for MPRemoteCommandCenter.
+  /// Native command targets are installed only after this channel actually publishes metadata.
+  func start() { isStarted = true }
+  func stop() { if ownsNowPlayingInfo { clear() }; removeCommandTargets(); isStarted = false }
+
   func update(_ metadata: Metadata) {
+    guard isStarted else { return }
+    installCommandTargetsIfNeeded()
     let duration = metadata.duration.flatMap { $0.isFinite && $0 > 0 ? $0 : nil }, elapsed = duration.map { min(max(0, metadata.elapsed), $0) } ?? max(0, metadata.elapsed)
     var info: [String: Any] = [MPMediaItemPropertyTitle: metadata.title, MPMediaItemPropertyMediaType: MPMediaType.anyAudio.rawValue, MPNowPlayingInfoPropertyElapsedPlaybackTime: elapsed, MPNowPlayingInfoPropertyPlaybackRate: metadata.playbackRate, MPNowPlayingInfoPropertyDefaultPlaybackRate: 1.0]
     if let subtitle = metadata.subtitle, !subtitle.isEmpty { info[MPMediaItemPropertyArtist] = subtitle }; if let albumTitle = metadata.albumTitle, !albumTitle.isEmpty { info[MPMediaItemPropertyAlbumTitle] = albumTitle }; if let duration { info[MPMediaItemPropertyPlaybackDuration] = duration }
     ownsNowPlayingInfo = true; commandCenter.playCommand.isEnabled = true; commandCenter.pauseCommand.isEnabled = true; commandCenter.changePlaybackPositionCommand.isEnabled = duration != nil; commandCenter.nextTrackCommand.isEnabled = metadata.canGoNext; commandCenter.previousTrackCommand.isEnabled = metadata.canGoPrevious; infoCenter.nowPlayingInfo = info
     if #available(iOS 13.0, *) { infoCenter.playbackState = metadata.playbackRate > 0 ? .playing : .paused }
   }
-  func clear() { guard ownsNowPlayingInfo else { return }; infoCenter.nowPlayingInfo = nil; disablePlaybackCommands(); ownsNowPlayingInfo = false; if #available(iOS 13.0, *) { infoCenter.playbackState = .stopped } }
+  func clear() { guard ownsNowPlayingInfo else { return }; infoCenter.nowPlayingInfo = nil; disablePlaybackCommands(); ownsNowPlayingInfo = false; removeCommandTargets(); if #available(iOS 13.0, *) { infoCenter.playbackState = .stopped } }
+  private func installCommandTargetsIfNeeded() { guard commandTargets.isEmpty else { return }; register(commandCenter.playCommand, command: .play); register(commandCenter.pauseCommand, command: .pause); register(commandCenter.nextTrackCommand, command: .next); register(commandCenter.previousTrackCommand, command: .previous); let seekTarget = commandCenter.changePlaybackPositionCommand.addTarget { [weak self] event in guard let self, self.ownsNowPlayingInfo, self.commandCenter.changePlaybackPositionCommand.isEnabled, let seekEvent = event as? MPChangePlaybackPositionCommandEvent, self.onRemoteCommand != nil else { return .commandFailed }; self.onRemoteCommand?(.seek, seekEvent.positionTime); return .success }; commandTargets.append((commandCenter.changePlaybackPositionCommand, seekTarget)) }
+  private func removeCommandTargets() { for (command, target) in commandTargets { command.removeTarget(target) }; commandTargets.removeAll() }
   private func disablePlaybackCommands() { commandCenter.playCommand.isEnabled = false; commandCenter.pauseCommand.isEnabled = false; commandCenter.nextTrackCommand.isEnabled = false; commandCenter.previousTrackCommand.isEnabled = false; commandCenter.changePlaybackPositionCommand.isEnabled = false }
   private func register(_ remote: MPRemoteCommand, command: RemoteCommand) { let target = remote.addTarget { [weak self, weak remote] _ in guard let self, self.ownsNowPlayingInfo, remote?.isEnabled == true, self.onRemoteCommand != nil else { return .commandFailed }; self.onRemoteCommand?(command, nil); return .success }; commandTargets.append((remote, target)) }
 }
