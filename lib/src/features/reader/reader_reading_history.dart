@@ -29,14 +29,23 @@ class ReaderHistoryEntry {
     final ayah = value['ayah'];
     final sourceId = value['sourceId'];
     final updatedAt = value['updatedAt'];
-    if (surah is! num || ayah is! num || sourceId is! String || updatedAt is! num) {
+    if (surah is! num ||
+        ayah is! num ||
+        sourceId is! String ||
+        updatedAt is! num) {
       return null;
     }
-    if (surah < 1 || surah > 114 || ayah < 1) return null;
+    final normalizedSourceId = sourceId.trim();
+    if (surah < 1 ||
+        surah > 114 ||
+        ayah < 1 ||
+        normalizedSourceId.isEmpty) {
+      return null;
+    }
     return ReaderHistoryEntry(
       surah: surah.toInt(),
       ayah: ayah.toInt(),
-      sourceId: sourceId,
+      sourceId: normalizedSourceId,
       updatedAt: updatedAt.toInt(),
     );
   }
@@ -73,6 +82,8 @@ class ReaderReadingHistoryRepository {
     required int ayah,
     required String sourceId,
   }) async {
+    final safeSourceId = sourceId.trim();
+    if (safeSourceId.isEmpty) return;
     final safeSurah = surah.clamp(1, 114).toInt();
     final safeAyah = ayah < 1 ? 1 : ayah;
     final items = (await load()).toList(growable: true);
@@ -84,7 +95,7 @@ class ReaderReadingHistoryRepository {
       ReaderHistoryEntry(
         surah: safeSurah,
         ayah: safeAyah,
-        sourceId: sourceId,
+        sourceId: safeSourceId,
         updatedAt: DateTime.now().millisecondsSinceEpoch,
       ),
     );
@@ -106,9 +117,6 @@ class ReaderReadingHistoryRepository {
   }
 }
 
-/// Picks useful resume points instead of showing several neighbouring ayahs
-/// from the same reading session. A translation/source is part of the context,
-/// so the same surah can appear again when it was read with another source.
 List<ReaderHistoryEntry> selectRecentReadingContexts(
   Iterable<ReaderHistoryEntry> entries, {
   required int currentSurah,
