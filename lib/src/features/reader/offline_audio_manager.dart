@@ -411,7 +411,11 @@ class OfflineAudioManager extends ChangeNotifier {
     int surah,
     int verseCount,
   ) async {
-    final inspection = await _inspect(storageKey, surah);
+    final inspection = await _inspect(
+      storageKey,
+      surah,
+      computeHashes: true,
+    );
     if (inspection.hasPartials || inspection.ayahBytes.length != verseCount) {
       throw const FileSystemException('Offline audio pack is incomplete');
     }
@@ -440,11 +444,13 @@ class OfflineAudioManager extends ChangeNotifier {
 
   Future<_AudioDirectoryInspection> _inspect(
     String storageKey,
-    int surah,
-  ) async {
+    int surah, {
+    bool computeHashes = false,
+  }) async {
     final directory = await _surahDirectory(storageKey, surah, create: false);
     if (!await directory.exists()) return const _AudioDirectoryInspection();
     final ayahBytes = <int, int>{};
+    final ayahFiles = <int, File>{};
     final ayahSha256 = <int, String>{};
     var hasPartials = false;
     var manifestPresent = false;
@@ -475,8 +481,14 @@ class OfflineAudioManager extends ChangeNotifier {
         }
         final ayah = int.parse(match.group(1)!);
         ayahBytes[ayah] = length;
-        ayahSha256[ayah] = (await sha256.bind(entity.openRead()).first).toString();
+        ayahFiles[ayah] = entity;
       } catch (_) {}
+    }
+    if (computeHashes || manifest != null) {
+      for (final entry in ayahFiles.entries) {
+        ayahSha256[entry.key] =
+            (await sha256.bind(entry.value.openRead()).first).toString();
+      }
     }
     return _AudioDirectoryInspection(
       ayahBytes: Map<int, int>.unmodifiable(ayahBytes),
