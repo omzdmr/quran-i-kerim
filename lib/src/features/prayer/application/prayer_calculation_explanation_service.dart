@@ -10,11 +10,19 @@ class PrayerCalculationExplanationService {
   static PrayerCalculationExplanation fromSettings({
     required PrayerCalculationMethod cityDefault,
     required PrayerSettingsSnapshot settings,
+    PrayerLocation? location,
+    DateTime? localDate,
+    PrayerTimeSourceKind sourceKind = PrayerTimeSourceKind.calculated,
+    String? sourceVersion,
   }) => PrayerCalculationExplanation.from(
     defaultMethod: cityDefault,
     methodOverride: settings.methodOverride,
     asrMethod: settings.asrMethod,
     highLatitudeMethod: settings.highLatitudeMethod,
     adjustments: settings.adjustments,
+    location: location,
+    localDate: localDate,
+    sourceKind: sourceKind,
+    sourceVersion: sourceVersion,
   );
 }
