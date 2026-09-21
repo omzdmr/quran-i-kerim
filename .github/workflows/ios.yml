@@ -63,18 +63,23 @@ jobs:
           grep -q "PRODUCT_BUNDLE_IDENTIFIER = com.omzdmr.quranIKerim" ios/Runner.xcodeproj/project.pbxproj
           grep -q "AudioSessionCoordinator.swift in Sources" ios/Runner.xcodeproj/project.pbxproj
           grep -q "BackupExclusionCoordinator.swift in Sources" ios/Runner.xcodeproj/project.pbxproj
+          grep -q "com.omzdmr.quran_i_kerim/backup_exclusion" ios/Runner/AppDelegate.swift
+          grep -q "excludeReproducibleContent" ios/Runner/AppDelegate.swift
+          grep -q "getBackupExclusionStatus" ios/Runner/AppDelegate.swift
           grep -q "NSLocationWhenInUseUsageDescription" ios/Runner/Info.plist
           grep -q "NSMicrophoneUsageDescription" ios/Runner/Info.plist
           /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes:0" ios/Runner/Info.plist | grep -qx audio
 
       # This native compiler gate stays useful even when a shared Flutter asset
       # blocks bundle assembly later in the job.
-      - name: Type-check native audio lifecycle
+      - name: Type-check native lifecycle and storage
         run: |
           xcrun --sdk iphonesimulator swiftc \
             -parse-as-library \
             -target arm64-apple-ios14.0-simulator \
-            -typecheck ios/Runner/AudioSessionCoordinator.swift
+            -typecheck \
+            ios/Runner/AudioSessionCoordinator.swift \
+            ios/Runner/BackupExclusionCoordinator.swift
 
       - name: Validate native backup exclusion boundary
         run: |
