@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../data/surah_catalog.dart';
+
 class ReaderHistoryEntry {
   const ReaderHistoryEntry({
     required this.surah,
@@ -35,16 +37,19 @@ class ReaderHistoryEntry {
         updatedAt is! num) {
       return null;
     }
+    final safeSurah = surah.toInt();
+    final safeAyah = ayah.toInt();
     final normalizedSourceId = sourceId.trim();
-    if (surah < 1 ||
-        surah > 114 ||
-        ayah < 1 ||
+    if (safeSurah < 1 ||
+        safeSurah > surahCatalog.length ||
+        safeAyah < 1 ||
+        safeAyah > surahCatalog[safeSurah - 1].verseCount ||
         normalizedSourceId.isEmpty) {
       return null;
     }
     return ReaderHistoryEntry(
-      surah: surah.toInt(),
-      ayah: ayah.toInt(),
+      surah: safeSurah,
+      ayah: safeAyah,
       sourceId: normalizedSourceId,
       updatedAt: updatedAt.toInt(),
     );
@@ -84,8 +89,8 @@ class ReaderReadingHistoryRepository {
   }) async {
     final safeSourceId = sourceId.trim();
     if (safeSourceId.isEmpty) return;
-    final safeSurah = surah.clamp(1, 114).toInt();
-    final safeAyah = ayah < 1 ? 1 : ayah;
+    final safeSurah = surah.clamp(1, surahCatalog.length).toInt();
+    final safeAyah = ayah.clamp(1, surahCatalog[safeSurah - 1].verseCount).toInt();
     final items = (await load()).toList(growable: true);
     items.removeWhere(
       (entry) => entry.surah == safeSurah && entry.ayah == safeAyah,
