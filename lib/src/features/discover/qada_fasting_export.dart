@@ -63,16 +63,18 @@ class QadaFastingCsvExporter {
 class QadaFastingExportFileService {
   const QadaFastingExportFileService({
     this.exporter = const QadaFastingCsvExporter(),
+    this.directoryProvider,
   });
 
   final QadaFastingCsvExporter exporter;
+  final Future<Directory> Function()? directoryProvider;
 
   Future<File> createFile(
     QadaFastingLedger ledger, {
     bool includePrivateNotes = false,
     DateTime? now,
   }) async {
-    final directory = await getTemporaryDirectory();
+    final directory = await (directoryProvider ?? getTemporaryDirectory)();
     final createdOn = now ?? DateTime.now();
     final file = File(
       '${directory.path}/qada-fasting-ledger-${_isoDate(createdOn)}.csv',

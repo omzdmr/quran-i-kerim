@@ -74,6 +74,20 @@ void main() {
       find.byKey(const ValueKey<String>('qada-export-private-notes')),
     );
     expect(notesSwitch.value, isFalse);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('qada-export-private-notes')),
+    );
+    await tester.pump();
+    expect(
+      tester
+          .widget<SwitchListTile>(
+            find.byKey(
+              const ValueKey<String>('qada-export-private-notes'),
+            ),
+          )
+          .value,
+      isTrue,
+    );
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
 
