@@ -85,6 +85,36 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('system back exits fullscreen before leaving Reader', (
+    tester,
+  ) async {
+    final controller = ReaderFocusController()..setFullScreen(true);
+    addTearDown(controller.dispose);
+    var exits = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ReaderFullScreenBackGuard(
+          controller: controller,
+          onExitFullScreen: () async {
+            exits++;
+            controller.setFullScreen(false);
+          },
+          child: const Scaffold(
+            body: Text('Reader content'),
+          ),
+        ),
+      ),
+    );
+
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+
+    expect(exits, 1);
+    expect(controller.fullScreen, isFalse);
+    expect(find.text('Reader content'), findsOneWidget);
+  });
+
   testWidgets('line focus leaves a readable central band', (tester) async {
     await tester.binding.setSurfaceSize(const Size(320, 640));
     addTearDown(() => tester.binding.setSurfaceSize(null));

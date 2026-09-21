@@ -134,3 +134,34 @@ class ReaderLineFocusOverlay extends StatelessWidget {
     );
   }
 }
+
+
+class ReaderFullScreenBackGuard extends StatelessWidget {
+  const ReaderFullScreenBackGuard({
+    required this.controller,
+    required this.onExitFullScreen,
+    required this.child,
+    super.key,
+  });
+
+  final ReaderFocusController controller;
+  final Future<void> Function() onExitFullScreen;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      child: child,
+      builder: (context, child) => PopScope(
+        canPop: !controller.fullScreen,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop && controller.fullScreen) {
+            onExitFullScreen();
+          }
+        },
+        child: child!,
+      ),
+    );
+  }
+}
