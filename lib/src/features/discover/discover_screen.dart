@@ -11,6 +11,7 @@ import '../prayer/presentation/qibla_launcher_screen.dart';
 import '../profile/downloads_screen.dart';
 import 'dhikr_counter_screen.dart';
 import 'qada_fasting_screen.dart';
+import 'travel_dietary_card_screen.dart';
 import 'travel_tools_screen.dart';
 
 class DiscoverScreen extends StatelessWidget {
@@ -33,15 +34,8 @@ class DiscoverScreen extends StatelessWidget {
       await showPrayerCalculationInspector(context: context, explanation: explanation);
     }
 
-    void openPlans() {
-      HapticFeedback.selectionClick();
-      AppNavigation.instance.openPlans();
-    }
-
-    void openQuran() {
-      HapticFeedback.selectionClick();
-      AppNavigation.instance.openQuran();
-    }
+    void openPlans() { HapticFeedback.selectionClick(); AppNavigation.instance.openPlans(); }
+    void openQuran() { HapticFeedback.selectionClick(); AppNavigation.instance.openQuran(); }
 
     return SafeArea(
       child: ListView(
@@ -61,6 +55,8 @@ class DiscoverScreen extends StatelessWidget {
           const SizedBox(height: 12),
           _Shortcut(Icons.luggage_outlined, _travelLabels[locale] ?? _travelLabels['en']!, onTap: () => push(const TravelToolsScreen())),
           const SizedBox(height: 12),
+          _Shortcut(Icons.restaurant_menu_rounded, _dietaryLabels[locale] ?? _dietaryLabels['en']!, onTap: () => push(const TravelDietaryCardScreen())),
+          const SizedBox(height: 12),
           Row(children: [
             Expanded(child: _Shortcut(Icons.library_add_check_outlined, l10n.text('readingPlans'), onTap: openPlans)),
             const SizedBox(width: 12),
@@ -74,67 +70,26 @@ class DiscoverScreen extends StatelessWidget {
   }
 }
 
-const _travelLabels = <String, String>{
-  'tr': 'Seyahat araçları', 'en': 'Travel tools', 'fr': 'Outils de voyage', 'ar': 'أدوات السفر', 'az': 'Səyahət alətləri', 'ru': 'Инструменты поездки',
-};
+const _travelLabels = <String, String>{'tr':'Seyahat araçları','en':'Travel tools','fr':'Outils de voyage','ar':'أدوات السفر','az':'Səyahət alətləri','ru':'Инструменты поездки'};
+const _dietaryLabels = <String, String>{'tr':'Yemek iletişim kartı','en':'Dietary communication card','fr':'Carte de communication alimentaire','ar':'بطاقة التواصل الغذائي','az':'Qida ünsiyyət kartı','ru':'Карточка питания'};
 
 class _PrayerFeatureCard extends StatelessWidget {
   const _PrayerFeatureCard({required this.onTap, required this.title, required this.subtitle});
-  final VoidCallback onTap;
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
+  final VoidCallback onTap; final String title; final String subtitle;
+  @override Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Material(
-      color: scheme.surfaceContainer,
-      borderRadius: BorderRadius.circular(24),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(24),
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Row(children: [
-            Container(width: 48, height: 48, decoration: BoxDecoration(color: scheme.primaryContainer, borderRadius: BorderRadius.circular(16)), child: Icon(Icons.schedule_rounded, color: scheme.primary)),
-            const SizedBox(width: 14),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-              const SizedBox(height: 4),
-              Text(subtitle, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant)),
-            ])),
-            Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
-          ]),
-        ),
-      ),
-    );
+    return Material(color: scheme.surfaceContainer, borderRadius: BorderRadius.circular(24), child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(24), child: Padding(padding: const EdgeInsets.all(18), child: Row(children: [
+      Container(width:48,height:48,decoration:BoxDecoration(color:scheme.primaryContainer,borderRadius:BorderRadius.circular(16)),child:Icon(Icons.schedule_rounded,color:scheme.primary)), const SizedBox(width:14),
+      Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(title,style:Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight:FontWeight.w800)),const SizedBox(height:4),Text(subtitle,style:Theme.of(context).textTheme.bodyMedium?.copyWith(color:scheme.onSurfaceVariant))])), Icon(Icons.chevron_right_rounded,color:scheme.onSurfaceVariant),
+    ]))));
   }
 }
 
 class _Shortcut extends StatelessWidget {
-  const _Shortcut(this.icon, this.label, {required this.onTap});
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Material(
-      color: scheme.surfaceContainer,
-      borderRadius: BorderRadius.circular(18),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-          child: Row(children: [
-            Icon(icon, color: scheme.primary),
-            const SizedBox(width: 12),
-            Expanded(child: Text(label, maxLines: 2, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700))),
-          ]),
-        ),
-      ),
-    );
+  const _Shortcut(this.icon,this.label,{required this.onTap});
+  final IconData icon; final String label; final VoidCallback onTap;
+  @override Widget build(BuildContext context) {
+    final scheme=Theme.of(context).colorScheme;
+    return Semantics(button:true,label:label,onTap:onTap,child:ExcludeSemantics(child:Material(color:scheme.surfaceContainer,borderRadius:BorderRadius.circular(18),child:InkWell(onTap:onTap,borderRadius:BorderRadius.circular(18),child:Padding(padding:const EdgeInsets.symmetric(horizontal:16,vertical:18),child:Row(children:[Icon(icon,color:scheme.primary),const SizedBox(width:12),Expanded(child:Text(label,maxLines:2,overflow:TextOverflow.ellipsis,style:Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight:FontWeight.w700)))]))))));
   }
 }
