@@ -1,5 +1,6 @@
 import Flutter
 import Foundation
+import UIKit
 #if canImport(WidgetKit)
 import WidgetKit
 #endif
@@ -12,14 +13,56 @@ final class WidgetSnapshotChannel {
 
   private let channel: FlutterMethodChannel
   private let store: WidgetSnapshotStore?
+  private let notificationCenter: NotificationCenter
+  private var observers: [NSObjectProtocol] = []
 
-  init(binaryMessenger: FlutterBinaryMessenger, store: WidgetSnapshotStore? = WidgetSnapshotStore()) {
+  init(
+    binaryMessenger: FlutterBinaryMessenger,
+    store: WidgetSnapshotStore? = WidgetSnapshotStore(),
+    notificationCenter: NotificationCenter = .default
+  ) {
     channel = FlutterMethodChannel(name: Self.channelName, binaryMessenger: binaryMessenger)
     self.store = store
+    self.notificationCenter = notificationCenter
     channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) }
+    installFreshnessObservers()
   }
 
-  func detach() { channel.setMethodCallHandler(nil) }
+  deinit { removeFreshnessObservers() }
+
+  func detach() {
+    removeFreshnessObservers()
+    channel.setMethodCallHandler(nil)
+  }
+
+  private func installFreshnessObservers() {
+    let names: [Notification.Name] = [
+      UIApplication.significantTimeChangeNotification,
+      NSNotification.Name.NSSystemTimeZoneDidChange,
+      UIApplication.didBecomeActiveNotification
+    ]
+    observers = names.map { name in
+      notificationCenter.addObserver(forName: name, object: nil, queue: .main) { [weak self] notification in
+        self?.handleFreshnessEvent(notification)
+      }
+    }
+  }
+
+  private func removeFreshnessObservers() {
+    observers.forEach(notificationCenter.removeObserver)
+    observers.removeAll()
+  }
+
+  private func handleFreshnessEvent(_ notification: Notification) {
+    guard let store else { return }
+    let purged = store.purgeIfStale(now: Date(), timeZone: .autoupdatingCurrent)
+    // A significant clock/time-zone event can change the timeline even when the projection
+    // remains technically fresh. Ask WidgetKit to re-evaluate either way; on normal foreground
+    // activation, avoid a gratuitous reload unless stale data was actually removed.
+    if purged || notification.name != UIApplication.didBecomeActiveNotification {
+      reloadWidgets()
+    }
+  }
 
   private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
@@ -31,7 +74,10 @@ final class WidgetSnapshotChannel {
         "freshnessReason": true,
         "privacyRedaction": true,
         "stalePurge": true,
-        "policyInvalidation": true
+        "policyInvalidation": true,
+        "systemTimeInvalidation": true,
+        "timeZoneInvalidation": true,
+        "foregroundRevalidation": true
       ])
     case "publish":
       publish(call.arguments, result: result)
