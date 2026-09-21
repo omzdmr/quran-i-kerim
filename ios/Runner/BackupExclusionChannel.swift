@@ -5,86 +5,33 @@ import UIKit
 import UserNotifications
 
 final class BackupExclusionChannel {
-  static let name = "com.omzdmr.quran_i_kerim/backup_exclusion"
-  static let excludeMethod = "excludeReproducibleContent"
-  static let statusMethod = "getBackupExclusionStatus"
-  private let coordinator: BackupExclusionCoordinator
-  private let channel: FlutterMethodChannel
+  static let name = "com.omzdmr.quran_i_kerim/backup_exclusion", excludeMethod = "excludeReproducibleContent", statusMethod = "getBackupExclusionStatus"
+  private let coordinator: BackupExclusionCoordinator; private let channel: FlutterMethodChannel
   init(binaryMessenger: FlutterBinaryMessenger, coordinator: BackupExclusionCoordinator = BackupExclusionCoordinator()) { self.coordinator = coordinator; channel = FlutterMethodChannel(name: Self.name, binaryMessenger: binaryMessenger); channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) } }
   func detach() { channel.setMethodCallHandler(nil) }
-  private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-    guard call.method == Self.excludeMethod || call.method == Self.statusMethod else { result(FlutterMethodNotImplemented); return }
-    guard let arguments = call.arguments as? [String: Any], let storageArea = arguments["storageArea"] as? String, let relativePath = arguments["relativePath"] as? String else { result(FlutterError(code: "invalid_backup_exclusion_arguments", message: "storageArea and relativePath are required.", details: nil)); return }
-    do { let status = call.method == Self.excludeMethod ? try coordinator.exclude(storageArea: storageArea, relativePath: relativePath) : try coordinator.status(storageArea: storageArea, relativePath: relativePath); result(status.dictionary) } catch { result(flutterError(from: error)) }
-  }
-  private func flutterError(from error: Error) -> FlutterError {
-    let code: String
-    switch error { case BackupExclusionCoordinator.ExclusionError.unsupportedStorageArea: code = "unsupported_backup_storage_area"; case BackupExclusionCoordinator.ExclusionError.invalidRelativePath: code = "invalid_backup_relative_path"; case BackupExclusionCoordinator.ExclusionError.baseDirectoryUnavailable: code = "backup_directory_unavailable"; case BackupExclusionCoordinator.ExclusionError.itemDoesNotExist: code = "backup_item_not_found"; default: code = "backup_exclusion_failed" }
-    return FlutterError(code: code, message: error.localizedDescription, details: nil)
-  }
+  private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) { guard call.method == Self.excludeMethod || call.method == Self.statusMethod else { result(FlutterMethodNotImplemented); return }; guard let arguments = call.arguments as? [String: Any], let storageArea = arguments["storageArea"] as? String, let relativePath = arguments["relativePath"] as? String else { result(FlutterError(code: "invalid_backup_exclusion_arguments", message: "storageArea and relativePath are required.", details: nil)); return }; do { let status = call.method == Self.excludeMethod ? try coordinator.exclude(storageArea: storageArea, relativePath: relativePath) : try coordinator.status(storageArea: storageArea, relativePath: relativePath); result(status.dictionary) } catch { result(flutterError(from: error)) } }
+  private func flutterError(from error: Error) -> FlutterError { let code: String; switch error { case BackupExclusionCoordinator.ExclusionError.unsupportedStorageArea: code = "unsupported_backup_storage_area"; case BackupExclusionCoordinator.ExclusionError.invalidRelativePath: code = "invalid_backup_relative_path"; case BackupExclusionCoordinator.ExclusionError.baseDirectoryUnavailable: code = "backup_directory_unavailable"; case BackupExclusionCoordinator.ExclusionError.itemDoesNotExist: code = "backup_item_not_found"; default: code = "backup_exclusion_failed" }; return FlutterError(code: code, message: error.localizedDescription, details: nil) }
 }
 
 final class NowPlayingChannel {
-  static let name = "com.omzdmr.quran_i_kerim/now_playing"
-  private let coordinator: NowPlayingCoordinator
-  private let channel: FlutterMethodChannel
-  init(binaryMessenger: FlutterBinaryMessenger, coordinator: NowPlayingCoordinator = NowPlayingCoordinator()) {
-    self.coordinator = coordinator; channel = FlutterMethodChannel(name: Self.name, binaryMessenger: binaryMessenger)
-    coordinator.onRemoteCommand = { [weak channel] command, position in var payload: [String: Any] = ["command": command.rawValue]; if let position { payload["positionSeconds"] = position }; channel?.invokeMethod("remoteCommand", arguments: payload) }
-    coordinator.start(); channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) }
-  }
+  static let name = "com.omzdmr.quran_i_kerim/now_playing"; private let coordinator: NowPlayingCoordinator; private let channel: FlutterMethodChannel
+  init(binaryMessenger: FlutterBinaryMessenger, coordinator: NowPlayingCoordinator = NowPlayingCoordinator()) { self.coordinator = coordinator; channel = FlutterMethodChannel(name: Self.name, binaryMessenger: binaryMessenger); coordinator.onRemoteCommand = { [weak channel] command, position in var payload: [String: Any] = ["command": command.rawValue]; if let position { payload["positionSeconds"] = position }; channel?.invokeMethod("remoteCommand", arguments: payload) }; coordinator.start(); channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) } }
   func detach() { channel.setMethodCallHandler(nil); coordinator.onRemoteCommand = nil; coordinator.stop() }
-  private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-    switch call.method {
-    case "updateNowPlaying":
-      guard let args = call.arguments as? [String: Any], let title = args["title"] as? String, !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { result(FlutterError(code: "invalid_now_playing_metadata", message: "A non-empty title is required.", details: nil)); return }
-      let elapsed = (args["elapsedSeconds"] as? NSNumber)?.doubleValue ?? 0, rate = (args["playbackRate"] as? NSNumber)?.doubleValue ?? 0, duration = (args["durationSeconds"] as? NSNumber)?.doubleValue
-      guard elapsed.isFinite, elapsed >= 0, rate.isFinite, rate >= 0, duration == nil || (duration!.isFinite && duration! > 0) else { result(FlutterError(code: "invalid_now_playing_timing", message: "Playback timing values are invalid.", details: nil)); return }
-      coordinator.update(.init(title: title, subtitle: args["subtitle"] as? String, albumTitle: args["albumTitle"] as? String, duration: duration, elapsed: elapsed, playbackRate: rate)); result(nil)
-    case "clearNowPlaying": coordinator.clear(); result(nil)
-    default: result(FlutterMethodNotImplemented)
-    }
-  }
+  private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) { switch call.method { case "updateNowPlaying": guard let args = call.arguments as? [String: Any], let title = args["title"] as? String, !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { result(FlutterError(code: "invalid_now_playing_metadata", message: "A non-empty title is required.", details: nil)); return }; let elapsed = (args["elapsedSeconds"] as? NSNumber)?.doubleValue ?? 0, rate = (args["playbackRate"] as? NSNumber)?.doubleValue ?? 0, duration = (args["durationSeconds"] as? NSNumber)?.doubleValue; guard elapsed.isFinite, elapsed >= 0, rate.isFinite, rate >= 0, duration == nil || (duration!.isFinite && duration! > 0) else { result(FlutterError(code: "invalid_now_playing_timing", message: "Playback timing values are invalid.", details: nil)); return }; coordinator.update(.init(title: title, subtitle: args["subtitle"] as? String, albumTitle: args["albumTitle"] as? String, duration: duration, elapsed: elapsed, playbackRate: rate)); result(nil); case "clearNowPlaying": coordinator.clear(); result(nil); default: result(FlutterMethodNotImplemented) } }
 }
 
 final class AudioLifecycleChannel {
-  static let name = "com.omzdmr.quran_i_kerim/audio_lifecycle"
-  private let channel: FlutterMethodChannel
-  private let notificationCenter: NotificationCenter
-  private var observers: [NSObjectProtocol] = []
-  init(binaryMessenger: FlutterBinaryMessenger, notificationCenter: NotificationCenter = .default) {
-    self.notificationCenter = notificationCenter; channel = FlutterMethodChannel(name: Self.name, binaryMessenger: binaryMessenger)
-    observers = [notificationCenter.addObserver(forName: AudioSessionCoordinator.interruptionBeganNotification, object: nil, queue: .main) { [weak channel] _ in channel?.invokeMethod("interruptionBegan", arguments: nil) }, notificationCenter.addObserver(forName: AudioSessionCoordinator.interruptionEndedNotification, object: nil, queue: .main) { [weak channel] note in channel?.invokeMethod("interruptionEnded", arguments: ["shouldResume": note.userInfo?["shouldResume"] as? Bool ?? false]) }, notificationCenter.addObserver(forName: AudioSessionCoordinator.routeChangedNotification, object: nil, queue: .main) { [weak channel] note in channel?.invokeMethod("routeChanged", arguments: ["reason": note.userInfo?["reason"] as? UInt ?? 0]) }]
-  }
+  static let name = "com.omzdmr.quran_i_kerim/audio_lifecycle"; private let channel: FlutterMethodChannel; private let notificationCenter: NotificationCenter; private var observers: [NSObjectProtocol] = []
+  init(binaryMessenger: FlutterBinaryMessenger, notificationCenter: NotificationCenter = .default) { self.notificationCenter = notificationCenter; channel = FlutterMethodChannel(name: Self.name, binaryMessenger: binaryMessenger); observers = [notificationCenter.addObserver(forName: AudioSessionCoordinator.interruptionBeganNotification, object: nil, queue: .main) { [weak channel] _ in channel?.invokeMethod("interruptionBegan", arguments: nil) }, notificationCenter.addObserver(forName: AudioSessionCoordinator.interruptionEndedNotification, object: nil, queue: .main) { [weak channel] note in channel?.invokeMethod("interruptionEnded", arguments: ["shouldResume": note.userInfo?["shouldResume"] as? Bool ?? false]) }, notificationCenter.addObserver(forName: AudioSessionCoordinator.routeChangedNotification, object: nil, queue: .main) { [weak channel] note in channel?.invokeMethod("routeChanged", arguments: ["reason": note.userInfo?["reason"] as? UInt ?? 0]) }] }
   func detach() { observers.forEach(notificationCenter.removeObserver); observers.removeAll() }
 }
 
 final class NotificationPermissionChannel {
-  static let name = "com.omzdmr.quran_i_kerim/notification_permission"
-  static let selfTestIdentifier = "quran.notification.self-test"
-  private let center: UNUserNotificationCenter
-  private let channel: FlutterMethodChannel
+  static let name = "com.omzdmr.quran_i_kerim/notification_permission", selfTestIdentifier = "quran.notification.self-test"; private let center: UNUserNotificationCenter; private let channel: FlutterMethodChannel
   init(binaryMessenger: FlutterBinaryMessenger, center: UNUserNotificationCenter = .current()) { self.center = center; channel = FlutterMethodChannel(name: Self.name, binaryMessenger: binaryMessenger); channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) } }
   func detach() { channel.setMethodCallHandler(nil) }
-  private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-    switch call.method {
-    case "getNotificationPermissionStatus": center.getNotificationSettings { settings in DispatchQueue.main.async { result(Self.statusName(settings.authorizationStatus)) } }
-    case "getNotificationDiagnostics": center.getNotificationSettings { settings in DispatchQueue.main.async { result(Self.diagnostics(settings)) } }
-    case "requestNotificationPermission": center.requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in DispatchQueue.main.async { if let error { result(FlutterError(code: "notification_permission_failed", message: error.localizedDescription, details: nil)) } else { result(["granted": granted]) } } }
-    case "scheduleNotificationSelfTest": scheduleSelfTest(result: result)
-    case "cancelNotificationSelfTest": center.removePendingNotificationRequests(withIdentifiers: [Self.selfTestIdentifier]); result(nil)
-    default: result(FlutterMethodNotImplemented)
-    }
-  }
-  private func scheduleSelfTest(result: @escaping FlutterResult) {
-    center.getNotificationSettings { [weak self] settings in
-      guard let self else { return }
-      guard Self.canDeliver(settings.authorizationStatus) else { DispatchQueue.main.async { result(FlutterError(code: "notification_not_authorized", message: "Notifications are not authorized for an end-to-end self-test.", details: Self.diagnostics(settings))) }; return }
-      let content = UNMutableNotificationContent(); content.title = Bundle.main.localizedString(forKey: "NotificationSelfTestTitle", value: "Notification test", table: "InfoPlist"); content.body = Bundle.main.localizedString(forKey: "NotificationSelfTestBody", value: "If you can see this, local notifications can reach this device.", table: "InfoPlist"); content.sound = .default; content.userInfo = ["kind": "diagnostic-self-test"]
-      let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 3, repeats: false), request = UNNotificationRequest(identifier: Self.selfTestIdentifier, content: content, trigger: trigger)
-      center.removePendingNotificationRequests(withIdentifiers: [Self.selfTestIdentifier]); center.add(request) { error in DispatchQueue.main.async { if let error { result(FlutterError(code: "notification_self_test_failed", message: error.localizedDescription, details: Self.diagnostics(settings))) } else { result(["scheduled": true, "firesAfterSeconds": 3, "settings": Self.diagnostics(settings)]) } } }
-    }
-  }
+  private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) { switch call.method { case "getNotificationPermissionStatus": center.getNotificationSettings { settings in DispatchQueue.main.async { result(Self.statusName(settings.authorizationStatus)) } }; case "getNotificationDiagnostics": center.getNotificationSettings { settings in DispatchQueue.main.async { result(Self.diagnostics(settings)) } }; case "requestNotificationPermission": center.requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in DispatchQueue.main.async { if let error { result(FlutterError(code: "notification_permission_failed", message: error.localizedDescription, details: nil)) } else { result(["granted": granted]) } } }; case "scheduleNotificationSelfTest": scheduleSelfTest(result: result); case "cancelNotificationSelfTest": center.removePendingNotificationRequests(withIdentifiers: [Self.selfTestIdentifier]); result(nil); default: result(FlutterMethodNotImplemented) } }
+  private func scheduleSelfTest(result: @escaping FlutterResult) { center.getNotificationSettings { [weak self] settings in guard let self else { return }; guard Self.canDeliver(settings.authorizationStatus) else { DispatchQueue.main.async { result(FlutterError(code: "notification_not_authorized", message: "Notifications are not authorized for an end-to-end self-test.", details: Self.diagnostics(settings))) }; return }; let content = UNMutableNotificationContent(); content.title = Bundle.main.localizedString(forKey: "NotificationSelfTestTitle", value: "Notification test", table: "InfoPlist"); content.body = Bundle.main.localizedString(forKey: "NotificationSelfTestBody", value: "If you can see this, local notifications can reach this device.", table: "InfoPlist"); content.sound = .default; content.userInfo = ["kind": "diagnostic-self-test"]; let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 3, repeats: false), request = UNNotificationRequest(identifier: Self.selfTestIdentifier, content: content, trigger: trigger); center.removePendingNotificationRequests(withIdentifiers: [Self.selfTestIdentifier]); center.add(request) { error in DispatchQueue.main.async { if let error { result(FlutterError(code: "notification_self_test_failed", message: error.localizedDescription, details: Self.diagnostics(settings))) } else { result(["scheduled": true, "firesAfterSeconds": 3, "settings": Self.diagnostics(settings)]) } } } } }
   private static func canDeliver(_ status: UNAuthorizationStatus) -> Bool { status == .authorized || status == .provisional || status == .ephemeral }
   private static func diagnostics(_ settings: UNNotificationSettings) -> [String: Any] { ["authorizationStatus": statusName(settings.authorizationStatus), "alertSetting": settingName(settings.alertSetting), "soundSetting": settingName(settings.soundSetting), "badgeSetting": settingName(settings.badgeSetting), "lockScreenSetting": settingName(settings.lockScreenSetting), "notificationCenterSetting": settingName(settings.notificationCenterSetting), "timeSensitiveSetting": settingName(settings.timeSensitiveSetting), "scheduledDeliverySetting": settingName(settings.scheduledDeliverySetting)] }
   private static func settingName(_ setting: UNNotificationSetting) -> String { switch setting { case .notSupported: return "notSupported"; case .disabled: return "disabled"; case .enabled: return "enabled"; @unknown default: return "unknown" } }
@@ -93,53 +40,28 @@ final class NotificationPermissionChannel {
 
 final class LocationHeadingChannel: NSObject, CLLocationManagerDelegate {
   static let name = "com.omzdmr.quran_i_kerim/location_heading"
-  private let manager: CLLocationManager
-  private let channel: FlutterMethodChannel
-  private var locationStreaming = false
-  private var headingStreaming = false
+  private let manager: CLLocationManager; private let channel: FlutterMethodChannel
+  private var locationStreaming = false, headingStreaming = false
   private var orientationObserver: NSObjectProtocol?
-
-  init(binaryMessenger: FlutterBinaryMessenger, manager: CLLocationManager = CLLocationManager()) {
-    self.manager = manager; channel = FlutterMethodChannel(name: Self.name, binaryMessenger: binaryMessenger); super.init()
-    manager.delegate = self; manager.desiredAccuracy = kCLLocationAccuracyHundredMeters; manager.distanceFilter = 25; manager.headingFilter = 2
-    UIDevice.current.beginGeneratingDeviceOrientationNotifications()
-    orientationObserver = NotificationCenter.default.addObserver(forName: UIDevice.orientationDidChangeNotification, object: nil, queue: .main) { [weak self] _ in self?.updateHeadingOrientation() }
-    updateHeadingOrientation()
-    channel.setMethodCallHandler { [weak self] call, result in self?.handleLocationHeading(call, result: result) }
-  }
-
-  func detach() {
-    stopAll(); channel.setMethodCallHandler(nil); manager.delegate = nil
-    if let orientationObserver { NotificationCenter.default.removeObserver(orientationObserver); self.orientationObserver = nil }
-    UIDevice.current.endGeneratingDeviceOrientationNotifications()
-  }
-
+  init(binaryMessenger: FlutterBinaryMessenger, manager: CLLocationManager = CLLocationManager()) { self.manager = manager; channel = FlutterMethodChannel(name: Self.name, binaryMessenger: binaryMessenger); super.init(); manager.delegate = self; manager.desiredAccuracy = kCLLocationAccuracyHundredMeters; manager.distanceFilter = 25; manager.headingFilter = 2; UIDevice.current.beginGeneratingDeviceOrientationNotifications(); orientationObserver = NotificationCenter.default.addObserver(forName: UIDevice.orientationDidChangeNotification, object: nil, queue: .main) { [weak self] _ in self?.updateHeadingOrientation() }; updateHeadingOrientation(); channel.setMethodCallHandler { [weak self] call, result in self?.handleLocationHeading(call, result: result) } }
+  func detach() { stopAll(); channel.setMethodCallHandler(nil); manager.delegate = nil; if let orientationObserver { NotificationCenter.default.removeObserver(orientationObserver); self.orientationObserver = nil }; UIDevice.current.endGeneratingDeviceOrientationNotifications() }
   private func handleLocationHeading(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
     case "getAuthorizationStatus": result(Self.authorizationName(manager.authorizationStatus))
     case "requestWhenInUsePermission": manager.requestWhenInUseAuthorization(); result(nil)
-    case "getCapabilityStatus": result(["locationServicesEnabled": CLLocationManager.locationServicesEnabled(), "headingAvailable": CLLocationManager.headingAvailable(), "authorizationStatus": Self.authorizationName(manager.authorizationStatus), "orientationAwareHeading": true])
-    case "startLocationUpdates": guard CLLocationManager.locationServicesEnabled() else { result(FlutterError(code: "location_services_disabled", message: "Location Services are disabled.", details: nil)); return }; guard Self.canReadLocation(manager.authorizationStatus) else { result(FlutterError(code: "location_permission_required", message: "Foreground location permission is required.", details: nil)); return }; locationStreaming = true; manager.startUpdatingLocation(); result(nil)
-    case "stopLocationUpdates": locationStreaming = false; manager.stopUpdatingLocation(); result(nil)
-    case "startHeadingUpdates": guard CLLocationManager.headingAvailable() else { result(FlutterError(code: "heading_unavailable", message: "Compass heading is unavailable on this device.", details: nil)); return }; updateHeadingOrientation(); headingStreaming = true; manager.startUpdatingHeading(); result(nil)
-    case "stopHeadingUpdates": headingStreaming = false; manager.stopUpdatingHeading(); result(nil)
+    case "getCapabilityStatus": result(["locationServicesEnabled": CLLocationManager.locationServicesEnabled(), "headingAvailable": CLLocationManager.headingAvailable(), "authorizationStatus": Self.authorizationName(manager.authorizationStatus), "orientationAwareHeading": true, "trueNorthWhenAuthorized": true])
+    case "startLocationUpdates": guard CLLocationManager.locationServicesEnabled() else { result(FlutterError(code: "location_services_disabled", message: "Location Services are disabled.", details: nil)); return }; guard Self.canReadLocation(manager.authorizationStatus) else { result(FlutterError(code: "location_permission_required", message: "Foreground location permission is required.", details: nil)); return }; locationStreaming = true; reconcileLocationUpdates(); result(nil)
+    case "stopLocationUpdates": locationStreaming = false; reconcileLocationUpdates(); result(nil)
+    case "startHeadingUpdates": guard CLLocationManager.headingAvailable() else { result(FlutterError(code: "heading_unavailable", message: "Compass heading is unavailable on this device.", details: nil)); return }; updateHeadingOrientation(); headingStreaming = true; reconcileLocationUpdates(); manager.startUpdatingHeading(); result(nil)
+    case "stopHeadingUpdates": headingStreaming = false; manager.stopUpdatingHeading(); reconcileLocationUpdates(); result(nil)
     case "stopAll": stopAll(); result(nil)
     default: result(FlutterMethodNotImplemented)
     }
   }
-
-  private func updateHeadingOrientation() {
-    switch UIDevice.current.orientation {
-    case .portrait: manager.headingOrientation = .portrait
-    case .portraitUpsideDown: manager.headingOrientation = .portraitUpsideDown
-    case .landscapeLeft: manager.headingOrientation = .landscapeLeft
-    case .landscapeRight: manager.headingOrientation = .landscapeRight
-    default: break
-    }
-  }
-
+  private func reconcileLocationUpdates() { let headingNeedsTrueNorth = headingStreaming && CLLocationManager.locationServicesEnabled() && Self.canReadLocation(manager.authorizationStatus); if locationStreaming || headingNeedsTrueNorth { manager.startUpdatingLocation() } else { manager.stopUpdatingLocation() } }
+  private func updateHeadingOrientation() { switch UIDevice.current.orientation { case .portrait: manager.headingOrientation = .portrait; case .portraitUpsideDown: manager.headingOrientation = .portraitUpsideDown; case .landscapeLeft: manager.headingOrientation = .landscapeLeft; case .landscapeRight: manager.headingOrientation = .landscapeRight; default: break } }
   private func stopAll() { locationStreaming = false; headingStreaming = false; manager.stopUpdatingLocation(); manager.stopUpdatingHeading() }
-  func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) { channel.invokeMethod("authorizationChanged", arguments: ["status": Self.authorizationName(manager.authorizationStatus)]) }
+  func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) { reconcileLocationUpdates(); channel.invokeMethod("authorizationChanged", arguments: ["status": Self.authorizationName(manager.authorizationStatus)]) }
   func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) { guard locationStreaming, let location = locations.last, location.horizontalAccuracy >= 0 else { return }; channel.invokeMethod("locationChanged", arguments: ["latitude": location.coordinate.latitude, "longitude": location.coordinate.longitude, "horizontalAccuracyMeters": location.horizontalAccuracy, "timestampMilliseconds": location.timestamp.timeIntervalSince1970 * 1000]) }
   func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) { guard headingStreaming, newHeading.headingAccuracy >= 0 else { return }; let heading = newHeading.trueHeading >= 0 ? newHeading.trueHeading : newHeading.magneticHeading; channel.invokeMethod("headingChanged", arguments: ["degrees": heading, "magneticDegrees": newHeading.magneticHeading, "accuracyDegrees": newHeading.headingAccuracy, "usesTrueNorth": newHeading.trueHeading >= 0, "timestampMilliseconds": newHeading.timestamp.timeIntervalSince1970 * 1000]) }
   func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) { let nsError = error as NSError; channel.invokeMethod("locationError", arguments: ["code": nsError.code, "message": nsError.localizedDescription]) }
