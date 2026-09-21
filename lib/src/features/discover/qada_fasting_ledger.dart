@@ -138,6 +138,33 @@ class QadaFastingLedger {
     );
   }
 
+  List<DateTime> get recordedDates {
+    final dates = <int, DateTime>{};
+    for (final entry in entries) {
+      final date = _dateOnly(entry.occurredOn);
+      dates[date.year * 10000 + date.month * 100 + date.day] = date;
+    }
+    final result = dates.values.toList()
+      ..sort((a, b) => a.compareTo(b));
+    return List<DateTime>.unmodifiable(result);
+  }
+
+  DateTime? previousRecordedDate(DateTime day) {
+    final target = _dateOnly(day);
+    for (final date in recordedDates.reversed) {
+      if (date.isBefore(target)) return date;
+    }
+    return null;
+  }
+
+  DateTime? nextRecordedDate(DateTime day) {
+    final target = _dateOnly(day);
+    for (final date in recordedDates) {
+      if (date.isAfter(target)) return date;
+    }
+    return null;
+  }
+
   QadaFastingLedger addDebt({
     required int days,
     required DateTime occurredOn,

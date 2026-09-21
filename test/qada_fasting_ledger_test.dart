@@ -118,6 +118,20 @@ void main() {
     expect(ledger.latestOccurredOn, DateTime(2026, 9, 21));
     expect(ledger.entriesOn(DateTime(2026, 9, 21, 22)), hasLength(1));
     expect(ledger.entriesOn(DateTime(2026, 9, 20)), isEmpty);
+    expect(
+      ledger.recordedDates,
+      <DateTime>[DateTime(2025, 3, 5), DateTime(2026, 9, 21)],
+    );
+    expect(
+      ledger.previousRecordedDate(DateTime(2026, 9, 21)),
+      DateTime(2025, 3, 5),
+    );
+    expect(
+      ledger.nextRecordedDate(DateTime(2025, 3, 5)),
+      DateTime(2026, 9, 21),
+    );
+    expect(ledger.previousRecordedDate(DateTime(2025, 3, 5)), isNull);
+    expect(ledger.nextRecordedDate(DateTime(2026, 9, 21)), isNull);
   });
 
   test('store persists across process-style reload', () async {

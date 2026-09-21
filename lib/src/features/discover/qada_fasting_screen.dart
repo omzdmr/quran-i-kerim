@@ -339,6 +339,8 @@ class _QadaFastingScreenState extends State<QadaFastingScreen> {
             0,
             (sum, entry) => sum + entry.balanceDelta,
           );
+          final previousDate = _ledger.previousRecordedDate(selected);
+          final nextDate = _ledger.nextRecordedDate(selected);
           return FractionallySizedBox(
             heightFactor: .9,
             child: Column(
@@ -364,6 +366,9 @@ class _QadaFastingScreenState extends State<QadaFastingScreen> {
                   ),
                 ),
                 CalendarDatePicker(
+                  key: ValueKey<String>(
+                    'qada-calendar-${selected.toIso8601String()}',
+                  ),
                   initialDate: selected,
                   firstDate: firstDate,
                   lastDate: lastDate,
@@ -379,14 +384,38 @@ class _QadaFastingScreenState extends State<QadaFastingScreen> {
                         '${_formatDate(context, selected)}, ${_text('dayChange')}: $dayDelta ${_text('days')}',
                     child: Row(
                       children: [
+                        IconButton(
+                          tooltip: _text('previousRecord'),
+                          onPressed: previousDate == null
+                              ? null
+                              : () => setSheetState(
+                                  () => selected = previousDate,
+                                ),
+                          icon: const Icon(Icons.skip_previous_rounded),
+                        ),
                         Expanded(
-                          child: Text(
-                            _formatDate(context, selected),
-                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          child: Column(
+                            children: [
+                              Text(
+                                _formatDate(context, selected),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              Text(
+                                '${_text('dayChange')}: ${dayDelta > 0 ? '+' : ''}$dayDelta',
+                              ),
+                            ],
                           ),
                         ),
-                        Text(
-                          '${_text('dayChange')}: ${dayDelta > 0 ? '+' : ''}$dayDelta',
+                        IconButton(
+                          tooltip: _text('nextRecord'),
+                          onPressed: nextDate == null
+                              ? null
+                              : () => setSheetState(
+                                  () => selected = nextDate,
+                                ),
+                          icon: const Icon(Icons.skip_next_rounded),
                         ),
                       ],
                     ),
