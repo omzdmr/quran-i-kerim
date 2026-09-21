@@ -57,9 +57,17 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.history_toggle_off_rounded));
     await tester.pumpAndSettle();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      'memorization_page_progress_v1',
+      '{"7":{"memorizedAt":"2026-01-01T00:00:00.000",'
+      '"lastReviewedAt":"2099-01-01T00:00:00.000",'
+      '"selfAssessment":"independent"}}',
+    );
     await tester.pageBack();
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('(1)'), findsOneWidget);
+    expect(find.textContaining('(1)'), findsNothing);
+    expect(find.byIcon(Icons.history_toggle_off_rounded), findsOneWidget);
   });
 }
