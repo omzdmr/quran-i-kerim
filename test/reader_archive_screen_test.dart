@@ -24,6 +24,14 @@ void main() {
       'verse_notes': jsonEncode(<String, String>{'2:255': 'Personal note'}),
       'verse_note_sources': jsonEncode(<String, String>{'2:255': 'RWD'}),
       'verse_highlights': jsonEncode(<String, String>{'18:10': 'yellow'}),
+      'reader_history_v1': jsonEncode(<Map<String, Object>>[
+        <String, Object>{
+          'surah': 36,
+          'ayah': 1,
+          'sourceId': 'french_rashid',
+          'updatedAt': 300,
+        },
+      ]),
       'archive_times': jsonEncode(<String, String>{
         'bookmark|36:1': '100',
         'highlight|18:10': '150',
@@ -56,7 +64,7 @@ void main() {
 
     expect(find.text('Saved activity'), findsOneWidget);
     expect(find.text('Personal note'), findsOneWidget);
-    expect(find.textContaining('Display source:'), findsOneWidget);
+    expect(find.textContaining('Display source:'), findsWidgets);
     expect(find.text('Saved verse'), findsOneWidget);
     expect(find.text('Highlighted verse'), findsOneWidget);
   });
@@ -97,7 +105,9 @@ void main() {
     expect(AppNavigation.instance.tabRequest.value, AppNavigation.quranTabIndex);
   });
 
-  testWidgets('legacy bookmark keeps current display source', (tester) async {
+  testWidgets('legacy bookmark recovers its newest historical display source', (
+    tester,
+  ) async {
     final settings = await settingsWithSavedActivity();
     await pumpArchive(tester, settings);
     await tester.pumpAndSettle();
@@ -109,7 +119,7 @@ void main() {
     expect(target, isNotNull);
     expect(target!.surah, 36);
     expect(target.ayah, 1);
-    expect(target.sourceId, arabicOriginalSourceId);
+    expect(target.sourceId, 'french_rashid');
   });
 
   testWidgets('French archive labels are available end to end', (tester) async {
