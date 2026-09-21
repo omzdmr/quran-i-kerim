@@ -22,7 +22,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Validate Xcode graph and privacy manifests
         run: |
           python3 ios/NativeTests/validate_project_graph.py
@@ -34,28 +33,25 @@ jobs:
           plutil -lint ios/PrayerWidget/PrayerWidget.entitlements
           grep -q '<string>quranikerim</string>' ios/Runner/Info.plist
           grep -q 'PrivacyInfo.xcprivacy in Resources' ios/Runner.xcodeproj/project.pbxproj
-
       - name: Validate native parity contracts
         run: |
           grep -q '"universalLink": false' ios/Runner/AppDelegate.swift
           grep -q 'components.host == "prayer"' ios/Runner/AppDelegate.swift
           grep -q 'maxImportBytes: Int64 = 64' ios/Runner/AppDelegate.swift
           grep -q 'orientationAwareHeading": true' ios/Runner/BackupExclusionChannel.swift
+          grep -q 'trueNorthWhenAuthorized": true' ios/Runner/BackupExclusionChannel.swift
+          grep -q 'headingNeedsTrueNorth' ios/Runner/BackupExclusionChannel.swift
           grep -q 'headingOrientation = .landscapeLeft' ios/Runner/BackupExclusionChannel.swift
           grep -q 'bluetoothMicrophone": true' ios/Runner/MicrophoneRecordingChannel.swift
           grep -q '\.allowBluetooth' ios/Runner/MicrophoneRecordingChannel.swift
-
       - name: Validate widget target graph with Xcode
         run: |
           xcodebuild -project ios/Runner.xcodeproj -target PrayerWidget -sdk iphonesimulator -showBuildSettings CODE_SIGNING_ALLOWED=NO > /tmp/widget-settings.txt
           grep -q 'PRODUCT_BUNDLE_IDENTIFIER = com.omzdmr.quranIKerim.PrayerWidget' /tmp/widget-settings.txt
           grep -q 'CODE_SIGN_ENTITLEMENTS = PrayerWidget/PrayerWidget.entitlements' /tmp/widget-settings.txt
           grep -q 'IPHONEOS_DEPLOYMENT_TARGET = 17.0' /tmp/widget-settings.txt
-
       - name: Type-check WidgetKit extension
-        run: |
-          xcrun --sdk iphonesimulator swiftc -parse-as-library -target arm64-apple-ios17.0-simulator -typecheck ios/PrayerWidget/PrayerWidget.swift
-
+        run: xcrun --sdk iphonesimulator swiftc -parse-as-library -target arm64-apple-ios17.0-simulator -typecheck ios/PrayerWidget/PrayerWidget.swift
       - name: Validate snapshot persistence contract
         run: |
           swiftc ios/Runner/WidgetSnapshotStore.swift ios/NativeTests/WidgetSnapshotValidation.swift -o /tmp/widget-snapshot-validation
