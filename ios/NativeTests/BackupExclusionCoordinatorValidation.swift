@@ -70,6 +70,27 @@ struct BackupExclusionCoordinatorValidation {
       relativePath: relativePayloadPath
     )
 
+    let externalRoot = fileManager.temporaryDirectory
+      .appendingPathComponent(
+        "quran-ios-backup-external-\(UUID().uuidString)",
+        isDirectory: true
+      )
+    try fileManager.createDirectory(
+      at: externalRoot,
+      withIntermediateDirectories: true
+    )
+    defer { try? fileManager.removeItem(at: externalRoot) }
+    let symlink = validationRoot.appendingPathComponent("escape")
+    try fileManager.createSymbolicLink(
+      at: symlink,
+      withDestinationURL: externalRoot
+    )
+    assertRejected(
+      coordinator: coordinator,
+      storageArea: "applicationSupport",
+      relativePath: "\(validationRootName)/escape"
+    )
+
     print("Backup exclusion validation passed.")
   }
 
