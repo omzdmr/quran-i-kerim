@@ -78,6 +78,9 @@ class ReaderReadingHistoryRepository {
           .whereType<ReaderHistoryEntry>()
           .toList(growable: true)
         ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      if (entries.length > maxEntries) {
+        entries.removeRange(maxEntries, entries.length);
+      }
       return List<ReaderHistoryEntry>.unmodifiable(entries);
     } catch (_) {
       return const <ReaderHistoryEntry>[];
