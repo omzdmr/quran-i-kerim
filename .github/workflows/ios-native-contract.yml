@@ -35,6 +35,16 @@ jobs:
           grep -q '<string>quranikerim</string>' ios/Runner/Info.plist
           grep -q 'PrivacyInfo.xcprivacy in Resources' ios/Runner.xcodeproj/project.pbxproj
 
+      - name: Validate native parity contracts
+        run: |
+          grep -q '"universalLink": false' ios/Runner/AppDelegate.swift
+          grep -q 'components.host == "prayer"' ios/Runner/AppDelegate.swift
+          grep -q 'maxImportBytes: Int64 = 64' ios/Runner/AppDelegate.swift
+          grep -q 'orientationAwareHeading": true' ios/Runner/BackupExclusionChannel.swift
+          grep -q 'headingOrientation = .landscapeLeft' ios/Runner/BackupExclusionChannel.swift
+          grep -q 'bluetoothMicrophone": true' ios/Runner/MicrophoneRecordingChannel.swift
+          grep -q '\.allowBluetooth' ios/Runner/MicrophoneRecordingChannel.swift
+
       - name: Validate widget target graph with Xcode
         run: |
           xcodebuild -project ios/Runner.xcodeproj -target PrayerWidget -sdk iphonesimulator -showBuildSettings CODE_SIGNING_ALLOWED=NO > /tmp/widget-settings.txt
