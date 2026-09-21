@@ -7,7 +7,6 @@ import '../../data/translation_repository.dart';
 import '../../navigation/app_navigation.dart';
 import '../../settings/app_settings.dart';
 import '../reader/offline_audio_manager.dart';
-import '../reader/offline_audio_pack_manifest.dart';
 import '../reader/reader_audio_cache.dart';
 
 class DownloadsScreen extends StatefulWidget {

@@ -155,6 +155,12 @@ void main() {
     expect(OfflineAudioPackIntent.decode('{}'), isNull);
     expect(
       OfflineAudioPackIntent.decode(
+        '{"storageKey":"","surah":1,"verseCount":7}',
+      ),
+      isNull,
+    );
+    expect(
+      OfflineAudioPackIntent.decode(
         '{"storageKey":"voice","surah":0,"verseCount":7}',
       ),
       isNull,

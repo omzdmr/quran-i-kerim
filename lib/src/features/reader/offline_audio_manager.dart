@@ -347,7 +347,10 @@ class OfflineAudioManager extends ChangeNotifier {
                   hasPartialFiles: inspection.hasPartials,
                 )
             ? OfflineAudioPackReadiness.ready
-            : manifest != null || (verseCount > 0 && inspection.ayahBytes.length >= verseCount)
+            : inspection.manifestPresent ||
+                  manifest != null ||
+                  (verseCount > 0 &&
+                      inspection.ayahBytes.length >= verseCount)
             ? OfflineAudioPackReadiness.needsRepair
             : OfflineAudioPackReadiness.incomplete;
         found['$storageKey|$surah'] = OfflineAudioSurah(
