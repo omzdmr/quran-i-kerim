@@ -1,7 +1,8 @@
 import Foundation
 
-private func expect(_ condition: @autoclosure () -> Bool, _ message: String) {
-  guard condition() else { fputs("WidgetSnapshotValidation failed: \(message)\n", stderr); exit(1) }
+private func expect(_ condition: @autoclosure () -> Bool, _ message: String) { guard condition() else { fputs("WidgetSnapshotValidation failed: \(message)\n", stderr); exit(1) } }
+private func expectInvalid(_ snapshot: WidgetPrayerSnapshot, store: WidgetSnapshotStore, now: Date, _ message: String) {
+  do { try store.save(snapshot, now: now); expect(false, message) } catch WidgetSnapshotStore.StoreError.invalidSnapshot { } catch { expect(false, "unexpected error: \(error)") }
 }
 
 @main
@@ -25,8 +26,9 @@ struct WidgetSnapshotValidation {
     let redacted = WidgetPrayerSnapshot(generatedAt: now, validUntil: now.addingTimeInterval(300), timeZoneIdentifier: shanghai.identifier, calculationFingerprint: "same-policy", nextPrayerID: "maghrib", nextPrayerAt: now.addingTimeInterval(200), displayName: "Maghrib", privacyMode: .redacted)
     expect(redacted.presentation(at: now, currentTimeZone: shanghai) == .redacted, "privacy mode must suppress lock-screen prayer details")
 
-    let alreadyExpired = WidgetPrayerSnapshot(generatedAt: now.addingTimeInterval(-100), validUntil: now.addingTimeInterval(-1), timeZoneIdentifier: shanghai.identifier, calculationFingerprint: "policy", nextPrayerID: nil, nextPrayerAt: nil, displayName: nil, privacyMode: .standard)
-    do { try store.save(alreadyExpired, now: now); expect(false, "expired snapshots must be rejected at persistence boundary") } catch WidgetSnapshotStore.StoreError.invalidSnapshot { }
+    expectInvalid(WidgetPrayerSnapshot(generatedAt: now.addingTimeInterval(-100), validUntil: now.addingTimeInterval(-1), timeZoneIdentifier: shanghai.identifier, calculationFingerprint: "policy", nextPrayerID: nil, nextPrayerAt: nil, displayName: nil, privacyMode: .standard), store: store, now: now, "expired snapshots must be rejected")
+    expectInvalid(WidgetPrayerSnapshot(generatedAt: now, validUntil: now.addingTimeInterval(300), timeZoneIdentifier: shanghai.identifier, calculationFingerprint: "policy", nextPrayerID: "fajr", nextPrayerAt: nil, displayName: "Fajr", privacyMode: .standard), store: store, now: now, "prayer id without a prayer time must be rejected")
+    expectInvalid(WidgetPrayerSnapshot(generatedAt: now, validUntil: now.addingTimeInterval(300), timeZoneIdentifier: shanghai.identifier, calculationFingerprint: "policy", nextPrayerID: "fajr", nextPrayerAt: now.addingTimeInterval(-1), displayName: "Fajr", privacyMode: .standard), store: store, now: now, "prayer time before generation must be rejected")
 
     store.clear(); expect(store.load() == nil, "clear must remove widget projection")
     print("WidgetSnapshotValidation passed")
