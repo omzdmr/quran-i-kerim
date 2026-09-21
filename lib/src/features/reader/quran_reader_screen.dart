@@ -74,6 +74,9 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
       ..addListener(_handleFocusChanged);
     unawaited(_restoreFocusPreferences());
     AppNavigation.instance.readerRequest.addListener(_handleReaderRequest);
+    AppNavigation.instance.readerFocusRequest.addListener(
+      _handleReaderFocusRequest,
+    );
     AppNavigation.instance.readerVisible.addListener(_handleReaderVisibilityChanged);
   }
 
@@ -166,6 +169,9 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
     AppNavigation.instance.setReaderFullScreenActive(false);
     AppNavigation.instance.setReaderSelectionActive(false);
     AppNavigation.instance.readerRequest.removeListener(_handleReaderRequest);
+    AppNavigation.instance.readerFocusRequest.removeListener(
+      _handleReaderFocusRequest,
+    );
     AppNavigation.instance.readerVisible.removeListener(
       _handleReaderVisibilityChanged,
     );
@@ -211,6 +217,14 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
   void _invalidateTranslationFuture() {
     _cachedSourceId = null;
     _cachedTranslationFuture = null;
+  }
+
+  void _handleReaderFocusRequest() {
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !AppNavigation.instance.readerVisible.value) return;
+      _showFocusControls();
+    });
   }
 
   void _handleReaderRequest() async {

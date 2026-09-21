@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../data/translation_catalog.dart';
 import '../../l10n/app_localizations.dart';
+import '../../navigation/app_navigation.dart';
 import '../../settings/app_settings.dart';
 import '../profile/downloads_screen.dart';
 import 'backup_settings_screen.dart';
@@ -315,6 +316,20 @@ class _SettingsSearchDelegate extends SearchDelegate<void> {
                 ? ReaderExperiencePreset.standard
                 : ReaderExperiencePreset.essential,
           ),
+        ),
+        _SettingsSearchEntry(
+          title: l10n.text('focusReading'),
+          subtitle: l10n.text('focusReadingSubtitle'),
+          icon: Icons.center_focus_strong_rounded,
+          keywords: <String>[
+            l10n.reading,
+            l10n.text('fullScreen'),
+            l10n.text('dimScreen'),
+            l10n.text('lineFocus'),
+            l10n.text('keepScreenAwake'),
+            l10n.text('autoScroll'),
+          ],
+          onTap: AppNavigation.instance.openReaderFocusControls,
         ),
         _SettingsSearchEntry(
           title: l10n.useDeviceTheme,

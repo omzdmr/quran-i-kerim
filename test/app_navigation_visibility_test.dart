@@ -42,6 +42,17 @@ void main() {
     expect(navigation.readerFullScreenActive.value, isFalse);
   });
 
+  test('focus-controls deep link requests Quran Read and the focus sheet', () {
+    final readBefore = navigation.quranReadRequest.value;
+    final focusBefore = navigation.readerFocusRequest.value;
+
+    navigation.openReaderFocusControls();
+
+    expect(navigation.tabRequest.value, AppNavigation.quranTabIndex);
+    expect(navigation.quranReadRequest.value, readBefore + 1);
+    expect(navigation.readerFocusRequest.value, focusBefore + 1);
+  });
+
   test('reported navigation state is clamped to known surfaces', () {
     navigation.reportActiveTab(99);
     navigation.reportQuranSection(99);

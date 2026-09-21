@@ -39,6 +39,7 @@ class AppNavigation {
   final ValueNotifier<ReaderTarget?> readerRequest =
       ValueNotifier<ReaderTarget?>(null);
   final ValueNotifier<int> quranReadRequest = ValueNotifier<int>(0);
+  final ValueNotifier<int> readerFocusRequest = ValueNotifier<int>(0);
   final ValueNotifier<bool> readerSelectionActive = ValueNotifier<bool>(false);
   final ValueNotifier<bool> readerFullScreenActive =
       ValueNotifier<bool>(false);
@@ -80,6 +81,13 @@ class AppNavigation {
     readerSelectionActive.value = false;
     quranReadRequest.value++;
     tabRequest.value = quranTabIndex;
+  }
+
+  void openReaderFocusControls() {
+    readerSelectionActive.value = false;
+    quranReadRequest.value++;
+    tabRequest.value = quranTabIndex;
+    readerFocusRequest.value++;
   }
 
   void openPlans() {
