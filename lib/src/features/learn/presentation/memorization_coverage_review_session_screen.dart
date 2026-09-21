@@ -60,13 +60,12 @@ class _MemorizationCoverageReviewSessionScreenState
     if (page == null || !_awaitingAssessment || _saving) return;
     setState(() => _saving = true);
 
-    switch (assessment) {
-      case MemorizationSelfAssessment.independent:
-        HapticFeedback.lightImpact();
-      case MemorizationSelfAssessment.assisted:
-        HapticFeedback.selectionClick();
-      case MemorizationSelfAssessment.struggled:
-        HapticFeedback.mediumImpact();
+    if (assessment == MemorizationSelfAssessment.independent) {
+      HapticFeedback.lightImpact();
+    } else if (assessment == MemorizationSelfAssessment.assisted) {
+      HapticFeedback.selectionClick();
+    } else {
+      HapticFeedback.mediumImpact();
     }
 
     await _store.recordReview(page, selfAssessment: assessment);
