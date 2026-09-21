@@ -9,20 +9,15 @@ class MemorizationReviewPageHistoryScreen extends StatefulWidget {
   final int page;
 
   @override
-  State<MemorizationReviewPageHistoryScreen> createState() =>
-      _MemorizationReviewPageHistoryScreenState();
+  State<MemorizationReviewPageHistoryScreen> createState() => _MemorizationReviewPageHistoryScreenState();
 }
 
-class _MemorizationReviewPageHistoryScreenState
-    extends State<MemorizationReviewPageHistoryScreen> {
+class _MemorizationReviewPageHistoryScreenState extends State<MemorizationReviewPageHistoryScreen> {
   static const _store = MemorizationPracticeHistoryStore();
   List<MemorizationPracticeEvent>? _events;
 
   @override
-  void initState() {
-    super.initState();
-    _load();
-  }
+  void initState() { super.initState(); _load(); }
 
   Future<void> _load() async {
     final snapshot = await _store.load();
@@ -31,9 +26,7 @@ class _MemorizationReviewPageHistoryScreenState
   }
 
   Future<void> _openStudy() async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute(builder: (_) => MemorizationStudyScreen(page: widget.page)),
-    );
+    await Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => MemorizationStudyScreen(page: widget.page)));
   }
 
   @override
@@ -62,36 +55,42 @@ class _MemorizationReviewPageHistoryScreenState
                   )
                 else
                   for (final event in events)
-                    Semantics(
-                      label: '${copy.contextLabel(event.context)}, '
-                          '${MaterialLocalizations.of(context).formatFullDate(event.occurredAt)}',
-                      child: Card(
-                        child: ListTile(
-                          leading: Icon(copy.contextIcon(event.context)),
-                          title: Text(copy.contextLabel(event.context)),
-                          subtitle: Text(
-                            '${MaterialLocalizations.of(context).formatFullDate(event.occurredAt)} · '
-                            '${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(event.occurredAt))}',
-                          ),
-                        ),
-                      ),
-                    ),
+                    _EventTile(event: event, copy: copy),
               ],
             ),
     );
   }
 }
 
-class _PageHistoryCopy {
-  const _PageHistoryCopy({
-    required this.openStudy,
-    required this.noDetailedHistory,
-    required this.solo,
-    required this.prayer,
-    required this.someone,
-  });
-  final String openStudy, noDetailedHistory, solo, prayer, someone;
+class _EventTile extends StatelessWidget {
+  const _EventTile({required this.event, required this.copy});
+  final MemorizationPracticeEvent event;
+  final _PageHistoryCopy copy;
 
+  @override
+  Widget build(BuildContext context) {
+    final localTime = event.occurredAt.toLocal();
+    final material = MaterialLocalizations.of(context);
+    final date = material.formatFullDate(localTime);
+    final time = material.formatTimeOfDay(TimeOfDay.fromDateTime(localTime));
+    return Semantics(
+      label: '${copy.contextLabel(event.context)}, $date, $time',
+      child: ExcludeSemantics(
+        child: Card(
+          child: ListTile(
+            leading: Icon(copy.contextIcon(event.context)),
+            title: Text(copy.contextLabel(event.context)),
+            subtitle: Text('$date · $time'),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PageHistoryCopy {
+  const _PageHistoryCopy({required this.openStudy, required this.noDetailedHistory, required this.solo, required this.prayer, required this.someone});
+  final String openStudy, noDetailedHistory, solo, prayer, someone;
   String contextLabel(MemorizationPracticeContext value) => switch (value) {
     MemorizationPracticeContext.soloReview => solo,
     MemorizationPracticeContext.prayer => prayer,
