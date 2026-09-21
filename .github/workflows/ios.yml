@@ -69,6 +69,13 @@ jobs:
           grep -q "startLocationUpdates" ios/Runner/BackupExclusionChannel.swift
           grep -q "startHeadingUpdates" ios/Runner/BackupExclusionChannel.swift
           grep -q "LocationHeadingChannel(binaryMessenger: messenger)" ios/Runner/AppDelegate.swift
+          grep -q "app.quranikerim/native_document_handoff" ios/Runner/AppDelegate.swift
+          grep -q 'case "exportFile"' ios/Runner/AppDelegate.swift
+          grep -q 'case "importFile"' ios/Runner/AppDelegate.swift
+          grep -q "UIDocumentPickerViewController(forExporting:" ios/Runner/AppDelegate.swift
+          grep -q "UIDocumentPickerViewController(forOpeningContentTypes:" ios/Runner/AppDelegate.swift
+          grep -q "isExcludedFromBackup = true" ios/Runner/AppDelegate.swift
+          grep -q "DocumentHandoffChannel(binaryMessenger: messenger" ios/Runner/AppDelegate.swift
           grep -q "NSLocationWhenInUseUsageDescription" ios/Runner/Info.plist
           grep -q "NSMicrophoneUsageDescription" ios/Runner/Info.plist
           /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes:0" ios/Runner/Info.plist | grep -qx audio
