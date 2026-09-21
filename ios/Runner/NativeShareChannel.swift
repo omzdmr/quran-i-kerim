@@ -45,12 +45,8 @@ final class NativeShareChannel: NSObject, UIAdaptivePresentationControllerDelega
   }
 
   private func present(items: [Any], result: @escaping FlutterResult) {
-    guard pendingResult == nil else {
-      result(FlutterError(code: "share_busy", message: "A share sheet is already being presented.", details: nil)); return
-    }
-    guard let presenter, presenter.presentedViewController == nil else {
-      result(FlutterError(code: "share_presenter_unavailable", message: "The app is not ready to present a share sheet.", details: nil)); return
-    }
+    guard pendingResult == nil else { result(FlutterError(code: "share_busy", message: "A share sheet is already being presented.", details: nil)); return }
+    guard let presenter, presenter.presentedViewController == nil else { result(FlutterError(code: "share_presenter_unavailable", message: "The app is not ready to present a share sheet.", details: nil)); return }
     pendingResult = result
     let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
     controller.presentationController?.delegate = self
@@ -61,7 +57,9 @@ final class NativeShareChannel: NSObject, UIAdaptivePresentationControllerDelega
       if let error {
         callback?(FlutterError(code: "share_failed", message: error.localizedDescription, details: nil))
       } else {
-        callback?(["status": completed ? "completed" : "cancelled", "activityType": activity?.rawValue as Any])
+        var payload: [String: Any] = ["status": completed ? "completed" : "cancelled"]
+        if let activity { payload["activityType"] = activity.rawValue }
+        callback?(payload)
       }
     }
     if let popover = controller.popoverPresentationController {
