@@ -104,13 +104,11 @@ class _QuranReaderScreenState extends State<QuranReaderScreen>
     _autoScrollTimer?.cancel();
     _autoScrollTimer = null;
     _saveVisibleReadingPosition();
-    final releaseWakeLock = _focusController.keepAwake;
-    final leaveFullScreen = _focusController.fullScreen;
-    _focusController.reset();
-    if (releaseWakeLock) {
+    final release = _focusController.leaveSession();
+    if (release.releaseWakeLock) {
       unawaited(WakelockPlus.disable());
     }
-    if (leaveFullScreen) {
+    if (release.exitFullScreen) {
       unawaited(
         SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge),
       );

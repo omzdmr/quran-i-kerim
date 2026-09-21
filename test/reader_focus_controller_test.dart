@@ -33,6 +33,25 @@ void main() {
     expect(controller.autoScrollSpeed, ReaderAutoScrollSpeed.normal);
   });
 
+  test('leaving Reader returns platform cleanup work and resets state', () {
+    final controller = ReaderFocusController();
+    addTearDown(controller.dispose);
+    controller
+      ..setFullScreen(true)
+      ..setDimmed(true)
+      ..setKeepAwake(true)
+      ..setAutoScroll(true);
+
+    final release = controller.leaveSession();
+
+    expect(release.exitFullScreen, isTrue);
+    expect(release.releaseWakeLock, isTrue);
+    expect(controller.fullScreen, isFalse);
+    expect(controller.dimmed, isFalse);
+    expect(controller.keepAwake, isFalse);
+    expect(controller.autoScroll, isFalse);
+  });
+
   test('dimming and line focus remain mutually exclusive', () {
     final controller = ReaderFocusController();
     addTearDown(controller.dispose);

@@ -14,6 +14,16 @@ extension ReaderAutoScrollSpeedValue on ReaderAutoScrollSpeed {
 ///
 /// These choices intentionally reset when the Reader is left so fullscreen,
 /// screen dimming and wake lock can never surprise the user on the next visit.
+class ReaderFocusSessionRelease {
+  const ReaderFocusSessionRelease({
+    required this.releaseWakeLock,
+    required this.exitFullScreen,
+  });
+
+  final bool releaseWakeLock;
+  final bool exitFullScreen;
+}
+
 class ReaderFocusController extends ChangeNotifier {
   bool _fullScreen = false;
   bool _dimmed = false;
@@ -76,6 +86,15 @@ class ReaderFocusController extends ChangeNotifier {
     _autoScrollPaused = true;
     notifyListeners();
     return true;
+  }
+
+  ReaderFocusSessionRelease leaveSession() {
+    final release = ReaderFocusSessionRelease(
+      releaseWakeLock: _keepAwake,
+      exitFullScreen: _fullScreen,
+    );
+    reset();
+    return release;
   }
 
   void reset() {
