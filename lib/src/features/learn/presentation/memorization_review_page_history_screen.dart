@@ -6,7 +6,6 @@ import 'memorization_study_screen.dart';
 
 class MemorizationReviewPageHistoryScreen extends StatefulWidget {
   const MemorizationReviewPageHistoryScreen({required this.page, super.key});
-
   final int page;
 
   @override
@@ -37,24 +36,6 @@ class _MemorizationReviewPageHistoryScreenState
     );
   }
 
-  Future<void> _remove(MemorizationPracticeEvent event) async {
-    final copy = _PageHistoryCopy.forLocale(Localizations.localeOf(context));
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(copy.deleteTitle),
-        content: Text(copy.deleteBody),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(copy.cancel)),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(copy.delete)),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    await _store.remove(event.id);
-    await _load();
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = GeneratedAppLocalizations.of(context)!;
@@ -81,36 +62,16 @@ class _MemorizationReviewPageHistoryScreenState
                   )
                 else
                   for (final event in events)
-                    Dismissible(
-                      key: ValueKey(event.id),
-                      direction: DismissDirection.endToStart,
-                      confirmDismiss: (_) async {
-                        await _remove(event);
-                        return false;
-                      },
-                      background: Container(
-                        alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        color: Theme.of(context).colorScheme.errorContainer,
-                        child: Icon(Icons.delete_outline_rounded,
-                            color: Theme.of(context).colorScheme.onErrorContainer),
-                      ),
-                      child: Semantics(
-                        label: '${copy.contextLabel(event.context)}, '
-                            '${MaterialLocalizations.of(context).formatFullDate(event.occurredAt)}',
-                        child: Card(
-                          child: ListTile(
-                            leading: Icon(copy.contextIcon(event.context)),
-                            title: Text(copy.contextLabel(event.context)),
-                            subtitle: Text(
-                              '${MaterialLocalizations.of(context).formatFullDate(event.occurredAt)} · '
-                              '${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(event.occurredAt))}',
-                            ),
-                            trailing: IconButton(
-                              tooltip: copy.delete,
-                              onPressed: () => _remove(event),
-                              icon: const Icon(Icons.delete_outline_rounded),
-                            ),
+                    Semantics(
+                      label: '${copy.contextLabel(event.context)}, '
+                          '${MaterialLocalizations.of(context).formatFullDate(event.occurredAt)}',
+                      child: Card(
+                        child: ListTile(
+                          leading: Icon(copy.contextIcon(event.context)),
+                          title: Text(copy.contextLabel(event.context)),
+                          subtitle: Text(
+                            '${MaterialLocalizations.of(context).formatFullDate(event.occurredAt)} · '
+                            '${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(event.occurredAt))}',
                           ),
                         ),
                       ),
@@ -123,12 +84,13 @@ class _MemorizationReviewPageHistoryScreenState
 
 class _PageHistoryCopy {
   const _PageHistoryCopy({
-    required this.openStudy, required this.noDetailedHistory,
-    required this.deleteTitle, required this.deleteBody, required this.delete,
-    required this.cancel, required this.solo, required this.prayer, required this.someone,
+    required this.openStudy,
+    required this.noDetailedHistory,
+    required this.solo,
+    required this.prayer,
+    required this.someone,
   });
-  final String openStudy, noDetailedHistory, deleteTitle, deleteBody, delete, cancel;
-  final String solo, prayer, someone;
+  final String openStudy, noDetailedHistory, solo, prayer, someone;
 
   String contextLabel(MemorizationPracticeContext value) => switch (value) {
     MemorizationPracticeContext.soloReview => solo,
@@ -144,10 +106,10 @@ class _PageHistoryCopy {
 }
 
 const _copies = <String, _PageHistoryCopy>{
-  'tr': _PageHistoryCopy(openStudy: 'Sayfayı çalış', noDetailedHistory: 'Bu sayfa için ayrıntılı tekrar olayı henüz yok. Eski son-tekrar tarihi yine genel geçmişte korunur.', deleteTitle: 'Tekrar kaydını sil?', deleteBody: 'Yanlış kaydettiğin bu olayı geçmişten kaldırır.', delete: 'Sil', cancel: 'Vazgeç', solo: 'Tek başına', prayer: 'Namazda', someone: 'Birine okudum'),
-  'en': _PageHistoryCopy(openStudy: 'Study this page', noDetailedHistory: 'There are no detailed review events for this page yet. Legacy last-review data remains visible in the overview.', deleteTitle: 'Delete review record?', deleteBody: 'This removes the selected event from your review history.', delete: 'Delete', cancel: 'Cancel', solo: 'Solo review', prayer: 'In prayer', someone: 'Recited to someone'),
-  'fr': _PageHistoryCopy(openStudy: 'Étudier cette page', noDetailedHistory: 'Aucun événement détaillé pour cette page. La dernière révision historique reste visible dans l’aperçu.', deleteTitle: 'Supprimer cette révision ?', deleteBody: 'Cet événement sera retiré de votre historique.', delete: 'Supprimer', cancel: 'Annuler', solo: 'Seul', prayer: 'En prière', someone: 'Récité à quelqu’un'),
-  'ar': _PageHistoryCopy(openStudy: 'مراجعة هذه الصفحة', noDetailedHistory: 'لا توجد أحداث مراجعة مفصلة لهذه الصفحة بعد. يبقى تاريخ آخر مراجعة القديم ظاهرًا في الملخص.', deleteTitle: 'حذف سجل المراجعة؟', deleteBody: 'سيُحذف هذا الحدث من سجل مراجعتك.', delete: 'حذف', cancel: 'إلغاء', solo: 'مراجعة فردية', prayer: 'في الصلاة', someone: 'قرأت على شخص'),
-  'az': _PageHistoryCopy(openStudy: 'Bu səhifəni çalış', noDetailedHistory: 'Bu səhifə üçün hələ ətraflı təkrar hadisəsi yoxdur. Köhnə son-təkrar məlumatı icmalda qalır.', deleteTitle: 'Təkrar qeydini sil?', deleteBody: 'Bu hadisə təkrar tarixçəndən silinəcək.', delete: 'Sil', cancel: 'Ləğv et', solo: 'Tək', prayer: 'Namazda', someone: 'Birinə oxudum'),
-  'ru': _PageHistoryCopy(openStudy: 'Повторить страницу', noDetailedHistory: 'Подробных событий для этой страницы пока нет. Старая дата последнего повторения остаётся в обзоре.', deleteTitle: 'Удалить запись?', deleteBody: 'Это событие будет удалено из истории повторений.', delete: 'Удалить', cancel: 'Отмена', solo: 'Самостоятельно', prayer: 'В молитве', someone: 'Читал другому'),
+  'tr': _PageHistoryCopy(openStudy: 'Sayfayı çalış', noDetailedHistory: 'Bu sayfa için ayrıntılı tekrar olayı henüz yok. Eski son-tekrar tarihi yine genel geçmişte korunur.', solo: 'Tek başına', prayer: 'Namazda', someone: 'Birine okudum'),
+  'en': _PageHistoryCopy(openStudy: 'Study this page', noDetailedHistory: 'There are no detailed review events for this page yet. Legacy last-review data remains visible in the overview.', solo: 'Solo review', prayer: 'In prayer', someone: 'Recited to someone'),
+  'fr': _PageHistoryCopy(openStudy: 'Étudier cette page', noDetailedHistory: 'Aucun événement détaillé pour cette page. La dernière révision historique reste visible dans l’aperçu.', solo: 'Seul', prayer: 'En prière', someone: 'Récité à quelqu’un'),
+  'ar': _PageHistoryCopy(openStudy: 'مراجعة هذه الصفحة', noDetailedHistory: 'لا توجد أحداث مراجعة مفصلة لهذه الصفحة بعد. يبقى تاريخ آخر مراجعة القديم ظاهرًا في الملخص.', solo: 'مراجعة فردية', prayer: 'في الصلاة', someone: 'قرأت على شخص'),
+  'az': _PageHistoryCopy(openStudy: 'Bu səhifəni çalış', noDetailedHistory: 'Bu səhifə üçün hələ ətraflı təkrar hadisəsi yoxdur. Köhnə son-təkrar məlumatı icmalda qalır.', solo: 'Tək', prayer: 'Namazda', someone: 'Birinə oxudum'),
+  'ru': _PageHistoryCopy(openStudy: 'Повторить страницу', noDetailedHistory: 'Подробных событий для этой страницы пока нет. Старая дата последнего повторения остаётся в обзоре.', solo: 'Самостоятельно', prayer: 'В молитве', someone: 'Читал другому'),
 };
