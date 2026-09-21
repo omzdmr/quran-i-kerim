@@ -9,18 +9,31 @@ export 'local_backup_service.dart' show BackupRestoreMode;
 
 typedef BackupDirectoryProvider = Future<Directory> Function();
 
+class BackupRestoreReceipt {
+  const BackupRestoreReceipt({
+    required this.mode,
+    required this.safetySnapshot,
+    required this.restoredAt,
+  });
+
+  final BackupRestoreMode mode;
+  final File safetySnapshot;
+  final DateTime restoredAt;
+}
+
 /// Stores user-owned backup JSON files without involving a backend.
 ///
 /// Export uses an atomic temp-file rename so an interrupted write does not
 /// leave a half-written backup at the final path. Import is size-limited before
 /// JSON parsing to avoid loading an unexpectedly large file into memory.
+/// Every user-triggered restore also writes a pre-restore safety snapshot so a
+/// successful but unwanted restore can be reversed without a server/account.
 class BackupFileService {
   BackupFileService({
     this.backupService = const LocalBackupService(),
     BackupDirectoryProvider? directoryProvider,
     this.maxImportBytes = 8 * 1024 * 1024,
-  }) : _directoryProvider =
-           directoryProvider ?? getApplicationDocumentsDirectory;
+  }) : _directoryProvider = directoryProvider ?? getApplicationDocumentsDirectory;
 
   final LocalBackupService backupService;
   final BackupDirectoryProvider _directoryProvider;
@@ -29,28 +42,7 @@ class BackupFileService {
   Future<File> exportToFile({DateTime? now}) async {
     final createdAt = (now ?? DateTime.now()).toUtc();
     final encoded = await backupService.exportJson(now: createdAt);
-    final directory = await _backupDirectory(create: true);
-
-    final stamp = createdAt
-        .toIso8601String()
-        .replaceAll('-', '')
-        .replaceAll(':', '')
-        .replaceAll('.', '');
-    final target = File(
-      '${directory.path}${Platform.pathSeparator}quran-backup-$stamp.json',
-    );
-    final temporary = File(
-      '${target.path}.tmp-${DateTime.now().microsecondsSinceEpoch}',
-    );
-
-    try {
-      await temporary.writeAsString(encoded, flush: true);
-      return await temporary.rename(target.path);
-    } finally {
-      if (await temporary.exists()) {
-        await temporary.delete();
-      }
-    }
+    return _writeBackup(encoded, createdAt: createdAt, prefix: 'quran-backup');
   }
 
   Future<List<File>> listBackupFiles() async {
@@ -59,12 +51,7 @@ class BackupFileService {
 
     final files = await directory
         .list(followLinks: false)
-        .where(
-          (entry) =>
-              entry is File &&
-              _fileName(entry.path).startsWith('quran-backup-') &&
-              entry.path.endsWith('.json'),
-        )
+        .where((entry) => entry is File && _isManagedBackup(entry.path))
         .cast<File>()
         .toList();
     files.sort((a, b) => _fileName(b.path).compareTo(_fileName(a.path)));
@@ -81,21 +68,69 @@ class BackupFileService {
     return backupService.planImportJson(encoded);
   }
 
-  Future<void> restoreFile(
+  Future<BackupRestoreReceipt> restoreFile(
     File file, {
     BackupRestoreMode mode = BackupRestoreMode.replace,
+    DateTime? now,
   }) async {
     final encoded = await _readImport(file);
-    await backupService.restoreJson(encoded, mode: mode);
+    // Validate before creating the safety snapshot. Invalid/untrusted imports
+    // should not create noise in the user's backup history.
+    final preview = backupService.previewJson(encoded);
+    if (!preview.canRestore) {
+      throw const FormatException('Backup is not restorable.');
+    }
+
+    final restoredAt = (now ?? DateTime.now()).toUtc();
+    final beforeRestore = await backupService.exportJson(now: restoredAt);
+    final safetySnapshot = await _writeBackup(
+      beforeRestore,
+      createdAt: restoredAt,
+      prefix: 'quran-safety-before-restore',
+    );
+
+    try {
+      await backupService.restoreJson(encoded, mode: mode);
+    } catch (_) {
+      // LocalBackupService already rolls the store back transactionally. A
+      // failed restore therefore must not masquerade as a useful history item.
+      if (await safetySnapshot.exists()) await safetySnapshot.delete();
+      rethrow;
+    }
+
+    return BackupRestoreReceipt(
+      mode: mode,
+      safetySnapshot: safetySnapshot,
+      restoredAt: restoredAt,
+    );
   }
 
   Future<Directory> _backupDirectory({required bool create}) async {
     final root = await _directoryProvider();
-    final directory = Directory(
-      '${root.path}${Platform.pathSeparator}quran_backups',
-    );
+    final directory = Directory('${root.path}${Platform.pathSeparator}quran_backups');
     if (create) await directory.create(recursive: true);
     return directory;
+  }
+
+  Future<File> _writeBackup(
+    String encoded, {
+    required DateTime createdAt,
+    required String prefix,
+  }) async {
+    final directory = await _backupDirectory(create: true);
+    final stamp = createdAt
+        .toIso8601String()
+        .replaceAll('-', '')
+        .replaceAll(':', '')
+        .replaceAll('.', '');
+    final target = File('${directory.path}${Platform.pathSeparator}$prefix-$stamp.json');
+    final temporary = File('${target.path}.tmp-${DateTime.now().microsecondsSinceEpoch}');
+    try {
+      await temporary.writeAsString(encoded, flush: true);
+      return await temporary.rename(target.path);
+    } finally {
+      if (await temporary.exists()) await temporary.delete();
+    }
   }
 
   Future<String> _readImport(File file) async {
@@ -107,11 +142,15 @@ class BackupFileService {
     }
     final length = await file.length();
     if (length > maxImportBytes) {
-      throw FormatException(
-        'Backup file exceeds the $maxImportBytes byte import limit.',
-      );
+      throw FormatException('Backup file exceeds the $maxImportBytes byte import limit.');
     }
     return file.readAsString();
+  }
+
+  bool _isManagedBackup(String path) {
+    final name = _fileName(path);
+    return name.endsWith('.json') &&
+        (name.startsWith('quran-backup-') || name.startsWith('quran-safety-before-restore-'));
   }
 
   String _fileName(String path) => path.split(Platform.pathSeparator).last;
