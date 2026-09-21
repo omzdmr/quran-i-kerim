@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:quran_i_kerim/src/features/learn/application/memorization_practice_history_store.dart';
 import 'package:quran_i_kerim/src/features/learn/application/memorization_progress_store.dart';
 import 'package:quran_i_kerim/src/features/learn/application/memorization_review_coverage.dart';
 
@@ -34,6 +35,59 @@ void main() {
     expect(coverage.freshCount, 1);
     expect(coverage.needsAttentionCount, 2);
     expect(coverage.coveredFraction, .75);
+  });
+
+  test('real practice event counts as review coverage', () {
+    final coverage = buildMemorizationReviewCoverage(
+      progress: MemorizationProgressSnapshot(
+        memorizedPages: const {20},
+        practiceDays: const {},
+        pageProgress: {
+          20: MemorizationPageProgress(memorizedAt: DateTime(2026, 8, 1)),
+        },
+      ),
+      practiceHistory: MemorizationPracticeHistorySnapshot([
+        MemorizationPracticeEvent(
+          id: 'practice-20',
+          page: 20,
+          context: MemorizationPracticeContext.soloReview,
+          occurredAt: DateTime(2026, 9, 21, 22),
+        ),
+      ]),
+      now: DateTime(2026, 9, 22, 12),
+    );
+
+    expect(coverage.neverReviewedCount, 0);
+    expect(coverage.freshCount, 1);
+    expect(coverage.items.single.ageDays, 1);
+  });
+
+  test('newer explicit review wins over older practice event', () {
+    final explicitReview = DateTime(2026, 9, 20);
+    final coverage = buildMemorizationReviewCoverage(
+      progress: MemorizationProgressSnapshot(
+        memorizedPages: const {21},
+        practiceDays: const {},
+        pageProgress: {
+          21: MemorizationPageProgress(
+            memorizedAt: DateTime(2026, 8, 1),
+            lastReviewedAt: explicitReview,
+          ),
+        },
+      ),
+      practiceHistory: MemorizationPracticeHistorySnapshot([
+        MemorizationPracticeEvent(
+          id: 'older-practice',
+          page: 21,
+          context: MemorizationPracticeContext.prayer,
+          occurredAt: DateTime(2026, 9, 10),
+        ),
+      ]),
+      now: DateTime(2026, 9, 22),
+    );
+
+    expect(coverage.items.single.lastReviewedAt, explicitReview);
+    expect(coverage.items.single.ageDays, 2);
   });
 
   test('future timestamps are treated as fresh instead of negative age', () {
