@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:crypto/crypto.dart';
+
 import 'qada_fasting_ledger.dart';
 
 enum QadaArchiveImportMode { merge, replace }
@@ -38,6 +40,16 @@ class QadaFastingPortableArchive {
     DateTime? createdAt,
   }) {
     final exportedAt = (createdAt ?? DateTime.now()).toUtc();
+    final ledgerPayload = <String, Object?>{
+      'formatVersion': QadaFastingLedger.formatVersion,
+      'entries': <Object?>[
+        for (final entry in ledger.entries)
+          <String, Object?>{
+            ...entry.toJson(),
+            if (!includePrivateNotes) 'note': null,
+          },
+      ],
+    };
     return jsonEncode(<String, Object?>{
       'format': format,
       'formatVersion': formatVersion,
@@ -45,16 +57,11 @@ class QadaFastingPortableArchive {
       'privacy': <String, Object?>{
         'privateNotesIncluded': includePrivateNotes,
       },
-      'ledger': <String, Object?>{
-        'formatVersion': QadaFastingLedger.formatVersion,
-        'entries': <Object?>[
-          for (final entry in ledger.entries)
-            <String, Object?>{
-              ...entry.toJson(),
-              if (!includePrivateNotes) 'note': null,
-            },
-        ],
+      'integrity': <String, Object?>{
+        'algorithm': 'sha256',
+        'ledgerSha256': _ledgerDigest(ledgerPayload),
       },
+      'ledger': ledgerPayload,
     });
   }
 
@@ -113,9 +120,6 @@ class QadaFastingPortableArchive {
           'Archive contains a record id that conflicts with local history.',
         );
       }
-      // Merge never erases a local private note merely because an exported
-      // archive was intentionally redacted. Existing local metadata wins for
-      // an otherwise identical immutable event id.
       byId[entry.id] = existing.note != null ? existing : entry;
     }
 
@@ -150,8 +154,14 @@ class QadaFastingPortableArchive {
     if (ledgerRaw is! Map) {
       throw const FormatException('Archive does not contain a qada ledger.');
     }
-    final entries = ledgerRaw['entries'];
-    if (ledgerRaw['formatVersion'] != QadaFastingLedger.formatVersion ||
+    final ledgerPayload = <String, Object?>{
+      for (final entry in ledgerRaw.entries)
+        if (entry.key is String) entry.key as String: entry.value,
+    };
+    _verifyIntegrity(raw['integrity'], ledgerPayload);
+
+    final entries = ledgerPayload['entries'];
+    if (ledgerPayload['formatVersion'] != QadaFastingLedger.formatVersion ||
         entries is! List ||
         entries.length > QadaFastingLedger.maxEntries) {
       throw const FormatException('Unsupported qada ledger payload.');
@@ -176,9 +186,25 @@ class QadaFastingPortableArchive {
     return ledger;
   }
 
+  void _verifyIntegrity(Object? rawIntegrity, Map<String, Object?> ledger) {
+    if (rawIntegrity is! Map ||
+        rawIntegrity['algorithm'] != 'sha256' ||
+        rawIntegrity['ledgerSha256'] is! String) {
+      throw const FormatException('Archive integrity metadata is missing.');
+    }
+    final expected = rawIntegrity['ledgerSha256'] as String;
+    final actual = _ledgerDigest(ledger);
+    if (expected.length != 64 || expected != actual) {
+      throw const FormatException('Archive integrity check failed.');
+    }
+  }
+
   bool _sameEventIdentity(QadaFastingEntry a, QadaFastingEntry b) {
     final left = Map<String, Object?>.from(a.toJson())..remove('note');
     final right = Map<String, Object?>.from(b.toJson())..remove('note');
     return jsonEncode(left) == jsonEncode(right);
   }
+
+  String _ledgerDigest(Map<String, Object?> ledger) =>
+      sha256.convert(utf8.encode(jsonEncode(ledger))).toString();
 }
