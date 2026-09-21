@@ -29,6 +29,8 @@ void main() {
         '{"storageKey":"reciter_128","surah":2,"verseCount":286}',
       ],
       'reading_plan_state_v1': '{"active":{"preset":"quran30"}}',
+      'qada_fasting_ledger_v1':
+          '{"formatVersion":1,"entries":[{"id":"qada-1"}]}',
       'prayer_city_id': '__device_location__',
       'prayer_device_latitude': 41.123456,
       'prayer_device_longitude': 29.123456,
@@ -51,6 +53,7 @@ void main() {
     expect(snapshot['reader_auto_scroll_speed_v1'], 'slow');
     expect(snapshot['offline_audio_pack_intents_v1'], hasLength(1));
     expect(snapshot['reading_plan_state_v1'], isNotNull);
+    expect(snapshot['qada_fasting_ledger_v1'], isNotNull);
     expect(snapshot, isNot(contains('prayer_city_id')));
     for (final key in SharedPreferencesBackupAdapter.excludedPrayerLocationKeys) {
       expect(snapshot, isNot(contains(key)), reason: '$key must remain device-local');
@@ -65,6 +68,7 @@ void main() {
       'prayer_method_override': 'turkiye',
       'prayer_adjustment_fajr': 2,
       'reading_plan_state_v1': '{"active":{"preset":"quran90"}}',
+      'qada_fasting_ledger_v1': '{"formatVersion":1,"entries":[]}',
       'prayer_device_latitude': 10.0,
     });
 
@@ -73,6 +77,7 @@ void main() {
     expect((sections['dhikr'] as Map)['dhikr_v2_selected'], 'alhamdulillah');
     expect((sections['prayerPreferences'] as Map)['prayer_adjustment_fajr'], 2);
     expect((sections['readingPlans'] as Map)['reading_plan_state_v1'], isNotNull);
+    expect((sections['fasting'] as Map)['qada_fasting_ledger_v1'], isNotNull);
     expect(
       (sections['prayerPreferences'] as Map),
       isNot(contains('prayer_device_latitude')),
@@ -361,6 +366,40 @@ void main() {
 
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getString('memorization_practice_history_v1'), history);
+  });
+
+  test('qada fasting ledger survives a current backup round trip', () async {
+    const ledger =
+        '{"formatVersion":1,"entries":[{"id":"qada-1","kind":"debt","days":3}]}';
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'qada_fasting_ledger_v1': ledger,
+    });
+
+    final sections = await adapter.captureSections();
+    expect(
+      (sections['fasting'] as Map)['qada_fasting_ledger_v1'],
+      ledger,
+    );
+
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    await adapter.restoreSections(sections);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('qada_fasting_ledger_v1'), ledger);
+  });
+
+  test('version eight restore preserves newer qada fasting history', () async {
+    const ledger = '{"formatVersion":1,"entries":[]}';
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'qada_fasting_ledger_v1': ledger,
+    });
+
+    await adapter.restoreSections(
+      <String, Object?>{'preferences': <String, Object?>{}},
+      schemaVersion: 8,
+    );
+
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('qada_fasting_ledger_v1'), ledger);
   });
 
   test('unsupported values fail instead of being silently coerced', () async {

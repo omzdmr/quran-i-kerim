@@ -73,6 +73,12 @@ class SharedPreferencesBackupAdapter {
     'reading_plan_state_v1',
   };
 
+  /// Private, user-entered qada fasting history. This is user-created data,
+  /// not a religious ruling or an inferred obligation.
+  static const Set<String> fastingKeys = <String>{
+    'qada_fasting_ledger_v1',
+  };
+
   /// Prayer behavior that is useful across devices but does not reveal an
   /// exact or manually selected location. City/GPS/manual-location storage is
   /// deliberately excluded because those records can contain coordinates.
@@ -122,6 +128,7 @@ class SharedPreferencesBackupAdapter {
         'dhikr': dhikrKeys,
         'prayerPreferences': prayerPreferenceKeys,
         'readingPlans': readingPlanKeys,
+        'fasting': fastingKeys,
       };
 
   static const Map<String, Set<String>> dynamicPrefixesBySection =
@@ -140,6 +147,7 @@ class SharedPreferencesBackupAdapter {
     ...dhikrKeys,
     ...prayerPreferenceKeys,
     ...readingPlanKeys,
+    ...fastingKeys,
   };
 
   Future<Map<String, Object?>> capture() async {

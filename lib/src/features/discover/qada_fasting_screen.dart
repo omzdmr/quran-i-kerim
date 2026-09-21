@@ -46,7 +46,7 @@ class _QadaFastingScreenState extends State<QadaFastingScreen> {
     final daysController = TextEditingController();
     final yearController = TextEditingController();
     final noteController = TextEditingController();
-    var unknownYear = false;
+    var unknownYear = true;
     var estimated = false;
     var occurredOn = DateTime.now();
     String? error;
@@ -319,6 +319,12 @@ class _QadaFastingScreenState extends State<QadaFastingScreen> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final entries = _ledger.entries.reversed.toList(growable: false);
+    final debtGroups = _ledger.debtByRamadan.entries.toList(growable: false)
+      ..sort((a, b) {
+        if (a.key == null) return 1;
+        if (b.key == null) return -1;
+        return b.key!.compareTo(a.key!);
+      });
     return Scaffold(
       appBar: AppBar(title: Text(_text('title'))),
       body: _loading
@@ -422,6 +428,36 @@ class _QadaFastingScreenState extends State<QadaFastingScreen> {
                     ),
                   ],
                 ),
+                if (debtGroups.isNotEmpty) ...[
+                  const SizedBox(height: 26),
+                  Text(
+                    _text('byRamadan'),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final group in debtGroups)
+                        Semantics(
+                          label:
+                              '${group.key == null ? _text('unknownYear') : 'Ramadan ${group.key}'}, ${group.value} ${_text('days')}',
+                          child: Chip(
+                            avatar: const Icon(
+                              Icons.calendar_month_rounded,
+                              size: 18,
+                            ),
+                            label: Text(
+                              '${group.key == null ? _text('unknownYear') : 'Ramadan ${group.key}'} · ${group.value} ${_text('days')}',
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 26),
                 Text(
                   _text('history'),
