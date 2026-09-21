@@ -6,3 +6,8 @@
 "Prayer information needs to be refreshed in the app" = "Les horaires de prière doivent être actualisés dans l’app";
 "Prayer Times" = "Horaires de prière";
 "Shows the next prayer from your on-device schedule." = "Affiche la prochaine prière selon le calendrier enregistré sur l’appareil.";
+"Location changed" = "Lieu modifié";
+"Prayer times need refresh" = "Les horaires de prière doivent être actualisés";
+"Prayer times need refresh after a time zone change" = "Les horaires de prière doivent être actualisés après un changement de fuseau horaire";
+"Prayer information is out of date. Open the app to refresh" = "Les horaires de prière ne sont plus à jour. Ouvrez l’app pour les actualiser";
+"Prayer information cannot be shown safely. Open the app to refresh" = "Les horaires de prière ne peuvent pas être affichés de manière fiable. Ouvrez l’app pour les actualiser";
