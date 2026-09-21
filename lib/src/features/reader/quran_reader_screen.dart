@@ -35,7 +35,8 @@ class QuranReaderScreen extends StatefulWidget {
   State<QuranReaderScreen> createState() => _QuranReaderScreenState();
 }
 
-class _QuranReaderScreenState extends State<QuranReaderScreen> {
+class _QuranReaderScreenState extends State<QuranReaderScreen>
+    with WidgetsBindingObserver {
   int _surahNumber = 1;
   int _anchorAyah = 1;
   bool _didRestorePosition = false;
@@ -62,11 +63,33 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _audioController = ReaderAudioController();
     _audioController.addListener(_handleAudioChanged);
     _focusController = ReaderFocusController()
       ..addListener(_handleFocusChanged);
     AppNavigation.instance.readerRequest.addListener(_handleReaderRequest);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (_focusController.keepAwake) {
+        unawaited(WakelockPlus.enable());
+      }
+      if (_focusController.fullScreen) {
+        unawaited(
+          SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky),
+        );
+      }
+      _syncAutoScrollTimer();
+      return;
+    }
+    _autoScrollTimer?.cancel();
+    _autoScrollTimer = null;
+    if (_focusController.keepAwake) {
+      unawaited(WakelockPlus.disable());
+    }
   }
 
   void _handleAudioChanged() {
@@ -94,6 +117,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _autoScrollTimer?.cancel();
     _focusController.removeListener(_handleFocusChanged);
     if (_focusController.keepAwake) {
@@ -652,8 +676,13 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                   subtitle: Text(l10n.text('autoScrollHint')),
                   value: _focusController.autoScroll,
                   onChanged: (value) {
-                    _focusController.setAutoScroll(value);
-                    setSheetState(() {});
+                    if (value) {
+                      Navigator.pop(sheetContext);
+                      _focusController.setAutoScroll(true);
+                    } else {
+                      _focusController.setAutoScroll(false);
+                      setSheetState(() {});
+                    }
                   },
                 ),
                 Padding(
@@ -826,7 +855,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
           if (_audioController.isPlaying && !_audioFollowEnabled)
             Positioned(
               right: 16,
-              bottom: 150,
+              bottom: _focusController.autoScroll ? 214 : 150,
               child: FilledButton.tonalIcon(
                 onPressed: () {
                   setState(() {
