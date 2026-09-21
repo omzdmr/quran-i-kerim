@@ -15,15 +15,28 @@ import UniformTypeIdentifiers
   private var nativeLifecycleStateChannel: NativeLifecycleStateChannel?
   private var microphoneRecordingChannel: MicrophoneRecordingChannel?
   private var nativeShareChannel: NativeShareChannel?
+  private var deepLinkChannel: DeepLinkChannel?
 
   override func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
     audioSessionCoordinator.start()
     GeneratedPluginRegistrant.register(with: self)
     configureNativeChannels()
+    if let url = launchOptions?[.url] as? URL { _ = deepLinkChannel?.receive(url) }
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
+  override func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+    let accepted = deepLinkChannel?.receive(url) ?? false
+    return super.application(app, open: url, options: options) || accepted
+  }
+
+  override func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
+    let accepted = userActivity.webpageURL.flatMap { deepLinkChannel?.receive($0) } ?? false
+    return super.application(application, continue: userActivity, restorationHandler: restorationHandler) || accepted
+  }
+
   override func applicationWillTerminate(_ application: UIApplication) {
+    deepLinkChannel?.detach()
     nativeShareChannel?.detach()
     microphoneRecordingChannel?.detach()
     nativeLifecycleStateChannel?.markCleanTermination()
@@ -52,6 +65,57 @@ import UniformTypeIdentifiers
     nativeLifecycleStateChannel = NativeLifecycleStateChannel(binaryMessenger: messenger)
     microphoneRecordingChannel = MicrophoneRecordingChannel(binaryMessenger: messenger)
     nativeShareChannel = NativeShareChannel(binaryMessenger: messenger, presenter: controller)
+    deepLinkChannel = DeepLinkChannel(binaryMessenger: messenger)
+  }
+}
+
+/// Buffers native URL/universal-link ingress until Flutter is ready, avoiding cold-start loss.
+/// Routing semantics remain owned by the shared layer. Only the app's private custom scheme and
+/// HTTPS links are admitted; arbitrary third-party schemes never cross this boundary.
+final class DeepLinkChannel {
+  static let channelName = "app.quranikerim/native_deep_link"
+
+  private let channel: FlutterMethodChannel
+  private var pending: [String] = []
+  private let maxPending = 8
+
+  init(binaryMessenger: FlutterBinaryMessenger) {
+    channel = FlutterMethodChannel(name: Self.channelName, binaryMessenger: binaryMessenger)
+    channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) }
+  }
+
+  @discardableResult
+  func receive(_ url: URL) -> Bool {
+    guard let normalized = normalizedURLString(url) else { return false }
+    if pending.last != normalized {
+      pending.append(normalized)
+      if pending.count > maxPending { pending.removeFirst(pending.count - maxPending) }
+    }
+    channel.invokeMethod("linkReceived", arguments: ["url": normalized])
+    return true
+  }
+
+  func detach() { channel.setMethodCallHandler(nil); pending.removeAll() }
+
+  private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    switch call.method {
+    case "capabilities": result(["customScheme": true, "universalLink": true, "coldStartBuffer": true, "maxPending": maxPending])
+    case "pendingLinks": result(pending)
+    case "consumePendingLinks": let links = pending; pending.removeAll(); result(links)
+    case "clearPendingLinks": pending.removeAll(); result(nil)
+    default: result(FlutterMethodNotImplemented)
+    }
+  }
+
+  private func normalizedURLString(_ url: URL) -> String? {
+    guard let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "quranikerim" else { return nil }
+    guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
+    components.scheme = scheme
+    components.host = components.host?.lowercased()
+    if scheme == "quranikerim" {
+      guard components.host == "prayer" || components.host == "reader" || components.host == "hifz" else { return nil }
+    }
+    return components.url?.absoluteString
   }
 }
 
