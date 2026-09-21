@@ -73,10 +73,12 @@ class ReaderReadingHistoryRepository {
     try {
       final decoded = jsonDecode(raw);
       if (decoded is! List) return const <ReaderHistoryEntry>[];
-      return decoded
+      final entries = decoded
           .map(ReaderHistoryEntry.fromJson)
           .whereType<ReaderHistoryEntry>()
-          .toList(growable: false);
+          .toList(growable: true)
+        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      return List<ReaderHistoryEntry>.unmodifiable(entries);
     } catch (_) {
       return const <ReaderHistoryEntry>[];
     }
