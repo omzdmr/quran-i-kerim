@@ -17,7 +17,8 @@ void main() {
   test('corrupt or oversized persisted payload fails closed', () async {
     SharedPreferences.setMockInitialValues({TravelDietaryCardStore.key: '{broken'});
     expect(await const TravelDietaryCardStore().load(), isNull);
-    expect(TravelDietaryCard.fromJson({'languageLabel':'x','staffText':'x' * 1201,'note':''}), isNull);
+    final oversized = List.filled(1201, 'x').join();
+    expect(TravelDietaryCard.fromJson({'languageLabel':'x','staffText':oversized,'note':''}), isNull);
   });
 
   test('empty staff-facing text cannot be saved', () async {
