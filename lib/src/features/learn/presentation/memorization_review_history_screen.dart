@@ -9,60 +9,39 @@ import 'memorization_review_page_history_screen.dart';
 
 class MemorizationReviewHistoryScreen extends StatefulWidget {
   const MemorizationReviewHistoryScreen({super.key});
-
   @override
-  State<MemorizationReviewHistoryScreen> createState() =>
-      _MemorizationReviewHistoryScreenState();
+  State<MemorizationReviewHistoryScreen> createState() => _MemorizationReviewHistoryScreenState();
 }
 
-class _MemorizationReviewHistoryScreenState
-    extends State<MemorizationReviewHistoryScreen> {
+class _MemorizationReviewHistoryScreenState extends State<MemorizationReviewHistoryScreen> {
   static const _progressStore = MemorizationProgressStore();
   static const _historyStore = MemorizationPracticeHistoryStore();
-
   MemorizationReviewHistorySummary? _summary;
   MemorizationReviewHistoryFilter _filter = MemorizationReviewHistoryFilter.all;
 
   @override
-  void initState() {
-    super.initState();
-    _load();
-  }
+  void initState() { super.initState(); _load(); }
 
   Future<void> _load() async {
     final progress = await _progressStore.load();
     final history = await _historyStore.load();
     if (!mounted) return;
-    setState(() {
-      _summary = buildMemorizationReviewHistory(
-        progress: progress,
-        history: history,
-        now: DateTime.now(),
-        filter: _filter,
-      );
-    });
+    setState(() => _summary = buildMemorizationReviewHistory(progress: progress, history: history, now: DateTime.now(), filter: _filter));
   }
 
   Future<void> _setFilter(MemorizationReviewHistoryFilter filter) async {
     if (_filter == filter) return;
-    setState(() {
-      _filter = filter;
-      _summary = null;
-    });
+    setState(() { _filter = filter; _summary = null; });
     await _load();
   }
 
   Future<void> _openPage(int page) async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute(builder: (_) => MemorizationReviewPageHistoryScreen(page: page)),
-    );
+    await Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => MemorizationReviewPageHistoryScreen(page: page)));
     await _load();
   }
 
   Future<void> _logPractice() async {
-    final changed = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => const MemorizationPracticeLogScreen()),
-    );
+    final changed = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => const MemorizationPracticeLogScreen()));
     if (changed == true) await _load();
   }
 
@@ -71,23 +50,12 @@ class _MemorizationReviewHistoryScreenState
     final l10n = GeneratedAppLocalizations.of(context)!;
     final copy = _HistoryCopy.forLocale(Localizations.localeOf(context));
     final summary = _summary;
-
     return Scaffold(
       appBar: AppBar(
         title: Text(copy.title),
-        actions: [
-          IconButton(
-            onPressed: _logPractice,
-            tooltip: copy.logReview,
-            icon: const Icon(Icons.add_task_rounded),
-          ),
-        ],
+        actions: [IconButton(onPressed: _logPractice, tooltip: copy.logReview, icon: const Icon(Icons.add_task_rounded))],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _logPractice,
-        icon: const Icon(Icons.add_rounded),
-        label: Text(copy.logReview),
-      ),
+      floatingActionButton: FloatingActionButton.extended(onPressed: _logPractice, icon: const Icon(Icons.add_rounded), label: Text(copy.logReview)),
       body: summary == null
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -99,40 +67,26 @@ class _MemorizationReviewHistoryScreenState
                   const SizedBox(height: 14),
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        for (final filter in MemorizationReviewHistoryFilter.values) ...[
-                          ChoiceChip(
-                            selected: _filter == filter,
-                            label: Text(copy.filterLabel(filter)),
-                            onSelected: (_) => _setFilter(filter),
-                          ),
-                          const SizedBox(width: 8),
-                        ],
+                    child: Row(children: [
+                      for (final filter in MemorizationReviewHistoryFilter.values) ...[
+                        ChoiceChip(selected: _filter == filter, label: Text(copy.filterLabel(filter)), onSelected: (_) => _setFilter(filter)),
+                        const SizedBox(width: 8),
                       ],
-                    ),
+                    ]),
                   ),
                   const SizedBox(height: 14),
                   if (summary.isEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 44, horizontal: 18),
-                      child: Column(
-                        children: [
-                          Icon(Icons.history_toggle_off_rounded,
-                              size: 46, color: Theme.of(context).colorScheme.primary),
-                          const SizedBox(height: 12),
-                          Text(copy.empty, textAlign: TextAlign.center),
-                        ],
-                      ),
+                      child: Column(children: [
+                        Icon(Icons.history_toggle_off_rounded, size: 46, color: Theme.of(context).colorScheme.primary),
+                        const SizedBox(height: 12),
+                        Text(copy.empty, textAlign: TextAlign.center),
+                      ]),
                     )
                   else
                     for (final page in summary.pages)
-                      _HistoryTile(
-                        page: page,
-                        pageLabel: l10n.memorizePages,
-                        copy: copy,
-                        onTap: () => _openPage(page.page),
-                      ),
+                      _HistoryTile(page: page, pageLabel: l10n.memorizePages, copy: copy, onTap: () => _openPage(page.page)),
                 ],
               ),
             ),
@@ -147,9 +101,7 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final semantic = '${copy.last30Days}: ${summary.recentEvents}. '
-        '${copy.totalReviews}: ${summary.totalEvents}. '
-        '${copy.reviewedPages}: ${summary.reviewedPageCount}.';
+    final semantic = '${copy.last30Days}: ${summary.recentEvents}. ${copy.totalReviews}: ${summary.totalEvents}. ${copy.reviewedPages}: ${summary.reviewedPageCount}.';
     return Semantics(
       container: true,
       label: semantic,
@@ -157,25 +109,17 @@ class _SummaryCard extends StatelessWidget {
         child: Card(
           child: Padding(
             padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(copy.summary,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
-                const SizedBox(height: 14),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    Chip(avatar: const Icon(Icons.calendar_month_outlined, size: 18), label: Text('${copy.last30Days} ${summary.recentEvents}')),
-                    Chip(avatar: const Icon(Icons.history_rounded, size: 18), label: Text('${copy.totalReviews} ${summary.totalEvents}')),
-                    Chip(avatar: const Icon(Icons.menu_book_outlined, size: 18), label: Text('${copy.reviewedPages} ${summary.reviewedPageCount}')),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Text(copy.localOnly, style: Theme.of(context).textTheme.bodySmall),
-              ],
-            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(copy.summary, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+              const SizedBox(height: 14),
+              Wrap(spacing: 8, runSpacing: 8, children: [
+                Chip(avatar: const Icon(Icons.calendar_month_outlined, size: 18), label: Text('${copy.last30Days} ${summary.recentEvents}')),
+                Chip(avatar: const Icon(Icons.history_rounded, size: 18), label: Text('${copy.totalReviews} ${summary.totalEvents}')),
+                Chip(avatar: const Icon(Icons.menu_book_outlined, size: 18), label: Text('${copy.reviewedPages} ${summary.reviewedPageCount}')),
+              ]),
+              const SizedBox(height: 10),
+              Text(copy.localOnly, style: Theme.of(context).textTheme.bodySmall),
+            ]),
           ),
         ),
       ),
@@ -193,10 +137,8 @@ class _HistoryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final latest = page.latestReviewAt;
-    final date = latest == null ? copy.noDate : MaterialLocalizations.of(context).formatMediumDate(latest);
-    final contexts = page.hasDetailedHistory
-        ? page.contexts.map(copy.contextLabel).join(', ')
-        : copy.legacyDetail;
+    final date = latest == null ? copy.noDate : MaterialLocalizations.of(context).formatMediumDate(latest.toLocal());
+    final contexts = page.hasDetailedHistory ? page.contexts.map(copy.contextLabel).join(', ') : copy.legacyDetail;
     final detail = page.hasDetailedHistory
         ? '${copy.last30Days}: ${page.recentReviews} · ${copy.totalReviews}: ${page.totalReviews} · $date'
         : '${copy.lastReview}: $date';
@@ -224,7 +166,6 @@ class _HistoryCopy {
   const _HistoryCopy({required this.title, required this.summary, required this.last30Days, required this.totalReviews, required this.reviewedPages, required this.localOnly, required this.empty, required this.all, required this.solo, required this.prayer, required this.someone, required this.noDate, required this.logReview, required this.lastReview, required this.legacyDetail});
   final String title, summary, last30Days, totalReviews, reviewedPages, localOnly;
   final String empty, all, solo, prayer, someone, noDate, logReview, lastReview, legacyDetail;
-
   String filterLabel(MemorizationReviewHistoryFilter filter) => switch (filter) {
     MemorizationReviewHistoryFilter.all => all,
     MemorizationReviewHistoryFilter.soloReview => solo,
