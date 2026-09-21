@@ -17,19 +17,23 @@ void main() {
           '"2":{"memorizedAt":"2026-09-02T00:00:00.000"}}',
     });
     await tester.pumpWidget(
-      const MaterialApp(
-        locale: Locale('en'),
+      MaterialApp(
+        locale: const Locale('en'),
         supportedLocales: AppLocalizations.supportedLocales,
-        localizationsDelegates: [
+        localizationsDelegates: const [
           GeneratedAppLocalizations.delegate,
           AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        home: MediaQuery(
-          data: MediaQueryData(textScaler: TextScaler.linear(2)),
-          child: MemorizationPracticeLogScreen(),
+        home: Builder(
+          builder: (context) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              textScaler: const TextScaler.linear(2),
+            ),
+            child: const MemorizationPracticeLogScreen(),
+          ),
         ),
       ),
     );
