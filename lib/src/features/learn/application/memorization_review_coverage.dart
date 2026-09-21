@@ -45,6 +45,13 @@ class MemorizationReviewCoverage {
   int get total => items.length;
   int get needsAttentionCount => items.where((item) => item.needsAttention).length;
 
+  MemorizationReviewCoverageItem? get nextAttentionItem {
+    for (final item in items) {
+      if (item.needsAttention) return item;
+    }
+    return null;
+  }
+
   /// Portion of memorized pages whose review age is still inside the current
   /// freshness window. An ancient review does not make the coverage bar look
   /// healthy merely because the page was touched once years ago.
