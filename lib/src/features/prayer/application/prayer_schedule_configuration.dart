@@ -1,8 +1,12 @@
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
+
 import 'prayer_preferences_store.dart';
 import 'prayer_saved_location_resolver.dart';
 
 /// Builds a stable local identity for inputs that materially affect prayer
-/// times and notification delivery. The persisted value is a compact hash, so
+/// times and notification delivery. Only the SHA-256 digest is persisted, so
 /// diagnostics do not become a second store of raw coordinates/preferences.
 class PrayerScheduleConfiguration {
   const PrayerScheduleConfiguration._();
@@ -27,17 +31,6 @@ class PrayerScheduleConfiguration {
       settings.notificationProfile.name,
       enabledPrayerIds.join(','),
     ].join('|');
-    return 'v2-${_fnv1a64(canonical)}';
-  }
-
-  static String _fnv1a64(String input) {
-    var hash = 0xcbf29ce484222325;
-    const prime = 0x100000001b3;
-    const mask = 0xffffffffffffffff;
-    for (final byte in input.codeUnits) {
-      hash ^= byte;
-      hash = (hash * prime) & mask;
-    }
-    return hash.toRadixString(16).padLeft(16, '0');
+    return 'v2-${sha256.convert(utf8.encode(canonical))}';
   }
 }
