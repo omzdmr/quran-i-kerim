@@ -21,8 +21,9 @@ class PrayerNotificationScheduleHealthRefresher {
 
   Future<String?> currentConfigurationFingerprint() async {
     final settings = await PrayerPreferencesStore.load();
+    if (!settings.notificationsEnabled || settings.notificationPrayerIds.isEmpty) return null;
     final resolved = await resolver.resolve();
-    if (resolved == null || !settings.notificationsEnabled || settings.notificationPrayerIds.isEmpty) return null;
+    if (resolved == null) return null;
     return PrayerScheduleConfiguration.fingerprint(resolved: resolved, settings: settings);
   }
 
