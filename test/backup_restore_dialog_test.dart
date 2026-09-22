@@ -19,21 +19,23 @@ void main() {
   );
   final preview = BackupPreview(version: BackupPreviewParser.currentVersion, createdAt: DateTime.utc(2026, 9, 21), recordCounts: const <String, int>{'notes': 8}, issues: const <BackupPreviewIssue>{}, integrityVerified: true);
 
-  testWidgets('explains recovery, defaults to merge and returns selected mode', (tester) async {
-    BackupRestoreMode? result;
+  Future<void> openDialog(WidgetTester tester, ValueSetter<BackupRestoreMode?> result) async {
     await tester.pumpWidget(MaterialApp(locale: const Locale('tr'), home: Builder(builder: (context) => Scaffold(body: FilledButton(onPressed: () async {
-      result = await showDialog<BackupRestoreMode>(context: context, builder: (_) => BackupRestoreDialog(preview: preview, plan: plan));
+      result(await showDialog<BackupRestoreMode>(context: context, builder: (_) => BackupRestoreDialog(preview: preview, plan: plan)));
     }, child: const Text('open'))))));
-
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
+  }
+
+  testWidgets('explains recovery and asks again before destructive replace', (tester) async {
+    BackupRestoreMode? result;
+    await openDialog(tester, (value) => result = value);
     expect(find.text('Çakışan: 2'), findsOneWidget);
     expect(find.text('Yalnız yedekte: 3'), findsOneWidget);
     expect(find.text('Yalnız cihazda: 2'), findsOneWidget);
     expect(find.text('Cihazda korunacak: 2'), findsOneWidget);
     expect(find.byIcon(Icons.shield_outlined), findsOneWidget);
     expect(find.textContaining('otomatik güvenlik kopyası'), findsOneWidget);
-    expect(find.textContaining('Geri al düğmesiyle'), findsOneWidget);
 
     await tester.tap(find.text('Değiştir'));
     await tester.pumpAndSettle();
@@ -41,7 +43,37 @@ void main() {
     expect(find.byIcon(Icons.warning_amber_rounded), findsNWidgets(2));
     await tester.tap(find.text('Devam et'));
     await tester.pumpAndSettle();
+
+    expect(result, isNull);
+    expect(find.text('Cihazdaki kayıtlar kaldırılsın mı?'), findsOneWidget);
+    expect(find.textContaining('yalnızca cihazda bulunan 2 kaydı kaldıracak'), findsOneWidget);
+    await tester.tap(find.text('Değiştir').last);
+    await tester.pumpAndSettle();
     expect(result, BackupRestoreMode.replace);
+  });
+
+  testWidgets('cancel from destructive confirmation keeps restore review open', (tester) async {
+    BackupRestoreMode? result;
+    await openDialog(tester, (value) => result = value);
+    await tester.tap(find.text('Değiştir'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Devam et'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('İPTAL'));
+    await tester.pumpAndSettle();
+
+    expect(result, isNull);
+    expect(find.text('Yedeği nasıl geri yükleyelim?'), findsOneWidget);
+    expect(find.text('Değiştir ile kaldırılacak: 2'), findsOneWidget);
+  });
+
+  testWidgets('merge remains one-step because device-only records are preserved', (tester) async {
+    BackupRestoreMode? result;
+    await openDialog(tester, (value) => result = value);
+    await tester.tap(find.text('Devam et'));
+    await tester.pumpAndSettle();
+    expect(result, BackupRestoreMode.merge);
+    expect(find.text('Cihazdaki kayıtlar kaldırılsın mı?'), findsNothing);
   });
 
   testWidgets('uses English fallback for unsupported locale', (tester) async {
@@ -54,11 +86,13 @@ void main() {
     expect(find.textContaining('on-screen Undo action'), findsOneWidget);
   });
 
-  test('all product locales explain immediate undo without losing safety-copy wording', () {
+  test('all product locales explain immediate undo and destructive replace', () {
     for (final code in const <String>['tr', 'en', 'fr', 'ar', 'az', 'ru']) {
       final copy = BackupRestoreCopy.forLocale(Locale(code));
       expect(copy.safetyNote, isNotEmpty, reason: code);
       expect(copy.safetyNote.length, greaterThan(80), reason: code);
+      expect(copy.replaceConfirmTitle, isNotEmpty, reason: code);
+      expect(copy.replaceConfirmBody(3), contains('3'), reason: code);
     }
   });
 }
