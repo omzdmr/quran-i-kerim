@@ -45,4 +45,13 @@ void main() {
     await PrayerPreferencesStore.saveCityId(PrayerPreferencesStore.manualLocationId);
     expect(await resolver.resolve(), isNull);
   });
+
+  test('no saved location after privacy-safe restore does not become Istanbul', () async {
+    expect(await resolver.resolve(), isNull);
+  });
+
+  test('unknown or obsolete catalog id does not become Istanbul', () async {
+    await PrayerPreferencesStore.saveCityId('removed-city-id');
+    expect(await resolver.resolve(), isNull);
+  });
 }
