@@ -5,7 +5,10 @@ import re
 root = Path(__file__).resolve().parents[1]
 widget = (root / "PrayerWidget" / "PrayerWidget.swift").read_text(encoding="utf-8")
 locales = ("en", "tr", "ar", "az", "ru", "fr")
-required = {"Fajr", "Sunrise", "Dhuhr", "Asr", "Maghrib", "Isha"}
+required = {
+    "PrayerNameFajr", "PrayerNameSunrise", "PrayerNameDhuhr", "PrayerNameAsr",
+    "PrayerNameMaghrib", "PrayerNameIsha", "PrayerNameImsak", "PrayerNameGeneric",
+}
 
 for locale in locales:
     path = root / "PrayerWidget" / f"{locale}.lproj" / "Localizable.strings"
@@ -13,24 +16,28 @@ for locale in locales:
     keys = set(re.findall(r'^\s*"((?:\\.|[^"\\])+)"\s*=', text, flags=re.MULTILINE))
     missing = sorted(required - keys)
     if missing:
-        raise SystemExit(f"{locale}: missing canonical prayer keys: {', '.join(missing)}")
+        raise SystemExit(f"{locale}: missing prayer-name keys: {', '.join(missing)}")
 
+# Keep raw schedule identifiers out of the UI. The resolver deliberately maps aliases
+# to localization keys and has a generic localized fallback for unknown identifiers.
 aliases = {
-    "fajr": "Fajr", "imsak": "Fajr",
-    "sunrise": "Sunrise", "shuruq": "Sunrise", "shurooq": "Sunrise",
-    "dhuhr": "Dhuhr", "zuhr": "Dhuhr", "noon": "Dhuhr",
-    "asr": "Asr",
-    "maghrib": "Maghrib", "sunset": "Maghrib",
-    "isha": "Isha", "ishaa": "Isha",
+    "fajr": "PrayerNameFajr",
+    "sunrise": "PrayerNameSunrise", "shuruq": "PrayerNameSunrise",
+    "dhuhr": "PrayerNameDhuhr", "zuhr": "PrayerNameDhuhr",
+    "asr": "PrayerNameAsr",
+    "maghrib": "PrayerNameMaghrib",
+    "isha": "PrayerNameIsha",
+    "imsak": "PrayerNameImsak",
 }
-for alias, canonical in aliases.items():
-    needle = f'"{alias}"'
-    if needle not in widget or f'key = "{canonical}"' not in widget:
-        raise SystemExit(f"widget resolver contract missing {alias} -> {canonical}")
+for alias, key in aliases.items():
+    if f'case "{alias}"' not in widget and f', "{alias}"' not in widget:
+        raise SystemExit(f"widget resolver contract missing alias {alias}")
+    if f'key = "{key}"' not in widget:
+        raise SystemExit(f"widget resolver contract missing localization key {key}")
 
-if "displayName?.trimmingCharacters" not in widget:
-    raise SystemExit("widget must reject blank displayName before canonical fallback")
-if 'default: return String(localized: "Prayer")' not in widget:
-    raise SystemExit("unknown prayer IDs must use a localized generic fallback, never raw IDs")
+if 'default: key = "PrayerNameGeneric"' not in widget:
+    raise SystemExit("unknown prayer IDs must use PrayerNameGeneric, never raw IDs")
+if 'String(localized: String.LocalizationValue(key), table: "Localizable")' not in widget:
+    raise SystemExit("prayer-name resolver must resolve through the native localization table")
 
-print("Widget canonical prayer-name contract OK")
+print("Widget localized prayer-name contract OK")
