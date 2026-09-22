@@ -1,6 +1,7 @@
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
+import '../../../l10n/app_locale_resolver.dart';
 import 'prayer_calculator.dart';
 import 'prayer_notification_schedule_health_store.dart';
 import 'prayer_notification_service.dart';
@@ -24,7 +25,12 @@ class PrayerNotificationScheduleHealthRefresher {
     if (!settings.notificationsEnabled || settings.notificationPrayerIds.isEmpty) return null;
     final resolved = await resolver.resolve();
     if (resolved == null) return null;
-    return PrayerScheduleConfiguration.fingerprint(resolved: resolved, settings: settings);
+    final locale = await AppLocaleResolver.currentLocale();
+    return PrayerScheduleConfiguration.fingerprint(
+      resolved: resolved,
+      settings: settings,
+      localeTag: locale.toLanguageTag(),
+    );
   }
 
   Future<PrayerNotificationScheduleHealth?> resync({DateTime? now}) async {
@@ -39,11 +45,11 @@ class PrayerNotificationScheduleHealthRefresher {
       await store.clear();
       return null;
     }
+    final locale = await AppLocaleResolver.currentLocale();
 
-    // Use the resolved object directly. Calling refreshFromSaved here would
-    // currently send the special manual-location ID through the static city
-    // catalog fallback, which can schedule Istanbul while the UI says another
-    // travel city. This path therefore fixes the schedule as well as auditing it.
+    // Reschedule against the exact resolved saved location. This keeps manual,
+    // GPS and catalog locations on one path and makes the recorded evidence
+    // describe the same inputs that were sent to the platform scheduler.
     await PrayerNotificationService.reschedule(
       location: resolved.location,
       defaultMethod: resolved.defaultMethod,
@@ -96,6 +102,7 @@ class PrayerNotificationScheduleHealthRefresher {
       configurationFingerprint: PrayerScheduleConfiguration.fingerprint(
         resolved: resolved,
         settings: settings,
+        localeTag: locale.toLanguageTag(),
       ),
     );
     await store.save(health);
