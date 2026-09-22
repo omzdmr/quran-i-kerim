@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
@@ -86,7 +87,10 @@ class BackupFileService {
     BackupRestoreMode mode = BackupRestoreMode.replace,
     DateTime? now,
   }) async {
-    if (encoded.length > maxImportBytes) {
+    if (maxImportBytes <= 0) {
+      throw ArgumentError.value(maxImportBytes, 'maxImportBytes', 'must be > 0');
+    }
+    if (utf8.encode(encoded).length > maxImportBytes) {
       throw FormatException('Backup payload exceeds the $maxImportBytes byte import limit.');
     }
     final preview = backupService.previewJson(encoded);
@@ -116,15 +120,6 @@ class BackupFileService {
     );
   }
 
-  /// Reverts one successful restore using the exact snapshot captured just
-  /// before it. This intentionally does not create another safety snapshot:
-  /// [LocalBackupService] already restores transactionally, while keeping the
-  /// original snapshot would otherwise produce an endless undo-backup chain.
-  ///
-  /// The receipt is accepted only when its snapshot is still inside this
-  /// service's managed backup directory and has the safety prefix. That keeps
-  /// a stale/forged receipt from turning this convenience path into a generic
-  /// arbitrary-file importer.
   Future<void> undoRestore(BackupRestoreReceipt receipt) async {
     final snapshot = receipt.safetySnapshot;
     final managedDirectory = await _backupDirectory(create: false);
