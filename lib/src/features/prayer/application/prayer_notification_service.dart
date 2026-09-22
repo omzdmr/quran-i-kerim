@@ -29,8 +29,7 @@ class PrayerNotificationService {
   PrayerNotificationService._();
 
   static const _selfTestId = 799999;
-  static final FlutterLocalNotificationsPlugin _plugin =
-      FlutterLocalNotificationsPlugin();
+  static final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
 
   static Future<void> initialize() async {
@@ -52,28 +51,13 @@ class PrayerNotificationService {
     await initialize();
     var granted = true;
     if (Platform.isAndroid) {
-      final android = _plugin
-          .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin
-          >();
-      final notificationGranted =
-          await android?.requestNotificationsPermission() ?? true;
+      final android = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      final notificationGranted = await android?.requestNotificationsPermission() ?? true;
       granted = granted && notificationGranted;
-      if (notificationGranted) {
-        await android?.requestExactAlarmsPermission();
-      }
+      if (notificationGranted) await android?.requestExactAlarmsPermission();
     } else if (Platform.isIOS) {
-      final ios = _plugin
-          .resolvePlatformSpecificImplementation<
-            IOSFlutterLocalNotificationsPlugin
-          >();
-      final iosGranted =
-          await ios?.requestPermissions(
-            alert: true,
-            badge: false,
-            sound: true,
-          ) ??
-          true;
+      final ios = _plugin.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
+      final iosGranted = await ios?.requestPermissions(alert: true, badge: false, sound: true) ?? true;
       granted = granted && iosGranted;
     }
     return granted;
@@ -91,20 +75,18 @@ class PrayerNotificationService {
     if (cityId == PrayerPreferencesStore.deviceLocationId) {
       final device = await PrayerPreferencesStore.loadDeviceLocation();
       if (device == null) return;
-      await reschedule(
-        location: device.location,
-        defaultMethod: device.defaultMethod,
-        settings: settings,
-      );
+      await reschedule(location: device.location, defaultMethod: device.defaultMethod, settings: settings);
+      return;
+    }
+    if (cityId == PrayerPreferencesStore.manualLocationId) {
+      final manual = await PrayerPreferencesStore.loadManualLocation();
+      if (manual == null) return;
+      await reschedule(location: manual.location, defaultMethod: manual.defaultMethod, settings: settings);
       return;
     }
 
     final city = prayerCityById(cityId);
-    await reschedule(
-      location: city.location,
-      defaultMethod: city.defaultMethod,
-      settings: settings,
-    );
+    await reschedule(location: city.location, defaultMethod: city.defaultMethod, settings: settings);
   }
 
   static Future<void> reschedule({
@@ -114,10 +96,7 @@ class PrayerNotificationService {
   }) async {
     await initialize();
     await _plugin.cancelAllPendingNotifications();
-    if (!settings.notificationsEnabled ||
-        settings.notificationPrayerIds.isEmpty) {
-      return;
-    }
+    if (!settings.notificationsEnabled || settings.notificationPrayerIds.isEmpty) return;
 
     final zone = tz.getLocation(location.timeZoneId);
     final now = tz.TZDateTime.now(zone);
@@ -127,10 +106,7 @@ class PrayerNotificationService {
 
     var scheduleMode = AndroidScheduleMode.inexactAllowWhileIdle;
     if (Platform.isAndroid) {
-      final android = _plugin
-          .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin
-          >();
+      final android = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
       final canExact = await android?.canScheduleExactNotifications() ?? false;
       if (canExact) scheduleMode = AndroidScheduleMode.exactAllowWhileIdle;
     }
@@ -154,11 +130,7 @@ class PrayerNotificationService {
 
     for (var dayOffset = 0; dayOffset < 12; dayOffset++) {
       final date = now.add(Duration(days: dayOffset));
-      final schedule = calculator.calculate(
-        location: location,
-        date: date,
-        preferences: preferences,
-      );
+      final schedule = calculator.calculate(location: location, date: date, preferences: preferences);
       final rows = <({String id, DateTime time})>[
         (id: 'fajr', time: schedule.fajr),
         (id: 'dhuhr', time: schedule.dhuhr),
@@ -170,9 +142,7 @@ class PrayerNotificationService {
         final row = rows[prayerIndex];
         if (!settings.notificationPrayerIds.contains(row.id)) continue;
         final scheduledDate = tz.TZDateTime.from(row.time, zone);
-        if (!scheduledDate.isAfter(now.add(const Duration(seconds: 30)))) {
-          continue;
-        }
+        if (!scheduledDate.isAfter(now.add(const Duration(seconds: 30)))) continue;
         await _plugin.zonedSchedule(
           id: 700000 + dayOffset * 10 + prayerIndex,
           title: copy.prayerNotificationTitle(row.id),
@@ -192,9 +162,7 @@ class PrayerNotificationService {
   static Future<PrayerNotificationSelfTestResult> sendSelfTest() async {
     await initialize();
     final diagnostic = await diagnostics();
-    if (diagnostic.systemPermissionGranted == false) {
-      return PrayerNotificationSelfTestResult.permissionDenied;
-    }
+    if (diagnostic.systemPermissionGranted == false) return PrayerNotificationSelfTestResult.permissionDenied;
 
     final settings = await PrayerPreferencesStore.load();
     final copy = AppLocalizations(await AppLocaleResolver.currentLocale());
@@ -231,17 +199,11 @@ class PrayerNotificationService {
     bool? exactAlarmAvailable;
 
     if (Platform.isAndroid) {
-      final android = _plugin
-          .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin
-          >();
+      final android = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
       permissionGranted = await android?.areNotificationsEnabled();
       exactAlarmAvailable = await android?.canScheduleExactNotifications();
     } else if (Platform.isIOS) {
-      final ios = _plugin
-          .resolvePlatformSpecificImplementation<
-            IOSFlutterLocalNotificationsPlugin
-          >();
+      final ios = _plugin.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
       final permissions = await ios?.checkPermissions();
       permissionGranted = permissions?.isEnabled;
     }
