@@ -74,6 +74,21 @@ class BackupFileService {
     DateTime? now,
   }) async {
     final encoded = await _readImport(file);
+    return restoreEncoded(encoded, mode: mode, now: now);
+  }
+
+  /// Restores a validated backup payload that came from a trusted app-owned
+  /// transport such as the user's private cloud file. The same pre-restore
+  /// safety snapshot and rollback contract as file import is applied, so cloud
+  /// restore is not a less-safe path than local file restore.
+  Future<BackupRestoreReceipt> restoreEncoded(
+    String encoded, {
+    BackupRestoreMode mode = BackupRestoreMode.replace,
+    DateTime? now,
+  }) async {
+    if (encoded.length > maxImportBytes) {
+      throw FormatException('Backup payload exceeds the $maxImportBytes byte import limit.');
+    }
     final preview = backupService.previewJson(encoded);
     if (!preview.canRestore) {
       throw const FormatException('Backup is not restorable.');
@@ -113,7 +128,7 @@ class BackupFileService {
   Future<void> undoRestore(BackupRestoreReceipt receipt) async {
     final snapshot = receipt.safetySnapshot;
     final managedDirectory = await _backupDirectory(create: false);
-    final managedPath = await managedDirectory.absolute.path;
+    final managedPath = managedDirectory.absolute.path;
     final snapshotPath = snapshot.absolute.path;
     final separator = Platform.pathSeparator;
     if (!snapshotPath.startsWith('$managedPath$separator') ||
