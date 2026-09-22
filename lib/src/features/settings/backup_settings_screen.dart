@@ -26,16 +26,12 @@ class BackupSettingsScreen extends StatefulWidget {
 
 class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
   final BackupFileService _service = BackupFileService();
-
   bool _busy = false;
   bool _loading = true;
   List<_BackupListEntry> _entries = const <_BackupListEntry>[];
 
   @override
-  void initState() {
-    super.initState();
-    _refreshLocalBackups();
-  }
+  void initState() { super.initState(); _refreshLocalBackups(); }
 
   Future<void> _refreshLocalBackups() async {
     try {
@@ -43,18 +39,11 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
       final entries = <_BackupListEntry>[];
       for (final file in files) {
         BackupPreview? preview;
-        try {
-          preview = await _service.previewFile(file);
-        } catch (_) {
-          preview = null;
-        }
+        try { preview = await _service.previewFile(file); } catch (_) { preview = null; }
         entries.add(_BackupListEntry(file: file, preview: preview));
       }
       if (!mounted) return;
-      setState(() {
-        _entries = entries;
-        _loading = false;
-      });
+      setState(() { _entries = entries; _loading = false; });
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
@@ -70,28 +59,19 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
       final file = await _service.exportToFile();
       await _refreshLocalBackups();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.l10n.text('backupCreated'))),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.text('backupCreated'))));
       await _share(file);
-    } catch (_) {
-      if (mounted) _showFailure();
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
+    } catch (_) { if (mounted) _showFailure(); }
+    finally { if (mounted) setState(() => _busy = false); }
   }
 
   Future<void> _share(File file) async {
     final box = context.findRenderObject() as RenderBox?;
-    await SharePlus.instance.share(
-      ShareParams(
-        files: <XFile>[XFile(file.path, mimeType: 'application/json')],
-        title: context.l10n.text('backupTitle'),
-        sharePositionOrigin: box == null
-            ? null
-            : box.localToGlobal(Offset.zero) & box.size,
-      ),
-    );
+    await SharePlus.instance.share(ShareParams(
+      files: <XFile>[XFile(file.path, mimeType: 'application/json')],
+      title: context.l10n.text('backupTitle'),
+      sharePositionOrigin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
+    ));
   }
 
   Future<void> _refreshRestoredAppState() async {
@@ -108,55 +88,41 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
     if (_busy) return;
     HapticFeedback.selectionClick();
     try {
-      final picked = await FilePicker.pickFile(
-        type: FileType.custom,
-        allowedExtensions: const <String>['json'],
-      );
+      final picked = await FilePicker.pickFile(type: FileType.custom, allowedExtensions: const <String>['json']);
       if (picked == null) return;
       final path = picked.path;
       if (path == null || path.trim().isEmpty) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.l10n.text('backupImportPathUnavailable')),
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.text('backupImportPathUnavailable'))));
         return;
       }
       await _confirmAndRestore(File(path));
-    } catch (_) {
-      if (mounted) _showFailure();
-    }
+    } catch (_) { if (mounted) _showFailure(); }
   }
 
   Future<void> _confirmAndRestore(File file) async {
-    BackupPreview preview;
+    BackupPreparedImport prepared;
     try {
-      preview = await _service.previewFile(file);
+      prepared = await _service.prepareFile(file);
     } catch (_) {
       if (!mounted) return;
       await _showInvalidBackup();
       return;
     }
-
     if (!mounted) return;
-    if (!preview.canRestore) {
-      await _showInvalidBackup();
-      return;
-    }
 
     try {
-      final plan = await _service.planImportFile(file);
-      if (!mounted) return;
       final mode = await showDialog<BackupRestoreMode>(
         context: context,
         barrierDismissible: false,
-        builder: (_) => BackupRestoreDialog(preview: preview, plan: plan),
+        builder: (_) => BackupRestoreDialog(
+          preview: prepared.preview,
+          plan: prepared.plan,
+        ),
       );
       if (mode == null || !mounted) return;
-
       setState(() => _busy = true);
-      final receipt = await _service.restoreFile(file, mode: mode);
+      final receipt = await _service.restorePrepared(prepared, mode: mode);
       await _refreshRestoredAppState();
       if (!mounted) return;
       setState(() => _busy = false);
@@ -166,11 +132,8 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
         receipt: receipt,
         afterUndo: _refreshRestoredAppState,
       );
-    } catch (_) {
-      if (mounted) _showFailure();
-    } finally {
-      if (mounted && _busy) setState(() => _busy = false);
-    }
+    } catch (_) { if (mounted) _showFailure(); }
+    finally { if (mounted && _busy) setState(() => _busy = false); }
   }
 
   Future<void> _showInvalidBackup() => showDialog<void>(
@@ -178,59 +141,31 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
     builder: (dialogContext) => AlertDialog(
       title: Text(context.l10n.text('backupTitle')),
       content: Text(context.l10n.text('backupInvalid')),
-      actions: [
-        FilledButton(
-          onPressed: () => Navigator.of(dialogContext).pop(),
-          child: Text(MaterialLocalizations.of(dialogContext).okButtonLabel),
-        ),
-      ],
+      actions: [FilledButton(onPressed: () => Navigator.of(dialogContext).pop(), child: Text(MaterialLocalizations.of(dialogContext).okButtonLabel))],
     ),
   );
 
-  void _showFailure() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(context.l10n.text('backupOperationFailed'))),
-    );
-  }
+  void _showFailure() => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.text('backupOperationFailed'))));
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final scheme = Theme.of(context).colorScheme;
-
     return Scaffold(
       appBar: AppBar(title: Text(l10n.text('backupTitle'))),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
         children: [
-          Text(
-            l10n.text('backupSubtitle'),
-            style: TextStyle(color: scheme.onSurfaceVariant, height: 1.45),
-          ),
+          Text(l10n.text('backupSubtitle'), style: TextStyle(color: scheme.onSurfaceVariant, height: 1.45)),
           const SizedBox(height: 18),
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: scheme.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: scheme.outlineVariant),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.privacy_tip_outlined, color: scheme.primary),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    l10n.text('backupPrivacy'),
-                    style: TextStyle(
-                      color: scheme.onSurfaceVariant,
-                      height: 1.4,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            decoration: BoxDecoration(color: scheme.surfaceContainerLow, borderRadius: BorderRadius.circular(20), border: Border.all(color: scheme.outlineVariant)),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Icon(Icons.privacy_tip_outlined, color: scheme.primary),
+              const SizedBox(width: 12),
+              Expanded(child: Text(l10n.text('backupPrivacy'), style: TextStyle(color: scheme.onSurfaceVariant, height: 1.4))),
+            ]),
           ),
           if (BackupBuildConfig.googleDriveEnabled) ...[
             const SizedBox(height: 18),
@@ -239,55 +174,23 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
           const SizedBox(height: 18),
           FilledButton.icon(
             onPressed: _busy ? null : _createAndExport,
-            icon: _busy
-                ? const SizedBox.square(
-                    dimension: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.cloud_upload_outlined),
+            icon: _busy ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.cloud_upload_outlined),
             label: Text(l10n.text('backupCreateExport')),
           ),
           const SizedBox(height: 10),
-          OutlinedButton.icon(
-            onPressed: _busy ? null : _pickAndPreviewBackup,
-            icon: const Icon(Icons.file_open_outlined),
-            label: Text(l10n.text('backupImport')),
-          ),
+          OutlinedButton.icon(onPressed: _busy ? null : _pickAndPreviewBackup, icon: const Icon(Icons.file_open_outlined), label: Text(l10n.text('backupImport'))),
           const SizedBox(height: 10),
-          Text(
-            l10n.text('backupExternalHint'),
-            style: TextStyle(
-              color: scheme.onSurfaceVariant,
-              fontSize: 13,
-              height: 1.4,
-            ),
-          ),
+          Text(l10n.text('backupExternalHint'), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13, height: 1.4)),
           const SizedBox(height: 30),
-          Text(
-            l10n.text('backupRecent'),
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w900,
-            ),
-          ),
+          Text(l10n.text('backupRecent'), style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
           const SizedBox(height: 12),
           if (_loading)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: CircularProgressIndicator(),
-              ),
-            )
+            const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
           else if (_entries.isEmpty)
             Container(
               padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: scheme.surfaceContainer,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                l10n.text('backupEmpty'),
-                style: TextStyle(color: scheme.onSurfaceVariant),
-              ),
+              decoration: BoxDecoration(color: scheme.surfaceContainer, borderRadius: BorderRadius.circular(20)),
+              child: Text(l10n.text('backupEmpty'), style: TextStyle(color: scheme.onSurfaceVariant)),
             )
           else
             for (final entry in _entries) ...[
@@ -296,11 +199,7 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
                 busy: _busy,
                 onShare: () async {
                   HapticFeedback.selectionClick();
-                  try {
-                    await _share(entry.file);
-                  } catch (_) {
-                    if (mounted) _showFailure();
-                  }
+                  try { await _share(entry.file); } catch (_) { if (mounted) _showFailure(); }
                 },
                 onRestore: () => _confirmAndRestore(entry.file),
               ),
@@ -314,19 +213,12 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
 
 class _BackupListEntry {
   const _BackupListEntry({required this.file, required this.preview});
-
   final File file;
   final BackupPreview? preview;
 }
 
 class _BackupCard extends StatelessWidget {
-  const _BackupCard({
-    required this.entry,
-    required this.busy,
-    required this.onShare,
-    required this.onRestore,
-  });
-
+  const _BackupCard({required this.entry, required this.busy, required this.onShare, required this.onRestore});
   final _BackupListEntry entry;
   final bool busy;
   final VoidCallback onShare;
@@ -338,92 +230,44 @@ class _BackupCard extends StatelessWidget {
     final l10n = context.l10n;
     final preview = entry.preview;
     final valid = preview?.canRestore ?? false;
-
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                valid ? Icons.inventory_2_outlined : Icons.warning_amber_rounded,
-                color: valid ? scheme.primary : scheme.error,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  preview?.createdAt == null
-                      ? _fileName(entry.file)
-                      : _formatDateTime(context, preview!.createdAt!),
-                  style: const TextStyle(fontWeight: FontWeight.w800),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          if (preview != null) _PreviewSummary(preview: preview),
-          if (preview == null)
-            Text(
-              l10n.text('backupInvalid'),
-              style: TextStyle(color: scheme.error),
-            ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: busy ? null : onShare,
-                  icon: const Icon(Icons.ios_share_rounded),
-                  label: Text(l10n.text('backupShare')),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: FilledButton.tonalIcon(
-                  onPressed: busy || !valid ? null : onRestore,
-                  icon: const Icon(Icons.restore_rounded),
-                  label: Text(l10n.text('backupRestore')),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+      decoration: BoxDecoration(color: scheme.surfaceContainer, borderRadius: BorderRadius.circular(20)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Icon(valid ? Icons.inventory_2_outlined : Icons.warning_amber_rounded, color: valid ? scheme.primary : scheme.error),
+          const SizedBox(width: 10),
+          Expanded(child: Text(preview?.createdAt == null ? _fileName(entry.file) : _formatDateTime(context, preview!.createdAt!), style: const TextStyle(fontWeight: FontWeight.w800))),
+        ]),
+        const SizedBox(height: 8),
+        if (preview != null) _PreviewSummary(preview: preview),
+        if (preview == null) Text(l10n.text('backupInvalid'), style: TextStyle(color: scheme.error)),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(child: OutlinedButton.icon(onPressed: busy ? null : onShare, icon: const Icon(Icons.ios_share_rounded), label: Text(l10n.text('backupShare')))),
+          const SizedBox(width: 8),
+          Expanded(child: FilledButton.tonalIcon(onPressed: busy || !valid ? null : onRestore, icon: const Icon(Icons.restore_rounded), label: Text(l10n.text('backupRestore')))),
+        ]),
+      ]),
     );
   }
 }
 
 class _PreviewSummary extends StatelessWidget {
   const _PreviewSummary({required this.preview});
-
   final BackupPreview preview;
-
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final scheme = Theme.of(context).colorScheme;
     final version = preview.version?.toString() ?? '?';
-    final versionText = l10n
-        .text('backupVersionLabel')
-        .replaceAll('{version}', version);
-    final countText = l10n
-        .text('backupRecordCount')
-        .replaceAll('{count}', '${preview.totalRecords}');
-
-    return Text(
-      '$countText · $versionText',
-      style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
-    );
+    final versionText = l10n.text('backupVersionLabel').replaceAll('{version}', version);
+    final countText = l10n.text('backupRecordCount').replaceAll('{count}', '${preview.totalRecords}');
+    return Text('$countText · $versionText', style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13));
   }
 }
 
 String _fileName(File file) => file.path.split(Platform.pathSeparator).last;
-
 String _formatDateTime(BuildContext context, DateTime value) {
   final local = value.toLocal();
   final material = MaterialLocalizations.of(context);
