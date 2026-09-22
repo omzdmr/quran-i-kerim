@@ -9,9 +9,9 @@ class PrayerResolvedLocation {
   final String label;
 }
 
-/// Resolves the exact saved prayer location without silently falling back to
-/// Istanbul for special device/manual IDs. Notification and widget scheduling
-/// should share this resolver so travel/manual-city state cannot drift.
+/// Resolves only an explicitly saved prayer location. Special device/manual
+/// IDs keep their exact coordinates, while missing or unknown catalog IDs fail
+/// closed instead of silently turning into Istanbul after restore/travel.
 class PrayerSavedLocationResolver {
   const PrayerSavedLocationResolver();
 
@@ -27,7 +27,12 @@ class PrayerSavedLocationResolver {
       if (saved == null) return null;
       return PrayerResolvedLocation(location: saved.location, defaultMethod: saved.defaultMethod, label: saved.label);
     }
-    final city = prayerCityById(id);
-    return PrayerResolvedLocation(location: city.location, defaultMethod: city.defaultMethod, label: city.label);
+    if (id == null || id.trim().isEmpty) return null;
+    for (final city in prayerCities) {
+      if (city.id == id) {
+        return PrayerResolvedLocation(location: city.location, defaultMethod: city.defaultMethod, label: city.label);
+      }
+    }
+    return null;
   }
 }
