@@ -26,6 +26,7 @@ jobs:
           python3 ios/NativeTests/validate_widget_prayer_names.py
           python3 ios/NativeTests/validate_widget_snapshot_parity.py
           python3 ios/NativeTests/validate_lifecycle_restore.py
+          python3 ios/NativeTests/validate_document_handoff.py
           python3 ios/NativeTests/validate_native_handoff.py
           plutil -lint ios/Runner/Info.plist
           plutil -lint ios/Runner/PrivacyInfo.xcprivacy
