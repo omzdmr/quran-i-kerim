@@ -26,11 +26,7 @@ class BackupImportPlan {
 class BackupImportPlanner {
   const BackupImportPlanner();
 
-  BackupImportPlan build({
-    required Map<String, Object?> currentSections,
-    required Map<String, Object?> incomingSections,
-    Set<String>? managedSections,
-  }) {
+  BackupImportPlan build({required Map<String, Object?> currentSections, required Map<String, Object?> incomingSections, Set<String>? managedSections}) {
     var incomingRecords = 0;
     var localRecords = 0;
     var conflictingRecords = 0;
@@ -47,7 +43,6 @@ class BackupImportPlanner {
       var sectionLocalOnly = 0;
       localRecords += current.length;
       incomingRecords += incoming.length;
-
       final keys = <String>{...current.keys, ...incoming.keys};
       for (final key in keys) {
         final hasCurrent = current.containsKey(key);
@@ -65,21 +60,17 @@ class BackupImportPlanner {
           sectionLocalOnly++;
         }
       }
-
       impacts.add(BackupSectionImpact(section: section, incomingRecords: incoming.length, localRecords: current.length, conflictingRecords: sectionConflicts, incomingOnlyRecords: sectionIncomingOnly, localOnlyRecords: sectionLocalOnly));
     }
 
-    return BackupImportPlan(
-      incomingRecords: incomingRecords,
-      localRecords: localRecords,
-      conflictingRecords: conflictingRecords,
-      incomingOnlyRecords: incomingOnlyRecords,
-      localOnlyRecords: localOnlyRecords,
-      sectionImpacts: List<BackupSectionImpact>.unmodifiable(impacts),
-    );
+    return BackupImportPlan(incomingRecords: incomingRecords, localRecords: localRecords, conflictingRecords: conflictingRecords, incomingOnlyRecords: incomingOnlyRecords, localOnlyRecords: localOnlyRecords, sectionImpacts: List<BackupSectionImpact>.unmodifiable(impacts));
   }
 
   Map<String, Object?> _records(String section, Object? value) {
+    if (section == 'bookmarks' && value is Map) {
+      final bookmarks = _stringListRecords(value['bookmarks']);
+      if (bookmarks != null) return bookmarks;
+    }
     if (section == 'fasting' && value is Map) {
       final expanded = _qadaRecords(value['qada_fasting_ledger_v1']);
       if (expanded != null) {
@@ -93,6 +84,16 @@ class BackupImportPlanner {
     if (value is Map) return <String, Object?>{for (final entry in value.entries) if (entry.key is String) entry.key as String: entry.value};
     if (value is List) return <String, Object?>{for (var index = 0; index < value.length; index++) '#$index': value[index]};
     return const <String, Object?>{};
+  }
+
+  Map<String, Object?>? _stringListRecords(Object? value) {
+    if (value is! List || !value.every((item) => item is String)) return null;
+    final records = <String, Object?>{};
+    for (final item in value.cast<String>()) {
+      if (item.trim().isEmpty || records.containsKey(item)) return null;
+      records[item] = true;
+    }
+    return records;
   }
 
   Map<String, Object?>? _qadaRecords(Object? encoded) {
@@ -116,16 +117,12 @@ class BackupImportPlanner {
   bool _equivalent(Object? a, Object? b) {
     if (a is List && b is List) {
       if (a.length != b.length) return false;
-      for (var i = 0; i < a.length; i++) {
-        if (!_equivalent(a[i], b[i])) return false;
-      }
+      for (var i = 0; i < a.length; i++) { if (!_equivalent(a[i], b[i])) return false; }
       return true;
     }
     if (a is Map && b is Map) {
       if (a.length != b.length) return false;
-      for (final entry in a.entries) {
-        if (!b.containsKey(entry.key) || !_equivalent(entry.value, b[entry.key])) return false;
-      }
+      for (final entry in a.entries) { if (!b.containsKey(entry.key) || !_equivalent(entry.value, b[entry.key])) return false; }
       return true;
     }
     return a == b;
