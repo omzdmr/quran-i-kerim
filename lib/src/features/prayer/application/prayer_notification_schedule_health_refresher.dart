@@ -42,6 +42,10 @@ class PrayerNotificationScheduleHealthRefresher {
     }
     final resolved = await resolver.resolve();
     if (resolved == null) {
+      // We cannot prove which place old pending requests belong to. Keeping
+      // them would be worse than temporarily having no reminder, especially
+      // after a partial restore or deleted manual/GPS location snapshot.
+      await PrayerNotificationService.cancelAll();
       await store.clear();
       return null;
     }
