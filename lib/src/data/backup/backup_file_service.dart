@@ -15,20 +15,15 @@ class BackupRestoreReceipt {
     required this.mode,
     required this.safetySnapshot,
     required this.restoredAt,
+    this.postRestoreSignature,
   });
 
   final BackupRestoreMode mode;
   final File safetySnapshot;
   final DateTime restoredAt;
+  final String? postRestoreSignature;
 }
 
-/// Stores user-owned backup JSON files without involving a backend.
-///
-/// Export uses an atomic temp-file rename so an interrupted write does not
-/// leave a half-written backup at the final path. Import is size-limited before
-/// JSON parsing to avoid loading an unexpectedly large file into memory.
-/// Every user-triggered restore also writes a pre-restore safety snapshot so a
-/// successful but unwanted restore can be reversed without a server/account.
 class BackupFileService {
   BackupFileService({
     this.backupService = const LocalBackupService(),
@@ -49,7 +44,6 @@ class BackupFileService {
   Future<List<File>> listBackupFiles() async {
     final directory = await _backupDirectory(create: false);
     if (!await directory.exists()) return const <File>[];
-
     final files = await directory
         .list(followLinks: false)
         .where((entry) => entry is File && _isManagedBackup(entry.path))
@@ -78,10 +72,6 @@ class BackupFileService {
     return restoreEncoded(encoded, mode: mode, now: now);
   }
 
-  /// Restores a validated backup payload that came from a trusted app-owned
-  /// transport such as the user's private cloud file. The same pre-restore
-  /// safety snapshot and rollback contract as file import is applied, so cloud
-  /// restore is not a less-safe path than local file restore.
   Future<BackupRestoreReceipt> restoreEncoded(
     String encoded, {
     BackupRestoreMode mode = BackupRestoreMode.replace,
@@ -108,18 +98,23 @@ class BackupFileService {
 
     try {
       await backupService.restoreJson(encoded, mode: mode);
+      final afterRestore = await backupService.exportJson(now: restoredAt);
+      return BackupRestoreReceipt(
+        mode: mode,
+        safetySnapshot: safetySnapshot,
+        restoredAt: restoredAt,
+        postRestoreSignature: _dataSignature(afterRestore),
+      );
     } catch (_) {
       if (await safetySnapshot.exists()) await safetySnapshot.delete();
       rethrow;
     }
-
-    return BackupRestoreReceipt(
-      mode: mode,
-      safetySnapshot: safetySnapshot,
-      restoredAt: restoredAt,
-    );
   }
 
+  /// Undo is intentionally conditional: once the user has changed data after
+  /// restore (or another restore ran), an old snackbar must not roll those new
+  /// changes back silently. The safety file remains available for an explicit
+  /// later restore if the receipt is stale.
   Future<void> undoRestore(BackupRestoreReceipt receipt) async {
     final snapshot = receipt.safetySnapshot;
     final managedDirectory = await _backupDirectory(create: false);
@@ -131,13 +126,39 @@ class BackupFileService {
       throw const FormatException('Restore receipt does not reference a managed safety snapshot.');
     }
 
+    final expected = receipt.postRestoreSignature;
+    if (expected != null) {
+      final current = await backupService.exportJson();
+      if (_dataSignature(current) != expected) {
+        throw StateError('User data changed after restore; automatic undo is stale.');
+      }
+    }
+
     final encoded = await _readImport(snapshot);
     final preview = backupService.previewJson(encoded);
     if (!preview.canRestore) {
       throw const FormatException('Safety snapshot is not restorable.');
     }
-
     await backupService.restoreJson(encoded, mode: BackupRestoreMode.replace);
+  }
+
+  String _dataSignature(String encoded) {
+    final decoded = jsonDecode(encoded);
+    if (decoded is! Map) return '';
+    return jsonEncode(_canonicalize(decoded['data']));
+  }
+
+  Object? _canonicalize(Object? value) {
+    if (value is Map) {
+      final keys = value.keys.whereType<String>().toList()..sort();
+      return <String, Object?>{
+        for (final key in keys) key: _canonicalize(value[key]),
+      };
+    }
+    if (value is List) {
+      return <Object?>[for (final item in value) _canonicalize(item)];
+    }
+    return value;
   }
 
   Future<Directory> _backupDirectory({required bool create}) async {
