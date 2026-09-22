@@ -38,8 +38,11 @@ void main() {
     await tester.pumpAndSettle();
 
     const message = 'Device data and cloud backup are different. Check again';
-    expect(find.text(message), findsOneWidget);
-    expect(find.bySemanticsLabel(message), findsOneWidget);
+    final feedback = find.text(message);
+    expect(feedback, findsOneWidget);
+    final semantics = tester.getSemantics(feedback);
+    expect(semantics.label, contains(message));
+    expect(semantics.hasFlag(SemanticsFlag.isLiveRegion), isTrue);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getInt('last_surah'), 2);
     expect(await Directory('${root.path}${Platform.pathSeparator}quran_backups').exists(), isFalse);
