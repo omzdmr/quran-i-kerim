@@ -16,6 +16,7 @@ void main() {
     PrayerAsrMethod asr = PrayerAsrMethod.standard,
     PrayerNotificationProfile profile = PrayerNotificationProfile.fullSound,
     PrayerMinuteAdjustments adjustments = const PrayerMinuteAdjustments(),
+    String localeTag = 'tr',
   }) => PrayerScheduleConfiguration.fingerprint(
         resolved: resolved,
         settings: PrayerSettingsSnapshot(
@@ -24,11 +25,14 @@ void main() {
           notificationProfile: profile,
           adjustments: adjustments,
         ),
+        localeTag: localeTag,
       );
 
-  test('same prayer inputs produce a stable fingerprint', () {
+  test('same prayer inputs produce a stable opaque fingerprint', () {
     expect(fingerprint(), fingerprint());
     expect(fingerprint(), startsWith('v2-'));
+    expect(fingerprint(), hasLength(67));
+    expect(fingerprint(), isNot(contains('Shanghai')));
   });
 
   test('travel location and timezone changes invalidate schedule identity', () {
@@ -42,13 +46,15 @@ void main() {
 
   test('calculation-affecting preferences invalidate schedule identity', () {
     expect(fingerprint(asr: PrayerAsrMethod.hanafi), isNot(fingerprint()));
-    expect(
-      fingerprint(adjustments: const PrayerMinuteAdjustments(fajr: 2)),
-      isNot(fingerprint()),
-    );
+    expect(fingerprint(adjustments: const PrayerMinuteAdjustments(fajr: 2)), isNot(fingerprint()));
   });
 
   test('notification profile also invalidates delivery identity', () {
     expect(fingerprint(profile: PrayerNotificationProfile.discreet), isNot(fingerprint()));
+  });
+
+  test('changing app language invalidates already scheduled notification copy', () {
+    expect(fingerprint(localeTag: 'fr'), isNot(fingerprint(localeTag: 'tr')));
+    expect(fingerprint(localeTag: 'AR'), fingerprint(localeTag: 'ar'));
   });
 }
