@@ -9,12 +9,13 @@ class PrayerNotificationProbeRecord {
   final PrayerNotificationProbeOutcome outcome;
   final DateTime confirmedAt;
 
-  /// A user-confirmed test is evidence about the device at that moment, not a
-  /// permanent guarantee. OS upgrades, permission changes and OEM battery
-  /// policies can invalidate an old success without touching app storage.
   bool isFreshAt(DateTime now, {Duration maxAge = const Duration(days: 30)}) {
     final age = now.toUtc().difference(confirmedAt.toUtc());
     return !age.isNegative && age <= maxAge;
+  }
+
+  bool isCurrentAt(DateTime now, {required bool notificationsEnabled, required bool? systemPermissionGranted, Duration maxAge = const Duration(days: 30)}) {
+    return notificationsEnabled && systemPermissionGranted != false && isFreshAt(now, maxAge: maxAge);
   }
 }
 
@@ -46,9 +47,6 @@ class PrayerNotificationSelfTestStore {
 
   Future<void> save(PrayerNotificationProbeOutcome outcome, {DateTime? now}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(storageKey, jsonEncode(<String, Object>{
-      'outcome': outcome.name,
-      'confirmedAt': (now ?? DateTime.now()).toUtc().toIso8601String(),
-    }));
+    await prefs.setString(storageKey, jsonEncode(<String, Object>{'outcome': outcome.name, 'confirmedAt': (now ?? DateTime.now()).toUtc().toIso8601String()}));
   }
 }
