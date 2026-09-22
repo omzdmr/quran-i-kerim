@@ -20,11 +20,17 @@ class PrayerScheduleAutoRepair {
   final PrayerPendingScheduleProbe pendingProbe;
 
   Future<PrayerScheduleRepairResult> repairIfNeeded({DateTime? now}) async {
+    final current = now ?? DateTime.now();
     final fingerprint = await refresher.currentConfigurationFingerprint();
-    if (fingerprint == null) return PrayerScheduleRepairResult.notApplicable;
+    if (fingerprint == null) {
+      // Disabled/empty notification selections and unresolved saved locations
+      // must not leave an old OS schedule alive. The refresher owns the exact
+      // cancellation/cleanup behavior for those states.
+      await refresher.resync(now: current);
+      return PrayerScheduleRepairResult.notApplicable;
+    }
 
     final health = await store.load();
-    final current = now ?? DateTime.now();
     final evidenceFresh = health != null &&
         health.isFreshAt(
           current,
