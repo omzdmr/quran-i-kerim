@@ -7,6 +7,7 @@ import '../../data/backup/backup_cloud_coordinator.dart';
 import '../../data/backup/backup_file_service.dart';
 import '../../data/backup/google_drive_backup_auth.dart';
 import '../../l10n/app_localizations.dart';
+import 'backup_restore_dialog.dart';
 import 'backup_restore_feedback.dart';
 
 class GoogleDriveBackupSection extends StatefulWidget {
@@ -92,16 +93,28 @@ class _GoogleDriveBackupSectionState extends State<GoogleDriveBackupSection> {
 
   Future<void> _restore() async {
     HapticFeedback.selectionClick();
-    if (!await _confirm(
-      titleKey: 'backupCloudRestoreConfirmTitle',
-      bodyKey: 'backupCloudRestoreConfirmBody',
-      actionKey: 'backupCloudRestore',
-    )) {
-      return;
-    }
+    BackupCloudRestorePreparation? preparation;
+    await _guard(() async {
+      preparation = await _controller.prepareRemoteRestore();
+    });
+    if (!mounted || preparation == null) return;
+
+    final mode = await showDialog<BackupRestoreMode>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => BackupRestoreDialog(
+        preview: preparation!.preview,
+        plan: preparation!.plan,
+      ),
+    );
+    if (!mounted || mode == null) return;
+
     BackupRestoreReceipt? receipt;
     await _guard(() async {
-      receipt = await _controller.restoreRemote();
+      receipt = await _controller.restoreRemote(
+        preparation: preparation,
+        mode: mode,
+      );
       if (receipt == null) return;
       await widget.onRestored();
     });
