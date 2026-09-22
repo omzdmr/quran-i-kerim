@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quran_i_kerim/src/data/backup/backup_import_plan.dart';
 import 'package:quran_i_kerim/src/data/backup/backup_manifest.dart';
+import 'package:quran_i_kerim/src/data/backup/local_backup_service.dart';
 import 'package:quran_i_kerim/src/features/settings/backup_restore_impact_list.dart';
 
 void main() {
@@ -17,13 +18,19 @@ void main() {
     ],
   );
 
-  testWidgets('shows changed sections and destructive device-only count', (tester) async {
-    await tester.pumpWidget(const MaterialApp(locale: Locale('en'), home: Scaffold(body: BackupRestoreImpactList(plan: plan))));
+  testWidgets('merge says device-only records are kept and does not warn as deletion', (tester) async {
+    await tester.pumpWidget(const MaterialApp(locale: Locale('en'), home: Scaffold(body: BackupRestoreImpactList(plan: plan, mode: BackupRestoreMode.merge))));
     expect(find.text('Changes by section'), findsOneWidget);
     expect(find.text('Bookmarks'), findsOneWidget);
-    expect(find.text('Device only: 1'), findsOneWidget);
+    expect(find.text('Kept on device: 1'), findsOneWidget);
     expect(find.text('Notes'), findsOneWidget);
     expect(find.text('Conflicts: 1 · From backup: 1'), findsOneWidget);
+    expect(find.byIcon(Icons.warning_amber_rounded), findsNothing);
+  });
+
+  testWidgets('replace clearly marks device-only records as removals', (tester) async {
+    await tester.pumpWidget(const MaterialApp(locale: Locale('en'), home: Scaffold(body: BackupRestoreImpactList(plan: plan, mode: BackupRestoreMode.replace))));
+    expect(find.text('Removed by Replace: 1'), findsOneWidget);
     expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
   });
 
@@ -37,7 +44,7 @@ void main() {
   testWidgets('exposes a single accessible summary for each impact row', (tester) async {
     final handle = tester.ensureSemantics();
     await tester.pumpWidget(const MaterialApp(locale: Locale('tr'), home: Scaffold(body: BackupRestoreImpactList(plan: plan))));
-    expect(find.bySemanticsLabel('Yer imleri. Yalnız cihazda: 1'), findsOneWidget);
+    expect(find.bySemanticsLabel('Yer imleri. Cihazda korunacak: 1'), findsOneWidget);
     expect(find.bySemanticsLabel('Notlar. Çakışan: 1 · Yedekten gelecek: 1'), findsOneWidget);
     handle.dispose();
   });
@@ -64,16 +71,8 @@ void main() {
       for (final section in BackupManifest.includedSections)
         BackupSectionImpact(section: section, incomingRecords: 1, localRecords: 0, conflictingRecords: 0, incomingOnlyRecords: 1, localOnlyRecords: 0),
     ];
-    final allSections = BackupImportPlan(
-      incomingRecords: impacts.length,
-      localRecords: 0,
-      conflictingRecords: 0,
-      incomingOnlyRecords: impacts.length,
-      localOnlyRecords: 0,
-      sectionImpacts: impacts,
-    );
+    final allSections = BackupImportPlan(incomingRecords: impacts.length, localRecords: 0, conflictingRecords: 0, incomingOnlyRecords: impacts.length, localOnlyRecords: 0, sectionImpacts: impacts);
     await tester.pumpWidget(MaterialApp(locale: const Locale('en'), home: Scaffold(body: SingleChildScrollView(child: BackupRestoreImpactList(plan: allSections)))));
-
     for (final section in BackupManifest.includedSections) {
       expect(find.text(section), findsNothing, reason: 'Raw backup key leaked to UI: $section');
     }
