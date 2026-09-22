@@ -19,6 +19,6 @@ void main() {
     expect(copy.send, 'Send test notification');
     expect(copy.confirmPrompt, 'Did you actually see or hear the notification?');
     expect(copy.lastVerified, 'Last user verification');
-    expect(copy.expired, 'Old test · verify again');
+    expect(copy.expired, 'Needs verification again');
   });
 }
