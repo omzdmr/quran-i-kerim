@@ -24,6 +24,18 @@ class BackupRestoreReceipt {
   final String? postRestoreSignature;
 }
 
+class BackupPreparedImport {
+  const BackupPreparedImport._({
+    required this.preview,
+    required this.plan,
+    required String encoded,
+  }) : _encoded = encoded;
+
+  final BackupPreview preview;
+  final BackupImportPlan plan;
+  final String _encoded;
+}
+
 class BackupFileService {
   BackupFileService({
     this.backupService = const LocalBackupService(),
@@ -62,6 +74,30 @@ class BackupFileService {
     final encoded = await _readImport(file);
     return backupService.planImportJson(encoded);
   }
+
+  /// Reads a user-selected file once and binds its preview + import plan to the
+  /// exact bytes that will later be restored. An external provider changing the
+  /// file while the confirmation dialog is open can no longer make the app
+  /// restore content different from what the user reviewed.
+  Future<BackupPreparedImport> prepareFile(File file) async {
+    final encoded = await _readImport(file);
+    final preview = backupService.previewJson(encoded);
+    if (!preview.canRestore) {
+      throw const FormatException('Backup is not restorable.');
+    }
+    final plan = await backupService.planImportJson(encoded);
+    return BackupPreparedImport._(
+      preview: preview,
+      plan: plan,
+      encoded: encoded,
+    );
+  }
+
+  Future<BackupRestoreReceipt> restorePrepared(
+    BackupPreparedImport prepared, {
+    BackupRestoreMode mode = BackupRestoreMode.replace,
+    DateTime? now,
+  }) => restoreEncoded(prepared._encoded, mode: mode, now: now);
 
   Future<BackupRestoreReceipt> restoreFile(
     File file, {
@@ -119,10 +155,6 @@ class BackupFileService {
     );
   }
 
-  /// Undo is intentionally conditional: once the user has changed data after
-  /// restore (or another restore ran), an old snackbar must not roll those new
-  /// changes back silently. The safety file remains available for an explicit
-  /// later restore if the receipt is stale.
   Future<void> undoRestore(BackupRestoreReceipt receipt) async {
     final snapshot = receipt.safetySnapshot;
     final managedDirectory = await _backupDirectory(create: false);
