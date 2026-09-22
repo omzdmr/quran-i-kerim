@@ -49,9 +49,6 @@ class BackupCloudController extends ChangeNotifier {
     if (_busy) return;
     final coordinator = _requireCoordinator();
     await _run(() async {
-      // Re-inspect immediately before upload so the local JSON and expected
-      // remote revision are never stale just because the settings screen sat
-      // open while the user changed data elsewhere in the app.
       final fresh = await coordinator.inspect();
       _inspection = fresh;
       notifyListeners();
@@ -63,17 +60,38 @@ class BackupCloudController extends ChangeNotifier {
     });
   }
 
-  Future<BackupRestoreReceipt?> restoreRemote() async {
+  Future<BackupCloudRestorePreparation?> prepareRemoteRestore() async {
+    if (_busy) return null;
+    final coordinator = _requireCoordinator();
+    BackupCloudRestorePreparation? preparation;
+    await _run(() async {
+      final fresh = await coordinator.inspect();
+      _inspection = fresh;
+      notifyListeners();
+      preparation = await coordinator.prepareRemoteRestore(fresh);
+    });
+    return preparation;
+  }
+
+  Future<BackupRestoreReceipt?> restoreRemote({
+    BackupCloudRestorePreparation? preparation,
+    BackupRestoreMode mode = BackupRestoreMode.replace,
+  }) async {
     if (_busy) return null;
     final coordinator = _requireCoordinator();
     BackupRestoreReceipt? receipt;
     await _run(() async {
-      // Read the remote again before applying it. A different device may have
-      // created a newer snapshot after the confirmation UI was first shown.
+      // Read the remote again immediately before applying it. If the user
+      // reviewed a preview, never restore a different revision under that
+      // confirmation just because another device uploaded in the meantime.
       final fresh = await coordinator.inspect();
       _inspection = fresh;
       notifyListeners();
-      receipt = await coordinator.restoreRemote(fresh);
+      final expectedRevision = preparation?.remoteRevision;
+      if (expectedRevision != null && fresh.remote?.revision != expectedRevision) {
+        throw const BackupCloudConflictException();
+      }
+      receipt = await coordinator.restoreRemote(fresh, mode: mode);
 
       // The restore is already committed locally and the receipt is now the
       // user's rollback handle. A transient second cloud read must never turn
