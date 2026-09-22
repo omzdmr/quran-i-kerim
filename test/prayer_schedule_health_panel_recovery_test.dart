@@ -8,6 +8,7 @@ import 'package:quran_i_kerim/src/features/prayer/presentation/prayer_schedule_h
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _SuccessfulRefresher extends PrayerNotificationScheduleHealthRefresher {
+  const _SuccessfulRefresher();
   @override
   Future<PrayerNotificationScheduleHealth?> resync({DateTime? now}) async => PrayerNotificationScheduleHealth(
     scheduledAt: now ?? DateTime.now(), nextPrayerId: 'dhuhr', nextScheduledAt: (now ?? DateTime.now()).add(const Duration(hours: 1)),
@@ -21,10 +22,7 @@ void main() {
 
   testWidgets('successful manual recovery removes obsolete automatic failure receipt', (tester) async {
     const receiptStore = PrayerScheduleRepairReceiptStore();
-    await receiptStore.save(PrayerScheduleRepairReceipt(
-      attemptedAt: DateTime.now(), outcome: PrayerScheduleRepairOutcome.failed,
-      trigger: PrayerScheduleRepairTrigger.platformScheduleMissing, configurationFingerprint: 'same',
-    ));
+    await receiptStore.save(PrayerScheduleRepairReceipt(attemptedAt: DateTime.now(), outcome: PrayerScheduleRepairOutcome.failed, trigger: PrayerScheduleRepairTrigger.platformScheduleMissing, configurationFingerprint: 'same'));
 
     await tester.pumpWidget(const MaterialApp(
       locale: Locale('en'),
@@ -35,7 +33,7 @@ void main() {
     expect(find.text('Automatic check'), findsOneWidget);
     expect(find.textContaining('could not finish'), findsOneWidget);
 
-    await tester.tap(find.text('Resync reminders'));
+    await tester.tap(find.text('Resync notifications'));
     await tester.pumpAndSettle();
 
     expect(await receiptStore.load(), isNull);
