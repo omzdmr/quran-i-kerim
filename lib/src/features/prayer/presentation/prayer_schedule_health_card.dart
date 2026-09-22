@@ -31,8 +31,15 @@ class _PrayerScheduleHealthCardState extends State<PrayerScheduleHealthCard> {
   }
 
   Future<void> _load() async {
-    final value = await _store.load();
-    final fingerprint = await _refresher.currentConfigurationFingerprint();
+    PrayerNotificationScheduleHealth? value;
+    String? fingerprint;
+    try {
+      value = await _store.load();
+      fingerprint = await _refresher.currentConfigurationFingerprint();
+    } catch (_) {
+      // Keep whatever durable evidence could be read, but unresolved current
+      // configuration must never be promoted to a healthy state.
+    }
     if (!mounted) return;
     setState(() {
       _health = value;
@@ -68,11 +75,13 @@ class _PrayerScheduleHealthCardState extends State<PrayerScheduleHealthCard> {
         fingerprint.isNotEmpty &&
         health.configurationFingerprint.isNotEmpty &&
         health.configurationFingerprint != fingerprint;
-    final fresh = health?.isFreshAt(
-          widget.now ?? DateTime.now(),
-          expectedConfigurationFingerprint: fingerprint,
-        ) ??
-        false;
+    final fresh = fingerprint != null &&
+        fingerprint.isNotEmpty &&
+        (health?.isFreshAt(
+              widget.now ?? DateTime.now(),
+              expectedConfigurationFingerprint: fingerprint,
+            ) ??
+            false);
     final scheme = Theme.of(context).colorScheme;
     final status = _loading
         ? copy.checking
