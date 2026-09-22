@@ -10,8 +10,8 @@ void main() {
       'prayer_notifications_enabled': true,
     });
 
-    final adapter = SharedPreferencesBackupAdapter();
-    final exported = await adapter.exportSections();
+    const adapter = SharedPreferencesBackupAdapter();
+    final exported = await adapter.captureSections();
     final encoded = exported.toString();
 
     expect(encoded, isNot(contains('prayer_notification_schedule_health_v1')));
