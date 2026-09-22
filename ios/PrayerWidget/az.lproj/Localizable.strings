@@ -9,6 +9,7 @@
 "Location changed" = "Məkan dəyişdi";
 "Prayer times need refresh" = "Namaz vaxtları yenilənməlidir";
 "Prayer times need refresh after a time zone change" = "Saat qurşağı dəyişdiyi üçün namaz vaxtları yenilənməlidir";
+"Prayer times need refresh after a language change" = "Dil dəyişdiyi üçün namaz vaxtları yenilənməlidir";
 "Prayer information is out of date. Open the app to refresh" = "Namaz məlumatı köhnəlib. Yeniləmək üçün tətbiqi açın";
 "Prayer information cannot be shown safely. Open the app to refresh" = "Namaz məlumatını etibarlı göstərmək olmur. Yeniləmək üçün tətbiqi açın";
 "Fajr" = "Sübh";
