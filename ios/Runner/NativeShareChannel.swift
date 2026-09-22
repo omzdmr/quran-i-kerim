@@ -2,8 +2,8 @@ import Flutter
 import UIKit
 
 /// Native share sheet bridge with iPad-safe presentation and lifecycle-owned file staging.
-/// Files are copied into a protected, backup-excluded temporary directory before they are
-/// handed to extensions so the caller can safely rotate/delete its original export.
+/// Each share uses a private session directory so the user-visible filename stays clean while
+/// concurrent/repeated exports cannot collide. Staging is protected, backup-excluded and pruned.
 final class NativeShareChannel: NSObject, UIAdaptivePresentationControllerDelegate {
   static let channelName = "app.quranikerim/native_share"
   static let maxShareFileBytes: Int64 = 64 * 1024 * 1024
@@ -27,7 +27,7 @@ final class NativeShareChannel: NSObject, UIAdaptivePresentationControllerDelega
 
   private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
-    case "capabilities": result(["text": true, "file": true, "ipadPopoverSafe": true, "completionStatus": true, "presentedHierarchyAware": true, "copyOnShare": true, "fileProtection": true, "backupExcludedStaging": true, "maxShareFileBytes": Self.maxShareFileBytes, "automaticCleanup": true, "orphanCleanup": true])
+    case "capabilities": result(["text": true, "file": true, "ipadPopoverSafe": true, "completionStatus": true, "presentedHierarchyAware": true, "copyOnShare": true, "preservesFilename": true, "isolatedShareSession": true, "fileProtection": true, "backupExcludedStaging": true, "maxShareFileBytes": Self.maxShareFileBytes, "automaticCleanup": true, "orphanCleanup": true])
     case "shareText":
       guard let args = call.arguments as? [String: Any], let text = args["text"] as? String, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { result(FlutterError(code: "invalid_share_text", message: "shareText requires non-empty text.", details: nil)); return }
       present(items: [text], result: result)
@@ -58,12 +58,12 @@ final class NativeShareChannel: NSObject, UIAdaptivePresentationControllerDelega
   private func stagingDirectory() -> URL { FileManager.default.temporaryDirectory.appendingPathComponent(Self.stagingDirectoryName, isDirectory: true) }
 
   private func stageForShare(source: URL, preferredFilename: String?) throws -> URL {
-    let directory = stagingDirectory()
-    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-    try FileManager.default.setAttributes([.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication], ofItemAtPath: directory.path)
-    var directoryValues = URLResourceValues(); directoryValues.isExcludedFromBackup = true; var mutableDirectory = directory; try mutableDirectory.setResourceValues(directoryValues)
+    let root = stagingDirectory()
+    try createProtectedBackupExcludedDirectory(root)
+    let session = root.appendingPathComponent(UUID().uuidString.lowercased(), isDirectory: true)
+    try createProtectedBackupExcludedDirectory(session)
     let filename = sanitizedFilename(preferredFilename) ?? sanitizedFilename(source.lastPathComponent) ?? "quran-share.dat"
-    let destination = directory.appendingPathComponent(UUID().uuidString + "-" + filename, isDirectory: false)
+    let destination = session.appendingPathComponent(filename, isDirectory: false)
     do {
       try FileManager.default.copyItem(at: source, to: destination)
       try FileManager.default.setAttributes([.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication], ofItemAtPath: destination.path)
@@ -73,17 +73,24 @@ final class NativeShareChannel: NSObject, UIAdaptivePresentationControllerDelega
       guard copiedSize >= 0 && copiedSize <= Self.maxShareFileBytes else { throw CocoaError(.fileWriteOutOfSpace) }
       return destination
     } catch {
-      try? FileManager.default.removeItem(at: destination)
+      try? FileManager.default.removeItem(at: session)
       throw error
     }
   }
 
+  private func createProtectedBackupExcludedDirectory(_ directory: URL) throws {
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    try FileManager.default.setAttributes([.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication], ofItemAtPath: directory.path)
+    var values = URLResourceValues(); values.isExcludedFromBackup = true; var mutable = directory; try mutable.setResourceValues(values)
+  }
+
   private func cleanupOrphanedStaging(now: Date = Date()) {
-    let directory = stagingDirectory()
-    guard let urls = try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.contentModificationDateKey, .isRegularFileKey], options: [.skipsHiddenFiles]) else { return }
-    for url in urls {
-      guard url != stagedShareURL, let values = try? url.resourceValues(forKeys: [.contentModificationDateKey, .isRegularFileKey]), values.isRegularFile == true, let modified = values.contentModificationDate, now.timeIntervalSince(modified) >= Self.orphanLifetime else { continue }
-      try? FileManager.default.removeItem(at: url)
+    let root = stagingDirectory()
+    guard let sessions = try? FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: [.contentModificationDateKey, .isDirectoryKey], options: [.skipsHiddenFiles]) else { return }
+    let activeSession = stagedShareURL?.deletingLastPathComponent().standardizedFileURL
+    for session in sessions {
+      guard session.standardizedFileURL != activeSession, let values = try? session.resourceValues(forKeys: [.contentModificationDateKey, .isDirectoryKey]), values.isDirectory == true, let modified = values.contentModificationDate, now.timeIntervalSince(modified) >= Self.orphanLifetime else { continue }
+      try? FileManager.default.removeItem(at: session)
     }
   }
 
@@ -114,6 +121,6 @@ final class NativeShareChannel: NSObject, UIAdaptivePresentationControllerDelega
   private func sanitizedFilename(_ value: String?) -> String? { guard let value else { return nil }; let leaf = URL(fileURLWithPath: value).lastPathComponent.trimmingCharacters(in: .whitespacesAndNewlines); return (!leaf.isEmpty && leaf != "." && leaf != "..") ? leaf : nil }
   private func finish(_ payload: Any?) { guard let result = pendingResult else { cleanupStagedShare(); return }; pendingResult = nil; cleanupStagedShare(); result(payload) }
   private func finish(error: FlutterError) { guard let result = pendingResult else { cleanupStagedShare(); return }; pendingResult = nil; cleanupStagedShare(); result(error) }
-  private func cleanupStagedShare() { if let stagedShareURL { try? FileManager.default.removeItem(at: stagedShareURL) }; stagedShareURL = nil }
+  private func cleanupStagedShare() { if let stagedShareURL { try? FileManager.default.removeItem(at: stagedShareURL.deletingLastPathComponent()) }; stagedShareURL = nil }
   func presentationControllerDidDismiss(_ presentationController: UIPresentationController) { finish(["status": "cancelled"]) }
 }
