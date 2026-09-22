@@ -27,8 +27,7 @@ final class NativeShareChannel: NSObject, UIAdaptivePresentationControllerDelega
 
   private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
-    case "capabilities":
-      result(["text": true, "file": true, "ipadPopoverSafe": true, "completionStatus": true, "presentedHierarchyAware": true, "copyOnShare": true, "fileProtection": true, "backupExcludedStaging": true, "maxShareFileBytes": Self.maxShareFileBytes, "automaticCleanup": true, "orphanCleanup": true])
+    case "capabilities": result(["text": true, "file": true, "ipadPopoverSafe": true, "completionStatus": true, "presentedHierarchyAware": true, "copyOnShare": true, "fileProtection": true, "backupExcludedStaging": true, "maxShareFileBytes": Self.maxShareFileBytes, "automaticCleanup": true, "orphanCleanup": true])
     case "shareText":
       guard let args = call.arguments as? [String: Any], let text = args["text"] as? String, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { result(FlutterError(code: "invalid_share_text", message: "shareText requires non-empty text.", details: nil)); return }
       present(items: [text], result: result)
@@ -40,6 +39,7 @@ final class NativeShareChannel: NSObject, UIAdaptivePresentationControllerDelega
   private func shareFile(_ arguments: Any?, result: @escaping FlutterResult) {
     guard pendingResult == nil else { result(FlutterError(code: "share_busy", message: "A share sheet is already being presented.", details: nil)); return }
     guard let args = arguments as? [String: Any], let path = args["path"] as? String, !path.isEmpty else { result(FlutterError(code: "invalid_share_file", message: "shareFile requires a file path.", details: nil)); return }
+    cleanupOrphanedStaging()
     let source = URL(fileURLWithPath: path).standardizedFileURL
     do {
       let values = try source.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])
@@ -64,8 +64,8 @@ final class NativeShareChannel: NSObject, UIAdaptivePresentationControllerDelega
     var directoryValues = URLResourceValues(); directoryValues.isExcludedFromBackup = true; var mutableDirectory = directory; try mutableDirectory.setResourceValues(directoryValues)
     let filename = sanitizedFilename(preferredFilename) ?? sanitizedFilename(source.lastPathComponent) ?? "quran-share.dat"
     let destination = directory.appendingPathComponent(UUID().uuidString + "-" + filename, isDirectory: false)
-    try FileManager.default.copyItem(at: source, to: destination)
     do {
+      try FileManager.default.copyItem(at: source, to: destination)
       try FileManager.default.setAttributes([.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication], ofItemAtPath: destination.path)
       var values = URLResourceValues(); values.isExcludedFromBackup = true; var mutable = destination; try mutable.setResourceValues(values)
       let attributes = try FileManager.default.attributesOfItem(atPath: destination.path)
