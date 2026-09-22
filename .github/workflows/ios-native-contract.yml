@@ -66,13 +66,16 @@ jobs:
           grep -q 'reloadTimelines(ofKind: Self.widgetKind)' ios/Runner/WidgetSnapshotChannel.swift
           grep -q 'maxShareFileBytes: Int64 = 64' ios/Runner/NativeShareChannel.swift
           grep -q 'copyOnShare": true' ios/Runner/NativeShareChannel.swift
+          grep -q 'preservesFilename": true' ios/Runner/NativeShareChannel.swift
+          grep -q 'isolatedShareSession": true' ios/Runner/NativeShareChannel.swift
+          grep -q 'createProtectedBackupExcludedDirectory(session)' ios/Runner/NativeShareChannel.swift
           grep -q 'backupExcludedStaging": true' ios/Runner/NativeShareChannel.swift
           grep -q 'orphanCleanup": true' ios/Runner/NativeShareChannel.swift
           grep -q 'orphanLifetime: TimeInterval = 24' ios/Runner/NativeShareChannel.swift
           grep -q 'cleanupOrphanedStaging()' ios/Runner/NativeShareChannel.swift
           grep -q 'FileProtectionType.completeUntilFirstUserAuthentication' ios/Runner/NativeShareChannel.swift
           grep -q 'isExcludedFromBackup = true' ios/Runner/NativeShareChannel.swift
-          grep -q 'cleanupStagedShare' ios/Runner/NativeShareChannel.swift
+          grep -q 'removeItem(at: stagedShareURL.deletingLastPathComponent())' ios/Runner/NativeShareChannel.swift
           grep -q 'case .systemLarge:' ios/PrayerWidget/PrayerWidget.swift
           grep -q 'case .systemExtraLarge:' ios/PrayerWidget/PrayerWidget.swift
           grep -q '\.systemExtraLarge' ios/PrayerWidget/PrayerWidget.swift
