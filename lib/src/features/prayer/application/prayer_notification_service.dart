@@ -90,7 +90,10 @@ class PrayerNotificationService {
     final cityId = await PrayerPreferencesStore.loadCityId();
     if (cityId == PrayerPreferencesStore.deviceLocationId) {
       final device = await PrayerPreferencesStore.loadDeviceLocation();
-      if (device == null) return;
+      if (device == null) {
+        await _plugin.cancelAllPendingNotifications();
+        return;
+      }
       await reschedule(
         location: device.location,
         defaultMethod: device.defaultMethod,
@@ -100,12 +103,19 @@ class PrayerNotificationService {
     }
     if (cityId == PrayerPreferencesStore.manualLocationId) {
       final manual = await PrayerPreferencesStore.loadManualLocation();
-      if (manual == null) return;
+      if (manual == null) {
+        await _plugin.cancelAllPendingNotifications();
+        return;
+      }
       await reschedule(
         location: manual.location,
         defaultMethod: manual.defaultMethod,
         settings: settings,
       );
+      return;
+    }
+    if (cityId == null || !prayerCities.any((city) => city.id == cityId)) {
+      await _plugin.cancelAllPendingNotifications();
       return;
     }
 
