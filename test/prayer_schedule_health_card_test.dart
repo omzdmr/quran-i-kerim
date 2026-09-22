@@ -29,6 +29,21 @@ void main() {
     expect(resyncs, 1);
   });
 
+  testWidgets('failed resync stays stale, explains failure and remains retryable', (tester) async {
+    var attempts = 0;
+    await tester.pumpWidget(app(onResync: () async {
+      attempts++;
+      throw StateError('platform scheduler unavailable');
+    }));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bildirimleri yeniden eşitle'));
+    await tester.pumpAndSettle();
+    expect(attempts, 1);
+    expect(find.textContaining('Yeniden eşitleme tamamlanamadı'), findsOneWidget);
+    expect(find.text('Bildirimleri yeniden eşitle'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('legacy schedule is identified instead of silently trusted', (tester) async {
     await store.save(PrayerNotificationScheduleHealth(
       scheduledAt: DateTime.utc(2026, 9, 22, 2),
@@ -56,6 +71,7 @@ void main() {
       expect(copy.needsResync, isNotEmpty, reason: code);
       expect(copy.configurationChanged, isNotEmpty, reason: code);
       expect(copy.legacySchedule, isNotEmpty, reason: code);
+      expect(copy.resyncFailed, isNotEmpty, reason: code);
       expect(copy.updated, isNotEmpty, reason: code);
       expect(copy.resync, isNotEmpty, reason: code);
       for (final id in const ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']) {
