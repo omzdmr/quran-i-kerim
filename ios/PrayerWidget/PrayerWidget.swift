@@ -16,40 +16,88 @@ private struct PrayerSnapshot: Decodable {
   let displayName: String?
   let privacyMode: String
 
-  var isFresh: Bool {
-    let now = Date().timeIntervalSince1970 * 1000
-    guard version == Self.schemaVersion,
-          generatedAt <= now + 300_000,
-          validUntil > now,
-          timeZoneIdentifier == TimeZone.autoupdatingCurrent.identifier,
-          !calculationFingerprint.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
-    if let nextPrayerAt, nextPrayerAt <= now { return false }
-    return (nextPrayerID == nil) == (nextPrayerAt == nil)
+  enum Freshness {
+    case fresh
+    case unsupportedSchema
+    case malformed
+    case generatedInFuture
+    case expired
+    case timeZoneChanged
+    case prayerBoundaryPassed
   }
+
+  func freshness(now: Date = Date(), currentTimeZone: TimeZone = .autoupdatingCurrent) -> Freshness {
+    let nowMs = now.timeIntervalSince1970 * 1000
+    guard version == Self.schemaVersion else { return .unsupportedSchema }
+    let prayerID = nextPrayerID?.trimmingCharacters(in: .whitespacesAndNewlines)
+    let hasPrayerID = !(prayerID?.isEmpty ?? true)
+    let hasPrayerTime = nextPrayerAt != nil
+    guard generatedAt < validUntil,
+          TimeZone(identifier: timeZoneIdentifier) != nil,
+          !calculationFingerprint.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+          hasPrayerID == hasPrayerTime,
+          nextPrayerAt.map({ $0 > generatedAt && $0 <= validUntil }) ?? true else { return .malformed }
+    guard generatedAt <= nowMs else { return .generatedInFuture }
+    guard nowMs < validUntil else { return .expired }
+    guard timeZoneIdentifier == currentTimeZone.identifier else { return .timeZoneChanged }
+    if let nextPrayerAt, nextPrayerAt <= nowMs { return .prayerBoundaryPassed }
+    return .fresh
+  }
+
   var isRedacted: Bool { privacyMode == "redacted" }
 }
 
 private enum SnapshotReader {
   static let suiteName = "group.app.quranikerim.shared"
   static let payloadKey = "widget.prayer.snapshot.v1"
-  static func read() -> PrayerSnapshot? {
-    guard let defaults = UserDefaults(suiteName: suiteName), let data = defaults.data(forKey: payloadKey), let snapshot = try? JSONDecoder().decode(PrayerSnapshot.self, from: data), snapshot.isFresh else { return nil }
-    return snapshot
+
+  struct Result {
+    let snapshot: PrayerSnapshot?
+    let freshness: PrayerSnapshot.Freshness?
+  }
+
+  static func read(now: Date = Date(), timeZone: TimeZone = .autoupdatingCurrent) -> Result {
+    guard let defaults = UserDefaults(suiteName: suiteName), let data = defaults.data(forKey: payloadKey) else {
+      return Result(snapshot: nil, freshness: nil)
+    }
+    guard let snapshot = try? JSONDecoder().decode(PrayerSnapshot.self, from: data) else {
+      return Result(snapshot: nil, freshness: .malformed)
+    }
+    let freshness = snapshot.freshness(now: now, currentTimeZone: timeZone)
+    return Result(snapshot: freshness == .fresh ? snapshot : nil, freshness: freshness)
   }
 }
 
-private struct PrayerEntry: TimelineEntry { let date: Date; let snapshot: PrayerSnapshot? }
+private struct PrayerEntry: TimelineEntry {
+  let date: Date
+  let snapshot: PrayerSnapshot?
+  let freshness: PrayerSnapshot.Freshness?
+}
 
 private struct PrayerProvider: TimelineProvider {
-  func placeholder(in context: Context) -> PrayerEntry { PrayerEntry(date: Date(), snapshot: nil) }
-  func getSnapshot(in context: Context, completion: @escaping (PrayerEntry) -> Void) { completion(PrayerEntry(date: Date(), snapshot: SnapshotReader.read())) }
+  func placeholder(in context: Context) -> PrayerEntry { PrayerEntry(date: Date(), snapshot: nil, freshness: nil) }
+
+  func getSnapshot(in context: Context, completion: @escaping (PrayerEntry) -> Void) {
+    let now = Date(), result = SnapshotReader.read(now: now)
+    completion(PrayerEntry(date: now, snapshot: result.snapshot, freshness: result.freshness))
+  }
+
   func getTimeline(in context: Context, completion: @escaping (Timeline<PrayerEntry>) -> Void) {
-    let snapshot = SnapshotReader.read(), now = Date(); var refresh = now.addingTimeInterval(15 * 60)
-    if let snapshot {
-      let expiry = Date(timeIntervalSince1970: snapshot.validUntil / 1000); if expiry > now { refresh = min(refresh, expiry) }
-      if let next = snapshot.nextPrayerAt { let boundary = Date(timeIntervalSince1970: next / 1000); if boundary > now { refresh = min(refresh, boundary) } }
+    let now = Date(), result = SnapshotReader.read(now: now)
+    var refresh = now.addingTimeInterval(15 * 60)
+    if let snapshot = result.snapshot {
+      let expiry = Date(timeIntervalSince1970: snapshot.validUntil / 1000)
+      if expiry > now { refresh = min(refresh, expiry) }
+      if let next = snapshot.nextPrayerAt {
+        let boundary = Date(timeIntervalSince1970: next / 1000)
+        if boundary > now { refresh = min(refresh, boundary) }
+      }
+    } else if result.freshness != nil {
+      // Invalid/stale data must never linger for a long timeline window. Ask WidgetKit
+      // for a near-term retry while the app has a chance to republish a valid snapshot.
+      refresh = now.addingTimeInterval(5 * 60)
     }
-    completion(Timeline(entries: [PrayerEntry(date: now, snapshot: snapshot)], policy: .after(refresh)))
+    completion(Timeline(entries: [PrayerEntry(date: now, snapshot: result.snapshot, freshness: result.freshness)], policy: .after(refresh)))
   }
 }
 
@@ -97,7 +145,13 @@ private struct PrayerWidgetView: View {
   }
 
   private var privacyRedacted: some View { VStack(alignment: .leading, spacing: 4) { Text(String(localized: "Prayer times hidden", table: "Localizable")).font(.headline); Text(String(localized: "Prayer times hidden for privacy", table: "Localizable")).font(.caption).foregroundStyle(.secondary) }.accessibilityElement(children: .combine) }
-  private var unavailable: some View { VStack(alignment: .leading, spacing: 4) { Text(String(localized: "Prayer Times", table: "Localizable")).font(.headline); Text(String(localized: "Open app to refresh", table: "Localizable")).font(.caption).foregroundStyle(.secondary) }.accessibilityElement(children: .combine) }
+  private var unavailable: some View {
+    VStack(alignment: .leading, spacing: 4) {
+      Text(String(localized: "Prayer Times", table: "Localizable")).font(.headline)
+      Text(String(localized: "Open app to refresh", table: "Localizable")).font(.caption).foregroundStyle(.secondary)
+    }
+    .accessibilityElement(children: .combine)
+  }
   private func time(_ milliseconds: Double) -> String { let formatter = DateFormatter(); formatter.locale = .autoupdatingCurrent; formatter.timeZone = .autoupdatingCurrent; formatter.timeStyle = .short; formatter.dateStyle = .none; return formatter.string(from: Date(timeIntervalSince1970: milliseconds / 1000)) }
   private func localizedPrayerName(_ id: String) -> String {
     let normalized = id.trimmingCharacters(in: .whitespacesAndNewlines).lowercased().replacingOccurrences(of: "_", with: "").replacingOccurrences(of: "-", with: "")
