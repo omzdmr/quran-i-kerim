@@ -8,6 +8,14 @@ class PrayerNotificationProbeRecord {
   const PrayerNotificationProbeRecord({required this.outcome, required this.confirmedAt});
   final PrayerNotificationProbeOutcome outcome;
   final DateTime confirmedAt;
+
+  /// A user-confirmed test is evidence about the device at that moment, not a
+  /// permanent guarantee. OS upgrades, permission changes and OEM battery
+  /// policies can invalidate an old success without touching app storage.
+  bool isFreshAt(DateTime now, {Duration maxAge = const Duration(days: 30)}) {
+    final age = now.toUtc().difference(confirmedAt.toUtc());
+    return !age.isNegative && age <= maxAge;
+  }
 }
 
 class PrayerNotificationSelfTestStore {
@@ -27,10 +35,7 @@ class PrayerNotificationSelfTestStore {
       final parsed = DateTime.tryParse(confirmedAt);
       PrayerNotificationProbeOutcome? parsedOutcome;
       for (final value in PrayerNotificationProbeOutcome.values) {
-        if (value.name == outcome) {
-          parsedOutcome = value;
-          break;
-        }
+        if (value.name == outcome) { parsedOutcome = value; break; }
       }
       if (parsed == null || parsedOutcome == null) return null;
       return PrayerNotificationProbeRecord(outcome: parsedOutcome, confirmedAt: parsed.toLocal());
