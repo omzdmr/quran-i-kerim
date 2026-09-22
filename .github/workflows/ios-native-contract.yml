@@ -24,6 +24,7 @@ jobs:
           python3 ios/NativeTests/validate_project_graph.py
           python3 ios/NativeTests/validate_widget_localizations.py
           python3 ios/NativeTests/validate_widget_prayer_names.py
+          python3 ios/NativeTests/validate_native_handoff.py
           plutil -lint ios/Runner/Info.plist
           plutil -lint ios/Runner/PrivacyInfo.xcprivacy
           plutil -lint ios/PrayerWidget/Info.plist
@@ -38,8 +39,10 @@ jobs:
           grep -q '"universalLink": false' ios/Runner/AppDelegate.swift
           grep -q 'components.host == "prayer"' ios/Runner/AppDelegate.swift
           grep -q 'maxImportBytes: Int64 = 64' ios/Runner/AppDelegate.swift
+          grep -q 'maxExportBytes: Int64 = 64' ios/Runner/AppDelegate.swift
           grep -q 'deleteImportedFile' ios/Runner/AppDelegate.swift
           grep -q 'activePresenterResolution": true' ios/Runner/AppDelegate.swift
+          grep -q 'activeSceneAware": true' ios/Runner/AppDelegate.swift
           grep -q 'FileProtectionType.completeUntilFirstUserAuthentication' ios/Runner/AppDelegate.swift
           grep -q 'NotificationPermissionChannel.selfTestIdentifier' ios/Runner/AppDelegate.swift
           grep -q 'completionHandler(\[.banner, .sound\])' ios/Runner/AppDelegate.swift
@@ -68,6 +71,8 @@ jobs:
           grep -q 'copyOnShare": true' ios/Runner/NativeShareChannel.swift
           grep -q 'preservesFilename": true' ios/Runner/NativeShareChannel.swift
           grep -q 'isolatedShareSession": true' ios/Runner/NativeShareChannel.swift
+          grep -q 'activeSceneAware": true' ios/Runner/NativeShareChannel.swift
+          grep -q 'lifecycleCleanup": true' ios/Runner/NativeShareChannel.swift
           grep -q 'createProtectedBackupExcludedDirectory(session)' ios/Runner/NativeShareChannel.swift
           grep -q 'backupExcludedStaging": true' ios/Runner/NativeShareChannel.swift
           grep -q 'orphanCleanup": true' ios/Runner/NativeShareChannel.swift
