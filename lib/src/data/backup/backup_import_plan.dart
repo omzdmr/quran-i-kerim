@@ -62,11 +62,6 @@ class BackupImportPlanner {
   }
 
   _RecordPair _comparisonRecords(String section, Object? currentValue, Object? incomingValue) {
-    if (section == 'bookmarks' && currentValue is Map && incomingValue is Map) {
-      final currentBookmarks = _stringListRecords(currentValue['bookmarks']);
-      final incomingBookmarks = _stringListRecords(incomingValue['bookmarks']);
-      if (currentBookmarks != null && incomingBookmarks != null) return _RecordPair(currentBookmarks, incomingBookmarks);
-    }
     if (section == 'fasting' && currentValue is Map && incomingValue is Map) {
       final currentFasting = _fastingRecords(currentValue);
       final incomingFasting = _fastingRecords(incomingValue);
@@ -90,16 +85,6 @@ class BackupImportPlanner {
     if (value is Map) return <String, Object?>{for (final entry in value.entries) if (entry.key is String) entry.key as String: entry.value};
     if (value is List) return <String, Object?>{for (var index = 0; index < value.length; index++) '#$index': value[index]};
     return const <String, Object?>{};
-  }
-
-  Map<String, Object?>? _stringListRecords(Object? value) {
-    if (value is! List || !value.every((item) => item is String)) return null;
-    final records = <String, Object?>{};
-    for (final item in value.cast<String>()) {
-      if (item.trim().isEmpty || records.containsKey(item)) return null;
-      records[item] = true;
-    }
-    return records;
   }
 
   Map<String, Object?>? _qadaRecords(Object? encoded) {
