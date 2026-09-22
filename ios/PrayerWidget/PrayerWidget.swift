@@ -37,6 +37,7 @@ private struct PrayerSnapshot: Decodable {
           TimeZone(identifier: timeZoneIdentifier) != nil,
           !calculationFingerprint.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
           hasPrayerID == hasPrayerTime,
+          (privacyMode == "redacted" || hasPrayerID),
           nextPrayerAt.map({ $0 > generatedAt && $0 <= validUntil }) ?? true else { return .malformed }
     guard generatedAt <= nowMs else { return .generatedInFuture }
     guard nowMs < validUntil else { return .expired }
