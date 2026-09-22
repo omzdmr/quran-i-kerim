@@ -20,11 +20,13 @@ class _QuranModernAppState extends State<QuranModernApp> with WidgetsBindingObse
   static const _defaultPrayerScheduleRepair = PrayerScheduleAutoRepair();
   bool _repairRunning = false;
   bool _repairRequested = false;
+  String? _observedLocaleCode;
   PrayerScheduleAutoRepair get _prayerScheduleRepair => widget.prayerScheduleRepair ?? _defaultPrayerScheduleRepair;
 
   @override
   void initState() {
     super.initState();
+    _observedLocaleCode = widget.settings.locale?.languageCode;
     WidgetsBinding.instance.addObserver(this);
     widget.settings.addListener(_onSettingsChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) => _repairPrayerSchedule());
@@ -36,6 +38,7 @@ class _QuranModernAppState extends State<QuranModernApp> with WidgetsBindingObse
     if (oldWidget.settings != widget.settings) {
       oldWidget.settings.removeListener(_onSettingsChanged);
       widget.settings.addListener(_onSettingsChanged);
+      _observedLocaleCode = widget.settings.locale?.languageCode;
       _repairPrayerSchedule();
     }
   }
@@ -47,7 +50,14 @@ class _QuranModernAppState extends State<QuranModernApp> with WidgetsBindingObse
     super.dispose();
   }
 
-  void _onSettingsChanged() => _repairPrayerSchedule();
+  void _onSettingsChanged() {
+    final localeCode = widget.settings.locale?.languageCode;
+    if (localeCode == _observedLocaleCode) return;
+    _observedLocaleCode = localeCode;
+    // Notification titles are localized and locale participates in the prayer
+    // schedule fingerprint, so language changes need an immediate recheck.
+    _repairPrayerSchedule();
+  }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -56,8 +66,6 @@ class _QuranModernAppState extends State<QuranModernApp> with WidgetsBindingObse
 
   Future<void> _repairPrayerSchedule() async {
     if (_repairRunning) {
-      // Coalesce changes instead of dropping a locale/location-affecting change
-      // that happened while a previous platform check was still running.
       _repairRequested = true;
       return;
     }
@@ -65,8 +73,8 @@ class _QuranModernAppState extends State<QuranModernApp> with WidgetsBindingObse
     try {
       await _prayerScheduleRepair.repairIfNeeded();
     } catch (_) {
-      // App startup/settings must remain usable. Diagnostics keeps the failed
-      // local receipt and explicit resync path.
+      // App startup/settings remain usable. Diagnostics retains the local
+      // failure receipt and explicit retry path.
     } finally {
       _repairRunning = false;
       if (_repairRequested && mounted) {
@@ -106,13 +114,7 @@ class _QuranModernAppState extends State<QuranModernApp> with WidgetsBindingObse
             if (minimumScale <= 1 || currentScale >= minimumScale) return child ?? const SizedBox.shrink();
             return MediaQuery(data: mediaQuery.copyWith(textScaler: TextScaler.linear(minimumScale)), child: child ?? const SizedBox.shrink());
           },
-          localizationsDelegates: const [
-            GeneratedAppLocalizations.delegate,
-            AppLocalizations.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
+          localizationsDelegates: const [GeneratedAppLocalizations.delegate, AppLocalizations.delegate, GlobalMaterialLocalizations.delegate, GlobalWidgetsLocalizations.delegate, GlobalCupertinoLocalizations.delegate],
           home: OnboardingAppRoot(settings: widget.settings),
         ),
       ),
