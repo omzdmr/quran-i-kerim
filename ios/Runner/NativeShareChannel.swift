@@ -14,20 +14,32 @@ final class NativeShareChannel: NSObject, UIAdaptivePresentationControllerDelega
   private weak var presenter: UIViewController?
   private var pendingResult: FlutterResult?
   private var stagedShareURL: URL?
+  private weak var presentedShareController: UIActivityViewController?
+  private var observers: [NSObjectProtocol] = []
 
   init(binaryMessenger: FlutterBinaryMessenger, presenter: UIViewController) {
     channel = FlutterMethodChannel(name: Self.channelName, binaryMessenger: binaryMessenger)
     self.presenter = presenter
     super.init()
     cleanupOrphanedStaging()
+    observers.append(NotificationCenter.default.addObserver(forName: UIApplication.didReceiveMemoryWarningNotification, object: nil, queue: .main) { [weak self] _ in self?.cleanupOrphanedStaging() })
+    observers.append(NotificationCenter.default.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in self?.cleanupOrphanedStaging() })
     channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) }
   }
 
-  func detach() { finish(["status": "dismissed"]); channel.setMethodCallHandler(nil) }
+  deinit { observers.forEach(NotificationCenter.default.removeObserver) }
+
+  func detach() {
+    observers.forEach(NotificationCenter.default.removeObserver); observers.removeAll()
+    presentedShareController?.dismiss(animated: false)
+    finish(["status": "dismissed"])
+    channel.setMethodCallHandler(nil)
+  }
 
   private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
-    case "capabilities": result(["text": true, "file": true, "ipadPopoverSafe": true, "completionStatus": true, "presentedHierarchyAware": true, "copyOnShare": true, "preservesFilename": true, "isolatedShareSession": true, "fileProtection": true, "backupExcludedStaging": true, "maxShareFileBytes": Self.maxShareFileBytes, "automaticCleanup": true, "orphanCleanup": true])
+    case "capabilities":
+      result(["text": true, "file": true, "ipadPopoverSafe": true, "completionStatus": true, "presentedHierarchyAware": true, "activeSceneAware": true, "copyOnShare": true, "preservesFilename": true, "isolatedShareSession": true, "fileProtection": true, "backupExcludedStaging": true, "maxShareFileBytes": Self.maxShareFileBytes, "automaticCleanup": true, "orphanCleanup": true, "lifecycleCleanup": true])
     case "shareText":
       guard let args = call.arguments as? [String: Any], let text = args["text"] as? String, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { result(FlutterError(code: "invalid_share_text", message: "shareText requires non-empty text.", details: nil)); return }
       present(items: [text], result: result)
@@ -96,9 +108,10 @@ final class NativeShareChannel: NSObject, UIAdaptivePresentationControllerDelega
 
   private func present(items: [Any], result: @escaping FlutterResult) {
     guard pendingResult == nil else { cleanupStagedShare(); result(FlutterError(code: "share_busy", message: "A share sheet is already being presented.", details: nil)); return }
-    guard let root = presenter, let presenter = topPresenter(from: root), presenter.viewIfLoaded?.window != nil, !presenter.isBeingDismissed else { cleanupStagedShare(); result(FlutterError(code: "share_presenter_unavailable", message: "The active iOS scene is not ready to present a share sheet.", details: nil)); return }
+    guard let presenter = activePresenter(), presenter.viewIfLoaded?.window != nil, !presenter.isBeingDismissed else { cleanupStagedShare(); result(FlutterError(code: "share_presenter_unavailable", message: "The active iOS scene is not ready to present a share sheet.", details: nil)); return }
     pendingResult = result
     let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
+    presentedShareController = controller
     controller.completionWithItemsHandler = { [weak self] activity, completed, _, error in
       guard let self else { return }
       if let error { self.finish(error: FlutterError(code: "share_failed", message: error.localizedDescription, details: nil)); return }
@@ -107,7 +120,16 @@ final class NativeShareChannel: NSObject, UIAdaptivePresentationControllerDelega
       self.finish(payload)
     }
     if let popover = controller.popoverPresentationController { popover.sourceView = presenter.view; popover.sourceRect = CGRect(x: presenter.view.bounds.midX, y: presenter.view.bounds.midY, width: 1, height: 1); popover.permittedArrowDirections = [] }
-    presenter.present(controller, animated: true) { [weak self, weak controller] in controller?.presentationController?.delegate = self }
+    presenter.present(controller, animated: true) { [weak self, weak controller] in controller?.presentationController?.delegate = self; self?.presentedShareController = controller }
+  }
+
+  private func activePresenter() -> UIViewController? {
+    let activeScenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.filter { $0.activationState == .foregroundActive }
+    for scene in activeScenes {
+      if let root = scene.windows.first(where: { $0.isKeyWindow })?.rootViewController { return topPresenter(from: root) }
+    }
+    guard let presenter else { return nil }
+    return topPresenter(from: presenter)
   }
 
   private func topPresenter(from root: UIViewController) -> UIViewController? {
@@ -119,8 +141,8 @@ final class NativeShareChannel: NSObject, UIAdaptivePresentationControllerDelega
   }
 
   private func sanitizedFilename(_ value: String?) -> String? { guard let value else { return nil }; let leaf = URL(fileURLWithPath: value).lastPathComponent.trimmingCharacters(in: .whitespacesAndNewlines); return (!leaf.isEmpty && leaf != "." && leaf != "..") ? leaf : nil }
-  private func finish(_ payload: Any?) { guard let result = pendingResult else { cleanupStagedShare(); return }; pendingResult = nil; cleanupStagedShare(); result(payload) }
-  private func finish(error: FlutterError) { guard let result = pendingResult else { cleanupStagedShare(); return }; pendingResult = nil; cleanupStagedShare(); result(error) }
+  private func finish(_ payload: Any?) { presentedShareController = nil; guard let result = pendingResult else { cleanupStagedShare(); return }; pendingResult = nil; cleanupStagedShare(); result(payload) }
+  private func finish(error: FlutterError) { presentedShareController = nil; guard let result = pendingResult else { cleanupStagedShare(); return }; pendingResult = nil; cleanupStagedShare(); result(error) }
   private func cleanupStagedShare() { if let stagedShareURL { try? FileManager.default.removeItem(at: stagedShareURL.deletingLastPathComponent()) }; stagedShareURL = nil }
   func presentationControllerDidDismiss(_ presentationController: UIPresentationController) { finish(["status": "cancelled"]) }
 }
