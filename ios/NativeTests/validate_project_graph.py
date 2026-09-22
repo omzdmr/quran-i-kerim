@@ -17,10 +17,6 @@ if s.count('CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;') < 3:
     errors.append('Runner entitlements must be wired for Debug, Release and Profile')
 if s.count('CODE_SIGN_ENTITLEMENTS = PrayerWidget/PrayerWidget.entitlements;') < 3:
     errors.append('PrayerWidget entitlements must be wired for Debug, Release and Profile')
-
-# The project-level Runner settings and all three widget configurations must keep
-# universal iPhone+iPad targeting. This catches the surprisingly easy Xcode UI
-# regression where one target silently becomes iPhone-only.
 if s.count('TARGETED_DEVICE_FAMILY = "1,2";') < 6:
     errors.append('Runner/PrayerWidget must retain iPhone+iPad targeted device family in all configurations')
 
@@ -38,6 +34,24 @@ for entitlement_path in ['ios/Runner/Runner.entitlements', 'ios/PrayerWidget/Pra
             errors.append(f'{entitlement_path} is missing shared App Group {app_group}')
     except Exception as exc:
         errors.append(f'cannot parse {entitlement_path}: {exc}')
+
+try:
+    info = plistlib.loads(pathlib.Path('ios/Runner/Info.plist').read_bytes())
+    if 'audio' not in info.get('UIBackgroundModes', []):
+        errors.append('Runner must declare UIBackgroundModes/audio for Quran background playback')
+    if info.get('UIRequiresFullScreen') is True:
+        errors.append('Runner must not require full screen on iPad; Split View/Stage Manager parity would be disabled')
+    required_ipad_orientations = {
+        'UIInterfaceOrientationPortrait',
+        'UIInterfaceOrientationPortraitUpsideDown',
+        'UIInterfaceOrientationLandscapeLeft',
+        'UIInterfaceOrientationLandscapeRight',
+    }
+    actual_ipad_orientations = set(info.get('UISupportedInterfaceOrientations~ipad', []))
+    if not required_ipad_orientations.issubset(actual_ipad_orientations):
+        errors.append('Runner must retain all four iPad orientations for tablet/Stage Manager parity')
+except Exception as exc:
+    errors.append(f'cannot parse ios/Runner/Info.plist: {exc}')
 
 if errors:
     print('\n'.join('ERROR: ' + e for e in errors), file=sys.stderr)
