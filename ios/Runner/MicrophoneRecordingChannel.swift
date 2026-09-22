@@ -15,7 +15,7 @@ final class MicrophoneRecordingChannel: NSObject, AVAudioRecorderDelegate {
 
   private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
-    case "capabilities": result(["format": "m4a/aac", "metering": true, "persistentUserData": true, "listAndDelete": true, "interruptionRecovery": true, "routeChangeEvents": true, "bluetoothMicrophone": true, "inputIdentityTracking": true, "inputChangeStopsRecording": true])
+    case "capabilities": result(["format": "m4a/aac", "metering": true, "persistentUserData": true, "listAndDelete": true, "interruptionRecovery": true, "routeChangeEvents": true, "bluetoothMicrophone": true, "inputIdentityTracking": true, "inputChangeStopsRecording": true, "orphanStartCleanup": true, "fileProtectionRequired": true])
     case "permissionStatus": result(Self.permissionName(session.recordPermission))
     case "requestPermission": session.requestRecordPermission { granted in DispatchQueue.main.async { result(["granted": granted]) } }
     case "startRecording": startRecording(call.arguments, result: result)
@@ -31,8 +31,10 @@ final class MicrophoneRecordingChannel: NSObject, AVAudioRecorderDelegate {
   private func startRecording(_ arguments: Any?, result: @escaping FlutterResult) {
     guard session.recordPermission == .granted else { result(FlutterError(code: "microphone_permission_required", message: "Microphone permission is required before recording.", details: nil)); return }
     guard recorder?.isRecording != true else { result(FlutterError(code: "recording_already_active", message: "A recitation recording is already active.", details: nil)); return }
+    var pendingURL: URL?
     do {
       let directory = try recordingsDirectory(), requestedID = (arguments as? [String: Any])?["recordingId"] as? String, id = sanitizedIdentifier(requestedID) ?? UUID().uuidString.lowercased(), url = uniqueURL(in: directory, base: id)
+      pendingURL = url
       try session.setCategory(.playAndRecord, mode: .spokenAudio, options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP]); try session.setActive(true)
       let settings: [String: Any] = [AVFormatIDKey: Int(kAudioFormatMPEG4AAC), AVSampleRateKey: 44_100.0, AVNumberOfChannelsKey: 1, AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue, AVEncoderBitRateKey: 96_000]
       let recorder = try AVAudioRecorder(url: url, settings: settings); recorder.delegate = self; recorder.isMeteringEnabled = true
@@ -41,7 +43,11 @@ final class MicrophoneRecordingChannel: NSObject, AVAudioRecorderDelegate {
       var payload: [String: Any] = ["recording": true, "recordingId": url.deletingPathExtension().lastPathComponent, "path": url.path]
       if let input = session.currentRoute.inputs.first { payload["inputName"] = input.portName; payload["inputPortType"] = input.portType.rawValue; payload["inputUID"] = input.uid }
       result(payload)
-    } catch { AudioSessionCoordinator.shared.configurePolicy(); result(FlutterError(code: "recording_start_failed", message: error.localizedDescription, details: nil)) }
+    } catch {
+      if let pendingURL { try? FileManager.default.removeItem(at: pendingURL) }
+      AudioSessionCoordinator.shared.configurePolicy()
+      result(FlutterError(code: "recording_start_failed", message: error.localizedDescription, details: nil))
+    }
   }
 
   private func stopRecording(discard: Bool, result: @escaping FlutterResult) {
@@ -73,8 +79,6 @@ final class MicrophoneRecordingChannel: NSObject, AVAudioRecorderDelegate {
     guard let recorder, let url = activeURL, let raw = notification.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt, let reason = AVAudioSession.RouteChangeReason(rawValue: raw) else { return }
     let currentInput = session.currentRoute.inputs.first, currentUID = currentInput?.uid, previousUID = activeInputUID
     channel.invokeMethod("recordingRouteChanged", arguments: ["reason": Self.routeChangeName(reason), "recording": recorder.isRecording, "input": currentInput?.portName ?? "", "inputPortType": currentInput?.portType.rawValue ?? "", "inputUID": currentUID ?? "", "previousInputUID": previousUID ?? ""])
-    // Never continue a memorisation recording on a different microphone silently. AirPods or
-    // another headset can disappear mid-ayah and iOS may otherwise fall back to the device mic.
     guard let previousUID, currentUID != previousUID else { return }
     recorder.stop(); let duration = max(0, recorder.currentTime); resetActiveRecording(); var payload = completedPayload(url: url, duration: duration, recording: false); payload["reason"] = "inputChanged"; payload["previousInputUID"] = previousUID; payload["inputUID"] = currentUID ?? ""; payload["canRestart"] = true; channel.invokeMethod("recordingInputChanged", arguments: payload)
   }
@@ -90,7 +94,7 @@ final class MicrophoneRecordingChannel: NSObject, AVAudioRecorderDelegate {
 
   private func completedPayload(url: URL, duration: TimeInterval, recording: Bool) -> [String: Any] { ["recording": recording, "recordingId": url.deletingPathExtension().lastPathComponent, "path": url.path, "durationSeconds": max(0, duration), "sizeBytes": fileSize(url)] }
   private func resetActiveRecording() { recorder = nil; activeURL = nil; startedAt = nil; interruptedAt = nil; activeInputUID = nil; AudioSessionCoordinator.shared.configurePolicy() }
-  private func recordingsDirectory() throws -> URL { let base = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true), directory = base.appendingPathComponent("UserRecitations", isDirectory: true); try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true); try? FileManager.default.setAttributes([.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication], ofItemAtPath: directory.path); return directory }
+  private func recordingsDirectory() throws -> URL { let base = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true), directory = base.appendingPathComponent("UserRecitations", isDirectory: true); try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true); try FileManager.default.setAttributes([.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication], ofItemAtPath: directory.path); return directory }
   private func uniqueURL(in directory: URL, base: String) -> URL { var candidate = directory.appendingPathComponent("\(base).m4a"), index = 2; while FileManager.default.fileExists(atPath: candidate.path) { candidate = directory.appendingPathComponent("\(base)-\(index).m4a"); index += 1 }; return candidate }
   private func sanitizedIdentifier(_ value: String?) -> String? { guard let value else { return nil }; let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_")), clean = value.unicodeScalars.filter { allowed.contains($0) }.map(String.init).joined(); return clean.isEmpty ? nil : String(clean.prefix(80)) }
   private func fileSize(_ url: URL) -> Int64 { let attributes = try? FileManager.default.attributesOfItem(atPath: url.path); return (attributes?[.size] as? NSNumber)?.int64Value ?? 0 }
