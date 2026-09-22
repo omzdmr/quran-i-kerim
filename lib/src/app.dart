@@ -9,17 +9,28 @@ import 'settings/app_settings.dart';
 import 'theme/app_theme.dart';
 
 class QuranModernApp extends StatefulWidget {
-  const QuranModernApp({required this.settings, super.key});
+  const QuranModernApp({
+    required this.settings,
+    this.prayerScheduleRepair,
+    super.key,
+  });
 
   final AppSettings settings;
+
+  /// Optional seam for lifecycle tests. Production always uses the local
+  /// schedule repair implementation and no backend is introduced.
+  final PrayerScheduleAutoRepair? prayerScheduleRepair;
 
   @override
   State<QuranModernApp> createState() => _QuranModernAppState();
 }
 
 class _QuranModernAppState extends State<QuranModernApp> with WidgetsBindingObserver {
-  static const _prayerScheduleRepair = PrayerScheduleAutoRepair();
+  static const _defaultPrayerScheduleRepair = PrayerScheduleAutoRepair();
   bool _repairRunning = false;
+
+  PrayerScheduleAutoRepair get _prayerScheduleRepair =>
+      widget.prayerScheduleRepair ?? _defaultPrayerScheduleRepair;
 
   @override
   void initState() {
@@ -65,8 +76,7 @@ class _QuranModernAppState extends State<QuranModernApp> with WidgetsBindingObse
           settings: widget.settings,
           child: MaterialApp(
             debugShowCheckedModeBanner: false,
-            onGenerateTitle: (context) =>
-                GeneratedAppLocalizations.of(context)!.appTitle,
+            onGenerateTitle: (context) => GeneratedAppLocalizations.of(context)!.appTitle,
             theme: AppTheme.light,
             darkTheme: AppTheme.dark,
             themeMode: widget.settings.themeMode,
@@ -76,9 +86,7 @@ class _QuranModernAppState extends State<QuranModernApp> with WidgetsBindingObse
               if (widget.settings.locale != null) return widget.settings.locale;
               for (final deviceLocale in deviceLocales ?? const <Locale>[]) {
                 for (final supported in supportedLocales) {
-                  if (supported.languageCode == deviceLocale.languageCode) {
-                    return supported;
-                  }
+                  if (supported.languageCode == deviceLocale.languageCode) return supported;
                 }
               }
               return const Locale('en');
@@ -87,13 +95,9 @@ class _QuranModernAppState extends State<QuranModernApp> with WidgetsBindingObse
               final mediaQuery = MediaQuery.of(context);
               final currentScale = mediaQuery.textScaler.scale(16) / 16;
               final minimumScale = widget.settings.minimumInterfaceTextScale;
-              if (minimumScale <= 1 || currentScale >= minimumScale) {
-                return child ?? const SizedBox.shrink();
-              }
+              if (minimumScale <= 1 || currentScale >= minimumScale) return child ?? const SizedBox.shrink();
               return MediaQuery(
-                data: mediaQuery.copyWith(
-                  textScaler: TextScaler.linear(minimumScale),
-                ),
+                data: mediaQuery.copyWith(textScaler: TextScaler.linear(minimumScale)),
                 child: child ?? const SizedBox.shrink(),
               );
             },
