@@ -7,10 +7,16 @@ import '../application/prayer_pending_schedule_probe.dart';
 /// Diagnostics surface for the local prayer-notification schedule contract.
 /// It never claims notifications are healthy merely because a preference is on.
 class PrayerScheduleHealthCard extends StatefulWidget {
-  const PrayerScheduleHealthCard({required this.onResync, super.key, this.now});
+  const PrayerScheduleHealthCard({
+    required this.onResync,
+    super.key,
+    this.now,
+    this.pendingProbe,
+  });
 
   final Future<void> Function() onResync;
   final DateTime? now;
+  final PrayerPendingScheduleProbe? pendingProbe;
 
   @override
   State<PrayerScheduleHealthCard> createState() => _PrayerScheduleHealthCardState();
@@ -19,13 +25,16 @@ class PrayerScheduleHealthCard extends StatefulWidget {
 class _PrayerScheduleHealthCardState extends State<PrayerScheduleHealthCard> {
   static const _store = PrayerNotificationScheduleHealthStore();
   static const _refresher = PrayerNotificationScheduleHealthRefresher();
-  static const _pendingProbe = SystemPrayerPendingScheduleProbe();
+  static const _defaultPendingProbe = SystemPrayerPendingScheduleProbe();
   PrayerNotificationScheduleHealth? _health;
   String? _currentFingerprint;
   int? _platformPendingCount;
   bool _loading = true;
   bool _resyncing = false;
   bool _resyncFailed = false;
+
+  PrayerPendingScheduleProbe get _pendingProbe =>
+      widget.pendingProbe ?? _defaultPendingProbe;
 
   @override
   void initState() {
