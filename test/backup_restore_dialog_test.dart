@@ -36,14 +36,12 @@ void main() {
     expect(find.text('Cihazda korunacak: 2'), findsOneWidget);
     expect(find.byIcon(Icons.shield_outlined), findsOneWidget);
     expect(find.textContaining('otomatik güvenlik kopyası'), findsOneWidget);
-
     await tester.tap(find.text('Değiştir'));
     await tester.pumpAndSettle();
     expect(find.text('Değiştir ile kaldırılacak: 2'), findsOneWidget);
     expect(find.byIcon(Icons.warning_amber_rounded), findsNWidgets(2));
     await tester.tap(find.text('Devam et'));
     await tester.pumpAndSettle();
-
     expect(result, isNull);
     expect(find.text('Cihazdaki kayıtlar kaldırılsın mı?'), findsOneWidget);
     expect(find.textContaining('yalnızca cihazda bulunan 2 kaydı kaldıracak'), findsOneWidget);
@@ -59,9 +57,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Devam et'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('İPTAL'));
+    await tester.tap(find.byType(TextButton).last);
     await tester.pumpAndSettle();
-
     expect(result, isNull);
     expect(find.text('Yedeği nasıl geri yükleyelim?'), findsOneWidget);
     expect(find.text('Değiştir ile kaldırılacak: 2'), findsOneWidget);
