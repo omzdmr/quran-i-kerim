@@ -31,7 +31,15 @@ class PrayerNotificationScheduleHealthRefresher {
       return null;
     }
 
-    await PrayerNotificationService.refreshFromSaved();
+    // Use the resolved object directly. Calling refreshFromSaved here would
+    // currently send the special manual-location ID through the static city
+    // catalog fallback, which can schedule Istanbul while the UI says another
+    // travel city. This path therefore fixes the schedule as well as auditing it.
+    await PrayerNotificationService.reschedule(
+      location: resolved.location,
+      defaultMethod: resolved.defaultMethod,
+      settings: settings,
+    );
     final diagnostics = await PrayerNotificationService.diagnostics();
     if (diagnostics.pendingCount < 1) {
       await store.clear();
