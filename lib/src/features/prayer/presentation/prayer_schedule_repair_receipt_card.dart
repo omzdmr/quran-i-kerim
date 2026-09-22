@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../application/prayer_schedule_repair_receipt_store.dart';
@@ -12,10 +14,20 @@ class PrayerScheduleRepairReceiptCard extends StatefulWidget {
 class _PrayerScheduleRepairReceiptCardState extends State<PrayerScheduleRepairReceiptCard> with WidgetsBindingObserver {
   static const _store = PrayerScheduleRepairReceiptStore();
   PrayerScheduleRepairReceipt? _receipt;
+  StreamSubscription<void>? _changeSubscription;
   @override
-  void initState() { super.initState(); WidgetsBinding.instance.addObserver(this); _load(); }
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _changeSubscription = _store.changes.listen((_) => _load());
+    _load();
+  }
   @override
-  void dispose() { WidgetsBinding.instance.removeObserver(this); super.dispose(); }
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _changeSubscription?.cancel();
+    super.dispose();
+  }
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) { if (state == AppLifecycleState.resumed) _load(); }
   Future<void> _load() async { final value = await _store.load(); if (mounted) setState(() => _receipt = value); }
@@ -35,6 +47,7 @@ class _PrayerScheduleRepairReceiptCardState extends State<PrayerScheduleRepairRe
     final semanticReason = reason.isEmpty ? '' : ' $reason';
     return Semantics(
       container: true,
+      liveRegion: receipt.outcome == PrayerScheduleRepairOutcome.repaired || receipt.outcome == PrayerScheduleRepairOutcome.failed,
       label: '${copy.title}. $message$semanticReason. ${copy.checked}: $date, $time',
       child: Card(child: Padding(padding: const EdgeInsets.all(16), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const Icon(Icons.history_toggle_off_rounded), const SizedBox(width: 12),
@@ -51,18 +64,8 @@ class _PrayerScheduleRepairReceiptCardState extends State<PrayerScheduleRepairRe
 class PrayerScheduleRepairReceiptCopy {
   const PrayerScheduleRepairReceiptCopy({required this.title, required this.checked, required this.notApplicable, required this.alreadyFresh, required this.repaired, required this.failed, required this.configChanged, required this.scheduleMissing, required this.stale});
   final String title, checked, notApplicable, alreadyFresh, repaired, failed, configChanged, scheduleMissing, stale;
-  String message(PrayerScheduleRepairOutcome outcome) => switch (outcome) {
-    PrayerScheduleRepairOutcome.notApplicable => notApplicable,
-    PrayerScheduleRepairOutcome.alreadyFresh => alreadyFresh,
-    PrayerScheduleRepairOutcome.repaired => repaired,
-    PrayerScheduleRepairOutcome.failed => failed,
-  };
-  String reason(PrayerScheduleRepairTrigger trigger) => switch (trigger) {
-    PrayerScheduleRepairTrigger.configurationChanged => configChanged,
-    PrayerScheduleRepairTrigger.platformScheduleMissing => scheduleMissing,
-    PrayerScheduleRepairTrigger.staleEvidence => stale,
-    _ => '',
-  };
+  String message(PrayerScheduleRepairOutcome outcome) => switch (outcome) { PrayerScheduleRepairOutcome.notApplicable => notApplicable, PrayerScheduleRepairOutcome.alreadyFresh => alreadyFresh, PrayerScheduleRepairOutcome.repaired => repaired, PrayerScheduleRepairOutcome.failed => failed };
+  String reason(PrayerScheduleRepairTrigger trigger) => switch (trigger) { PrayerScheduleRepairTrigger.configurationChanged => configChanged, PrayerScheduleRepairTrigger.platformScheduleMissing => scheduleMissing, PrayerScheduleRepairTrigger.staleEvidence => stale, _ => '' };
   static PrayerScheduleRepairReceiptCopy forLocale(Locale locale) => _copies[locale.languageCode] ?? _copies['en']!;
 }
 
