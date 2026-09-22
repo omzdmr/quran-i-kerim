@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 
 import 'backup_manifest.dart';
+import 'backup_schema_key_policy.dart';
 
 enum BackupPreviewIssue { invalidRoot, unsupportedVersion, invalidCreatedAt, invalidData, unsupportedData, unsupportedIntegrity, checksumMismatch }
 
@@ -31,6 +32,15 @@ class BackupPreviewParser {
         if (versionSupported && !supportedSections.contains(section)) { issues.add(BackupPreviewIssue.unsupportedData); continue; }
         final value = entry.value;
         if (value is Map) {
+          if (versionSupported) {
+            for (final rawKey in value.keys) {
+              if (rawKey is! String) {
+                issues.add(BackupPreviewIssue.invalidData);
+              } else if (!BackupSchemaKeyPolicy.supportsKey(section, rawKey, parsedVersion!)) {
+                issues.add(BackupPreviewIssue.unsupportedData);
+              }
+            }
+          }
           final count = _sectionRecordCount(section, value);
           if (count == null) { issues.add(BackupPreviewIssue.invalidData); counts[section] = 0; } else { counts[section] = count; }
         } else if (value == null) {
