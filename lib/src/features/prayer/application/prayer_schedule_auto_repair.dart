@@ -3,12 +3,6 @@ import 'prayer_notification_schedule_health_store.dart';
 import 'prayer_pending_schedule_probe.dart';
 import 'prayer_schedule_repair_receipt_store.dart';
 
-/// Repairs stale prayer notification schedules when the app becomes active.
-///
-/// This is deliberately local-only: it compares the saved schedule evidence
-/// with the current saved prayer configuration and, when platform diagnostics
-/// are available, verifies the OS still has pending reminders. It does not need
-/// a backend and does not create worship history.
 class PrayerScheduleAutoRepair {
   const PrayerScheduleAutoRepair({
     this.refresher = const PrayerNotificationScheduleHealthRefresher(),
@@ -25,80 +19,64 @@ class PrayerScheduleAutoRepair {
   Future<PrayerScheduleRepairResult> repairIfNeeded({DateTime? now}) async {
     final current = now ?? DateTime.now();
     String fingerprint = '';
+    var trigger = PrayerScheduleRepairTrigger.unknown;
     try {
-      final currentFingerprint =
-          await refresher.currentConfigurationFingerprint();
+      final currentFingerprint = await refresher.currentConfigurationFingerprint();
       fingerprint = currentFingerprint ?? '';
       if (currentFingerprint == null) {
+        trigger = PrayerScheduleRepairTrigger.noSchedulableConfiguration;
         await refresher.resync(now: current);
-        await _record(current, PrayerScheduleRepairOutcome.notApplicable);
+        await _record(current, PrayerScheduleRepairOutcome.notApplicable, trigger: trigger);
         return PrayerScheduleRepairResult.notApplicable;
       }
 
       final health = await store.load();
+      final fingerprintChanged = health != null &&
+          health.configurationFingerprint.isNotEmpty &&
+          health.configurationFingerprint != currentFingerprint;
       final evidenceFresh = health != null &&
-          health.isFreshAt(
-            current,
-            expectedConfigurationFingerprint: currentFingerprint,
-          );
+          health.isFreshAt(current, expectedConfigurationFingerprint: currentFingerprint);
 
       if (evidenceFresh) {
         final pendingCount = await pendingProbe.pendingCount();
         if (pendingCount == null || pendingCount > 0) {
-          await _record(
-            current,
-            PrayerScheduleRepairOutcome.alreadyFresh,
-            fingerprint: currentFingerprint,
-          );
+          trigger = PrayerScheduleRepairTrigger.verifiedFresh;
+          await _record(current, PrayerScheduleRepairOutcome.alreadyFresh,
+              trigger: trigger, fingerprint: currentFingerprint);
           return PrayerScheduleRepairResult.alreadyFresh;
         }
+        trigger = PrayerScheduleRepairTrigger.platformScheduleMissing;
+      } else if (fingerprintChanged) {
+        trigger = PrayerScheduleRepairTrigger.configurationChanged;
+      } else {
+        trigger = PrayerScheduleRepairTrigger.staleEvidence;
       }
 
       final repaired = await refresher.resync(now: current);
       if (repaired == null) {
-        await _record(
-          current,
-          PrayerScheduleRepairOutcome.failed,
-          fingerprint: currentFingerprint,
-        );
+        await _record(current, PrayerScheduleRepairOutcome.failed,
+            trigger: trigger, fingerprint: currentFingerprint);
         return PrayerScheduleRepairResult.failed;
       }
-      await _record(
-        current,
-        PrayerScheduleRepairOutcome.repaired,
-        fingerprint: repaired.configurationFingerprint,
-      );
+      await _record(current, PrayerScheduleRepairOutcome.repaired,
+          trigger: trigger, fingerprint: repaired.configurationFingerprint);
       return PrayerScheduleRepairResult.repaired;
     } catch (_) {
-      // The app root deliberately fails open on lifecycle repair. Persist the
-      // failed attempt first so diagnostics can explain what happened instead
-      // of making the failure invisible to the user.
-      await _record(
-        current,
-        PrayerScheduleRepairOutcome.failed,
-        fingerprint: fingerprint,
-      );
+      await _record(current, PrayerScheduleRepairOutcome.failed,
+          trigger: trigger, fingerprint: fingerprint);
       rethrow;
     }
   }
 
-  Future<void> _record(
-    DateTime attemptedAt,
-    PrayerScheduleRepairOutcome outcome, {
-    String fingerprint = '',
-  }) =>
-      receiptStore.save(
-        PrayerScheduleRepairReceipt(
-          attemptedAt: attemptedAt,
-          outcome: outcome,
-          configurationFingerprint: fingerprint,
-        ),
-      );
+  Future<void> _record(DateTime attemptedAt, PrayerScheduleRepairOutcome outcome,
+          {PrayerScheduleRepairTrigger trigger = PrayerScheduleRepairTrigger.unknown,
+          String fingerprint = ''}) =>
+      receiptStore.save(PrayerScheduleRepairReceipt(
+        attemptedAt: attemptedAt,
+        outcome: outcome,
+        trigger: trigger,
+        configurationFingerprint: fingerprint,
+      ));
 }
 
-enum PrayerScheduleRepairResult {
-  notApplicable,
-  alreadyFresh,
-  repaired,
-  failed,
-}
+enum PrayerScheduleRepairResult { notApplicable, alreadyFresh, repaired, failed }
