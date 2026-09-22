@@ -33,7 +33,7 @@ void main() {
   });
 
   test('every declared section set remains preview-compatible for its schema', () {
-    for (var version = BackupManifest.oldestSupportedVersion; version <= BackupManifest.schemaVersion; version++) {
+    for (var version = 1; version <= BackupManifest.schemaVersion; version++) {
       final data = <String, Object?>{
         for (final section in BackupManifest.sectionsForVersion(version))
           section: <String, Object?>{},
