@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quran_i_kerim/src/features/prayer/application/prayer_notification_schedule_health_store.dart';
+import 'package:quran_i_kerim/src/features/prayer/application/prayer_pending_schedule_probe.dart';
 import 'package:quran_i_kerim/src/features/prayer/application/prayer_preferences_store.dart';
 import 'package:quran_i_kerim/src/features/prayer/application/prayer_saved_location_resolver.dart';
 import 'package:quran_i_kerim/src/features/prayer/application/prayer_schedule_configuration.dart';
@@ -9,15 +10,26 @@ import 'package:quran_i_kerim/src/features/prayer/domain/prayer_models.dart';
 import 'package:quran_i_kerim/src/features/prayer/presentation/prayer_schedule_health_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+class _FixedPendingProbe implements PrayerPendingScheduleProbe {
+  const _FixedPendingProbe(this.value);
+  final int? value;
+  @override
+  Future<int?> pendingCount() async => value;
+}
+
 void main() {
   const store = PrayerNotificationScheduleHealthStore();
   final now = DateTime.utc(2026, 9, 22, 3);
 
-  Widget app({Locale locale = const Locale('tr'), required Future<void> Function() onResync}) => MaterialApp(
+  Widget app({
+    Locale locale = const Locale('tr'),
+    required Future<void> Function() onResync,
+    PrayerPendingScheduleProbe? pendingProbe,
+  }) => MaterialApp(
         locale: locale,
         supportedLocales: const [Locale('tr'), Locale('en'), Locale('fr'), Locale('ar'), Locale('az'), Locale('ru')],
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
-        home: Scaffold(body: PrayerScheduleHealthCard(now: now, onResync: onResync)),
+        home: Scaffold(body: PrayerScheduleHealthCard(now: now, onResync: onResync, pendingProbe: pendingProbe)),
       );
 
   setUp(() => SharedPreferences.setMockInitialValues(<String, Object>{}));
@@ -33,7 +45,7 @@ void main() {
     expect(resyncs, 1);
   });
 
-  testWidgets('matching current inputs are required before UI claims schedule is fresh', (tester) async {
+  Future<void> seedFreshSchedule() async {
     SharedPreferences.setMockInitialValues(<String, Object>{'app_locale': 'tr'});
     const settings = PrayerSettingsSnapshot(
       notificationsEnabled: true,
@@ -50,11 +62,7 @@ void main() {
     await PrayerPreferencesStore.save(settings);
     await PrayerPreferencesStore.saveManualLocation(manual);
     final resolved = await const PrayerSavedLocationResolver().resolve();
-    final fingerprint = PrayerScheduleConfiguration.fingerprint(
-      resolved: resolved!,
-      settings: settings,
-      localeTag: 'tr',
-    );
+    final fingerprint = PrayerScheduleConfiguration.fingerprint(resolved: resolved!, settings: settings, localeTag: 'tr');
     await store.save(PrayerNotificationScheduleHealth(
       scheduledAt: DateTime.utc(2026, 9, 22, 2),
       nextPrayerId: 'dhuhr',
@@ -65,12 +73,24 @@ void main() {
       pendingCount: 20,
       configurationFingerprint: fingerprint,
     ));
+  }
 
-    await tester.pumpWidget(app(onResync: () async {}));
+  testWidgets('matching current inputs are required before UI claims schedule is fresh', (tester) async {
+    await seedFreshSchedule();
+    await tester.pumpWidget(app(onResync: () async {}, pendingProbe: const _FixedPendingProbe(18)));
     await tester.pumpAndSettle();
     expect(find.textContaining('güncel bir zamanlamaya sahip'), findsOneWidget);
     expect(find.text('Bildirimleri yeniden eşitle'), findsNothing);
     expect(find.textContaining('Son güncelleme'), findsOneWidget);
+  });
+
+  testWidgets('fresh local evidence is rejected when OS has dropped all reminders', (tester) async {
+    await seedFreshSchedule();
+    await tester.pumpWidget(app(onResync: () async {}, pendingProbe: const _FixedPendingProbe(0)));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Cihazda bekleyen namaz bildirimi kalmamış'), findsOneWidget);
+    expect(find.text('Bildirimleri yeniden eşitle'), findsOneWidget);
+    expect(find.textContaining('Planlanan: 0'), findsOneWidget);
   });
 
   testWidgets('failed resync stays stale, explains failure and remains retryable', (tester) async {
@@ -115,6 +135,7 @@ void main() {
       expect(copy.needsResync, isNotEmpty, reason: code);
       expect(copy.configurationChanged, isNotEmpty, reason: code);
       expect(copy.legacySchedule, isNotEmpty, reason: code);
+      expect(copy.platformScheduleMissing, isNotEmpty, reason: code);
       expect(copy.resyncFailed, isNotEmpty, reason: code);
       expect(copy.updated, isNotEmpty, reason: code);
       expect(copy.resync, isNotEmpty, reason: code);
