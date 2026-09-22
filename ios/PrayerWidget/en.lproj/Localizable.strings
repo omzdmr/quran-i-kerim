@@ -9,6 +9,7 @@
 "Location changed" = "Location changed";
 "Prayer times need refresh" = "Prayer times need refresh";
 "Prayer times need refresh after a time zone change" = "Prayer times need refresh after a time zone change";
+"Prayer times need refresh after a language change" = "Prayer times need refresh after a language change";
 "Prayer information is out of date. Open the app to refresh" = "Prayer information is out of date. Open the app to refresh";
 "Prayer information cannot be shown safely. Open the app to refresh" = "Prayer information cannot be shown safely. Open the app to refresh";
 "Fajr" = "Fajr";
