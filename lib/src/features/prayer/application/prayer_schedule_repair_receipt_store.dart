@@ -3,59 +3,64 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Local-only receipt for automatic prayer schedule repair.
-///
-/// This is diagnostic state, not worship history. Keeping the last outcome lets
-/// the diagnostics UI explain that a stale/missing platform schedule was
-/// repaired after resume instead of silently changing state behind the user.
 class PrayerScheduleRepairReceipt {
   const PrayerScheduleRepairReceipt({
     required this.attemptedAt,
     required this.outcome,
+    this.trigger = PrayerScheduleRepairTrigger.unknown,
     this.configurationFingerprint = '',
   });
 
   final DateTime attemptedAt;
   final PrayerScheduleRepairOutcome outcome;
+  final PrayerScheduleRepairTrigger trigger;
   final String configurationFingerprint;
 
   Map<String, Object?> toJson() => <String, Object?>{
         'attemptedAt': attemptedAt.toUtc().toIso8601String(),
         'outcome': outcome.name,
+        'trigger': trigger.name,
         'configurationFingerprint': configurationFingerprint,
       };
 
   static PrayerScheduleRepairReceipt? tryParse(Object? raw) {
     if (raw is! Map) return null;
     final attemptedAt = DateTime.tryParse(raw['attemptedAt']?.toString() ?? '');
-    final outcomeName = raw['outcome'];
-    if (attemptedAt == null || outcomeName is! String) return null;
-    PrayerScheduleRepairOutcome? outcome;
-    for (final candidate in PrayerScheduleRepairOutcome.values) {
-      if (candidate.name == outcomeName) {
-        outcome = candidate;
-        break;
-      }
-    }
-    if (outcome == null) return null;
+    final outcome = _enumByName(PrayerScheduleRepairOutcome.values, raw['outcome']);
+    if (attemptedAt == null || outcome == null) return null;
+    final trigger = _enumByName(PrayerScheduleRepairTrigger.values, raw['trigger']) ??
+        PrayerScheduleRepairTrigger.unknown;
     final fingerprint = raw['configurationFingerprint'];
     return PrayerScheduleRepairReceipt(
       attemptedAt: attemptedAt.toUtc(),
       outcome: outcome,
+      trigger: trigger,
       configurationFingerprint: fingerprint is String ? fingerprint : '',
     );
   }
+
+  static T? _enumByName<T extends Enum>(Iterable<T> values, Object? raw) {
+    if (raw is! String) return null;
+    for (final value in values) {
+      if (value.name == raw) return value;
+    }
+    return null;
+  }
 }
 
-enum PrayerScheduleRepairOutcome {
-  notApplicable,
-  alreadyFresh,
-  repaired,
-  failed,
+enum PrayerScheduleRepairOutcome { notApplicable, alreadyFresh, repaired, failed }
+
+enum PrayerScheduleRepairTrigger {
+  unknown,
+  noSchedulableConfiguration,
+  configurationChanged,
+  staleEvidence,
+  platformScheduleMissing,
+  verifiedFresh,
 }
 
 class PrayerScheduleRepairReceiptStore {
   const PrayerScheduleRepairReceiptStore();
-
   static const _key = 'prayer_schedule_repair_receipt_v1';
 
   Future<void> save(PrayerScheduleRepairReceipt receipt) async {
