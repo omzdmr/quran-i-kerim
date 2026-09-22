@@ -45,7 +45,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(prefs.getInt('last_surah'), 18);
-    expect(find.textContaining('Undo could not be completed'), findsOneWidget);
+    final failure = find.textContaining('Undo could not be completed');
+    expect(failure, findsOneWidget);
+    final semantics = tester.getSemantics(failure);
+    expect(semantics.hasFlag(SemanticsFlag.isLiveRegion), isTrue);
     expect(await receipt.safetySnapshot.exists(), isTrue);
   });
 }
