@@ -154,6 +154,10 @@ private struct PrayerWidgetView: View {
   @ViewBuilder private var privacyRedacted: some View {
     if #available(iOSApplicationExtension 16.0, *), family == .accessoryInline {
       Text(String(localized: "Prayer times hidden", table: "Localizable")).accessibilityLabel(String(localized: "Prayer times hidden for privacy", table: "Localizable"))
+    } else if #available(iOSApplicationExtension 16.0, *), family == .accessoryCircular {
+      Image(systemName: "lock.fill").accessibilityLabel(String(localized: "Prayer times hidden for privacy", table: "Localizable"))
+    } else if #available(iOSApplicationExtension 16.0, *), family == .accessoryRectangular {
+      Text(String(localized: "Prayer times hidden", table: "Localizable")).font(.caption).accessibilityLabel(String(localized: "Prayer times hidden for privacy", table: "Localizable"))
     } else {
       VStack(alignment: .leading, spacing: 4) { Text(String(localized: "Prayer times hidden", table: "Localizable")).font(.headline); Text(String(localized: "Prayer times hidden for privacy", table: "Localizable")).font(.caption).foregroundStyle(.secondary) }.accessibilityElement(children: .combine)
     }
@@ -161,6 +165,10 @@ private struct PrayerWidgetView: View {
   @ViewBuilder private var unavailable: some View {
     if #available(iOSApplicationExtension 16.0, *), family == .accessoryInline {
       Text(String(localized: "Open app to refresh", table: "Localizable"))
+    } else if #available(iOSApplicationExtension 16.0, *), family == .accessoryCircular {
+      Image(systemName: "arrow.clockwise").accessibilityLabel(String(localized: "Open app to refresh", table: "Localizable"))
+    } else if #available(iOSApplicationExtension 16.0, *), family == .accessoryRectangular {
+      Text(String(localized: "Open app to refresh", table: "Localizable")).font(.caption)
     } else {
       VStack(alignment: .leading, spacing: 4) {
         Text(String(localized: "Prayer Times", table: "Localizable")).font(.headline)
@@ -178,9 +186,21 @@ private struct PrayerWidgetView: View {
   }
   private func accessibilityLabel(id: String, at: Double) -> String { [String(localized: "Prayer Times", table: "Localizable"), localizedPrayerName(id), time(at)].joined(separator: ", ") }
 
+  private var isAccessoryFamily: Bool {
+    if #available(iOSApplicationExtension 16.0, *) {
+      return family == .accessoryInline || family == .accessoryCircular || family == .accessoryRectangular
+    }
+    return false
+  }
+
   @ViewBuilder private func widgetBackground<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-    if #available(iOS 17.0, *) { content().containerBackground(for: .widget) { Color(uiColor: .secondarySystemBackground) }.padding() }
-    else { content().padding().background(Color(uiColor: .secondarySystemBackground)) }
+    if isAccessoryFamily {
+      content()
+    } else if #available(iOS 17.0, *) {
+      content().containerBackground(for: .widget) { Color(uiColor: .secondarySystemBackground) }.padding()
+    } else {
+      content().padding().background(Color(uiColor: .secondarySystemBackground))
+    }
   }
 }
 
