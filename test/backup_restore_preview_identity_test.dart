@@ -31,9 +31,7 @@ void main() {
     expect(find.textContaining('Backup:'), findsOneWidget);
     expect(find.textContaining('records: 8'), findsOneWidget);
     expect(find.textContaining('version: ${BackupPreviewParser.currentVersion}'), findsOneWidget);
-
-    final semantics = tester.getSemantics(find.textContaining('records: 8'));
-    expect(semantics.label, contains('records: 8'));
+    expect(find.bySemanticsLabel(RegExp(r'Backup:.*records: 8.*version:')), findsOneWidget);
   });
 
   test('all product locales provide explicit backup identity labels', () {
