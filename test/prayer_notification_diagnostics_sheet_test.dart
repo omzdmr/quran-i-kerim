@@ -9,17 +9,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() => SharedPreferences.setMockInitialValues(<String, Object>{}));
-
-  Widget app() => const MaterialApp(
-    locale: Locale('en'),
-    supportedLocales: AppLocalizations.supportedLocales,
-    localizationsDelegates: [AppLocalizations.delegate, GlobalMaterialLocalizations.delegate, GlobalWidgetsLocalizations.delegate, GlobalCupertinoLocalizations.delegate],
-    home: Scaffold(body: PrayerNotificationDiagnosticsSheet(notificationsEnabled: true)),
-  );
+  Widget app() => const MaterialApp(locale: Locale('en'), supportedLocales: AppLocalizations.supportedLocales, localizationsDelegates: [AppLocalizations.delegate, GlobalMaterialLocalizations.delegate, GlobalWidgetsLocalizations.delegate, GlobalCupertinoLocalizations.delegate], home: Scaffold(body: PrayerNotificationDiagnosticsSheet(notificationsEnabled: true)));
 
   testWidgets('diagnostics sheet resolves safely in widget-test environment', (tester) async {
-    await tester.pumpWidget(app());
-    await tester.pumpAndSettle();
+    await tester.pumpWidget(app()); await tester.pumpAndSettle();
     final context = tester.element(find.byType(PrayerNotificationDiagnosticsSheet));
     expect(find.text(context.l10n.text('notificationDiagnosticsTitle')), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsNothing);
@@ -27,13 +20,9 @@ void main() {
   });
 
   testWidgets('month-old received probe is not presented as current proof', (tester) async {
-    await const PrayerNotificationSelfTestStore().save(
-      PrayerNotificationProbeOutcome.received,
-      now: DateTime.now().subtract(const Duration(days: 31)),
-    );
-    await tester.pumpWidget(app());
-    await tester.pumpAndSettle();
-    expect(find.textContaining('Old test'), findsOneWidget);
+    await const PrayerNotificationSelfTestStore().save(PrayerNotificationProbeOutcome.received, now: DateTime.now().subtract(const Duration(days: 31)));
+    await tester.pumpWidget(app()); await tester.pumpAndSettle();
+    expect(find.textContaining('Needs verification again'), findsOneWidget);
     expect(find.textContaining('Yes, it arrived'), findsNothing);
   });
 }
