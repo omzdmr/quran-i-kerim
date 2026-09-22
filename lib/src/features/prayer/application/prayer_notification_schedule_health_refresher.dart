@@ -6,6 +6,7 @@ import 'prayer_notification_schedule_health_store.dart';
 import 'prayer_notification_service.dart';
 import 'prayer_preferences_store.dart';
 import 'prayer_saved_location_resolver.dart';
+import 'prayer_schedule_configuration.dart';
 
 /// Rebuilds prayer notifications and then records independently inspectable
 /// evidence about the schedule that was just produced.
@@ -17,6 +18,13 @@ class PrayerNotificationScheduleHealthRefresher {
 
   final PrayerSavedLocationResolver resolver;
   final PrayerNotificationScheduleHealthStore store;
+
+  Future<String?> currentConfigurationFingerprint() async {
+    final settings = await PrayerPreferencesStore.load();
+    final resolved = await resolver.resolve();
+    if (resolved == null || !settings.notificationsEnabled || settings.notificationPrayerIds.isEmpty) return null;
+    return PrayerScheduleConfiguration.fingerprint(resolved: resolved, settings: settings);
+  }
 
   Future<PrayerNotificationScheduleHealth?> resync({DateTime? now}) async {
     final settings = await PrayerPreferencesStore.load();
@@ -84,6 +92,10 @@ class PrayerNotificationScheduleHealthRefresher {
       locationLabel: resolved.label,
       calculationMethodId: preferences.calculationMethod.name,
       pendingCount: diagnostics.pendingCount,
+      configurationFingerprint: PrayerScheduleConfiguration.fingerprint(
+        resolved: resolved,
+        settings: settings,
+      ),
     );
     await store.save(health);
     return health;
