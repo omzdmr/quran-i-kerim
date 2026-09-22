@@ -4,7 +4,7 @@ import 'package:crypto/crypto.dart';
 
 import 'backup_manifest.dart';
 
-enum BackupPreviewIssue { invalidRoot, unsupportedVersion, invalidCreatedAt, invalidData, unsupportedIntegrity, checksumMismatch }
+enum BackupPreviewIssue { invalidRoot, unsupportedVersion, invalidCreatedAt, invalidData, unsupportedData, unsupportedIntegrity, checksumMismatch }
 
 class BackupPreview {
   const BackupPreview({required this.version, required this.createdAt, required this.recordCounts, required this.issues, this.integrityVerified = false});
@@ -19,13 +19,20 @@ class BackupPreviewParser {
   BackupPreview parse(Object? decoded) {
     if (decoded is! Map) return const BackupPreview(version: null, createdAt: null, recordCounts: <String, int>{}, issues: <BackupPreviewIssue>{BackupPreviewIssue.invalidRoot});
     final issues = <BackupPreviewIssue>{}; final version = decoded['version']; final parsedVersion = version is int ? version : null;
-    if (parsedVersion == null || !BackupManifest.isVersionSupported(parsedVersion)) issues.add(BackupPreviewIssue.unsupportedVersion);
+    final versionSupported = parsedVersion != null && BackupManifest.isVersionSupported(parsedVersion);
+    if (!versionSupported) issues.add(BackupPreviewIssue.unsupportedVersion);
     final rawCreatedAt = decoded['createdAt']; final createdAt = rawCreatedAt is String ? DateTime.tryParse(rawCreatedAt)?.toUtc() : null; if (createdAt == null) issues.add(BackupPreviewIssue.invalidCreatedAt);
     final data = decoded['data']; final counts = <String, int>{};
     if (data is Map) {
+      final supportedSections = versionSupported ? BackupManifest.sectionsForVersion(parsedVersion) : const <String>{};
       for (final entry in data.entries) {
         if (entry.key is! String) { issues.add(BackupPreviewIssue.invalidData); continue; }
-        final section = entry.key as String; final value = entry.value;
+        final section = entry.key as String;
+        if (versionSupported && !supportedSections.contains(section)) {
+          issues.add(BackupPreviewIssue.unsupportedData);
+          continue;
+        }
+        final value = entry.value;
         if (value is List) counts[section] = value.length;
         else if (value is Map) { final count = _sectionRecordCount(section, value); if (count == null) { issues.add(BackupPreviewIssue.invalidData); counts[section] = 0; } else { counts[section] = count; } }
         else if (value == null) counts[section] = 0; else issues.add(BackupPreviewIssue.invalidData);
