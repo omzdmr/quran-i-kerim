@@ -14,7 +14,6 @@ void main() {
         'futureUserData': <String, Object?>{'important': 'keep me'},
       },
     });
-
     expect(preview.canRestore, isFalse);
     expect(preview.issues, contains(BackupPreviewIssue.unsupportedData));
     expect(preview.recordCounts, isNot(contains('futureUserData')));
@@ -29,22 +28,23 @@ void main() {
         'readingPlans': <String, Object?>{'reading_plan_state_v1': '{}'},
       },
     });
-
     expect(preview.canRestore, isFalse);
     expect(preview.issues, contains(BackupPreviewIssue.unsupportedData));
   });
 
-  test('supported sections for the declared schema remain restorable', () {
-    final preview = parser.parse(<String, Object?>{
-      'version': 3,
-      'createdAt': '2026-09-22T00:00:00Z',
-      'data': <String, Object?>{
-        'reading': <String, Object?>{'last_surah': 2},
-        'dhikr': <String, Object?>{'dhikr_v2_selected': 'subhanallah'},
-      },
-    });
-
-    expect(preview.canRestore, isTrue);
-    expect(preview.issues, isEmpty);
+  test('every declared section set remains preview-compatible for its schema', () {
+    for (var version = BackupManifest.oldestSupportedVersion; version <= BackupManifest.schemaVersion; version++) {
+      final data = <String, Object?>{
+        for (final section in BackupManifest.sectionsForVersion(version))
+          section: <String, Object?>{},
+      };
+      final preview = parser.parse(<String, Object?>{
+        'version': version,
+        'createdAt': '2026-09-22T00:00:00Z',
+        'data': data,
+      });
+      expect(preview.canRestore, isTrue, reason: 'schema v$version');
+      expect(preview.issues, isEmpty, reason: 'schema v$version');
+    }
   });
 }
