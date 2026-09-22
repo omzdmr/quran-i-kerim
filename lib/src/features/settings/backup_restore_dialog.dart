@@ -6,12 +6,7 @@ import '../../data/backup/local_backup_service.dart';
 import 'backup_restore_impact_list.dart';
 
 class BackupRestoreDialog extends StatefulWidget {
-  const BackupRestoreDialog({
-    super.key,
-    required this.preview,
-    required this.plan,
-  });
-
+  const BackupRestoreDialog({super.key, required this.preview, required this.plan});
   final BackupPreview preview;
   final BackupImportPlan plan;
 
@@ -40,13 +35,7 @@ class _BackupRestoreDialogState extends State<BackupRestoreDialog> {
               container: true,
               label: copy.previewSemantics(widget.preview, context),
               child: ExcludeSemantics(
-                child: Text(
-                  copy.previewSummary(widget.preview, context),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
-                      ),
-                ),
+                child: Text(copy.previewSummary(widget.preview, context), style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant, fontWeight: FontWeight.w600)),
               ),
             ),
             const SizedBox(height: 16),
@@ -58,52 +47,28 @@ class _BackupRestoreDialogState extends State<BackupRestoreDialog> {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    _CountChip(
-                      icon: Icons.call_merge_rounded,
-                      label: copy.conflicts,
-                      count: plan.conflictingRecords,
-                      emphasized: plan.hasConflicts,
-                    ),
-                    _CountChip(
-                      icon: Icons.download_done_rounded,
-                      label: copy.incomingOnly,
-                      count: plan.incomingOnlyRecords,
-                    ),
-                    _CountChip(
-                      icon: Icons.phone_android_rounded,
-                      label: copy.localOnly,
-                      count: plan.localOnlyRecords,
-                    ),
+                    _CountChip(icon: Icons.call_merge_rounded, label: copy.conflicts, count: plan.conflictingRecords, emphasized: plan.hasConflicts),
+                    _CountChip(icon: Icons.download_done_rounded, label: copy.incomingOnly, count: plan.incomingOnlyRecords),
+                    _CountChip(icon: Icons.phone_android_rounded, label: copy.localOnly, count: plan.localOnlyRecords),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 16),
-            BackupRestoreImpactList(plan: plan),
+            BackupRestoreImpactList(plan: plan, mode: _mode),
             const SizedBox(height: 16),
             Semantics(
               container: true,
               label: copy.safetyNote,
               child: Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: scheme.primaryContainer.withValues(alpha: 0.55),
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                decoration: BoxDecoration(color: scheme.primaryContainer.withValues(alpha: 0.55), borderRadius: BorderRadius.circular(12)),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.shield_outlined,
-                      color: scheme.onPrimaryContainer,
-                    ),
+                    Icon(Icons.shield_outlined, color: scheme.onPrimaryContainer),
                     const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        copy.safetyNote,
-                        style: TextStyle(color: scheme.onPrimaryContainer),
-                      ),
-                    ),
+                    Expanded(child: Text(copy.safetyNote, style: TextStyle(color: scheme.onPrimaryContainer))),
                   ],
                 ),
               ),
@@ -115,9 +80,7 @@ class _BackupRestoreDialogState extends State<BackupRestoreDialog> {
               contentPadding: EdgeInsets.zero,
               groupValue: _mode,
               value: BackupRestoreMode.merge,
-              onChanged: (value) {
-                if (value != null) setState(() => _mode = value);
-              },
+              onChanged: (value) { if (value != null) setState(() => _mode = value); },
               title: Text(copy.mergeTitle),
               subtitle: Text(copy.mergeBody),
             ),
@@ -125,9 +88,7 @@ class _BackupRestoreDialogState extends State<BackupRestoreDialog> {
               contentPadding: EdgeInsets.zero,
               groupValue: _mode,
               value: BackupRestoreMode.replace,
-              onChanged: (value) {
-                if (value != null) setState(() => _mode = value);
-              },
+              onChanged: (value) { if (value != null) setState(() => _mode = value); },
               title: Text(copy.replaceTitle),
               subtitle: Text(copy.replaceBody),
             ),
@@ -135,24 +96,13 @@ class _BackupRestoreDialogState extends State<BackupRestoreDialog> {
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: scheme.errorContainer,
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                decoration: BoxDecoration(color: scheme.errorContainer, borderRadius: BorderRadius.circular(12)),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.warning_amber_rounded,
-                      color: scheme.onErrorContainer,
-                    ),
+                    Icon(Icons.warning_amber_rounded, color: scheme.onErrorContainer),
                     const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        copy.replaceWarning,
-                        style: TextStyle(color: scheme.onErrorContainer),
-                      ),
-                    ),
+                    Expanded(child: Text(copy.replaceWarning, style: TextStyle(color: scheme.onErrorContainer))),
                   ],
                 ),
               ),
@@ -161,27 +111,15 @@ class _BackupRestoreDialogState extends State<BackupRestoreDialog> {
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(MaterialLocalizations.of(context).cancelButtonLabel),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(_mode),
-          child: Text(copy.continueLabel),
-        ),
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(MaterialLocalizations.of(context).cancelButtonLabel)),
+        FilledButton(onPressed: () => Navigator.of(context).pop(_mode), child: Text(copy.continueLabel)),
       ],
     );
   }
 }
 
 class _CountChip extends StatelessWidget {
-  const _CountChip({
-    required this.icon,
-    required this.label,
-    required this.count,
-    this.emphasized = false,
-  });
-
+  const _CountChip({required this.icon, required this.label, required this.count, this.emphasized = false});
   final IconData icon;
   final String label;
   final int count;
@@ -190,71 +128,22 @@ class _CountChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Chip(
-      avatar: Icon(icon, size: 18),
-      label: Text('$label: $count'),
-      backgroundColor: emphasized ? scheme.tertiaryContainer : null,
-    );
+    return Chip(avatar: Icon(icon, size: 18), label: Text('$label: $count'), backgroundColor: emphasized ? scheme.tertiaryContainer : null);
   }
 }
 
 class BackupRestoreCopy {
-  const BackupRestoreCopy({
-    required this.title,
-    required this.intro,
-    required this.conflicts,
-    required this.incomingOnly,
-    required this.localOnly,
-    required this.safetyNote,
-    required this.chooseMode,
-    required this.mergeTitle,
-    required this.mergeBody,
-    required this.replaceTitle,
-    required this.replaceBody,
-    required this.replaceWarning,
-    required this.continueLabel,
-    required this.backupLabel,
-    required this.recordsLabel,
-    required this.versionLabel,
-  });
+  const BackupRestoreCopy({required this.title, required this.intro, required this.conflicts, required this.incomingOnly, required this.localOnly, required this.safetyNote, required this.chooseMode, required this.mergeTitle, required this.mergeBody, required this.replaceTitle, required this.replaceBody, required this.replaceWarning, required this.continueLabel, required this.backupLabel, required this.recordsLabel, required this.versionLabel});
+  final String title, intro, conflicts, incomingOnly, localOnly, safetyNote, chooseMode, mergeTitle, mergeBody, replaceTitle, replaceBody, replaceWarning, continueLabel, backupLabel, recordsLabel, versionLabel;
 
-  final String title;
-  final String intro;
-  final String conflicts;
-  final String incomingOnly;
-  final String localOnly;
-  final String safetyNote;
-  final String chooseMode;
-  final String mergeTitle;
-  final String mergeBody;
-  final String replaceTitle;
-  final String replaceBody;
-  final String replaceWarning;
-  final String continueLabel;
-  final String backupLabel;
-  final String recordsLabel;
-  final String versionLabel;
-
-  String summarySemantics(BackupImportPlan plan) =>
-      '$conflicts: ${plan.conflictingRecords}. '
-      '$incomingOnly: ${plan.incomingOnlyRecords}. '
-      '$localOnly: ${plan.localOnlyRecords}.';
-
+  String summarySemantics(BackupImportPlan plan) => '$conflicts: ${plan.conflictingRecords}. $incomingOnly: ${plan.incomingOnlyRecords}. $localOnly: ${plan.localOnlyRecords}.';
   String previewSummary(BackupPreview preview, BuildContext context) {
     final createdAt = preview.createdAt?.toLocal();
-    final date = createdAt == null
-        ? '—'
-        : '${MaterialLocalizations.of(context).formatMediumDate(createdAt)} · '
-            '${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(createdAt))}';
-    return '$backupLabel: $date · $recordsLabel: ${preview.totalRecords} · '
-        '$versionLabel: ${preview.version ?? '?'}';
+    final date = createdAt == null ? '—' : '${MaterialLocalizations.of(context).formatMediumDate(createdAt)} · ${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(createdAt))}';
+    return '$backupLabel: $date · $recordsLabel: ${preview.totalRecords} · $versionLabel: ${preview.version ?? '?'}';
   }
-
-  String previewSemantics(BackupPreview preview, BuildContext context) =>
-      previewSummary(preview, context);
-
-  static BackupRestoreCopy forLocale(Locale locale) =>
-      _copies[locale.languageCode] ?? _copies['en']!;
+  String previewSemantics(BackupPreview preview, BuildContext context) => previewSummary(preview, context);
+  static BackupRestoreCopy forLocale(Locale locale) => _copies[locale.languageCode] ?? _copies['en']!;
 }
 
 const _copies = <String, BackupRestoreCopy>{
