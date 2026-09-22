@@ -53,18 +53,9 @@ struct WidgetSnapshotValidation {
     try store.save(snapshot, now: now)
     expect(store.load() == snapshot, "snapshot round-trip")
     expect(store.lastInvalidationReason() == nil, "publish clears diagnostics")
-    expect(
-      snapshot.freshness(at: now, currentTimeZone: shanghai) == .fresh,
-      "fresh state"
-    )
-    expect(
-      snapshot.freshness(at: now, currentTimeZone: istanbul) == .timeZoneChanged,
-      "timezone state"
-    )
-    expect(
-      snapshot.freshness(at: nextPrayer, currentTimeZone: shanghai) == .prayerBoundaryPassed,
-      "boundary state"
-    )
+    expect(snapshot.freshness(at: now, currentTimeZone: shanghai) == .fresh, "fresh state")
+    expect(snapshot.freshness(at: now, currentTimeZone: istanbul) == .timeZoneChanged, "timezone state")
+    expect(snapshot.freshness(at: nextPrayer, currentTimeZone: shanghai) == .prayerBoundaryPassed, "boundary state")
 
     let redacted = WidgetPrayerSnapshot(
       generatedAt: now,
@@ -76,11 +67,37 @@ struct WidgetSnapshotValidation {
       displayName: "Maghrib",
       privacyMode: .redacted
     )
-    expect(
-      redacted.presentation(at: now, currentTimeZone: shanghai) == .redacted,
-      "privacy suppresses details"
-    )
+    expect(redacted.presentation(at: now, currentTimeZone: shanghai) == .redacted, "privacy suppresses details")
 
+    let redactedWithoutPrayer = WidgetPrayerSnapshot(
+      generatedAt: now,
+      validUntil: now.addingTimeInterval(300),
+      timeZoneIdentifier: shanghai.identifier,
+      calculationFingerprint: "same-policy",
+      nextPrayerID: nil,
+      nextPrayerAt: nil,
+      displayName: nil,
+      privacyMode: .redacted
+    )
+    try store.save(redactedWithoutPrayer, now: now)
+    expect(redactedWithoutPrayer.freshness(at: now, currentTimeZone: shanghai) == .fresh, "redacted snapshot may omit prayer details")
+    expect(redactedWithoutPrayer.presentation(at: now, currentTimeZone: shanghai) == .redacted, "redacted empty snapshot remains private")
+
+    expectInvalid(
+      WidgetPrayerSnapshot(
+        generatedAt: now,
+        validUntil: now.addingTimeInterval(300),
+        timeZoneIdentifier: shanghai.identifier,
+        calculationFingerprint: "policy",
+        nextPrayerID: nil,
+        nextPrayerAt: nil,
+        displayName: nil,
+        privacyMode: .standard
+      ),
+      store: store,
+      now: now,
+      "standard snapshot without a next prayer rejects"
+    )
     expectInvalid(
       WidgetPrayerSnapshot(
         generatedAt: now,
@@ -143,80 +160,35 @@ struct WidgetSnapshotValidation {
     )
 
     try store.save(snapshot, now: now)
-    expect(
-      store.purgeIfStale(now: now, timeZone: istanbul),
-      "timezone drift purges"
-    )
-    expect(
-      store.lastInvalidationReason() == "timeZoneChanged",
-      "timezone reason exact"
-    )
+    expect(store.purgeIfStale(now: now, timeZone: istanbul), "timezone drift purges")
+    expect(store.lastInvalidationReason() == "timeZoneChanged", "timezone reason exact")
 
     try store.save(snapshot, now: now)
-    expect(
-      store.purgeIfStale(now: nextPrayer, timeZone: shanghai),
-      "boundary purges"
-    )
-    expect(
-      store.lastInvalidationReason() == "prayerBoundaryPassed",
-      "boundary reason exact"
-    )
+    expect(store.purgeIfStale(now: nextPrayer, timeZone: shanghai), "boundary purges")
+    expect(store.lastInvalidationReason() == "prayerBoundaryPassed", "boundary reason exact")
 
     try store.save(snapshot, now: now)
-    expect(
-      store.purgeIfStale(now: now.addingTimeInterval(901), timeZone: shanghai),
-      "expiry purges"
-    )
+    expect(store.purgeIfStale(now: now.addingTimeInterval(901), timeZone: shanghai), "expiry purges")
     expect(store.lastInvalidationReason() == "expired", "expiry reason exact")
 
     try store.save(snapshot, now: now)
-    expect(
-      store.purgeIfPolicyChanged(currentFingerprint: "method=Karachi"),
-      "policy purges"
-    )
-    expect(
-      store.lastInvalidationReason() == "policyChanged",
-      "policy reason exact"
-    )
+    expect(store.purgeIfPolicyChanged(currentFingerprint: "method=Karachi"), "policy purges")
+    expect(store.lastInvalidationReason() == "policyChanged", "policy reason exact")
 
     defaults.set(Data("not-json".utf8), forKey: WidgetSnapshotStore.snapshotKey)
-    expect(
-      store.purgeIfStale(now: now, timeZone: shanghai),
-      "corrupt quarantine reports state change"
-    )
-    expect(
-      defaults.object(forKey: WidgetSnapshotStore.snapshotKey) == nil,
-      "corrupt removed"
-    )
-    expect(
-      store.lastInvalidationReason() == "corruptPayload",
-      "corrupt reason"
-    )
+    expect(store.purgeIfStale(now: now, timeZone: shanghai), "corrupt quarantine reports state change")
+    expect(defaults.object(forKey: WidgetSnapshotStore.snapshotKey) == nil, "corrupt removed")
+    expect(store.lastInvalidationReason() == "corruptPayload", "corrupt reason")
 
     let malformedJSON = "{\"version\":1,\"generatedAt\":1800000000000,\"validUntil\":1800000300000,\"timeZoneIdentifier\":\"Asia/Shanghai\",\"calculationFingerprint\":\"\",\"privacyMode\":\"standard\"}"
-    defaults.set(
-      Data(malformedJSON.utf8),
-      forKey: WidgetSnapshotStore.snapshotKey
-    )
-    expect(
-      store.purgeIfStale(now: now, timeZone: shanghai),
-      "malformed quarantine refreshes"
-    )
-    expect(
-      store.lastInvalidationReason() == "corruptPayload",
-      "malformed reason"
-    )
+    defaults.set(Data(malformedJSON.utf8), forKey: WidgetSnapshotStore.snapshotKey)
+    expect(store.purgeIfStale(now: now, timeZone: shanghai), "malformed quarantine refreshes")
+    expect(store.lastInvalidationReason() == "corruptPayload", "malformed reason")
 
     try store.save(snapshot, now: now)
-    expect(
-      store.lastInvalidationReason() == nil,
-      "healthy republish clears diagnostics"
-    )
+    expect(store.lastInvalidationReason() == nil, "healthy republish clears diagnostics")
     store.clear()
-    expect(
-      store.lastInvalidationReason() == "explicitClear",
-      "explicit clear exact"
-    )
+    expect(store.lastInvalidationReason() == "explicitClear", "explicit clear exact")
     print("WidgetSnapshotValidation passed")
   }
 }
