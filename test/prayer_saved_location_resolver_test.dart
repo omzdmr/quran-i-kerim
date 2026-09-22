@@ -41,12 +41,14 @@ void main() {
     expect(resolved.location.timeZoneId, 'Asia/Baku');
   });
 
-  test('missing special-location payload fails closed', () async {
-    await PrayerPreferencesStore.saveCityId(PrayerPreferencesStore.manualLocationId);
-    expect(await resolver.resolve(), isNull);
+  test('first run retains the existing default city contract', () async {
+    final resolved = await resolver.resolve();
+    expect(resolved, isNotNull);
+    expect(resolved!.label, 'İstanbul');
   });
 
-  test('no saved location after privacy-safe restore does not become Istanbul', () async {
+  test('missing special-location payload fails closed', () async {
+    await PrayerPreferencesStore.saveCityId(PrayerPreferencesStore.manualLocationId);
     expect(await resolver.resolve(), isNull);
   });
 
