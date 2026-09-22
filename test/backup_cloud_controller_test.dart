@@ -25,9 +25,7 @@ void main() {
   });
 
   BackupCloudController controllerFor(_MemoryCloudStore store) {
-    final restoreService = BackupFileService(
-      directoryProvider: () async => tempRoot,
-    );
+    final restoreService = BackupFileService(directoryProvider: () async => tempRoot);
     return BackupCloudController(
       connector: _FakeConnector(store),
       coordinatorFactory: (cloudStore) => BackupCloudCoordinator(
@@ -41,9 +39,7 @@ void main() {
     final store = _MemoryCloudStore();
     final controller = controllerFor(store);
     addTearDown(controller.dispose);
-
     await controller.connect();
-
     expect(controller.connected, isTrue);
     expect(controller.accountLabel, 'reader@example.com');
     expect(controller.state, BackupCloudState.remoteEmpty);
@@ -55,16 +51,12 @@ void main() {
     final controller = controllerFor(store);
     addTearDown(controller.dispose);
     await controller.connect();
-
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('last_surah', 36);
     await prefs.setInt('last_ayah', 58);
-
     await controller.uploadLocal();
-
     final decoded = jsonDecode(store.object!.content) as Map<String, dynamic>;
-    final reading = (decoded['data'] as Map<String, dynamic>)['reading']
-        as Map<String, dynamic>;
+    final reading = (decoded['data'] as Map<String, dynamic>)['reading'] as Map<String, dynamic>;
     expect(reading['last_surah'], 36);
     expect(reading['last_ayah'], 58);
     expect(controller.state, BackupCloudState.upToDate);
@@ -74,51 +66,30 @@ void main() {
     final remoteJson = jsonEncode(<String, Object?>{
       'version': 3,
       'createdAt': '2026-09-16T10:00:00Z',
-      'data': <String, Object?>{
-        'reading': <String, Object?>{'last_surah': 18, 'last_ayah': 10},
-      },
+      'data': <String, Object?>{'reading': <String, Object?>{'last_surah': 18, 'last_ayah': 10}},
     });
-    final store = _MemoryCloudStore(
-      object: BackupCloudObject(
-        content: remoteJson,
-        revision: 'r1',
-        updatedAt: DateTime.parse('2026-09-16T10:00:00Z'),
-      ),
-    );
+    final store = _MemoryCloudStore(object: BackupCloudObject(content: remoteJson, revision: 'r1', updatedAt: DateTime.parse('2026-09-16T10:00:00Z')));
     final controller = controllerFor(store);
     addTearDown(controller.dispose);
     await controller.connect();
     expect(controller.state, BackupCloudState.diverged);
-
     await expectLater(controller.uploadLocal(), throwsStateError);
     expect(store.writeCount, 0);
     expect(controller.lastError, isA<StateError>());
-
     await controller.uploadLocal(allowOverwrite: true);
     expect(store.writeCount, 1);
     expect(controller.state, BackupCloudState.upToDate);
   });
 
-  test('restore re-reads latest remote, returns rollback receipt and preserves remote', () async {
-    final first = _backupJson(surah: 18, ayah: 10);
-    final store = _MemoryCloudStore(
-      object: BackupCloudObject(
-        content: first,
-        revision: 'r1',
-        updatedAt: DateTime.parse('2026-09-16T10:00:00Z'),
-      ),
-    );
+  test('restore re-reads reviewed remote, returns rollback receipt and preserves remote', () async {
+    final store = _MemoryCloudStore(object: BackupCloudObject(content: _backupJson(surah: 18, ayah: 10), revision: 'r1', updatedAt: DateTime.parse('2026-09-16T10:00:00Z')));
     final controller = controllerFor(store);
     addTearDown(controller.dispose);
     await controller.connect();
+    store.object = BackupCloudObject(content: _backupJson(surah: 36, ayah: 58), revision: 'r2', updatedAt: DateTime.parse('2026-09-16T11:00:00Z'));
 
-    store.object = BackupCloudObject(
-      content: _backupJson(surah: 36, ayah: 58),
-      revision: 'r2',
-      updatedAt: DateTime.parse('2026-09-16T11:00:00Z'),
-    );
-
-    final receipt = await controller.restoreRemote();
+    final preparation = await controller.prepareRemoteRestore();
+    final receipt = await controller.restoreRemote(preparation: preparation!);
 
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getInt('last_surah'), 36);
@@ -127,9 +98,6 @@ void main() {
     expect(await receipt!.safetySnapshot.exists(), isTrue);
     expect(controller.inspection?.remote?.revision, 'r2');
     expect(store.writeCount, 0);
-    // This fixture deliberately contains only the reading section. Restore
-    // preserves unrelated safe local data, so a fresh full local export can
-    // still differ from this sparse but valid remote document.
     expect(controller.state, BackupCloudState.diverged);
   });
 
@@ -139,9 +107,7 @@ void main() {
     final controller = BackupCloudController(connector: connector);
     addTearDown(controller.dispose);
     await controller.connect();
-
     await controller.signOut();
-
     expect(controller.connected, isFalse);
     expect(controller.inspection, isNull);
     expect(connector.closeCalls, 1);
@@ -149,71 +115,39 @@ void main() {
   });
 }
 
-String _backupJson({required int surah, required int ayah}) {
-  return jsonEncode(<String, Object?>{
-    'version': 3,
-    'createdAt': '2026-09-16T10:00:00Z',
-    'data': <String, Object?>{
-      'reading': <String, Object?>{
-        'last_surah': surah,
-        'last_ayah': ayah,
-      },
-    },
-  });
-}
+String _backupJson({required int surah, required int ayah}) => jsonEncode(<String, Object?>{
+  'version': 3,
+  'createdAt': '2026-09-16T10:00:00Z',
+  'data': <String, Object?>{'reading': <String, Object?>{'last_surah': surah, 'last_ayah': ayah}},
+});
 
 class _FakeConnector implements BackupCloudConnector {
   _FakeConnector(this.store);
-
   final BackupCloudStore store;
-  int connectCalls = 0;
   int signOutCalls = 0;
   int closeCalls = 0;
-
   @override
-  Future<BackupCloudConnection> connect({bool interactive = true}) async {
-    connectCalls += 1;
-    return BackupCloudConnection(
-      accountLabel: 'reader@example.com',
-      store: store,
-      close: () => closeCalls += 1,
-    );
-  }
-
+  Future<BackupCloudConnection> connect({bool interactive = true}) async => BackupCloudConnection(accountLabel: 'reader@example.com', store: store, close: () => closeCalls += 1);
   @override
-  Future<void> signOut() async {
-    signOutCalls += 1;
-  }
+  Future<void> signOut() async => signOutCalls += 1;
 }
 
 class _MemoryCloudStore implements BackupCloudStore {
   _MemoryCloudStore({this.object});
-
   BackupCloudObject? object;
   int writeCount = 0;
-
   @override
   Future<BackupCloudObject?> read() async => object;
-
   @override
-  Future<BackupCloudObject> write({
-    required String content,
-    required String? expectedRevision,
-  }) async {
+  Future<BackupCloudObject> write({required String content, required String? expectedRevision}) async {
     final current = object;
     if (current == null) {
-      if (expectedRevision != null) {
-        throw const BackupCloudConflictException();
-      }
+      if (expectedRevision != null) throw const BackupCloudConflictException();
     } else if (current.revision != expectedRevision) {
       throw const BackupCloudConflictException();
     }
     writeCount += 1;
-    final next = BackupCloudObject(
-      content: content,
-      revision: 'r${writeCount + 1}',
-      updatedAt: DateTime.parse('2026-09-16T12:00:00Z'),
-    );
+    final next = BackupCloudObject(content: content, revision: 'r${writeCount + 1}', updatedAt: DateTime.parse('2026-09-16T12:00:00Z'));
     object = next;
     return next;
   }
