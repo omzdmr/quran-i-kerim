@@ -16,6 +16,7 @@ void main() {
     PrayerAsrMethod asr = PrayerAsrMethod.standard,
     PrayerNotificationProfile profile = PrayerNotificationProfile.fullSound,
     PrayerMinuteAdjustments adjustments = const PrayerMinuteAdjustments(),
+    Set<String> prayerIds = defaultPrayerNotificationIds,
     String localeTag = 'tr',
   }) => PrayerScheduleConfiguration.fingerprint(
         resolved: resolved,
@@ -24,6 +25,7 @@ void main() {
           asrMethod: asr,
           notificationProfile: profile,
           adjustments: adjustments,
+          notificationPrayerIds: prayerIds,
         ),
         localeTag: localeTag,
       );
@@ -49,8 +51,16 @@ void main() {
     expect(fingerprint(adjustments: const PrayerMinuteAdjustments(fajr: 2)), isNot(fingerprint()));
   });
 
-  test('notification profile also invalidates delivery identity', () {
+  test('notification delivery inputs invalidate identity but set order does not', () {
     expect(fingerprint(profile: PrayerNotificationProfile.discreet), isNot(fingerprint()));
+    expect(
+      fingerprint(prayerIds: const {'fajr', 'isha'}),
+      fingerprint(prayerIds: const {'isha', 'fajr'}),
+    );
+    expect(
+      fingerprint(prayerIds: const {'fajr'}),
+      isNot(fingerprint(prayerIds: const {'fajr', 'isha'})),
+    );
   });
 
   test('changing app language invalidates already scheduled notification copy', () {
