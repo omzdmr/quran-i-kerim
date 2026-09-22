@@ -53,6 +53,10 @@ jobs:
           grep -q 'protectedDataDidBecomeAvailableNotification' ios/Runner/NativeLifecycleStateChannel.swift
           grep -q 'targetedWidgetReload": true' ios/Runner/NativeLifecycleStateChannel.swift
           grep -q 'reloadTimelines(ofKind: Self.prayerWidgetKind)' ios/Runner/NativeLifecycleStateChannel.swift
+          grep -q 'backgroundEvictionDetection": true' ios/Runner/NativeLifecycleStateChannel.swift
+          grep -q 'previousLifecycleState' ios/Runner/NativeLifecycleStateChannel.swift
+          grep -q 'likelyBackgroundEviction' ios/Runner/NativeLifecycleStateChannel.swift
+          grep -q 'recordLifecycleState("background")' ios/Runner/NativeLifecycleStateChannel.swift
           grep -q 'ownsNowPlayingInfo' ios/Runner/AudioSessionCoordinator.swift
           grep -q 'CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements' ios/Runner.xcodeproj/project.pbxproj
           grep -q 'corruptPayloadQuarantine": true' ios/Runner/WidgetSnapshotChannel.swift
