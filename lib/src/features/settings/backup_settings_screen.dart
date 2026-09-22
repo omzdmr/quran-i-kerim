@@ -14,6 +14,7 @@ import '../learn/application/learn_progress_store.dart';
 import '../plans/reading_plan_store.dart';
 import '../prayer/application/prayer_notification_service.dart';
 import 'backup_restore_dialog.dart';
+import 'backup_restore_feedback.dart';
 import 'google_drive_backup_section.dart';
 
 class BackupSettingsScreen extends StatefulWidget {
@@ -155,11 +156,15 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
       if (mode == null || !mounted) return;
 
       setState(() => _busy = true);
-      await _service.restoreFile(file, mode: mode);
+      final receipt = await _service.restoreFile(file, mode: mode);
       await _refreshRestoredAppState();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.l10n.text('backupRestored'))),
+      setState(() => _busy = false);
+      await BackupRestoreFeedback.show(
+        context: context,
+        service: _service,
+        receipt: receipt,
+        afterUndo: _refreshRestoredAppState,
       );
     } catch (_) {
       if (mounted) _showFailure();
