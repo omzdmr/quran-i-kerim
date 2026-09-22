@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../data/backup/backup_build_config.dart';
+import '../../data/backup/backup_cloud_connector.dart';
 import '../../data/backup/backup_cloud_controller.dart';
 import '../../data/backup/backup_cloud_coordinator.dart';
 import '../../data/backup/backup_file_service.dart';
@@ -13,10 +14,16 @@ import 'backup_restore_feedback.dart';
 class GoogleDriveBackupSection extends StatefulWidget {
   const GoogleDriveBackupSection({
     required this.onRestored,
+    this.connector,
+    this.restoreSafetyService,
+    this.enabledOverride,
     super.key,
   });
 
   final Future<void> Function() onRestored;
+  final BackupCloudConnector? connector;
+  final BackupFileService? restoreSafetyService;
+  final bool? enabledOverride;
 
   @override
   State<GoogleDriveBackupSection> createState() =>
@@ -24,14 +31,15 @@ class GoogleDriveBackupSection extends StatefulWidget {
 }
 
 class _GoogleDriveBackupSectionState extends State<GoogleDriveBackupSection> {
-  final BackupFileService _restoreSafetyService = BackupFileService();
+  late final BackupFileService _restoreSafetyService;
   late final BackupCloudController _controller;
 
   @override
   void initState() {
     super.initState();
+    _restoreSafetyService = widget.restoreSafetyService ?? BackupFileService();
     _controller = BackupCloudController(
-      connector: GoogleDriveBackupAuth(),
+      connector: widget.connector ?? GoogleDriveBackupAuth(),
       coordinatorFactory: (store) => BackupCloudCoordinator(
         store: store,
         restoreFileService: _restoreSafetyService,
@@ -185,7 +193,7 @@ class _GoogleDriveBackupSectionState extends State<GoogleDriveBackupSection> {
 
   @override
   Widget build(BuildContext context) {
-    if (!BackupBuildConfig.googleDriveEnabled) {
+    if (!(widget.enabledOverride ?? BackupBuildConfig.googleDriveEnabled)) {
       return const SizedBox.shrink();
     }
 
