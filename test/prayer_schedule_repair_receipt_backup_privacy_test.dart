@@ -16,7 +16,7 @@ void main() {
       ),
     );
 
-    final exported = await const SharedPreferencesBackupAdapter().exportSections();
+    final exported = await const SharedPreferencesBackupAdapter().captureSections();
     expect(exported.toString(), isNot(contains('prayer_schedule_repair_receipt_v1')));
     expect(exported.toString(), isNot(contains('device-schedule-fingerprint')));
   });
