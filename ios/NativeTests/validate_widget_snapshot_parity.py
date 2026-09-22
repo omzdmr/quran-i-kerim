@@ -25,8 +25,6 @@ for name, (needle, first, second) in checks.items():
     if needle not in first or (second is not None and needle not in second):
         failed.append(f"{name}: missing {needle!r}")
 
-# The extension must request a short retry for a present-but-invalid payload instead of
-# allowing a stale Lock Screen/Home Screen state to sit for the normal 15-minute window.
 for needle in (
     "result.freshness != nil",
     "5 * 60",
@@ -36,16 +34,17 @@ for needle in (
     if needle not in widget:
         failed.append(f"extension retry/fail-closed contract missing {needle!r}")
 
-# Lock Screen families are a product surface, not a compile-only accident. Inline must use
-# the same localized prayer label/time and must have compact privacy/stale fallbacks.
 for needle in (
     ".accessoryInline",
     "private func inline(id: String, at: Double)",
     'Text("\\(localizedPrayerName(id)) · \\(time(at))")',
     'family == .accessoryInline',
+    'Image(systemName: "lock.fill")',
+    'Image(systemName: "arrow.clockwise")',
+    "private var isAccessoryFamily: Bool",
 ):
     if needle not in widget:
-        failed.append(f"Lock Screen inline contract missing {needle!r}")
+        failed.append(f"Lock Screen accessory contract missing {needle!r}")
 
 if failed:
     raise SystemExit("Widget snapshot parity validation failed:\n- " + "\n- ".join(failed))
