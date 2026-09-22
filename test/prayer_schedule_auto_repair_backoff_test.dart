@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quran_i_kerim/src/features/prayer/application/prayer_notification_schedule_health_refresher.dart';
+import 'package:quran_i_kerim/src/features/prayer/application/prayer_notification_schedule_health_store.dart';
 import 'package:quran_i_kerim/src/features/prayer/application/prayer_pending_schedule_probe.dart';
 import 'package:quran_i_kerim/src/features/prayer/application/prayer_schedule_auto_repair.dart';
 import 'package:quran_i_kerim/src/features/prayer/application/prayer_schedule_repair_receipt_store.dart';
@@ -12,7 +13,7 @@ class _Refresher extends PrayerNotificationScheduleHealthRefresher {
   @override
   Future<String?> currentConfigurationFingerprint() async => fingerprint;
   @override
-  Future<dynamic> resync({DateTime? now}) async { resyncCalls++; return null; }
+  Future<PrayerNotificationScheduleHealth?> resync({DateTime? now}) async { resyncCalls++; return null; }
 }
 
 class _Probe implements PrayerPendingScheduleProbe {
@@ -28,12 +29,7 @@ void main() {
   setUp(() => SharedPreferences.setMockInitialValues(<String, Object>{}));
 
   test('recent failure for same configuration defers automatic retry', () async {
-    await receiptStore.save(PrayerScheduleRepairReceipt(
-      attemptedAt: now.subtract(const Duration(minutes: 2)),
-      outcome: PrayerScheduleRepairOutcome.failed,
-      trigger: PrayerScheduleRepairTrigger.platformScheduleMissing,
-      configurationFingerprint: 'same',
-    ));
+    await receiptStore.save(PrayerScheduleRepairReceipt(attemptedAt: now.subtract(const Duration(minutes: 2)), outcome: PrayerScheduleRepairOutcome.failed, trigger: PrayerScheduleRepairTrigger.platformScheduleMissing, configurationFingerprint: 'same'));
     final refresher = _Refresher('same');
     final result = await PrayerScheduleAutoRepair(refresher: refresher, pendingProbe: const _Probe()).repairIfNeeded(now: now);
     expect(result, PrayerScheduleRepairResult.deferredAfterFailure);
@@ -41,11 +37,7 @@ void main() {
   });
 
   test('configuration change bypasses backoff immediately', () async {
-    await receiptStore.save(PrayerScheduleRepairReceipt(
-      attemptedAt: now.subtract(const Duration(minutes: 2)),
-      outcome: PrayerScheduleRepairOutcome.failed,
-      configurationFingerprint: 'old-location',
-    ));
+    await receiptStore.save(PrayerScheduleRepairReceipt(attemptedAt: now.subtract(const Duration(minutes: 2)), outcome: PrayerScheduleRepairOutcome.failed, configurationFingerprint: 'old-location'));
     final refresher = _Refresher('new-location');
     final result = await PrayerScheduleAutoRepair(refresher: refresher, pendingProbe: const _Probe()).repairIfNeeded(now: now);
     expect(result, PrayerScheduleRepairResult.failed);
@@ -53,11 +45,7 @@ void main() {
   });
 
   test('retry resumes after cooldown expires', () async {
-    await receiptStore.save(PrayerScheduleRepairReceipt(
-      attemptedAt: now.subtract(const Duration(minutes: 6)),
-      outcome: PrayerScheduleRepairOutcome.failed,
-      configurationFingerprint: 'same',
-    ));
+    await receiptStore.save(PrayerScheduleRepairReceipt(attemptedAt: now.subtract(const Duration(minutes: 6)), outcome: PrayerScheduleRepairOutcome.failed, configurationFingerprint: 'same'));
     final refresher = _Refresher('same');
     final result = await PrayerScheduleAutoRepair(refresher: refresher, pendingProbe: const _Probe()).repairIfNeeded(now: now);
     expect(result, PrayerScheduleRepairResult.failed);
@@ -65,11 +53,7 @@ void main() {
   });
 
   test('explicit zero retry delay disables backoff for deterministic callers', () async {
-    await receiptStore.save(PrayerScheduleRepairReceipt(
-      attemptedAt: now,
-      outcome: PrayerScheduleRepairOutcome.failed,
-      configurationFingerprint: 'same',
-    ));
+    await receiptStore.save(PrayerScheduleRepairReceipt(attemptedAt: now, outcome: PrayerScheduleRepairOutcome.failed, configurationFingerprint: 'same'));
     final refresher = _Refresher('same');
     final result = await PrayerScheduleAutoRepair(refresher: refresher, pendingProbe: const _Probe(), failureRetryDelay: Duration.zero).repairIfNeeded(now: now);
     expect(result, PrayerScheduleRepairResult.failed);
