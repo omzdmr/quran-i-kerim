@@ -47,8 +47,8 @@ if 'dateEncodingStrategy = .millisecondsSince1970' not in store:
     raise SystemExit("Runner snapshot date encoding contract changed")
 if 'let generatedAt: Double' not in widget or 'let validUntil: Double' not in widget or 'let nextPrayerAt: Double?' not in widget:
     raise SystemExit("WidgetKit must decode persisted millisecond dates as numeric values")
-if 'timeZoneIdentifier == TimeZone.autoupdatingCurrent.identifier' not in widget:
-    raise SystemExit("WidgetKit must reject snapshots from another time zone")
+if 'timeZoneIdentifier == currentTimeZone.identifier' not in widget or 'currentTimeZone: TimeZone = .autoupdatingCurrent' not in widget:
+    raise SystemExit("WidgetKit must reject snapshots from another time zone while keeping freshness testable")
 if 'snapshot.isRedacted' not in widget:
     raise SystemExit("WidgetKit must honor the persisted privacy redaction mode")
 
