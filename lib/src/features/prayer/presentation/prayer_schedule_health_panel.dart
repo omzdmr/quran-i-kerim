@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../application/prayer_notification_schedule_health_refresher.dart';
 import 'prayer_schedule_health_card.dart';
+import 'prayer_schedule_repair_receipt_card.dart';
 
 /// Connected diagnostics panel used by prayer settings/diagnostics. Keeping the
 /// platform reschedule behind one callback also makes the visual component easy
@@ -12,9 +13,16 @@ class PrayerScheduleHealthPanel extends StatelessWidget {
   static const _refresher = PrayerNotificationScheduleHealthRefresher();
 
   @override
-  Widget build(BuildContext context) => PrayerScheduleHealthCard(
-        onResync: () async {
-          await _refresher.resync();
-        },
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          PrayerScheduleHealthCard(
+            onResync: () async {
+              await _refresher.resync();
+            },
+          ),
+          const SizedBox(height: 8),
+          const PrayerScheduleRepairReceiptCard(),
+        ],
       );
 }
