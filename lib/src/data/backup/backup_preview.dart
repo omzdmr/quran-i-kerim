@@ -24,7 +24,7 @@ class BackupPreviewParser {
     final rawCreatedAt = decoded['createdAt']; final createdAt = rawCreatedAt is String ? DateTime.tryParse(rawCreatedAt)?.toUtc() : null; if (createdAt == null) issues.add(BackupPreviewIssue.invalidCreatedAt);
     final data = decoded['data']; final counts = <String, int>{};
     if (data is Map) {
-      final supportedSections = versionSupported ? BackupManifest.sectionsForVersion(parsedVersion) : const <String>{};
+      final supportedSections = versionSupported ? BackupManifest.sectionsForVersion(parsedVersion!) : const <String>{};
       for (final entry in data.entries) {
         if (entry.key is! String) { issues.add(BackupPreviewIssue.invalidData); continue; }
         final section = entry.key as String;
