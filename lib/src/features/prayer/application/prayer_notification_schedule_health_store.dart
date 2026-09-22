@@ -37,6 +37,9 @@ class PrayerNotificationScheduleHealth {
     String? expectedConfigurationFingerprint,
   }) {
     final normalizedNow = now.toUtc();
+    // Pre-v2 evidence cannot prove which location/method/profile produced it.
+    // Keep it readable for diagnostics but never present it as verified-fresh.
+    if (configurationFingerprint.isEmpty) return false;
     if (scheduledAt.toUtc().isAfter(normalizedNow.add(const Duration(minutes: 5)))) return false;
     if (normalizedNow.difference(scheduledAt.toUtc()) > maxAge) return false;
     if (!nextScheduledAt.toUtc().isAfter(normalizedNow)) return false;
