@@ -36,8 +36,9 @@ class BackupImportPlanner {
     final sectionNames = (managedSections ?? <String>{...currentSections.keys, ...incomingSections.keys}).toList()..sort();
 
     for (final section in sectionNames) {
-      final current = _records(section, currentSections[section]);
-      final incoming = _records(section, incomingSections[section]);
+      final pair = _comparisonRecords(section, currentSections[section], incomingSections[section]);
+      final current = pair.current;
+      final incoming = pair.incoming;
       var sectionConflicts = 0;
       var sectionIncomingOnly = 0;
       var sectionLocalOnly = 0;
@@ -66,11 +67,18 @@ class BackupImportPlanner {
     return BackupImportPlan(incomingRecords: incomingRecords, localRecords: localRecords, conflictingRecords: conflictingRecords, incomingOnlyRecords: incomingOnlyRecords, localOnlyRecords: localOnlyRecords, sectionImpacts: List<BackupSectionImpact>.unmodifiable(impacts));
   }
 
-  Map<String, Object?> _records(String section, Object? value) {
-    if (section == 'bookmarks' && value is Map) {
-      final bookmarks = _stringListRecords(value['bookmarks']);
-      if (bookmarks != null) return bookmarks;
+  _RecordPair _comparisonRecords(String section, Object? currentValue, Object? incomingValue) {
+    if (section == 'bookmarks' && currentValue is Map && incomingValue is Map) {
+      final currentBookmarks = _stringListRecords(currentValue['bookmarks']);
+      final incomingBookmarks = _stringListRecords(incomingValue['bookmarks']);
+      if (currentBookmarks != null && incomingBookmarks != null) {
+        return _RecordPair(currentBookmarks, incomingBookmarks);
+      }
     }
+    return _RecordPair(_records(section, currentValue), _records(section, incomingValue));
+  }
+
+  Map<String, Object?> _records(String section, Object? value) {
     if (section == 'fasting' && value is Map) {
       final expanded = _qadaRecords(value['qada_fasting_ledger_v1']);
       if (expanded != null) {
@@ -81,6 +89,10 @@ class BackupImportPlanner {
         };
       }
     }
+    return _genericRecords(value);
+  }
+
+  Map<String, Object?> _genericRecords(Object? value) {
     if (value is Map) return <String, Object?>{for (final entry in value.entries) if (entry.key is String) entry.key as String: entry.value};
     if (value is List) return <String, Object?>{for (var index = 0; index < value.length; index++) '#$index': value[index]};
     return const <String, Object?>{};
@@ -127,4 +139,10 @@ class BackupImportPlanner {
     }
     return a == b;
   }
+}
+
+class _RecordPair {
+  const _RecordPair(this.current, this.incoming);
+  final Map<String, Object?> current;
+  final Map<String, Object?> incoming;
 }
