@@ -94,13 +94,14 @@ void main() {
   });
 
   testWidgets('legacy schedule is identified instead of silently trusted', (tester) async {
+    await seedFreshSchedule();
     await store.save(PrayerNotificationScheduleHealth(
       scheduledAt: DateTime.utc(2026, 9, 22, 2), nextPrayerId: 'dhuhr', nextScheduledAt: DateTime.utc(2026, 9, 22, 4, 30),
       timeZoneId: 'Asia/Shanghai', locationLabel: 'Shanghai', calculationMethodId: 'muslimWorldLeague', pendingCount: 42,
     ));
-    await tester.pumpWidget(app(onResync: () async {}));
+    await tester.pumpWidget(app(onResync: () async {}, pendingProbe: const _FixedPendingProbe(18)));
     await tester.pumpAndSettle();
-    expect(find.textContaining('geçerli konum veya namaz seçimi yok'), findsOneWidget);
+    expect(find.textContaining('eski sürümden kaldı'), findsOneWidget);
     expect(find.textContaining('Öğle'), findsOneWidget);
     expect(find.textContaining('Shanghai'), findsOneWidget);
     expect(find.textContaining('Asia/Shanghai'), findsOneWidget);
