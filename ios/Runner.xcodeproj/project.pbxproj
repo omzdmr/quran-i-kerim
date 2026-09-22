@@ -124,7 +124,7 @@
 /* End XCBuildConfiguration section */
 /* Begin XCConfigurationList section */
 		97C146E91CF9000F007C117D /* Build configuration list for PBXProject "Runner" */ = {isa = XCConfigurationList; buildConfigurations = (97C147031CF9000F007C117D, 97C147041CF9000F007C117D, 249021D3217E4FDB00AE95B9); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
-		97C147051CF9000F007C117D /* Build configuration list for PBXNativeTarget "Runner" */ = {isa = XCConfigurationList; buildConfigurations = (97C147061CF9000F007C117D, 97C1470711CF9000F007C117D, 249021D4217E4FDB00AE95B9); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		97C147051CF9000F007C117D /* Build configuration list for PBXNativeTarget "Runner" */ = {isa = XCConfigurationList; buildConfigurations = (97C147061CF9000F007C117D, 97C147071CF9000F007C117D, 249021D4217E4FDB00AE95B9); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
 		B10000000000000000000033 /* Build configuration list for PBXNativeTarget "PrayerWidget" */ = {isa = XCConfigurationList; buildConfigurations = (B10000000000000000000030, B10000000000000000000031, B10000000000000000000032); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
 /* End XCConfigurationList section */
 	};
