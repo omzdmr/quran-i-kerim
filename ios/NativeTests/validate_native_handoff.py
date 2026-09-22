@@ -10,17 +10,21 @@ errors = []
 app_contracts = {
     'maxExportBytes: Int64 = 64': 'portable export size ceiling',
     'activeSceneAware": true': 'scene-aware Files/iCloud presentation',
+    'originatingScenePreferred": true': 'originating iPad scene preference',
     'isolatedExportSession": true': 'isolated export staging',
     'orphanExportCleanup": true': 'crash-safe export cleanup',
-    'connectedScenes.compactMap': 'foreground scene resolution',
+    'presenter.viewIfLoaded?.window?.windowScene': 'originating document window resolution',
+    'connectedScenes.compactMap': 'foreground scene fallback',
     'startAccessingSecurityScopedResource()': 'security-scoped import',
     'protectAndExcludeFromBackup(destination)': 'import backup exclusion',
     'removeItem(at: temporaryExportURL.deletingLastPathComponent())': 'whole export-session cleanup',
 }
 share_contracts = {
     'activeSceneAware": true': 'scene-aware share presentation',
+    'originatingScenePreferred": true': 'originating iPad share scene preference',
     'lifecycleCleanup": true': 'share staging lifecycle cleanup',
-    'connectedScenes.compactMap': 'foreground scene resolution',
+    'presenter.viewIfLoaded?.window?.windowScene': 'originating share window resolution',
+    'connectedScenes.compactMap': 'foreground scene fallback',
     'didReceiveMemoryWarningNotification': 'orphan cleanup on memory pressure',
     'willEnterForegroundNotification': 'orphan cleanup after returning',
     'presentedShareController?.dismiss': 'detach presentation cleanup',
