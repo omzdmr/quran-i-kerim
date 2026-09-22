@@ -27,7 +27,8 @@ class GoogleDriveBackupSection extends StatefulWidget {
   final bool? enabledOverride;
 
   @override
-  State<GoogleDriveBackupSection> createState() => _GoogleDriveBackupSectionState();
+  State<GoogleDriveBackupSection> createState() =>
+      _GoogleDriveBackupSectionState();
 }
 
 class _GoogleDriveBackupSectionState extends State<GoogleDriveBackupSection> {
@@ -152,6 +153,11 @@ class _GoogleDriveBackupSectionState extends State<GoogleDriveBackupSection> {
     try {
       await action();
     } on BackupCloudConflictException {
+      if (refreshOnFailure && _controller.connected) {
+        try {
+          await _controller.refresh();
+        } catch (_) {}
+      }
       if (!mounted) return;
       final message =
           '${context.l10n.text('backupCloudDiverged')} ${context.l10n.text('backupCloudRefresh')}';
@@ -217,10 +223,12 @@ class _GoogleDriveBackupSectionState extends State<GoogleDriveBackupSection> {
     if (!(widget.enabledOverride ?? BackupBuildConfig.googleDriveEnabled)) {
       return const SizedBox.shrink();
     }
+
     final l10n = context.l10n;
     final scheme = Theme.of(context).colorScheme;
     final state = _controller.state;
     final remote = _controller.inspection?.remote;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -231,31 +239,88 @@ class _GoogleDriveBackupSectionState extends State<GoogleDriveBackupSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Icon(Icons.cloud_outlined, color: scheme.primary),
-            const SizedBox(width: 10),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(l10n.text('backupCloudTitle'), style: const TextStyle(fontWeight: FontWeight.w900)),
-              if (_controller.accountLabel != null)
-                Text(l10n.text('backupCloudConnectedAs').replaceAll('{account}', _controller.accountLabel!), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
-            ])),
-            if (_controller.connected)
-              IconButton(tooltip: l10n.text('backupCloudSignOut'), onPressed: _controller.busy ? null : _signOut, icon: const Icon(Icons.logout_rounded)),
-          ]),
+          Row(
+            children: [
+              Icon(Icons.cloud_outlined, color: scheme.primary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.text('backupCloudTitle'),
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                    if (_controller.accountLabel != null)
+                      Text(
+                        l10n
+                            .text('backupCloudConnectedAs')
+                            .replaceAll(
+                              '{account}',
+                              _controller.accountLabel!,
+                            ),
+                        style: TextStyle(
+                          color: scheme.onSurfaceVariant,
+                          fontSize: 12,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              if (_controller.connected)
+                IconButton(
+                  tooltip: l10n.text('backupCloudSignOut'),
+                  onPressed: _controller.busy ? null : _signOut,
+                  icon: const Icon(Icons.logout_rounded),
+                ),
+            ],
+          ),
           const SizedBox(height: 10),
-          Text(l10n.text('backupCloudSubtitle'), style: TextStyle(color: scheme.onSurfaceVariant, height: 1.4)),
-          if (_controller.busy) ...[const SizedBox(height: 14), const LinearProgressIndicator()],
+          Text(
+            l10n.text('backupCloudSubtitle'),
+            style: TextStyle(color: scheme.onSurfaceVariant, height: 1.4),
+          ),
+          if (_controller.busy) ...[
+            const SizedBox(height: 14),
+            const LinearProgressIndicator(),
+          ],
           const SizedBox(height: 14),
           if (!_controller.connected)
-            SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: _controller.busy ? null : _connect, icon: const Icon(Icons.account_circle_outlined), label: Text(l10n.text('backupCloudConnect'))))
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: _controller.busy ? null : _connect,
+                icon: const Icon(Icons.account_circle_outlined),
+                label: Text(l10n.text('backupCloudConnect')),
+              ),
+            )
           else ...[
             _CloudStatusLine(state: state),
             if (remote != null) ...[
               const SizedBox(height: 6),
-              Text(l10n.text('backupCloudUpdatedAt').replaceAll('{date}', _formatDateTime(context, remote.updatedAt)), style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12)),
+              Text(
+                l10n
+                    .text('backupCloudUpdatedAt')
+                    .replaceAll(
+                      '{date}',
+                      _formatDateTime(context, remote.updatedAt),
+                    ),
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant,
+                  fontSize: 12,
+                ),
+              ),
             ],
             const SizedBox(height: 14),
-            _CloudActions(state: state, busy: _controller.busy, onRefresh: _refresh, onUpload: () => _upload(overwrite: false), onOverwrite: () => _upload(overwrite: true), onRestore: _restore, onReplaceInvalid: _replaceInvalid),
+            _CloudActions(
+              state: state,
+              busy: _controller.busy,
+              onRefresh: _refresh,
+              onUpload: () => _upload(overwrite: false),
+              onOverwrite: () => _upload(overwrite: true),
+              onRestore: _restore,
+              onReplaceInvalid: _replaceInvalid,
+            ),
           ],
         ],
       ),
@@ -265,7 +330,9 @@ class _GoogleDriveBackupSectionState extends State<GoogleDriveBackupSection> {
 
 class _CloudStatusLine extends StatelessWidget {
   const _CloudStatusLine({required this.state});
+
   final BackupCloudState? state;
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -283,33 +350,101 @@ class _CloudStatusLine extends StatelessWidget {
       BackupCloudState.invalidRemote => Icons.warning_amber_rounded,
       null => Icons.sync_rounded,
     };
-    return Row(children: [Icon(icon, size: 20, color: scheme.primary), const SizedBox(width: 8), Expanded(child: Text(context.l10n.text(key), style: const TextStyle(fontWeight: FontWeight.w700)))]);
+
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: scheme.primary),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            context.l10n.text(key),
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+        ),
+      ],
+    );
   }
 }
 
 class _CloudActions extends StatelessWidget {
-  const _CloudActions({required this.state, required this.busy, required this.onRefresh, required this.onUpload, required this.onOverwrite, required this.onRestore, required this.onReplaceInvalid});
+  const _CloudActions({
+    required this.state,
+    required this.busy,
+    required this.onRefresh,
+    required this.onUpload,
+    required this.onOverwrite,
+    required this.onRestore,
+    required this.onReplaceInvalid,
+  });
+
   final BackupCloudState? state;
   final bool busy;
-  final VoidCallback onRefresh, onUpload, onOverwrite, onRestore, onReplaceInvalid;
+  final VoidCallback onRefresh;
+  final VoidCallback onUpload;
+  final VoidCallback onOverwrite;
+  final VoidCallback onRestore;
+  final VoidCallback onReplaceInvalid;
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    if (state == BackupCloudState.remoteEmpty) return SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: busy ? null : onUpload, icon: const Icon(Icons.cloud_upload_outlined), label: Text(l10n.text('backupCloudUpload'))));
-    if (state == BackupCloudState.diverged) {
-      return Column(children: [
-        SizedBox(width: double.infinity, child: FilledButton.tonalIcon(onPressed: busy ? null : onOverwrite, icon: const Icon(Icons.cloud_upload_outlined), label: Text(l10n.text('backupCloudUpload')))),
-        const SizedBox(height: 8),
-        SizedBox(width: double.infinity, child: OutlinedButton.icon(onPressed: busy ? null : onRestore, icon: const Icon(Icons.cloud_download_outlined), label: Text(l10n.text('backupCloudRestore')))),
-      ]);
+    if (state == BackupCloudState.remoteEmpty) {
+      return SizedBox(
+        width: double.infinity,
+        child: FilledButton.icon(
+          onPressed: busy ? null : onUpload,
+          icon: const Icon(Icons.cloud_upload_outlined),
+          label: Text(l10n.text('backupCloudUpload')),
+        ),
+      );
     }
-    if (state == BackupCloudState.invalidRemote) return SizedBox(width: double.infinity, child: FilledButton.tonalIcon(onPressed: busy ? null : onReplaceInvalid, icon: const Icon(Icons.cloud_upload_outlined), label: Text(l10n.text('backupCloudReplace'))));
-    return SizedBox(width: double.infinity, child: OutlinedButton.icon(onPressed: busy ? null : onRefresh, icon: const Icon(Icons.refresh_rounded), label: Text(l10n.text('backupCloudRefresh'))));
+    if (state == BackupCloudState.diverged) {
+      return Column(
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.tonalIcon(
+              onPressed: busy ? null : onOverwrite,
+              icon: const Icon(Icons.cloud_upload_outlined),
+              label: Text(l10n.text('backupCloudUpload')),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: busy ? null : onRestore,
+              icon: const Icon(Icons.cloud_download_outlined),
+              label: Text(l10n.text('backupCloudRestore')),
+            ),
+          ),
+        ],
+      );
+    }
+    if (state == BackupCloudState.invalidRemote) {
+      return SizedBox(
+        width: double.infinity,
+        child: FilledButton.tonalIcon(
+          onPressed: busy ? null : onReplaceInvalid,
+          icon: const Icon(Icons.cloud_upload_outlined),
+          label: Text(l10n.text('backupCloudReplace')),
+        ),
+      );
+    }
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: busy ? null : onRefresh,
+        icon: const Icon(Icons.refresh_rounded),
+        label: Text(l10n.text('backupCloudRefresh')),
+      ),
+    );
   }
 }
 
 String _formatDateTime(BuildContext context, DateTime value) {
   final local = value.toLocal();
   final material = MaterialLocalizations.of(context);
-  return '${material.formatMediumDate(local)} · ${material.formatTimeOfDay(TimeOfDay.fromDateTime(local))}';
+  return '${material.formatMediumDate(local)} · '
+      '${material.formatTimeOfDay(TimeOfDay.fromDateTime(local))}';
 }
