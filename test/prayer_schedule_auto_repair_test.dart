@@ -50,11 +50,11 @@ void main() {
 
   setUp(() => SharedPreferences.setMockInitialValues(<String, Object>{}));
 
-  test('does nothing when notifications have no applicable configuration', () async {
+  test('inapplicable configuration still invokes cleanup for orphaned OS requests', () async {
     final refresher = _FakeRefresher(fingerprint: null);
     final repair = PrayerScheduleAutoRepair(refresher: refresher, store: store, pendingProbe: const _FakePendingProbe(0));
     expect(await repair.repairIfNeeded(now: now), PrayerScheduleRepairResult.notApplicable);
-    expect(refresher.resyncCalls, 0);
+    expect(refresher.resyncCalls, 1);
   });
 
   test('does not churn a fresh matching schedule that still exists in OS', () async {
