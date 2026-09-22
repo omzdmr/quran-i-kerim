@@ -7,7 +7,7 @@ void main() {
 
   setUp(() => SharedPreferences.setMockInitialValues(<String, Object>{}));
 
-  PrayerNotificationScheduleHealth sample({DateTime? scheduledAt, DateTime? next}) =>
+  PrayerNotificationScheduleHealth sample({DateTime? scheduledAt, DateTime? next, String fingerprint = 'v2-current'}) =>
       PrayerNotificationScheduleHealth(
         scheduledAt: scheduledAt ?? DateTime.utc(2026, 9, 22, 2),
         nextPrayerId: 'dhuhr',
@@ -16,6 +16,7 @@ void main() {
         locationLabel: 'Shanghai',
         calculationMethodId: 'muslimWorldLeague',
         pendingCount: 42,
+        configurationFingerprint: fingerprint,
       );
 
   test('round trips schedule provenance locally', () async {
@@ -27,6 +28,8 @@ void main() {
     expect(restored.locationLabel, 'Shanghai');
     expect(restored.calculationMethodId, 'muslimWorldLeague');
     expect(restored.pendingCount, 42);
+    expect(restored.configurationFingerprint, 'v2-current');
+    expect(restored.schemaVersion, 2);
   });
 
   test('freshness requires a future prayer and recent scheduling evidence', () {
@@ -34,6 +37,19 @@ void main() {
     expect(sample().isFreshAt(now), isTrue);
     expect(sample(scheduledAt: DateTime.utc(2026, 9, 20), next: DateTime.utc(2026, 9, 23)).isFreshAt(now), isFalse);
     expect(sample(next: DateTime.utc(2026, 9, 22, 2, 59)).isFreshAt(now), isFalse);
+  });
+
+  test('fresh-looking schedule is stale after configuration changes', () {
+    final now = DateTime.utc(2026, 9, 22, 3);
+    expect(sample().isFreshAt(now, expectedConfigurationFingerprint: 'v2-current'), isTrue);
+    expect(sample().isFreshAt(now, expectedConfigurationFingerprint: 'v2-after-travel'), isFalse);
+  });
+
+  test('legacy evidence remains readable but cannot satisfy a v2 configuration check', () {
+    final now = DateTime.utc(2026, 9, 22, 3);
+    final legacy = sample(fingerprint: '');
+    expect(legacy.isFreshAt(now), isTrue);
+    expect(legacy.isFreshAt(now, expectedConfigurationFingerprint: 'v2-current'), isFalse);
   });
 
   test('future clock skew is rejected', () {
