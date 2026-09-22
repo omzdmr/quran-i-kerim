@@ -14,6 +14,8 @@ class PrayerNotificationScheduleHealth {
     required this.locationLabel,
     required this.calculationMethodId,
     required this.pendingCount,
+    this.configurationFingerprint = '',
+    this.schemaVersion = 2,
   });
 
   final DateTime scheduledAt;
@@ -24,14 +26,30 @@ class PrayerNotificationScheduleHealth {
   final String calculationMethodId;
   final int pendingCount;
 
-  bool isFreshAt(DateTime now, {Duration maxAge = const Duration(hours: 36)}) {
+  /// Deterministic, non-secret identity of the inputs that produced the
+  /// schedule. It intentionally contains no raw coordinates.
+  final String configurationFingerprint;
+  final int schemaVersion;
+
+  bool isFreshAt(
+    DateTime now, {
+    Duration maxAge = const Duration(hours: 36),
+    String? expectedConfigurationFingerprint,
+  }) {
     final normalizedNow = now.toUtc();
     if (scheduledAt.toUtc().isAfter(normalizedNow.add(const Duration(minutes: 5)))) return false;
     if (normalizedNow.difference(scheduledAt.toUtc()) > maxAge) return false;
-    return nextScheduledAt.toUtc().isAfter(normalizedNow);
+    if (!nextScheduledAt.toUtc().isAfter(normalizedNow)) return false;
+    if (expectedConfigurationFingerprint != null &&
+        expectedConfigurationFingerprint.isNotEmpty &&
+        configurationFingerprint != expectedConfigurationFingerprint) {
+      return false;
+    }
+    return true;
   }
 
   Map<String, Object?> toJson() => <String, Object?>{
+        'schemaVersion': schemaVersion,
         'scheduledAt': scheduledAt.toUtc().toIso8601String(),
         'nextPrayerId': nextPrayerId,
         'nextScheduledAt': nextScheduledAt.toUtc().toIso8601String(),
@@ -39,6 +57,7 @@ class PrayerNotificationScheduleHealth {
         'locationLabel': locationLabel,
         'calculationMethodId': calculationMethodId,
         'pendingCount': pendingCount,
+        'configurationFingerprint': configurationFingerprint,
       };
 
   static PrayerNotificationScheduleHealth? tryParse(Object? raw) {
@@ -50,6 +69,10 @@ class PrayerNotificationScheduleHealth {
     final locationLabel = raw['locationLabel'];
     final calculationMethodId = raw['calculationMethodId'];
     final pendingCount = raw['pendingCount'];
+    final schemaVersion = raw['schemaVersion'] is int ? raw['schemaVersion'] as int : 1;
+    final fingerprint = raw['configurationFingerprint'] is String
+        ? raw['configurationFingerprint'] as String
+        : '';
     if (scheduledAt == null ||
         nextScheduledAt == null ||
         nextPrayerId is! String ||
@@ -62,7 +85,9 @@ class PrayerNotificationScheduleHealth {
         calculationMethodId.trim().isEmpty ||
         pendingCount is! int ||
         pendingCount < 1 ||
-        pendingCount > 100) {
+        pendingCount > 100 ||
+        schemaVersion < 1 ||
+        schemaVersion > 2) {
       return null;
     }
     return PrayerNotificationScheduleHealth(
@@ -73,6 +98,8 @@ class PrayerNotificationScheduleHealth {
       locationLabel: locationLabel,
       calculationMethodId: calculationMethodId,
       pendingCount: pendingCount,
+      configurationFingerprint: fingerprint,
+      schemaVersion: schemaVersion,
     );
   }
 }
