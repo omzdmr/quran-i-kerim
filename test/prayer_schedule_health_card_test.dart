@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quran_i_kerim/src/features/prayer/application/prayer_notification_schedule_health_store.dart';
+import 'package:quran_i_kerim/src/features/prayer/application/prayer_preferences_store.dart';
+import 'package:quran_i_kerim/src/features/prayer/application/prayer_saved_location_resolver.dart';
+import 'package:quran_i_kerim/src/features/prayer/application/prayer_schedule_configuration.dart';
+import 'package:quran_i_kerim/src/features/prayer/domain/prayer_models.dart';
 import 'package:quran_i_kerim/src/features/prayer/presentation/prayer_schedule_health_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -27,6 +31,46 @@ void main() {
     await tester.tap(find.text('Bildirimleri yeniden eşitle'));
     await tester.pumpAndSettle();
     expect(resyncs, 1);
+  });
+
+  testWidgets('matching current inputs are required before UI claims schedule is fresh', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{'app_locale': 'tr'});
+    const settings = PrayerSettingsSnapshot(
+      notificationsEnabled: true,
+      notificationPrayerIds: {'fajr', 'dhuhr'},
+    );
+    const manual = PrayerManualLocationSnapshot(
+      sourceId: 'manual:shanghai',
+      label: 'Shanghai',
+      country: 'China',
+      location: PrayerLocation(latitude: 31.2304, longitude: 121.4737, timeZoneId: 'Asia/Shanghai', label: 'Shanghai'),
+      defaultMethod: PrayerCalculationMethod.muslimWorldLeague,
+      regionCode: 'CN',
+    );
+    await PrayerPreferencesStore.save(settings);
+    await PrayerPreferencesStore.saveManualLocation(manual);
+    final resolved = await const PrayerSavedLocationResolver().resolve();
+    final fingerprint = PrayerScheduleConfiguration.fingerprint(
+      resolved: resolved!,
+      settings: settings,
+      localeTag: 'tr',
+    );
+    await store.save(PrayerNotificationScheduleHealth(
+      scheduledAt: DateTime.utc(2026, 9, 22, 2),
+      nextPrayerId: 'dhuhr',
+      nextScheduledAt: DateTime.utc(2026, 9, 22, 4, 30),
+      timeZoneId: 'Asia/Shanghai',
+      locationLabel: 'Shanghai',
+      calculationMethodId: 'muslimWorldLeague',
+      pendingCount: 20,
+      configurationFingerprint: fingerprint,
+    ));
+
+    await tester.pumpWidget(app(onResync: () async {}));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('güncel bir zamanlamaya sahip'), findsOneWidget);
+    expect(find.text('Bildirimleri yeniden eşitle'), findsNothing);
+    expect(find.textContaining('Son güncelleme'), findsOneWidget);
   });
 
   testWidgets('failed resync stays stale, explains failure and remains retryable', (tester) async {
