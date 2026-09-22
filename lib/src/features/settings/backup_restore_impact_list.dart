@@ -3,10 +3,7 @@ import 'package:flutter/material.dart';
 import '../../data/backup/backup_import_plan.dart';
 
 class BackupRestoreImpactList extends StatelessWidget {
-  const BackupRestoreImpactList({
-    required this.plan,
-    super.key,
-  });
+  const BackupRestoreImpactList({required this.plan, super.key});
 
   final BackupImportPlan plan;
 
@@ -28,10 +25,7 @@ class BackupRestoreImpactList extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            copy.title,
-            style: Theme.of(context).textTheme.titleSmall,
-          ),
+          Text(copy.title, style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: 8),
           for (final impact in changed)
             _ImpactRow(impact: impact, copy: copy),
@@ -122,9 +116,7 @@ class _ImpactCopy {
   final Map<String, String> labels;
 
   String summary(int count) => sectionsChanged.replaceAll('{count}', '$count');
-
   String sectionLabel(String section) => labels[section] ?? section;
-
   String detail(BackupSectionImpact impact) => [
         if (impact.conflictingRecords > 0)
           '$conflicts: ${impact.conflictingRecords}',
@@ -138,119 +130,96 @@ class _ImpactCopy {
       _copies[locale.languageCode] ?? _copies['en']!;
 }
 
+const _trLabels = <String, String>{
+  'reading': 'Okuma ve son konum',
+  'bookmarks': 'Yer imleri',
+  'highlights': 'Vurgular',
+  'notes': 'Notlar',
+  'memorization': 'Ezber ilerlemesi',
+  'memorizationPractice': 'Ezber tekrar geçmişi',
+  'preferences': 'Tercihler',
+  'learning': 'Öğrenme ilerlemesi',
+  'dhikr': 'Zikir kayıtları',
+  'prayerPreferences': 'Namaz tercihleri',
+  'readingPlans': 'Okuma planları',
+  'fasting': 'Oruç kayıtları',
+};
+const _enLabels = <String, String>{
+  'reading': 'Reading and last position',
+  'bookmarks': 'Bookmarks',
+  'highlights': 'Highlights',
+  'notes': 'Notes',
+  'memorization': 'Hifz progress',
+  'memorizationPractice': 'Hifz review history',
+  'preferences': 'Preferences',
+  'learning': 'Learning progress',
+  'dhikr': 'Dhikr records',
+  'prayerPreferences': 'Prayer preferences',
+  'readingPlans': 'Reading plans',
+  'fasting': 'Fasting records',
+};
+const _frLabels = <String, String>{
+  'reading': 'Lecture et dernière position',
+  'bookmarks': 'Signets',
+  'highlights': 'Surlignages',
+  'notes': 'Notes',
+  'memorization': 'Progression de mémorisation',
+  'memorizationPractice': 'Historique des révisions',
+  'preferences': 'Préférences',
+  'learning': 'Progression d’apprentissage',
+  'dhikr': 'Dhikr',
+  'prayerPreferences': 'Préférences de prière',
+  'readingPlans': 'Plans de lecture',
+  'fasting': 'Jeûne',
+};
+const _arLabels = <String, String>{
+  'reading': 'القراءة وآخر موضع',
+  'bookmarks': 'الإشارات المرجعية',
+  'highlights': 'التمييز',
+  'notes': 'الملاحظات',
+  'memorization': 'تقدم الحفظ',
+  'memorizationPractice': 'سجل مراجعة الحفظ',
+  'preferences': 'التفضيلات',
+  'learning': 'تقدم التعلم',
+  'dhikr': 'سجلات الذكر',
+  'prayerPreferences': 'تفضيلات الصلاة',
+  'readingPlans': 'خطط القراءة',
+  'fasting': 'سجلات الصيام',
+};
+const _azLabels = <String, String>{
+  'reading': 'Oxu və son mövqe',
+  'bookmarks': 'Əlfəcinlər',
+  'highlights': 'Vurğular',
+  'notes': 'Qeydlər',
+  'memorization': 'Əzbər irəliləyişi',
+  'memorizationPractice': 'Əzbər təkrar tarixçəsi',
+  'preferences': 'Seçimlər',
+  'learning': 'Öyrənmə irəliləyişi',
+  'dhikr': 'Zikr qeydləri',
+  'prayerPreferences': 'Namaz seçimləri',
+  'readingPlans': 'Oxu planları',
+  'fasting': 'Oruc qeydləri',
+};
+const _ruLabels = <String, String>{
+  'reading': 'Чтение и последняя позиция',
+  'bookmarks': 'Закладки',
+  'highlights': 'Выделения',
+  'notes': 'Заметки',
+  'memorization': 'Прогресс хифза',
+  'memorizationPractice': 'История повторения',
+  'preferences': 'Настройки',
+  'learning': 'Прогресс обучения',
+  'dhikr': 'Записи зикра',
+  'prayerPreferences': 'Настройки молитвы',
+  'readingPlans': 'Планы чтения',
+  'fasting': 'Записи поста',
+};
+
 const _copies = <String, _ImpactCopy>{
-  'tr': _ImpactCopy(
-    title: 'Bölümlere göre değişiklikler',
-    noChanges: 'Bu yedek cihazdaki kayıtları değiştirmiyor.',
-    sectionsChanged: '{count} bölümde değişiklik var.',
-    conflicts: 'Çakışan',
-    added: 'Yedekten gelecek',
-    deviceOnly: 'Yalnız cihazda',
-    labels: {
-      'reader': 'Okuma ve son konum',
-      'bookmarks': 'Yer imleri',
-      'notes': 'Notlar',
-      'highlights': 'Vurgular',
-      'hifz': 'Ezber ve tekrar',
-      'plans': 'Planlar ve ilerleme',
-      'fasting': 'Oruç kayıtları',
-      'settings': 'Tercihler',
-      'travel': 'Seyahat verileri',
-    },
-  ),
-  'en': _ImpactCopy(
-    title: 'Changes by section',
-    noChanges: 'This backup does not change records on this device.',
-    sectionsChanged: '{count} sections have changes.',
-    conflicts: 'Conflicts',
-    added: 'From backup',
-    deviceOnly: 'Device only',
-    labels: {
-      'reader': 'Reading and last position',
-      'bookmarks': 'Bookmarks',
-      'notes': 'Notes',
-      'highlights': 'Highlights',
-      'hifz': 'Hifz and review',
-      'plans': 'Plans and progress',
-      'fasting': 'Fasting records',
-      'settings': 'Preferences',
-      'travel': 'Travel data',
-    },
-  ),
-  'fr': _ImpactCopy(
-    title: 'Modifications par section',
-    noChanges: 'Cette sauvegarde ne modifie aucun enregistrement sur cet appareil.',
-    sectionsChanged: '{count} sections comportent des modifications.',
-    conflicts: 'Conflits',
-    added: 'Depuis la sauvegarde',
-    deviceOnly: 'Appareil seulement',
-    labels: {
-      'reader': 'Lecture et dernière position',
-      'bookmarks': 'Signets',
-      'notes': 'Notes',
-      'highlights': 'Surlignages',
-      'hifz': 'Mémorisation et révision',
-      'plans': 'Plans et progression',
-      'fasting': 'Jeûne',
-      'settings': 'Préférences',
-      'travel': 'Voyage',
-    },
-  ),
-  'ar': _ImpactCopy(
-    title: 'التغييرات حسب القسم',
-    noChanges: 'هذه النسخة لا تغيّر سجلات هذا الجهاز.',
-    sectionsChanged: 'توجد تغييرات في {count} أقسام.',
-    conflicts: 'متعارضة',
-    added: 'من النسخة',
-    deviceOnly: 'على الجهاز فقط',
-    labels: {
-      'reader': 'القراءة وآخر موضع',
-      'bookmarks': 'الإشارات المرجعية',
-      'notes': 'الملاحظات',
-      'highlights': 'التمييز',
-      'hifz': 'الحفظ والمراجعة',
-      'plans': 'الخطط والتقدم',
-      'fasting': 'سجلات الصيام',
-      'settings': 'التفضيلات',
-      'travel': 'بيانات السفر',
-    },
-  ),
-  'az': _ImpactCopy(
-    title: 'Bölmələr üzrə dəyişikliklər',
-    noChanges: 'Bu yedək cihazdakı qeydləri dəyişmir.',
-    sectionsChanged: '{count} bölmədə dəyişiklik var.',
-    conflicts: 'Ziddiyyətli',
-    added: 'Yedəkdən gələcək',
-    deviceOnly: 'Yalnız cihazda',
-    labels: {
-      'reader': 'Oxu və son mövqe',
-      'bookmarks': 'Əlfəcinlər',
-      'notes': 'Qeydlər',
-      'highlights': 'Vurğular',
-      'hifz': 'Əzbər və təkrar',
-      'plans': 'Planlar və irəliləyiş',
-      'fasting': 'Oruc qeydləri',
-      'settings': 'Seçimlər',
-      'travel': 'Səyahət məlumatları',
-    },
-  ),
-  'ru': _ImpactCopy(
-    title: 'Изменения по разделам',
-    noChanges: 'Эта копия не изменяет записи на устройстве.',
-    sectionsChanged: 'Изменения затрагивают разделы: {count}.',
-    conflicts: 'Конфликты',
-    added: 'Из копии',
-    deviceOnly: 'Только на устройстве',
-    labels: {
-      'reader': 'Чтение и последняя позиция',
-      'bookmarks': 'Закладки',
-      'notes': 'Заметки',
-      'highlights': 'Выделения',
-      'hifz': 'Хифз и повторение',
-      'plans': 'Планы и прогресс',
-      'fasting': 'Записи поста',
-      'settings': 'Настройки',
-      'travel': 'Данные поездок',
-    },
-  ),
+  'tr': _ImpactCopy(title: 'Bölümlere göre değişiklikler', noChanges: 'Bu yedek cihazdaki kayıtları değiştirmiyor.', sectionsChanged: '{count} bölümde değişiklik var.', conflicts: 'Çakışan', added: 'Yedekten gelecek', deviceOnly: 'Yalnız cihazda', labels: _trLabels),
+  'en': _ImpactCopy(title: 'Changes by section', noChanges: 'This backup does not change records on this device.', sectionsChanged: '{count} sections have changes.', conflicts: 'Conflicts', added: 'From backup', deviceOnly: 'Device only', labels: _enLabels),
+  'fr': _ImpactCopy(title: 'Modifications par section', noChanges: 'Cette sauvegarde ne modifie aucun enregistrement sur cet appareil.', sectionsChanged: '{count} sections comportent des modifications.', conflicts: 'Conflits', added: 'Depuis la sauvegarde', deviceOnly: 'Appareil seulement', labels: _frLabels),
+  'ar': _ImpactCopy(title: 'التغييرات حسب القسم', noChanges: 'هذه النسخة لا تغيّر سجلات هذا الجهاز.', sectionsChanged: 'توجد تغييرات في {count} أقسام.', conflicts: 'متعارضة', added: 'من النسخة', deviceOnly: 'على الجهاز فقط', labels: _arLabels),
+  'az': _ImpactCopy(title: 'Bölmələr üzrə dəyişikliklər', noChanges: 'Bu yedək cihazdakı qeydləri dəyişmir.', sectionsChanged: '{count} bölmədə dəyişiklik var.', conflicts: 'Ziddiyyətli', added: 'Yedəkdən gələcək', deviceOnly: 'Yalnız cihazda', labels: _azLabels),
+  'ru': _ImpactCopy(title: 'Изменения по разделам', noChanges: 'Эта копия не изменяет записи на устройстве.', sectionsChanged: 'Изменения затрагивают разделы: {count}.', conflicts: 'Конфликты', added: 'Из копии', deviceOnly: 'Только на устройстве', labels: _ruLabels),
 };
