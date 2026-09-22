@@ -6,7 +6,7 @@ import WidgetKit
 #endif
 
 /// Persists small native lifecycle facts so Flutter can distinguish cold launch,
-/// resume, termination recovery and protected-data availability without a backend.
+/// resume, OS background eviction, termination recovery and protected-data availability.
 final class NativeLifecycleStateChannel {
   static let channelName = "app.quranikerim/native_lifecycle_state"
   static let prayerWidgetKind = "PrayerTimesWidget"
@@ -18,6 +18,7 @@ final class NativeLifecycleStateChannel {
     static let launchCount = "native.lifecycle.launchCount"
     static let lastKnownTimeZone = "native.lifecycle.lastKnownTimeZone"
     static let lastProtectedDataAvailableAt = "native.lifecycle.lastProtectedDataAvailableAt"
+    static let lastLifecycleState = "native.lifecycle.lastLifecycleState"
   }
 
   private let channel: FlutterMethodChannel
@@ -26,6 +27,7 @@ final class NativeLifecycleStateChannel {
   private var observers: [NSObjectProtocol] = []
   private let hadPreviousSession: Bool
   private let previousCleanTermination: Bool
+  private let previousLifecycleState: String?
   private let launchedAt = Date()
 
   init(binaryMessenger: FlutterBinaryMessenger, defaults: UserDefaults = .standard, notificationCenter: NotificationCenter = .default) {
@@ -35,7 +37,9 @@ final class NativeLifecycleStateChannel {
     let previousLaunchCount = defaults.integer(forKey: Key.launchCount)
     hadPreviousSession = previousLaunchCount > 0
     previousCleanTermination = hadPreviousSession && defaults.bool(forKey: Key.cleanTermination)
+    previousLifecycleState = defaults.string(forKey: Key.lastLifecycleState)
     defaults.set(false, forKey: Key.cleanTermination)
+    defaults.set("launching", forKey: Key.lastLifecycleState)
     defaults.set(previousLaunchCount + 1, forKey: Key.launchCount)
     defaults.set(TimeZone.current.identifier, forKey: Key.lastKnownTimeZone)
     if UIApplication.shared.isProtectedDataAvailable { defaults.set(Date(), forKey: Key.lastProtectedDataAvailableAt) }
@@ -43,15 +47,15 @@ final class NativeLifecycleStateChannel {
     observeLifecycle()
   }
 
-  func markCleanTermination() { defaults.set(true, forKey: Key.cleanTermination) }
+  func markCleanTermination() { defaults.set("terminated", forKey: Key.lastLifecycleState); defaults.set(true, forKey: Key.cleanTermination) }
   func detach() { observers.forEach(center.removeObserver); observers.removeAll(); channel.setMethodCallHandler(nil) }
 
   private func observeLifecycle() {
     observers = [
-      center.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in self?.record(Key.lastBackgroundAt); self?.emit("background") },
-      center.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in self?.record(Key.lastForegroundAt); self?.reconcilePrayerProjection(reason: "foreground"); self?.emit("foreground") },
-      center.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in self?.reconcilePrayerProjection(reason: "active"); self?.emit("active", extras: ["protectedDataAvailable": UIApplication.shared.isProtectedDataAvailable]) },
-      center.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: .main) { [weak self] _ in self?.emit("inactive") },
+      center.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in self?.record(Key.lastBackgroundAt); self?.recordLifecycleState("background"); self?.emit("background") },
+      center.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in self?.record(Key.lastForegroundAt); self?.recordLifecycleState("foreground"); self?.reconcilePrayerProjection(reason: "foreground"); self?.emit("foreground") },
+      center.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in self?.recordLifecycleState("active"); self?.reconcilePrayerProjection(reason: "active"); self?.emit("active", extras: ["protectedDataAvailable": UIApplication.shared.isProtectedDataAvailable]) },
+      center.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: .main) { [weak self] _ in self?.recordLifecycleState("inactive"); self?.emit("inactive") },
       center.addObserver(forName: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil, queue: .main) { [weak self] _ in self?.protectedDataBecameAvailable() },
       center.addObserver(forName: UIApplication.protectedDataWillBecomeUnavailableNotification, object: nil, queue: .main) { [weak self] _ in self?.emit("protectedDataUnavailable", extras: ["protectedDataAvailable": false]) },
       center.addObserver(forName: NSNotification.Name.NSSystemTimeZoneDidChange, object: nil, queue: .main) { [weak self] _ in self?.handleTimeZoneChange() },
@@ -63,13 +67,15 @@ final class NativeLifecycleStateChannel {
     switch call.method {
     case "snapshot": result(snapshot())
     case "acknowledgeRestore": defaults.removeObject(forKey: Key.lastBackgroundAt); result(nil)
-    case "capabilities": result(["coldLaunchDetection": true, "firstLaunchDistinction": true, "backgroundGap": true, "lifecycleEvents": true, "persistent": true, "timeZoneEvents": true, "significantTimeChange": true, "widgetStaleReconciliation": true, "protectedDataAvailability": true, "targetedWidgetReload": true, "widgetKind": Self.prayerWidgetKind])
+    case "capabilities": result(["coldLaunchDetection": true, "firstLaunchDistinction": true, "backgroundGap": true, "lifecycleEvents": true, "persistent": true, "timeZoneEvents": true, "significantTimeChange": true, "widgetStaleReconciliation": true, "protectedDataAvailability": true, "targetedWidgetReload": true, "widgetKind": Self.prayerWidgetKind, "backgroundEvictionDetection": true, "previousLifecycleState": true])
     default: result(FlutterMethodNotImplemented)
     }
   }
 
   private func snapshot() -> [String: Any] {
-    var payload: [String: Any] = ["launchedAtMs": milliseconds(launchedAt), "launchCount": defaults.integer(forKey: Key.launchCount), "hadPreviousSession": hadPreviousSession, "previousCleanTermination": previousCleanTermination, "applicationState": stateName(UIApplication.shared.applicationState), "timeZone": TimeZone.current.identifier, "protectedDataAvailable": UIApplication.shared.isProtectedDataAvailable]
+    let likelyBackgroundEviction = hadPreviousSession && !previousCleanTermination && previousLifecycleState == "background"
+    var payload: [String: Any] = ["launchedAtMs": milliseconds(launchedAt), "launchCount": defaults.integer(forKey: Key.launchCount), "hadPreviousSession": hadPreviousSession, "previousCleanTermination": previousCleanTermination, "likelyBackgroundEviction": likelyBackgroundEviction, "applicationState": stateName(UIApplication.shared.applicationState), "timeZone": TimeZone.current.identifier, "protectedDataAvailable": UIApplication.shared.isProtectedDataAvailable]
+    if let previousLifecycleState { payload["previousLifecycleState"] = previousLifecycleState }
     if let date = defaults.object(forKey: Key.lastBackgroundAt) as? Date { payload["lastBackgroundAtMs"] = milliseconds(date); payload["backgroundGapMs"] = max(0, milliseconds(Date()) - milliseconds(date)) }
     if let date = defaults.object(forKey: Key.lastForegroundAt) as? Date { payload["lastForegroundAtMs"] = milliseconds(date) }
     if let date = defaults.object(forKey: Key.lastProtectedDataAvailableAt) as? Date { payload["lastProtectedDataAvailableAtMs"] = milliseconds(date) }
@@ -87,6 +93,7 @@ final class NativeLifecycleStateChannel {
     return true
   }
   private func record(_ key: String) { defaults.set(Date(), forKey: key) }
+  private func recordLifecycleState(_ state: String) { defaults.set(state, forKey: Key.lastLifecycleState) }
   private func emit(_ state: String, extras: [String: Any] = [:]) { var payload: [String: Any] = ["state": state, "atMs": milliseconds(Date())]; extras.forEach { payload[$0.key] = $0.value }; channel.invokeMethod("lifecycleChanged", arguments: payload) }
   private func milliseconds(_ date: Date) -> Int64 { Int64(date.timeIntervalSince1970 * 1000) }
   private func stateName(_ state: UIApplication.State) -> String { switch state { case .active: return "active"; case .inactive: return "inactive"; case .background: return "background"; @unknown default: return "unknown" } }
