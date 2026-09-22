@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'backup_cloud_store.dart';
 import 'backup_document.dart';
 import 'backup_file_service.dart';
+import 'backup_import_plan.dart';
+import 'backup_preview.dart';
 import 'local_backup_service.dart';
 
 enum BackupCloudState {
@@ -29,13 +31,19 @@ class BackupCloudInspection {
       remote != null && state != BackupCloudState.invalidRemote;
 }
 
+class BackupCloudRestorePreparation {
+  const BackupCloudRestorePreparation({
+    required this.remoteRevision,
+    required this.preview,
+    required this.plan,
+  });
+
+  final String remoteRevision;
+  final BackupPreview preview;
+  final BackupImportPlan plan;
+}
+
 /// Coordinates cloud backup without silently choosing a winner.
-///
-/// The local and remote payloads are compared using only their `data` section;
-/// `createdAt` is intentionally ignored so a freshly generated local envelope
-/// does not look newer when the underlying user data is unchanged. If data
-/// differs, the coordinator reports [BackupCloudState.diverged] and requires
-/// the caller to make an explicit choice before overwriting either side.
 class BackupCloudCoordinator {
   BackupCloudCoordinator({
     required this.store,
@@ -99,6 +107,25 @@ class BackupCloudCoordinator {
     );
   }
 
+  Future<BackupCloudRestorePreparation> prepareRemoteRestore(
+    BackupCloudInspection inspection,
+  ) async {
+    final remote = inspection.remote;
+    if (remote == null) {
+      throw StateError('There is no remote backup to restore.');
+    }
+    final preview = localBackupService.previewJson(remote.content);
+    if (!inspection.canRestoreRemote || !preview.canRestore) {
+      throw const FormatException('Remote backup is not restorable.');
+    }
+    final plan = await localBackupService.planImportJson(remote.content);
+    return BackupCloudRestorePreparation(
+      remoteRevision: remote.revision,
+      preview: preview,
+      plan: plan,
+    );
+  }
+
   Future<BackupCloudObject> uploadLocal(
     BackupCloudInspection inspection, {
     bool allowOverwrite = false,
@@ -121,8 +148,9 @@ class BackupCloudCoordinator {
   }
 
   Future<BackupRestoreReceipt> restoreRemote(
-    BackupCloudInspection inspection,
-  ) async {
+    BackupCloudInspection inspection, {
+    BackupRestoreMode mode = BackupRestoreMode.replace,
+  }) async {
     final remote = inspection.remote;
     if (remote == null) {
       throw StateError('There is no remote backup to restore.');
@@ -130,10 +158,7 @@ class BackupCloudCoordinator {
     if (!inspection.canRestoreRemote) {
       throw const FormatException('Remote backup is not restorable.');
     }
-    return restoreFileService.restoreEncoded(
-      remote.content,
-      mode: BackupRestoreMode.replace,
-    );
+    return restoreFileService.restoreEncoded(remote.content, mode: mode);
   }
 
   String _dataSignature(Object? decoded) {
