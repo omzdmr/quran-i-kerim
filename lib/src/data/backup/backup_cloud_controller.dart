@@ -74,7 +74,16 @@ class BackupCloudController extends ChangeNotifier {
       _inspection = fresh;
       notifyListeners();
       receipt = await coordinator.restoreRemote(fresh);
-      await _refreshInspection();
+
+      // The restore is already committed locally and the receipt is now the
+      // user's rollback handle. A transient second cloud read must never turn
+      // that successful restore into an apparent failure or discard Undo.
+      try {
+        await _refreshInspection();
+      } catch (_) {
+        // Keep the last fresh remote inspection. Manual refresh remains
+        // available and local restore/rollback correctness is unaffected.
+      }
     });
     return receipt;
   }
