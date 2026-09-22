@@ -8,9 +8,7 @@ void main() {
   BackupPreview parse(Object? value) => parser.parse(<String, Object?>{
         'version': BackupManifest.schemaVersion,
         'createdAt': '2026-09-22T00:00:00Z',
-        'data': <String, Object?>{
-          'preferences': <String, Object?>{'app_locale': value},
-        },
+        'data': <String, Object?>{'preferences': <String, Object?>{'app_locale': value}},
       });
 
   test('accepts every SharedPreferences-compatible JSON value shape', () {
@@ -27,6 +25,18 @@ void main() {
 
   test('rejects mixed-type lists before SharedPreferences write', () {
     final preview = parse(<Object?>['tr', 42]);
+    expect(preview.canRestore, isFalse);
+    expect(preview.issues, contains(BackupPreviewIssue.invalidData));
+  });
+
+  test('rejects non-string keys inside a portable section', () {
+    final preview = parser.parse(<String, Object?>{
+      'version': BackupManifest.schemaVersion,
+      'createdAt': '2026-09-22T00:00:00Z',
+      'data': <String, Object?>{
+        'preferences': <Object?, Object?>{42: 'not-a-preference-key'},
+      },
+    });
     expect(preview.canRestore, isFalse);
     expect(preview.issues, contains(BackupPreviewIssue.invalidData));
   });
