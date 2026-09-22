@@ -22,6 +22,7 @@ void main() {
     expect(find.text('Yalnız cihazda: 2'), findsOneWidget);
     expect(find.byIcon(Icons.shield_outlined), findsOneWidget);
     expect(find.textContaining('otomatik güvenlik kopyası'), findsOneWidget);
+    expect(find.textContaining('Geri al düğmesiyle'), findsOneWidget);
 
     await tester.tap(find.text('Değiştir'));
     await tester.pumpAndSettle();
@@ -37,5 +38,14 @@ void main() {
     expect(find.text('Merge'), findsOneWidget);
     expect(find.text('Replace'), findsOneWidget);
     expect(find.textContaining('safety copy'), findsOneWidget);
+    expect(find.textContaining('on-screen Undo action'), findsOneWidget);
+  });
+
+  test('all product locales explain immediate undo without losing safety-copy wording', () {
+    for (final code in const <String>['tr', 'en', 'fr', 'ar', 'az', 'ru']) {
+      final copy = BackupRestoreCopy.forLocale(Locale(code));
+      expect(copy.safetyNote, isNotEmpty, reason: code);
+      expect(copy.safetyNote.length, greaterThan(80), reason: code);
+    }
   });
 }
