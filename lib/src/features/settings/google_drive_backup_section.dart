@@ -4,8 +4,10 @@ import 'package:flutter/services.dart';
 import '../../data/backup/backup_build_config.dart';
 import '../../data/backup/backup_cloud_controller.dart';
 import '../../data/backup/backup_cloud_coordinator.dart';
+import '../../data/backup/backup_file_service.dart';
 import '../../data/backup/google_drive_backup_auth.dart';
 import '../../l10n/app_localizations.dart';
+import 'backup_restore_feedback.dart';
 
 class GoogleDriveBackupSection extends StatefulWidget {
   const GoogleDriveBackupSection({
@@ -21,13 +23,19 @@ class GoogleDriveBackupSection extends StatefulWidget {
 }
 
 class _GoogleDriveBackupSectionState extends State<GoogleDriveBackupSection> {
+  final BackupFileService _restoreSafetyService = BackupFileService();
   late final BackupCloudController _controller;
 
   @override
   void initState() {
     super.initState();
-    _controller = BackupCloudController(connector: GoogleDriveBackupAuth())
-      ..addListener(_onChanged);
+    _controller = BackupCloudController(
+      connector: GoogleDriveBackupAuth(),
+      coordinatorFactory: (store) => BackupCloudCoordinator(
+        store: store,
+        restoreFileService: _restoreSafetyService,
+      ),
+    )..addListener(_onChanged);
   }
 
   void _onChanged() {
@@ -91,15 +99,21 @@ class _GoogleDriveBackupSectionState extends State<GoogleDriveBackupSection> {
     )) {
       return;
     }
-    var restored = false;
+    BackupRestoreReceipt? receipt;
     await _guard(() async {
-      await _controller.restoreRemote();
-      restored = true;
+      receipt = await _controller.restoreRemote();
+      if (receipt == null) return;
       await widget.onRestored();
     });
-    if (restored && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.l10n.text('backupRestored'))),
+    if (receipt != null && mounted) {
+      await BackupRestoreFeedback.show(
+        context: context,
+        service: _restoreSafetyService,
+        receipt: receipt!,
+        afterUndo: () async {
+          await widget.onRestored();
+          await _controller.refresh();
+        },
       );
     }
   }
