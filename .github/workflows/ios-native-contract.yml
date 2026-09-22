@@ -62,6 +62,9 @@ jobs:
           grep -q 'maxShareFileBytes: Int64 = 64' ios/Runner/NativeShareChannel.swift
           grep -q 'copyOnShare": true' ios/Runner/NativeShareChannel.swift
           grep -q 'backupExcludedStaging": true' ios/Runner/NativeShareChannel.swift
+          grep -q 'orphanCleanup": true' ios/Runner/NativeShareChannel.swift
+          grep -q 'orphanLifetime: TimeInterval = 24' ios/Runner/NativeShareChannel.swift
+          grep -q 'cleanupOrphanedStaging()' ios/Runner/NativeShareChannel.swift
           grep -q 'FileProtectionType.completeUntilFirstUserAuthentication' ios/Runner/NativeShareChannel.swift
           grep -q 'isExcludedFromBackup = true' ios/Runner/NativeShareChannel.swift
           grep -q 'cleanupStagedShare' ios/Runner/NativeShareChannel.swift
