@@ -1,19 +1,32 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quran_i_kerim/src/data/backup/backup_cloud_coordinator.dart';
 import 'package:quran_i_kerim/src/data/backup/backup_cloud_store.dart';
+import 'package:quran_i_kerim/src/data/backup/backup_file_service.dart';
 import 'package:quran_i_kerim/src/data/backup/local_backup_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  setUp(() {
+  late Directory tempRoot;
+
+  setUp(() async {
     SharedPreferences.setMockInitialValues(<String, Object>{
       'last_surah': 2,
       'last_ayah': 255,
       'bookmarks': <String>['2:255'],
     });
+    tempRoot = await Directory.systemTemp.createTemp('quran_cloud_restore_');
   });
+
+  tearDown(() async {
+    if (await tempRoot.exists()) await tempRoot.delete(recursive: true);
+  });
+
+  BackupFileService restoreService() => BackupFileService(
+        directoryProvider: () async => tempRoot,
+      );
 
   test('reports an empty remote and creates the first cloud backup', () async {
     final store = _FakeCloudStore();
@@ -125,6 +138,7 @@ void main() {
           updatedAt: DateTime.parse('2026-09-15T08:00:00Z'),
         ),
       ),
+      restoreFileService: restoreService(),
     );
 
     final inspection = await coordinator.inspect();
@@ -137,7 +151,7 @@ void main() {
     );
   });
 
-  test('restores valid remote data without silently uploading local state', () async {
+  test('cloud restore creates a local safety snapshot and can undo exactly', () async {
     final remoteJson = jsonEncode(<String, Object?>{
       'version': 3,
       'createdAt': '2026-09-15T08:00:00Z',
@@ -153,15 +167,28 @@ void main() {
         updatedAt: DateTime.parse('2026-09-15T08:00:00Z'),
       ),
     );
-    final coordinator = BackupCloudCoordinator(store: store);
+    final fileService = restoreService();
+    final coordinator = BackupCloudCoordinator(
+      store: store,
+      restoreFileService: fileService,
+    );
     final inspection = await coordinator.inspect();
 
-    await coordinator.restoreRemote(inspection);
+    final receipt = await coordinator.restoreRemote(inspection);
 
-    final prefs = await SharedPreferences.getInstance();
+    var prefs = await SharedPreferences.getInstance();
     expect(prefs.getInt('last_surah'), 36);
     expect(prefs.getInt('last_ayah'), 58);
     expect(store.writeCount, 0);
+    expect(await receipt.safetySnapshot.exists(), isTrue);
+    expect(await fileService.listBackupFiles(), hasLength(1));
+
+    await fileService.undoRestore(receipt);
+    prefs = await SharedPreferences.getInstance();
+    expect(prefs.getInt('last_surah'), 2);
+    expect(prefs.getInt('last_ayah'), 255);
+    expect(prefs.getStringList('bookmarks'), <String>['2:255']);
+    expect(store.writeCount, 0, reason: 'Undo must never overwrite the remote backup.');
   });
 }
 
