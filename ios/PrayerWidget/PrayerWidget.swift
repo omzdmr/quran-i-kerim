@@ -33,6 +33,7 @@ private struct PrayerSnapshot: Decodable {
     let hasPrayerID = !(prayerID?.isEmpty ?? true)
     let hasPrayerTime = nextPrayerAt != nil
     guard generatedAt < validUntil,
+          privacyMode == "standard" || privacyMode == "redacted",
           TimeZone(identifier: timeZoneIdentifier) != nil,
           !calculationFingerprint.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
           hasPrayerID == hasPrayerTime,
@@ -119,12 +120,18 @@ private struct PrayerWidgetView: View {
 
   @ViewBuilder private func content(_ snapshot: PrayerSnapshot) -> some View {
     if let id = snapshot.nextPrayerID, let at = snapshot.nextPrayerAt {
-      if #available(iOSApplicationExtension 16.0, *), family == .accessoryCircular { circular(id: id, at: at) }
+      if #available(iOSApplicationExtension 16.0, *), family == .accessoryInline { inline(id: id, at: at) }
+      else if #available(iOSApplicationExtension 16.0, *), family == .accessoryCircular { circular(id: id, at: at) }
       else if #available(iOSApplicationExtension 16.0, *), family == .accessoryRectangular { rectangular(id: id, at: at) }
       else { homeScreen(id: id, at: at) }
     } else { unavailable }
   }
 
+  @available(iOSApplicationExtension 16.0, *) private func inline(id: String, at: Double) -> some View {
+    Text("\(localizedPrayerName(id)) · \(time(at))")
+      .lineLimit(1)
+      .accessibilityLabel(accessibilityLabel(id: id, at: at))
+  }
   @available(iOSApplicationExtension 16.0, *) private func circular(id: String, at: Double) -> some View {
     VStack(spacing: 1) { Text(localizedPrayerName(id)).font(.caption2).lineLimit(1).minimumScaleFactor(0.7); Text(time(at)).font(.caption.bold()).minimumScaleFactor(0.65) }
       .accessibilityElement(children: .ignore).accessibilityLabel(accessibilityLabel(id: id, at: at))
@@ -144,13 +151,23 @@ private struct PrayerWidgetView: View {
     }
   }
 
-  private var privacyRedacted: some View { VStack(alignment: .leading, spacing: 4) { Text(String(localized: "Prayer times hidden", table: "Localizable")).font(.headline); Text(String(localized: "Prayer times hidden for privacy", table: "Localizable")).font(.caption).foregroundStyle(.secondary) }.accessibilityElement(children: .combine) }
-  private var unavailable: some View {
-    VStack(alignment: .leading, spacing: 4) {
-      Text(String(localized: "Prayer Times", table: "Localizable")).font(.headline)
-      Text(String(localized: "Open app to refresh", table: "Localizable")).font(.caption).foregroundStyle(.secondary)
+  @ViewBuilder private var privacyRedacted: some View {
+    if #available(iOSApplicationExtension 16.0, *), family == .accessoryInline {
+      Text(String(localized: "Prayer times hidden", table: "Localizable")).accessibilityLabel(String(localized: "Prayer times hidden for privacy", table: "Localizable"))
+    } else {
+      VStack(alignment: .leading, spacing: 4) { Text(String(localized: "Prayer times hidden", table: "Localizable")).font(.headline); Text(String(localized: "Prayer times hidden for privacy", table: "Localizable")).font(.caption).foregroundStyle(.secondary) }.accessibilityElement(children: .combine)
     }
-    .accessibilityElement(children: .combine)
+  }
+  @ViewBuilder private var unavailable: some View {
+    if #available(iOSApplicationExtension 16.0, *), family == .accessoryInline {
+      Text(String(localized: "Open app to refresh", table: "Localizable"))
+    } else {
+      VStack(alignment: .leading, spacing: 4) {
+        Text(String(localized: "Prayer Times", table: "Localizable")).font(.headline)
+        Text(String(localized: "Open app to refresh", table: "Localizable")).font(.caption).foregroundStyle(.secondary)
+      }
+      .accessibilityElement(children: .combine)
+    }
   }
   private func time(_ milliseconds: Double) -> String { let formatter = DateFormatter(); formatter.locale = .autoupdatingCurrent; formatter.timeZone = .autoupdatingCurrent; formatter.timeStyle = .short; formatter.dateStyle = .none; return formatter.string(from: Date(timeIntervalSince1970: milliseconds / 1000)) }
   private func localizedPrayerName(_ id: String) -> String {
@@ -168,6 +185,6 @@ private struct PrayerWidgetView: View {
 }
 
 @main struct PrayerTimesWidget: Widget {
-  private var supportedFamilies: [WidgetFamily] { var families: [WidgetFamily] = [.systemSmall, .systemMedium, .systemLarge, .systemExtraLarge]; if #available(iOSApplicationExtension 16.0, *) { families.append(contentsOf: [.accessoryCircular, .accessoryRectangular]) }; return families }
+  private var supportedFamilies: [WidgetFamily] { var families: [WidgetFamily] = [.systemSmall, .systemMedium, .systemLarge, .systemExtraLarge]; if #available(iOSApplicationExtension 16.0, *) { families.append(contentsOf: [.accessoryInline, .accessoryCircular, .accessoryRectangular]) }; return families }
   var body: some WidgetConfiguration { StaticConfiguration(kind: "PrayerTimesWidget", provider: PrayerProvider()) { entry in PrayerWidgetView(entry: entry) }.configurationDisplayName(String(localized: "Prayer Times", table: "Localizable")).description(String(localized: "Shows the next prayer from your on-device schedule.", table: "Localizable")).supportedFamilies(supportedFamilies) }
 }
