@@ -72,6 +72,15 @@ class BackupCloudCoordinator {
       );
     }
 
+    if (!_payloadWithinLimit(remote.content)) {
+      return BackupCloudInspection(
+        state: BackupCloudState.invalidRemote,
+        localDocument: localDocument,
+        localJson: localJson,
+        remote: remote,
+      );
+    }
+
     final remotePreview = localBackupService.previewJson(remote.content);
     if (!remotePreview.canRestore) {
       return BackupCloudInspection(
@@ -113,6 +122,9 @@ class BackupCloudCoordinator {
     final remote = inspection.remote;
     if (remote == null) {
       throw StateError('There is no remote backup to restore.');
+    }
+    if (!_payloadWithinLimit(remote.content)) {
+      throw const FormatException('Remote backup exceeds the import size limit.');
     }
     final preview = localBackupService.previewJson(remote.content);
     if (!inspection.canRestoreRemote || !preview.canRestore) {
@@ -160,6 +172,10 @@ class BackupCloudCoordinator {
     }
     return restoreFileService.restoreEncoded(remote.content, mode: mode);
   }
+
+  bool _payloadWithinLimit(String content) =>
+      restoreFileService.maxImportBytes > 0 &&
+      utf8.encode(content).length <= restoreFileService.maxImportBytes;
 
   String _dataSignature(Object? decoded) {
     if (decoded is! Map) return '';
