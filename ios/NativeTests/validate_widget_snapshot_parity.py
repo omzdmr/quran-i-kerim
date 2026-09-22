@@ -25,6 +25,13 @@ for name, (needle, first, second) in checks.items():
     if needle not in first or (second is not None and needle not in second):
         failed.append(f"{name}: missing {needle!r}")
 
+# A standard snapshot with no next prayer is not 'fresh': the app would report fresh while
+# the widget showed its unavailable state. Redacted snapshots may omit the prayer pair.
+if "privacyMode == .redacted || hasPrayerID" not in runner:
+    failed.append("Runner must reject empty standard prayer projections")
+if 'privacyMode == "redacted" || hasPrayerID' not in widget:
+    failed.append("WidgetKit must reject empty standard prayer projections")
+
 for needle in (
     "result.freshness != nil",
     "5 * 60",
