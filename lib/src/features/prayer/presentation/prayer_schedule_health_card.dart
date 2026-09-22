@@ -22,6 +22,7 @@ class _PrayerScheduleHealthCardState extends State<PrayerScheduleHealthCard> {
   String? _currentFingerprint;
   bool _loading = true;
   bool _resyncing = false;
+  bool _resyncFailed = false;
 
   @override
   void initState() {
@@ -42,10 +43,15 @@ class _PrayerScheduleHealthCardState extends State<PrayerScheduleHealthCard> {
 
   Future<void> _resync() async {
     if (_resyncing) return;
-    setState(() => _resyncing = true);
+    setState(() {
+      _resyncing = true;
+      _resyncFailed = false;
+    });
     try {
       await widget.onResync();
       await _load();
+    } catch (_) {
+      if (mounted) setState(() => _resyncFailed = true);
     } finally {
       if (mounted) setState(() => _resyncing = false);
     }
@@ -80,8 +86,8 @@ class _PrayerScheduleHealthCardState extends State<PrayerScheduleHealthCard> {
 
     return Semantics(
       container: true,
-      liveRegion: !_loading && !fresh,
-      label: '${copy.title}. $status',
+      liveRegion: (!_loading && !fresh) || _resyncFailed,
+      label: '${copy.title}. $status${_resyncFailed ? ' ${copy.resyncFailed}' : ''}',
       child: Card(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -95,6 +101,10 @@ class _PrayerScheduleHealthCardState extends State<PrayerScheduleHealthCard> {
               ]),
               const SizedBox(height: 10),
               Text(status, style: TextStyle(color: fresh ? scheme.onSurfaceVariant : scheme.error, fontWeight: FontWeight.w700)),
+              if (_resyncFailed) ...[
+                const SizedBox(height: 6),
+                Text(copy.resyncFailed, style: TextStyle(color: scheme.error, fontWeight: FontWeight.w700)),
+              ],
               if (health != null) ...[
                 const SizedBox(height: 8),
                 Text('${copy.next}: ${copy.prayerName(health.nextPrayerId)} · ${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(health.nextScheduledAt.toLocal()))}'),
@@ -120,18 +130,18 @@ class _PrayerScheduleHealthCardState extends State<PrayerScheduleHealthCard> {
 }
 
 class PrayerScheduleHealthCopy {
-  const PrayerScheduleHealthCopy(this.title, this.checking, this.healthy, this.needsResync, this.configurationChanged, this.legacySchedule, this.next, this.source, this.method, this.pending, this.updated, this.resync, this.prayers);
-  final String title, checking, healthy, needsResync, configurationChanged, legacySchedule, next, source, method, pending, updated, resync;
+  const PrayerScheduleHealthCopy(this.title, this.checking, this.healthy, this.needsResync, this.configurationChanged, this.legacySchedule, this.resyncFailed, this.next, this.source, this.method, this.pending, this.updated, this.resync, this.prayers);
+  final String title, checking, healthy, needsResync, configurationChanged, legacySchedule, resyncFailed, next, source, method, pending, updated, resync;
   final Map<String, String> prayers;
   String prayerName(String id) => prayers[id] ?? id;
   static PrayerScheduleHealthCopy forLocale(Locale locale) => _copies[locale.languageCode] ?? _copies['en']!;
 }
 
 const _copies = <String, PrayerScheduleHealthCopy>{
-  'tr': PrayerScheduleHealthCopy('Bildirim zamanlama sağlığı', 'Kontrol ediliyor…', 'Namaz bildirimleri güncel bir zamanlamaya sahip.', 'Zamanlama eski veya doğrulanamıyor. Yeniden eşitleyin.', 'Namaz ayarları veya konum değişti. Eski zamanlama kullanılmayacak.', 'Bu zamanlama eski sürümden kaldı ve ayarları doğrulanamıyor.', 'Sıradaki', 'Konum', 'Yöntem', 'Planlanan', 'Son güncelleme', 'Bildirimleri yeniden eşitle', {'fajr':'Sabah','dhuhr':'Öğle','asr':'İkindi','maghrib':'Akşam','isha':'Yatsı'}),
-  'en': PrayerScheduleHealthCopy('Notification schedule health', 'Checking…', 'Prayer notifications have a fresh schedule.', 'The schedule is stale or cannot be verified. Resync it.', 'Prayer settings or location changed. The old schedule will not be treated as current.', 'This schedule is from an older version and its settings cannot be verified.', 'Next', 'Location', 'Method', 'Scheduled', 'Last update', 'Resync notifications', {'fajr':'Fajr','dhuhr':'Dhuhr','asr':'Asr','maghrib':'Maghrib','isha':'Isha'}),
-  'fr': PrayerScheduleHealthCopy('État de la programmation', 'Vérification…', 'Les notifications de prière sont à jour.', 'La programmation est ancienne ou invérifiable. Resynchronisez-la.', 'Les réglages de prière ou le lieu ont changé. L’ancien horaire ne sera pas considéré comme actuel.', 'Cet horaire vient d’une ancienne version et ses réglages ne peuvent pas être vérifiés.', 'Prochaine', 'Lieu', 'Méthode', 'Planifiées', 'Dernière mise à jour', 'Resynchroniser', {'fajr':'Fajr','dhuhr':'Dhuhr','asr':'Asr','maghrib':'Maghrib','isha':'Isha'}),
-  'ar': PrayerScheduleHealthCopy('حالة جدولة التنبيهات', 'جارٍ التحقق…', 'جدول تنبيهات الصلاة محدث.', 'الجدول قديم أو لا يمكن التحقق منه. أعد المزامنة.', 'تغيرت إعدادات الصلاة أو الموقع. لن يُعامل الجدول القديم على أنه محدث.', 'هذا الجدول من إصدار أقدم ولا يمكن التحقق من إعداداته.', 'التالي', 'الموقع', 'الطريقة', 'المجدولة', 'آخر تحديث', 'إعادة مزامنة التنبيهات', {'fajr':'الفجر','dhuhr':'الظهر','asr':'العصر','maghrib':'المغرب','isha':'العشاء'}),
-  'az': PrayerScheduleHealthCopy('Bildiriş cədvəlinin vəziyyəti', 'Yoxlanılır…', 'Namaz bildirişlərinin cədvəli yenidir.', 'Cədvəl köhnədir və ya təsdiqlənmir. Yenidən sinxronlaşdırın.', 'Namaz ayarları və ya məkan dəyişib. Köhnə cədvəl cari sayılmayacaq.', 'Bu cədvəl köhnə versiyadandır və ayarları təsdiqlənmir.', 'Növbəti', 'Məkan', 'Metod', 'Planlanan', 'Son yeniləmə', 'Bildirişləri yenidən sinxronlaşdır', {'fajr':'Sübh','dhuhr':'Zöhr','asr':'Əsr','maghrib':'Məğrib','isha':'İşa'}),
-  'ru': PrayerScheduleHealthCopy('Состояние расписания', 'Проверка…', 'Расписание уведомлений о намазе актуально.', 'Расписание устарело или не подтверждено. Синхронизируйте снова.', 'Настройки намаза или местоположение изменились. Старое расписание не считается актуальным.', 'Это расписание создано старой версией, его настройки нельзя проверить.', 'Следующий', 'Место', 'Метод', 'Запланировано', 'Последнее обновление', 'Синхронизировать', {'fajr':'Фаджр','dhuhr':'Зухр','asr':'Аср','maghrib':'Магриб','isha':'Иша'}),
+  'tr': PrayerScheduleHealthCopy('Bildirim zamanlama sağlığı', 'Kontrol ediliyor…', 'Namaz bildirimleri güncel bir zamanlamaya sahip.', 'Zamanlama eski veya doğrulanamıyor. Yeniden eşitleyin.', 'Namaz ayarları veya konum değişti. Eski zamanlama kullanılmayacak.', 'Bu zamanlama eski sürümden kaldı ve ayarları doğrulanamıyor.', 'Yeniden eşitleme tamamlanamadı. Mevcut zamanlama güncel kabul edilmedi; tekrar deneyebilirsiniz.', 'Sıradaki', 'Konum', 'Yöntem', 'Planlanan', 'Son güncelleme', 'Bildirimleri yeniden eşitle', {'fajr':'Sabah','dhuhr':'Öğle','asr':'İkindi','maghrib':'Akşam','isha':'Yatsı'}),
+  'en': PrayerScheduleHealthCopy('Notification schedule health', 'Checking…', 'Prayer notifications have a fresh schedule.', 'The schedule is stale or cannot be verified. Resync it.', 'Prayer settings or location changed. The old schedule will not be treated as current.', 'This schedule is from an older version and its settings cannot be verified.', 'Resync could not be completed. The existing schedule is not treated as current; you can retry.', 'Next', 'Location', 'Method', 'Scheduled', 'Last update', 'Resync notifications', {'fajr':'Fajr','dhuhr':'Dhuhr','asr':'Asr','maghrib':'Maghrib','isha':'Isha'}),
+  'fr': PrayerScheduleHealthCopy('État de la programmation', 'Vérification…', 'Les notifications de prière sont à jour.', 'La programmation est ancienne ou invérifiable. Resynchronisez-la.', 'Les réglages de prière ou le lieu ont changé. L’ancien horaire ne sera pas considéré comme actuel.', 'Cet horaire vient d’une ancienne version et ses réglages ne peuvent pas être vérifiés.', 'La resynchronisation a échoué. L’horaire actuel n’est pas considéré comme à jour; vous pouvez réessayer.', 'Prochaine', 'Lieu', 'Méthode', 'Planifiées', 'Dernière mise à jour', 'Resynchroniser', {'fajr':'Fajr','dhuhr':'Dhuhr','asr':'Asr','maghrib':'Maghrib','isha':'Isha'}),
+  'ar': PrayerScheduleHealthCopy('حالة جدولة التنبيهات', 'جارٍ التحقق…', 'جدول تنبيهات الصلاة محدث.', 'الجدول قديم أو لا يمكن التحقق منه. أعد المزامنة.', 'تغيرت إعدادات الصلاة أو الموقع. لن يُعامل الجدول القديم على أنه محدث.', 'هذا الجدول من إصدار أقدم ولا يمكن التحقق من إعداداته.', 'تعذرت إعادة المزامنة. لن يُعتبر الجدول الحالي محدثًا ويمكنك المحاولة مجددًا.', 'التالي', 'الموقع', 'الطريقة', 'المجدولة', 'آخر تحديث', 'إعادة مزامنة التنبيهات', {'fajr':'الفجر','dhuhr':'الظهر','asr':'العصر','maghrib':'المغرب','isha':'العشاء'}),
+  'az': PrayerScheduleHealthCopy('Bildiriş cədvəlinin vəziyyəti', 'Yoxlanılır…', 'Namaz bildirişlərinin cədvəli yenidir.', 'Cədvəl köhnədir və ya təsdiqlənmir. Yenidən sinxronlaşdırın.', 'Namaz ayarları və ya məkan dəyişib. Köhnə cədvəl cari sayılmayacaq.', 'Bu cədvəl köhnə versiyadandır və ayarları təsdiqlənmir.', 'Yenidən sinxronlaşdırma tamamlanmadı. Mövcud cədvəl cari sayılmır; yenidən cəhd edə bilərsiniz.', 'Növbəti', 'Məkan', 'Metod', 'Planlanan', 'Son yeniləmə', 'Bildirişləri yenidən sinxronlaşdır', {'fajr':'Sübh','dhuhr':'Zöhr','asr':'Əsr','maghrib':'Məğrib','isha':'İşa'}),
+  'ru': PrayerScheduleHealthCopy('Состояние расписания', 'Проверка…', 'Расписание уведомлений о намазе актуально.', 'Расписание устарело или не подтверждено. Синхронизируйте снова.', 'Настройки намаза или местоположение изменились. Старое расписание не считается актуальным.', 'Это расписание создано старой версией, его настройки нельзя проверить.', 'Не удалось синхронизировать. Текущее расписание не считается актуальным; можно повторить попытку.', 'Следующий', 'Место', 'Метод', 'Запланировано', 'Последнее обновление', 'Синхронизировать', {'fajr':'Фаджр','dhuhr':'Зухр','asr':'Аср','maghrib':'Магриб','isha':'Иша'}),
 };
