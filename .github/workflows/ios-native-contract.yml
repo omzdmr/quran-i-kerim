@@ -52,8 +52,10 @@ jobs:
           grep -q 'headingOrientation = .landscapeLeft' ios/Runner/BackupExclusionChannel.swift
           grep -q 'canGoNext' ios/Runner/BackupExclusionChannel.swift
           grep -q 'bluetoothMicrophone": true' ios/Runner/MicrophoneRecordingChannel.swift
+          grep -q 'inputChangeStopsRecording": true' ios/Runner/MicrophoneRecordingChannel.swift
           grep -q '\.allowBluetooth' ios/Runner/MicrophoneRecordingChannel.swift
           grep -q 'protectedDataAvailability": true' ios/Runner/NativeLifecycleStateChannel.swift
+          grep -q 'systemLocaleEvents": true' ios/Runner/NativeLifecycleStateChannel.swift
           grep -q 'protectedDataDidBecomeAvailableNotification' ios/Runner/NativeLifecycleStateChannel.swift
           grep -q 'targetedWidgetReload": true' ios/Runner/NativeLifecycleStateChannel.swift
           grep -q 'reloadTimelines(ofKind: Self.prayerWidgetKind)' ios/Runner/NativeLifecycleStateChannel.swift
@@ -81,8 +83,11 @@ jobs:
           grep -q 'FileProtectionType.completeUntilFirstUserAuthentication' ios/Runner/NativeShareChannel.swift
           grep -q 'isExcludedFromBackup = true' ios/Runner/NativeShareChannel.swift
           grep -q 'removeItem(at: stagedShareURL.deletingLastPathComponent())' ios/Runner/NativeShareChannel.swift
-          grep -q 'case .systemLarge:' ios/PrayerWidget/PrayerWidget.swift
-          grep -q 'case .systemExtraLarge:' ios/PrayerWidget/PrayerWidget.swift
+          grep -q 'payloadKey = "widget.prayer.snapshot.v1"' ios/PrayerWidget/PrayerWidget.swift
+          grep -q 'timeZoneIdentifier == TimeZone.autoupdatingCurrent.identifier' ios/PrayerWidget/PrayerWidget.swift
+          grep -q 'snapshot.isRedacted' ios/PrayerWidget/PrayerWidget.swift
+          grep -q 'family == .systemLarge' ios/PrayerWidget/PrayerWidget.swift
+          grep -q 'family == .systemExtraLarge' ios/PrayerWidget/PrayerWidget.swift
           grep -q '\.systemExtraLarge' ios/PrayerWidget/PrayerWidget.swift
       - name: Type-check WidgetKit iOS 16 surface
         run: xcrun --sdk iphonesimulator swiftc -parse-as-library -target arm64-apple-ios16.0-simulator -typecheck ios/PrayerWidget/PrayerWidget.swift
