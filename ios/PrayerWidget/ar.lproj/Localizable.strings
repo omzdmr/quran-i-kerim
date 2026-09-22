@@ -9,6 +9,7 @@
 "Location changed" = "تغيّر الموقع";
 "Prayer times need refresh" = "يجب تحديث أوقات الصلاة";
 "Prayer times need refresh after a time zone change" = "يجب تحديث أوقات الصلاة بعد تغيّر المنطقة الزمنية";
+"Prayer times need refresh after a language change" = "يجب تحديث أوقات الصلاة بعد تغيير اللغة";
 "Prayer information is out of date. Open the app to refresh" = "معلومات الصلاة غير محدثة. افتح التطبيق للتحديث";
 "Prayer information cannot be shown safely. Open the app to refresh" = "لا يمكن عرض معلومات الصلاة بشكل موثوق. افتح التطبيق للتحديث";
 "Fajr" = "الفجر";
