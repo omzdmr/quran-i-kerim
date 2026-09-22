@@ -2,29 +2,33 @@ import 'package:flutter/material.dart';
 
 import '../application/prayer_schedule_repair_receipt_store.dart';
 
-/// Explains the last automatic schedule check/repair in human terms.
-///
-/// The card intentionally does not expose configuration fingerprints. They are
-/// useful for local verification but are implementation detail, not user data.
 class PrayerScheduleRepairReceiptCard extends StatefulWidget {
   const PrayerScheduleRepairReceiptCard({super.key, this.now});
-
   final DateTime? now;
-
   @override
-  State<PrayerScheduleRepairReceiptCard> createState() =>
-      _PrayerScheduleRepairReceiptCardState();
+  State<PrayerScheduleRepairReceiptCard> createState() => _PrayerScheduleRepairReceiptCardState();
 }
 
-class _PrayerScheduleRepairReceiptCardState
-    extends State<PrayerScheduleRepairReceiptCard> {
+class _PrayerScheduleRepairReceiptCardState extends State<PrayerScheduleRepairReceiptCard> with WidgetsBindingObserver {
   static const _store = PrayerScheduleRepairReceiptStore();
   PrayerScheduleRepairReceipt? _receipt;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _load();
   }
 
   Future<void> _load() async {
@@ -36,57 +40,31 @@ class _PrayerScheduleRepairReceiptCardState
   Widget build(BuildContext context) {
     final receipt = _receipt;
     if (receipt == null) return const SizedBox.shrink();
-
-    final copy = PrayerScheduleRepairReceiptCopy.forLocale(
-      Localizations.localeOf(context),
-    );
+    final copy = PrayerScheduleRepairReceiptCopy.forLocale(Localizations.localeOf(context));
     final current = widget.now ?? DateTime.now();
-    // Old receipts stop being useful diagnostics. Do not keep telling a user
-    // that a repair from weeks ago describes today's platform schedule.
-    if (current.toUtc().difference(receipt.attemptedAt.toUtc()) >
-        const Duration(days: 7)) {
-      return const SizedBox.shrink();
-    }
+    final age = current.toUtc().difference(receipt.attemptedAt.toUtc());
+    if (age.isNegative || age > const Duration(days: 7)) return const SizedBox.shrink();
 
     final message = copy.message(receipt.outcome);
-    final time = MaterialLocalizations.of(context).formatTimeOfDay(
-      TimeOfDay.fromDateTime(receipt.attemptedAt.toLocal()),
-    );
-    final date = MaterialLocalizations.of(context)
-        .formatMediumDate(receipt.attemptedAt.toLocal());
-
+    final time = MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(receipt.attemptedAt.toLocal()));
+    final date = MaterialLocalizations.of(context).formatMediumDate(receipt.attemptedAt.toLocal());
     return Semantics(
       container: true,
       label: '${copy.title}. $message. ${copy.checked}: $date, $time',
       child: Card(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(Icons.history_toggle_off_rounded),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(copy.title,
-                        style: const TextStyle(fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 4),
-                    Text(message),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${copy.checked}: $date · $time',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Icon(Icons.history_toggle_off_rounded),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(copy.title, style: const TextStyle(fontWeight: FontWeight.w800)),
+              const SizedBox(height: 4),
+              Text(message),
+              const SizedBox(height: 4),
+              Text('${copy.checked}: $date · $time', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13)),
+            ])),
+          ]),
         ),
       ),
     );
@@ -94,31 +72,15 @@ class _PrayerScheduleRepairReceiptCardState
 }
 
 class PrayerScheduleRepairReceiptCopy {
-  const PrayerScheduleRepairReceiptCopy({
-    required this.title,
-    required this.checked,
-    required this.notApplicable,
-    required this.alreadyFresh,
-    required this.repaired,
-    required this.failed,
-  });
-
-  final String title;
-  final String checked;
-  final String notApplicable;
-  final String alreadyFresh;
-  final String repaired;
-  final String failed;
-
+  const PrayerScheduleRepairReceiptCopy({required this.title, required this.checked, required this.notApplicable, required this.alreadyFresh, required this.repaired, required this.failed});
+  final String title, checked, notApplicable, alreadyFresh, repaired, failed;
   String message(PrayerScheduleRepairOutcome outcome) => switch (outcome) {
-        PrayerScheduleRepairOutcome.notApplicable => notApplicable,
-        PrayerScheduleRepairOutcome.alreadyFresh => alreadyFresh,
-        PrayerScheduleRepairOutcome.repaired => repaired,
-        PrayerScheduleRepairOutcome.failed => failed,
-      };
-
-  static PrayerScheduleRepairReceiptCopy forLocale(Locale locale) =>
-      _copies[locale.languageCode] ?? _copies['en']!;
+    PrayerScheduleRepairOutcome.notApplicable => notApplicable,
+    PrayerScheduleRepairOutcome.alreadyFresh => alreadyFresh,
+    PrayerScheduleRepairOutcome.repaired => repaired,
+    PrayerScheduleRepairOutcome.failed => failed,
+  };
+  static PrayerScheduleRepairReceiptCopy forLocale(Locale locale) => _copies[locale.languageCode] ?? _copies['en']!;
 }
 
 const _copies = <String, PrayerScheduleRepairReceiptCopy>{
