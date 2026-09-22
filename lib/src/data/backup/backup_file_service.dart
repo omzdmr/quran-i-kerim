@@ -74,8 +74,6 @@ class BackupFileService {
     DateTime? now,
   }) async {
     final encoded = await _readImport(file);
-    // Validate before creating the safety snapshot. Invalid/untrusted imports
-    // should not create noise in the user's backup history.
     final preview = backupService.previewJson(encoded);
     if (!preview.canRestore) {
       throw const FormatException('Backup is not restorable.');
@@ -92,8 +90,6 @@ class BackupFileService {
     try {
       await backupService.restoreJson(encoded, mode: mode);
     } catch (_) {
-      // LocalBackupService already rolls the store back transactionally. A
-      // failed restore therefore must not masquerade as a useful history item.
       if (await safetySnapshot.exists()) await safetySnapshot.delete();
       rethrow;
     }
@@ -103,6 +99,35 @@ class BackupFileService {
       safetySnapshot: safetySnapshot,
       restoredAt: restoredAt,
     );
+  }
+
+  /// Reverts one successful restore using the exact snapshot captured just
+  /// before it. This intentionally does not create another safety snapshot:
+  /// [LocalBackupService] already restores transactionally, while keeping the
+  /// original snapshot would otherwise produce an endless undo-backup chain.
+  ///
+  /// The receipt is accepted only when its snapshot is still inside this
+  /// service's managed backup directory and has the safety prefix. That keeps
+  /// a stale/forged receipt from turning this convenience path into a generic
+  /// arbitrary-file importer.
+  Future<void> undoRestore(BackupRestoreReceipt receipt) async {
+    final snapshot = receipt.safetySnapshot;
+    final managedDirectory = await _backupDirectory(create: false);
+    final managedPath = await managedDirectory.absolute.path;
+    final snapshotPath = snapshot.absolute.path;
+    final separator = Platform.pathSeparator;
+    if (!snapshotPath.startsWith('$managedPath$separator') ||
+        !_fileName(snapshotPath).startsWith('quran-safety-before-restore-')) {
+      throw const FormatException('Restore receipt does not reference a managed safety snapshot.');
+    }
+
+    final encoded = await _readImport(snapshot);
+    final preview = backupService.previewJson(encoded);
+    if (!preview.canRestore) {
+      throw const FormatException('Safety snapshot is not restorable.');
+    }
+
+    await backupService.restoreJson(encoded, mode: BackupRestoreMode.replace);
   }
 
   Future<Directory> _backupDirectory({required bool create}) async {
