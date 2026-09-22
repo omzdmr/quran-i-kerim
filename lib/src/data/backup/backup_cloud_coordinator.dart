@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'backup_cloud_store.dart';
 import 'backup_document.dart';
+import 'backup_file_service.dart';
 import 'local_backup_service.dart';
 
 enum BackupCloudState {
@@ -36,13 +37,17 @@ class BackupCloudInspection {
 /// differs, the coordinator reports [BackupCloudState.diverged] and requires
 /// the caller to make an explicit choice before overwriting either side.
 class BackupCloudCoordinator {
-  const BackupCloudCoordinator({
+  BackupCloudCoordinator({
     required this.store,
-    this.localBackupService = const LocalBackupService(),
-  });
+    LocalBackupService localBackupService = const LocalBackupService(),
+    BackupFileService? restoreFileService,
+  })  : localBackupService = localBackupService,
+        restoreFileService = restoreFileService ??
+            BackupFileService(backupService: localBackupService);
 
   final BackupCloudStore store;
   final LocalBackupService localBackupService;
+  final BackupFileService restoreFileService;
 
   Future<BackupCloudInspection> inspect({DateTime? now}) async {
     final localDocument = await localBackupService.createDocument(now: now);
@@ -115,7 +120,9 @@ class BackupCloudCoordinator {
     );
   }
 
-  Future<void> restoreRemote(BackupCloudInspection inspection) async {
+  Future<BackupRestoreReceipt> restoreRemote(
+    BackupCloudInspection inspection,
+  ) async {
     final remote = inspection.remote;
     if (remote == null) {
       throw StateError('There is no remote backup to restore.');
@@ -123,7 +130,10 @@ class BackupCloudCoordinator {
     if (!inspection.canRestoreRemote) {
       throw const FormatException('Remote backup is not restorable.');
     }
-    await localBackupService.restoreJson(remote.content);
+    return restoreFileService.restoreEncoded(
+      remote.content,
+      mode: BackupRestoreMode.replace,
+    );
   }
 
   String _dataSignature(Object? decoded) {
