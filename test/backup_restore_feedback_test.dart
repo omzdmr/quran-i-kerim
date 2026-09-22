@@ -22,16 +22,20 @@ void main() {
 
   BackupFileService service() => BackupFileService(directoryProvider: () async => tempRoot);
 
-  testWidgets('successful restore feedback exposes undo and restores prior state', (tester) async {
-    SharedPreferences.setMockInitialValues(<String, Object>{'last_surah': 2, 'last_ayah': 255});
-    final fileService = service();
+  Future<File> incomingBackup({required int lastSurah}) async {
     final incoming = File('${tempRoot.path}${Platform.pathSeparator}incoming.json');
     await incoming.writeAsString(jsonEncode(<String, Object?>{
       'version': BackupManifest.schemaVersion,
       'createdAt': '2026-09-22T00:00:00Z',
-      'data': <String, Object?>{'reading': <String, Object?>{'last_surah': 36}},
+      'data': <String, Object?>{'reading': <String, Object?>{'last_surah': lastSurah}},
     }));
-    final receipt = await fileService.restoreFile(incoming, mode: BackupRestoreMode.replace);
+    return incoming;
+  }
+
+  testWidgets('successful restore feedback exposes undo and restores prior state', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{'last_surah': 2, 'last_ayah': 255});
+    final fileService = service();
+    final receipt = await fileService.restoreFile(await incomingBackup(lastSurah: 36), mode: BackupRestoreMode.replace);
 
     late BuildContext pageContext;
     await tester.pumpWidget(MaterialApp(
@@ -62,16 +66,40 @@ void main() {
     expect(find.text('Geri yükleme geri alındı. Önceki verileriniz geri geldi.'), findsOneWidget);
   });
 
+  testWidgets('successful rollback is not reported as failed when platform refresh throws', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{'last_surah': 2});
+    final fileService = service();
+    final receipt = await fileService.restoreFile(await incomingBackup(lastSurah: 18));
+
+    late BuildContext pageContext;
+    await tester.pumpWidget(MaterialApp(
+      locale: const Locale('en'),
+      home: Scaffold(body: Builder(builder: (context) {
+        pageContext = context;
+        return const Text('ready');
+      })),
+    ));
+
+    BackupRestoreFeedback.show(
+      context: pageContext,
+      service: fileService,
+      receipt: receipt,
+      afterUndo: () async => throw StateError('simulated platform refresh failure'),
+    );
+    await tester.pump();
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getInt('last_surah'), 2);
+    expect(find.text('Restore undone. Your previous data is back.'), findsOneWidget);
+    expect(find.textContaining('Undo could not be completed'), findsNothing);
+  });
+
   testWidgets('feedback is exposed as a live region for screen readers', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{'last_surah': 2});
     final fileService = service();
-    final incoming = File('${tempRoot.path}${Platform.pathSeparator}incoming.json');
-    await incoming.writeAsString(jsonEncode(<String, Object?>{
-      'version': BackupManifest.schemaVersion,
-      'createdAt': '2026-09-22T00:00:00Z',
-      'data': <String, Object?>{'reading': <String, Object?>{'last_surah': 18}},
-    }));
-    final receipt = await fileService.restoreFile(incoming);
+    final receipt = await fileService.restoreFile(await incomingBackup(lastSurah: 18));
 
     late BuildContext pageContext;
     await tester.pumpWidget(MaterialApp(
