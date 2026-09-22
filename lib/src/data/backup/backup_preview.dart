@@ -28,14 +28,16 @@ class BackupPreviewParser {
       for (final entry in data.entries) {
         if (entry.key is! String) { issues.add(BackupPreviewIssue.invalidData); continue; }
         final section = entry.key as String;
-        if (versionSupported && !supportedSections.contains(section)) {
-          issues.add(BackupPreviewIssue.unsupportedData);
-          continue;
-        }
+        if (versionSupported && !supportedSections.contains(section)) { issues.add(BackupPreviewIssue.unsupportedData); continue; }
         final value = entry.value;
-        if (value is List) counts[section] = value.length;
-        else if (value is Map) { final count = _sectionRecordCount(section, value); if (count == null) { issues.add(BackupPreviewIssue.invalidData); counts[section] = 0; } else { counts[section] = count; } }
-        else if (value == null) counts[section] = 0; else issues.add(BackupPreviewIssue.invalidData);
+        if (value is Map) {
+          final count = _sectionRecordCount(section, value);
+          if (count == null) { issues.add(BackupPreviewIssue.invalidData); counts[section] = 0; } else { counts[section] = count; }
+        } else if (value == null) {
+          counts[section] = 0;
+        } else {
+          issues.add(BackupPreviewIssue.invalidData);
+        }
       }
     } else { issues.add(BackupPreviewIssue.invalidData); }
     var integrityVerified = false; final integrity = decoded['integrity'];
