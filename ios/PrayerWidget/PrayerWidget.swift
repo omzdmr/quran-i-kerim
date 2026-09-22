@@ -4,9 +4,15 @@ import WidgetKit
 
 private struct PrayerSnapshot: Decodable {
   static let schemaVersion = 1
-  let version: Int, generatedAt: Double, validUntil: Double
-  let timeZoneIdentifier: String, calculationFingerprint: String
-  let nextPrayerID: String?, nextPrayerAt: Double?, displayName: String?, privacyMode: String
+  let version: Int
+  let generatedAt: Double
+  let validUntil: Double
+  let timeZoneIdentifier: String
+  let calculationFingerprint: String
+  let nextPrayerID: String?
+  let nextPrayerAt: Double?
+  let displayName: String?
+  let privacyMode: String
   enum Freshness { case fresh, unsupportedSchema, malformed, generatedInFuture, expired, timeZoneChanged, prayerBoundaryPassed }
   func freshness(now: Date = Date(), currentTimeZone: TimeZone = .autoupdatingCurrent) -> Freshness {
     let nowMs = now.timeIntervalSince1970 * 1000
@@ -23,7 +29,8 @@ private struct PrayerSnapshot: Decodable {
 }
 
 private enum SnapshotReader {
-  static let suiteName = "group.app.quranikerim.shared", payloadKey = "widget.prayer.snapshot.v1"
+  static let suiteName = "group.app.quranikerim.shared"
+  static let payloadKey = "widget.prayer.snapshot.v1"
   struct Result { let snapshot: PrayerSnapshot?; let freshness: PrayerSnapshot.Freshness? }
   static func read(now: Date = Date(), timeZone: TimeZone = .autoupdatingCurrent) -> Result { guard let defaults = UserDefaults(suiteName: suiteName), let data = defaults.data(forKey: payloadKey) else { return Result(snapshot: nil, freshness: nil) }; guard let snapshot = try? JSONDecoder().decode(PrayerSnapshot.self, from: data) else { return Result(snapshot: nil, freshness: .malformed) }; let freshness = snapshot.freshness(now: now, currentTimeZone: timeZone); return Result(snapshot: freshness == .fresh ? snapshot : nil, freshness: freshness) }
 }
