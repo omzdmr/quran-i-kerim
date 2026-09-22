@@ -45,10 +45,10 @@ void main() {
     expect(sample().isFreshAt(now, expectedConfigurationFingerprint: 'v2-after-travel'), isFalse);
   });
 
-  test('legacy evidence remains readable but cannot satisfy a v2 configuration check', () {
+  test('legacy evidence remains readable but is never verified fresh', () {
     final now = DateTime.utc(2026, 9, 22, 3);
     final legacy = sample(fingerprint: '');
-    expect(legacy.isFreshAt(now), isTrue);
+    expect(legacy.isFreshAt(now), isFalse);
     expect(legacy.isFreshAt(now, expectedConfigurationFingerprint: 'v2-current'), isFalse);
   });
 
