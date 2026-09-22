@@ -9,9 +9,10 @@ class PrayerResolvedLocation {
   final String label;
 }
 
-/// Resolves only an explicitly saved prayer location. Special device/manual
-/// IDs keep their exact coordinates, while missing or unknown catalog IDs fail
-/// closed instead of silently turning into Istanbul after restore/travel.
+/// Resolves saved prayer locations without silently falling back for broken
+/// special/obsolete IDs. A null ID retains the product's existing first-run
+/// default city behavior until the settings flow gains an explicit location-
+/// confirmation state.
 class PrayerSavedLocationResolver {
   const PrayerSavedLocationResolver();
 
@@ -27,7 +28,10 @@ class PrayerSavedLocationResolver {
       if (saved == null) return null;
       return PrayerResolvedLocation(location: saved.location, defaultMethod: saved.defaultMethod, label: saved.label);
     }
-    if (id == null || id.trim().isEmpty) return null;
+    if (id == null || id.trim().isEmpty) {
+      final city = prayerCities.first;
+      return PrayerResolvedLocation(location: city.location, defaultMethod: city.defaultMethod, label: city.label);
+    }
     for (final city in prayerCities) {
       if (city.id == id) {
         return PrayerResolvedLocation(location: city.location, defaultMethod: city.defaultMethod, label: city.label);
