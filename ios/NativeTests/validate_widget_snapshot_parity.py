@@ -3,11 +3,10 @@ from pathlib import Path
 
 runner = Path("ios/Runner/WidgetSnapshotStore.swift").read_text()
 widget = Path("ios/PrayerWidget/PrayerWidget.swift").read_text()
-
 checks = {
     "schema version": ("static let schemaVersion = 1", runner, widget),
     "snapshot key": ('static let snapshotKey = "widget.prayer.snapshot.v1"', runner, None),
-    "extension snapshot key": ('static let payloadKey = "widget.prayer.snapshot.v1"', widget, None),
+    "extension snapshot key": ('payloadKey = "widget.prayer.snapshot.v1"', widget, None),
     "generated before expiry": ("generatedAt < validUntil", runner, widget),
     "timezone identifier validity": ("TimeZone(identifier: timeZoneIdentifier) != nil", runner, widget),
     "nonblank policy fingerprint": ("!calculationFingerprint.trimmingCharacters", runner, widget),
@@ -19,41 +18,18 @@ checks = {
     "timezone drift rejection": ("timeZoneIdentifier ==", runner, widget),
     "prayer boundary rejection": ("nextPrayerAt <=", runner, widget),
 }
-
 failed = []
 for name, (needle, first, second) in checks.items():
-    if needle not in first or (second is not None and needle not in second):
-        failed.append(f"{name}: missing {needle!r}")
-
-# A standard snapshot with no next prayer is not 'fresh': the app would report fresh while
-# the widget showed its unavailable state. Redacted snapshots may omit the prayer pair.
-if "privacyMode == .redacted || hasPrayerID" not in runner:
-    failed.append("Runner must reject empty standard prayer projections")
-if 'privacyMode == "redacted" || hasPrayerID' not in widget:
-    failed.append("WidgetKit must reject empty standard prayer projections")
-
+    if needle not in first or (second is not None and needle not in second): failed.append(f"{name}: missing {needle!r}")
+if "privacyMode == .redacted || hasPrayerID" not in runner: failed.append("Runner must reject empty standard prayer projections")
+if 'privacyMode == "redacted" || hasPrayerID' not in widget: failed.append("WidgetKit must reject empty standard prayer projections")
+for needle in ("result.freshness != nil", "5 * 60", "freshness == .fresh ? snapshot : nil", 'privacyMode == "standard" || privacyMode == "redacted"'):
+    if needle not in widget: failed.append(f"extension retry/fail-closed contract missing {needle!r}")
 for needle in (
-    "result.freshness != nil",
-    "5 * 60",
-    "freshness == .fresh ? snapshot : nil",
-    'privacyMode == "standard" || privacyMode == "redacted"',
+    ".accessoryInline", "private func inline(id: String, at: Double)", 'HStack(spacing: 3)',
+    'Text("·").accessibilityHidden(true)', 'family == .accessoryInline', 'Image(systemName: "lock.fill")',
+    'Image(systemName: "arrow.clockwise")', "private var isAccessoryFamily: Bool",
 ):
-    if needle not in widget:
-        failed.append(f"extension retry/fail-closed contract missing {needle!r}")
-
-for needle in (
-    ".accessoryInline",
-    "private func inline(id: String, at: Double)",
-    'Text("\\(localizedPrayerName(id)) · \\(time(at))")',
-    'family == .accessoryInline',
-    'Image(systemName: "lock.fill")',
-    'Image(systemName: "arrow.clockwise")',
-    "private var isAccessoryFamily: Bool",
-):
-    if needle not in widget:
-        failed.append(f"Lock Screen accessory contract missing {needle!r}")
-
-if failed:
-    raise SystemExit("Widget snapshot parity validation failed:\n- " + "\n- ".join(failed))
-
+    if needle not in widget: failed.append(f"Lock Screen accessory/RTL contract missing {needle!r}")
+if failed: raise SystemExit("Widget snapshot parity validation failed:\n- " + "\n- ".join(failed))
 print("Widget snapshot parity validation passed")
