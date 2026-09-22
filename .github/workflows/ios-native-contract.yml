@@ -24,6 +24,7 @@ jobs:
           python3 ios/NativeTests/validate_project_graph.py
           python3 ios/NativeTests/validate_widget_localizations.py
           python3 ios/NativeTests/validate_widget_prayer_names.py
+          python3 ios/NativeTests/validate_widget_snapshot_parity.py
           python3 ios/NativeTests/validate_native_handoff.py
           plutil -lint ios/Runner/Info.plist
           plutil -lint ios/Runner/PrivacyInfo.xcprivacy
@@ -84,7 +85,7 @@ jobs:
           grep -q 'isExcludedFromBackup = true' ios/Runner/NativeShareChannel.swift
           grep -q 'removeItem(at: stagedShareURL.deletingLastPathComponent())' ios/Runner/NativeShareChannel.swift
           grep -q 'payloadKey = "widget.prayer.snapshot.v1"' ios/PrayerWidget/PrayerWidget.swift
-          grep -q 'timeZoneIdentifier == TimeZone.autoupdatingCurrent.identifier' ios/PrayerWidget/PrayerWidget.swift
+          grep -q 'timeZoneIdentifier == currentTimeZone.identifier' ios/PrayerWidget/PrayerWidget.swift
           grep -q 'snapshot.isRedacted' ios/PrayerWidget/PrayerWidget.swift
           grep -q 'family == .systemLarge' ios/PrayerWidget/PrayerWidget.swift
           grep -q 'family == .systemExtraLarge' ios/PrayerWidget/PrayerWidget.swift
