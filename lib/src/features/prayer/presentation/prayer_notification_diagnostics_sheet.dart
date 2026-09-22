@@ -21,7 +21,6 @@ class _PrayerNotificationDiagnosticsSheetState extends State<PrayerNotificationD
   PrayerNotificationDiagnostics? _diagnostics;
   PrayerNotificationProbeRecord? _probeRecord;
   Object? _error;
-
   @override
   void initState() { super.initState(); _load(); }
 
@@ -46,7 +45,10 @@ class _PrayerNotificationDiagnosticsSheetState extends State<PrayerNotificationD
     final selfTestCopy = prayerNotificationSelfTestStrings(context);
     final diagnostics = _diagnostics;
     final probe = _probeRecord;
-    final probeFresh = probe?.isFreshAt(DateTime.now()) ?? false;
+    final probeCurrent = probe != null &&
+        probe.isFreshAt(DateTime.now()) &&
+        widget.notificationsEnabled &&
+        diagnostics?.systemPermissionGranted != false;
     return SafeArea(
       top: false,
       child: Padding(
@@ -68,9 +70,9 @@ class _PrayerNotificationDiagnosticsSheetState extends State<PrayerNotificationD
               _DiagnosticRow(icon: Icons.alarm_on_rounded, label: l10n.text('notificationDiagnosticsExactAlarm'), value: diagnostics.exactAlarmAvailable == null ? l10n.text('notificationDiagnosticsNotApplicable') : diagnostics.exactAlarmAvailable! ? l10n.text('notificationDiagnosticsAvailable') : l10n.text('notificationDiagnosticsUnavailable')),
               if (probe != null)
                 _DiagnosticRow(
-                  icon: !probeFresh ? Icons.history_rounded : probe.outcome == PrayerNotificationProbeOutcome.received ? Icons.verified_outlined : Icons.report_problem_outlined,
+                  icon: !probeCurrent ? Icons.history_rounded : probe.outcome == PrayerNotificationProbeOutcome.received ? Icons.verified_outlined : Icons.report_problem_outlined,
                   label: selfTestCopy.lastVerified,
-                  value: '${probeFresh ? (probe.outcome == PrayerNotificationProbeOutcome.received ? selfTestCopy.received : selfTestCopy.notReceived) : selfTestCopy.expired} · ${MaterialLocalizations.of(context).formatCompactDate(probe.confirmedAt)}',
+                  value: '${probeCurrent ? (probe.outcome == PrayerNotificationProbeOutcome.received ? selfTestCopy.received : selfTestCopy.notReceived) : selfTestCopy.expired} · ${MaterialLocalizations.of(context).formatCompactDate(probe.confirmedAt)}',
                 ),
               if (diagnostics.systemPermissionGranted == false) ...[
                 const SizedBox(height: 8),
@@ -78,10 +80,7 @@ class _PrayerNotificationDiagnosticsSheetState extends State<PrayerNotificationD
               ],
               const SizedBox(height: 14),
               PrayerNotificationSelfTestButton(onConfirmed: _load),
-              if (widget.notificationsEnabled) ...[
-                const SizedBox(height: 14),
-                const PrayerScheduleHealthPanel(),
-              ],
+              if (widget.notificationsEnabled) ...[const SizedBox(height: 14), const PrayerScheduleHealthPanel()],
             ],
           ]),
         ),
