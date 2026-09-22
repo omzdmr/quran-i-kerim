@@ -32,6 +32,7 @@ jobs:
           plutil -lint ios/PrayerWidget/PrayerWidget.entitlements
           grep -q '<string>quranikerim</string>' ios/Runner/Info.plist
           grep -q 'PrivacyInfo.xcprivacy in Resources' ios/Runner.xcodeproj/project.pbxproj
+          test "$(grep -o 'IPHONEOS_DEPLOYMENT_TARGET = 16.0' ios/Runner.xcodeproj/project.pbxproj | wc -l | tr -d ' ')" -eq 3
       - name: Validate native parity contracts
         run: |
           grep -q '"universalLink": false' ios/Runner/AppDelegate.swift
@@ -75,6 +76,8 @@ jobs:
           grep -q 'case .systemLarge:' ios/PrayerWidget/PrayerWidget.swift
           grep -q 'case .systemExtraLarge:' ios/PrayerWidget/PrayerWidget.swift
           grep -q '\.systemExtraLarge' ios/PrayerWidget/PrayerWidget.swift
+      - name: Type-check WidgetKit iOS 16 surface
+        run: xcrun --sdk iphonesimulator swiftc -parse-as-library -target arm64-apple-ios16.0-simulator -typecheck ios/PrayerWidget/PrayerWidget.swift
       - name: Build and inspect standalone WidgetKit extension
         run: |
           rm -rf /tmp/quran-widget-build
