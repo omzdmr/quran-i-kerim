@@ -24,36 +24,43 @@ class PrayerScheduleAutoRepair {
 
   Future<PrayerScheduleRepairResult> repairIfNeeded({DateTime? now}) async {
     final current = now ?? DateTime.now();
-    final fingerprint = await refresher.currentConfigurationFingerprint();
-    if (fingerprint == null) {
-      await refresher.resync(now: current);
-      await _record(current, PrayerScheduleRepairOutcome.notApplicable);
-      return PrayerScheduleRepairResult.notApplicable;
-    }
-
-    final health = await store.load();
-    final evidenceFresh = health != null &&
-        health.isFreshAt(
-          current,
-          expectedConfigurationFingerprint: fingerprint,
-        );
-
-    if (evidenceFresh) {
-      final pendingCount = await pendingProbe.pendingCount();
-      if (pendingCount == null || pendingCount > 0) {
-        await _record(
-          current,
-          PrayerScheduleRepairOutcome.alreadyFresh,
-          fingerprint: fingerprint,
-        );
-        return PrayerScheduleRepairResult.alreadyFresh;
-      }
-    }
-
+    String fingerprint = '';
     try {
+      final currentFingerprint =
+          await refresher.currentConfigurationFingerprint();
+      fingerprint = currentFingerprint ?? '';
+      if (currentFingerprint == null) {
+        await refresher.resync(now: current);
+        await _record(current, PrayerScheduleRepairOutcome.notApplicable);
+        return PrayerScheduleRepairResult.notApplicable;
+      }
+
+      final health = await store.load();
+      final evidenceFresh = health != null &&
+          health.isFreshAt(
+            current,
+            expectedConfigurationFingerprint: currentFingerprint,
+          );
+
+      if (evidenceFresh) {
+        final pendingCount = await pendingProbe.pendingCount();
+        if (pendingCount == null || pendingCount > 0) {
+          await _record(
+            current,
+            PrayerScheduleRepairOutcome.alreadyFresh,
+            fingerprint: currentFingerprint,
+          );
+          return PrayerScheduleRepairResult.alreadyFresh;
+        }
+      }
+
       final repaired = await refresher.resync(now: current);
       if (repaired == null) {
-        await _record(current, PrayerScheduleRepairOutcome.failed, fingerprint: fingerprint);
+        await _record(
+          current,
+          PrayerScheduleRepairOutcome.failed,
+          fingerprint: currentFingerprint,
+        );
         return PrayerScheduleRepairResult.failed;
       }
       await _record(
@@ -63,7 +70,14 @@ class PrayerScheduleAutoRepair {
       );
       return PrayerScheduleRepairResult.repaired;
     } catch (_) {
-      await _record(current, PrayerScheduleRepairOutcome.failed, fingerprint: fingerprint);
+      // The app root deliberately fails open on lifecycle repair. Persist the
+      // failed attempt first so diagnostics can explain what happened instead
+      // of making the failure invisible to the user.
+      await _record(
+        current,
+        PrayerScheduleRepairOutcome.failed,
+        fingerprint: fingerprint,
+      );
       rethrow;
     }
   }
