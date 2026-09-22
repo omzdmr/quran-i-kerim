@@ -17,6 +17,7 @@ final class NativeLifecycleStateChannel {
     static let cleanTermination = "native.lifecycle.cleanTermination"
     static let launchCount = "native.lifecycle.launchCount"
     static let lastKnownTimeZone = "native.lifecycle.lastKnownTimeZone"
+    static let lastKnownLocale = "native.lifecycle.lastKnownLocale"
     static let lastProtectedDataAvailableAt = "native.lifecycle.lastProtectedDataAvailableAt"
     static let lastLifecycleState = "native.lifecycle.lastLifecycleState"
   }
@@ -32,19 +33,12 @@ final class NativeLifecycleStateChannel {
 
   init(binaryMessenger: FlutterBinaryMessenger, defaults: UserDefaults = .standard, notificationCenter: NotificationCenter = .default) {
     channel = FlutterMethodChannel(name: Self.channelName, binaryMessenger: binaryMessenger)
-    self.defaults = defaults
-    center = notificationCenter
+    self.defaults = defaults; center = notificationCenter
     let previousLaunchCount = defaults.integer(forKey: Key.launchCount)
-    hadPreviousSession = previousLaunchCount > 0
-    previousCleanTermination = hadPreviousSession && defaults.bool(forKey: Key.cleanTermination)
-    previousLifecycleState = defaults.string(forKey: Key.lastLifecycleState)
-    defaults.set(false, forKey: Key.cleanTermination)
-    defaults.set("launching", forKey: Key.lastLifecycleState)
-    defaults.set(previousLaunchCount + 1, forKey: Key.launchCount)
-    defaults.set(TimeZone.current.identifier, forKey: Key.lastKnownTimeZone)
+    hadPreviousSession = previousLaunchCount > 0; previousCleanTermination = hadPreviousSession && defaults.bool(forKey: Key.cleanTermination); previousLifecycleState = defaults.string(forKey: Key.lastLifecycleState)
+    defaults.set(false, forKey: Key.cleanTermination); defaults.set("launching", forKey: Key.lastLifecycleState); defaults.set(previousLaunchCount + 1, forKey: Key.launchCount); defaults.set(TimeZone.current.identifier, forKey: Key.lastKnownTimeZone); defaults.set(Locale.autoupdatingCurrent.identifier, forKey: Key.lastKnownLocale)
     if UIApplication.shared.isProtectedDataAvailable { defaults.set(Date(), forKey: Key.lastProtectedDataAvailableAt) }
-    channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) }
-    observeLifecycle()
+    channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) }; observeLifecycle()
   }
 
   func markCleanTermination() { defaults.set("terminated", forKey: Key.lastLifecycleState); defaults.set(true, forKey: Key.cleanTermination) }
@@ -59,6 +53,7 @@ final class NativeLifecycleStateChannel {
       center.addObserver(forName: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil, queue: .main) { [weak self] _ in self?.protectedDataBecameAvailable() },
       center.addObserver(forName: UIApplication.protectedDataWillBecomeUnavailableNotification, object: nil, queue: .main) { [weak self] _ in self?.emit("protectedDataUnavailable", extras: ["protectedDataAvailable": false]) },
       center.addObserver(forName: NSNotification.Name.NSSystemTimeZoneDidChange, object: nil, queue: .main) { [weak self] _ in self?.handleTimeZoneChange() },
+      center.addObserver(forName: NSLocale.currentLocaleDidChangeNotification, object: nil, queue: .main) { [weak self] _ in self?.handleLocaleChange() },
       center.addObserver(forName: UIApplication.significantTimeChangeNotification, object: nil, queue: .main) { [weak self] _ in self?.reconcilePrayerProjection(reason: "significantTimeChange"); self?.emit("significantTimeChange", extras: ["timeZone": TimeZone.current.identifier]) },
     ]
   }
@@ -67,14 +62,14 @@ final class NativeLifecycleStateChannel {
     switch call.method {
     case "snapshot": result(snapshot())
     case "acknowledgeRestore": defaults.removeObject(forKey: Key.lastBackgroundAt); result(nil)
-    case "capabilities": result(["coldLaunchDetection": true, "firstLaunchDistinction": true, "backgroundGap": true, "lifecycleEvents": true, "persistent": true, "timeZoneEvents": true, "significantTimeChange": true, "widgetStaleReconciliation": true, "protectedDataAvailability": true, "targetedWidgetReload": true, "widgetKind": Self.prayerWidgetKind, "backgroundEvictionDetection": true, "previousLifecycleState": true])
+    case "capabilities": result(["coldLaunchDetection": true, "firstLaunchDistinction": true, "backgroundGap": true, "lifecycleEvents": true, "persistent": true, "timeZoneEvents": true, "systemLocaleEvents": true, "significantTimeChange": true, "widgetStaleReconciliation": true, "protectedDataAvailability": true, "targetedWidgetReload": true, "widgetKind": Self.prayerWidgetKind, "backgroundEvictionDetection": true, "previousLifecycleState": true])
     default: result(FlutterMethodNotImplemented)
     }
   }
 
   private func snapshot() -> [String: Any] {
     let likelyBackgroundEviction = hadPreviousSession && !previousCleanTermination && previousLifecycleState == "background"
-    var payload: [String: Any] = ["launchedAtMs": milliseconds(launchedAt), "launchCount": defaults.integer(forKey: Key.launchCount), "hadPreviousSession": hadPreviousSession, "previousCleanTermination": previousCleanTermination, "likelyBackgroundEviction": likelyBackgroundEviction, "applicationState": stateName(UIApplication.shared.applicationState), "timeZone": TimeZone.current.identifier, "protectedDataAvailable": UIApplication.shared.isProtectedDataAvailable]
+    var payload: [String: Any] = ["launchedAtMs": milliseconds(launchedAt), "launchCount": defaults.integer(forKey: Key.launchCount), "hadPreviousSession": hadPreviousSession, "previousCleanTermination": previousCleanTermination, "likelyBackgroundEviction": likelyBackgroundEviction, "applicationState": stateName(UIApplication.shared.applicationState), "timeZone": TimeZone.current.identifier, "systemLocale": Locale.autoupdatingCurrent.identifier, "protectedDataAvailable": UIApplication.shared.isProtectedDataAvailable]
     if let previousLifecycleState { payload["previousLifecycleState"] = previousLifecycleState }
     if let date = defaults.object(forKey: Key.lastBackgroundAt) as? Date { payload["lastBackgroundAtMs"] = milliseconds(date); payload["backgroundGapMs"] = max(0, milliseconds(Date()) - milliseconds(date)) }
     if let date = defaults.object(forKey: Key.lastForegroundAt) as? Date { payload["lastForegroundAtMs"] = milliseconds(date) }
@@ -84,13 +79,13 @@ final class NativeLifecycleStateChannel {
 
   private func protectedDataBecameAvailable() { record(Key.lastProtectedDataAvailableAt); reconcilePrayerProjection(reason: "protectedDataAvailable"); emit("protectedDataAvailable", extras: ["protectedDataAvailable": true]) }
   private func handleTimeZoneChange() { let previous = defaults.string(forKey: Key.lastKnownTimeZone); let current = TimeZone.current.identifier; defaults.set(current, forKey: Key.lastKnownTimeZone); let purged = purgeStalePrayerProjection(); emit("timeZoneChanged", extras: ["previousTimeZone": previous ?? "", "timeZone": current, "widgetSnapshotPurged": purged]) }
+  private func handleLocaleChange() { let previous = defaults.string(forKey: Key.lastKnownLocale); let current = Locale.autoupdatingCurrent.identifier; defaults.set(current, forKey: Key.lastKnownLocale); reloadPrayerWidget(); emit("systemLocaleChanged", extras: ["previousLocale": previous ?? "", "systemLocale": current, "widgetReloadRequested": true]) }
   private func reconcilePrayerProjection(reason: String) { let purged = purgeStalePrayerProjection(); guard purged else { return }; emit("widgetSnapshotInvalidated", extras: ["reason": reason, "timeZone": TimeZone.current.identifier]) }
-  private func purgeStalePrayerProjection() -> Bool {
-    guard UIApplication.shared.isProtectedDataAvailable, let store = WidgetSnapshotStore(), store.purgeIfStale() else { return false }
+  private func purgeStalePrayerProjection() -> Bool { guard UIApplication.shared.isProtectedDataAvailable, let store = WidgetSnapshotStore(), store.purgeIfStale() else { return false }; reloadPrayerWidget(); return true }
+  private func reloadPrayerWidget() {
 #if canImport(WidgetKit)
     if #available(iOS 14.0, *) { WidgetCenter.shared.reloadTimelines(ofKind: Self.prayerWidgetKind) }
 #endif
-    return true
   }
   private func record(_ key: String) { defaults.set(Date(), forKey: key) }
   private func recordLifecycleState(_ state: String) { defaults.set(state, forKey: Key.lastLifecycleState) }
