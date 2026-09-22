@@ -34,19 +34,7 @@ class BackupRestoreFeedback {
           onPressed: () async {
             try {
               await service.undoRestore(receipt);
-              if (afterUndo != null) await afterUndo();
               undone = true;
-              messenger
-                ..hideCurrentSnackBar()
-                ..showSnackBar(
-                  SnackBar(
-                    content: Semantics(
-                      liveRegion: true,
-                      label: copy.undone,
-                      child: Text(copy.undone),
-                    ),
-                  ),
-                );
             } catch (_) {
               messenger
                 ..hideCurrentSnackBar()
@@ -59,7 +47,32 @@ class BackupRestoreFeedback {
                     ),
                   ),
                 );
+              return;
             }
+
+            // Persistence rollback has already succeeded. A platform refresh
+            // failure (for example notification rescheduling) must not lie to
+            // the user and claim that their data rollback failed. The restored
+            // local state remains authoritative and will be reloaded again on
+            // the next normal app lifecycle refresh.
+            if (afterUndo != null) {
+              try {
+                await afterUndo();
+              } catch (_) {
+                // Best-effort UI/platform refresh only.
+              }
+            }
+            messenger
+              ..hideCurrentSnackBar()
+              ..showSnackBar(
+                SnackBar(
+                  content: Semantics(
+                    liveRegion: true,
+                    label: copy.undone,
+                    child: Text(copy.undone),
+                  ),
+                ),
+              );
           },
         ),
       ),
