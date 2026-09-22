@@ -10,26 +10,14 @@ private struct PrayerSnapshot: Decodable {
   let locationLabel: String?
   let nextPrayer: Prayer?
   let prayers: [Prayer]
-
-  struct Prayer: Decodable, Identifiable {
-    let id: String
-    let atMs: Int64
-  }
-
-  var isFresh: Bool {
-    let now = Int64(Date().timeIntervalSince1970 * 1000)
-    return schemaVersion == 1 && generatedAtMs <= now + 300_000 && validUntilMs > now
-  }
+  struct Prayer: Decodable, Identifiable { let id: String; let atMs: Int64 }
+  var isFresh: Bool { let now = Int64(Date().timeIntervalSince1970 * 1000); return schemaVersion == 1 && generatedAtMs <= now + 300_000 && validUntilMs > now }
 }
 
 private enum SnapshotReader {
   static let suiteName = "group.app.quranikerim.shared"
   static let payloadKey = "prayer.widget.snapshot.v1"
-
-  static func read() -> PrayerSnapshot? {
-    guard let defaults = UserDefaults(suiteName: suiteName), let data = defaults.data(forKey: payloadKey), let snapshot = try? JSONDecoder().decode(PrayerSnapshot.self, from: data), snapshot.isFresh else { return nil }
-    return snapshot
-  }
+  static func read() -> PrayerSnapshot? { guard let defaults = UserDefaults(suiteName: suiteName), let data = defaults.data(forKey: payloadKey), let snapshot = try? JSONDecoder().decode(PrayerSnapshot.self, from: data), snapshot.isFresh else { return nil }; return snapshot }
 }
 
 private struct PrayerEntry: TimelineEntry { let date: Date; let snapshot: PrayerSnapshot? }
@@ -38,12 +26,8 @@ private struct PrayerProvider: TimelineProvider {
   func placeholder(in context: Context) -> PrayerEntry { PrayerEntry(date: Date(), snapshot: nil) }
   func getSnapshot(in context: Context, completion: @escaping (PrayerEntry) -> Void) { completion(PrayerEntry(date: Date(), snapshot: SnapshotReader.read())) }
   func getTimeline(in context: Context, completion: @escaping (Timeline<PrayerEntry>) -> Void) {
-    let snapshot = SnapshotReader.read(), now = Date()
-    var refresh = now.addingTimeInterval(15 * 60)
-    if let snapshot {
-      let expiry = Date(timeIntervalSince1970: Double(snapshot.validUntilMs) / 1000)
-      if expiry > now { refresh = min(refresh, expiry) }
-    }
+    let snapshot = SnapshotReader.read(), now = Date(); var refresh = now.addingTimeInterval(15 * 60)
+    if let snapshot { let expiry = Date(timeIntervalSince1970: Double(snapshot.validUntilMs) / 1000); if expiry > now { refresh = min(refresh, expiry) } }
     completion(Timeline(entries: [PrayerEntry(date: now, snapshot: snapshot)], policy: .after(refresh)))
   }
 }
@@ -54,44 +38,51 @@ private struct PrayerWidgetView: View {
 
   var body: some View {
     widgetBackground {
-      Group {
-        if let snapshot = entry.snapshot { content(snapshot) } else { unavailable }
-      }
-      .widgetURL(URL(string: "quranikerim://prayer"))
-      .privacySensitive()
+      Group { if let snapshot = entry.snapshot { content(snapshot) } else { unavailable } }
+        .widgetURL(URL(string: "quranikerim://prayer"))
+        .privacySensitive()
     }
   }
 
   @ViewBuilder private func content(_ snapshot: PrayerSnapshot) -> some View {
+    if #available(iOSApplicationExtension 16.0, *) {
+      if family == .accessoryCircular { circular(snapshot) }
+      else if family == .accessoryRectangular { rectangular(snapshot) }
+      else { homeScreen(snapshot) }
+    } else {
+      homeScreen(snapshot)
+    }
+  }
+
+  @available(iOSApplicationExtension 16.0, *)
+  @ViewBuilder private func circular(_ snapshot: PrayerSnapshot) -> some View {
+    if let next = snapshot.nextPrayer {
+      VStack(spacing: 1) { Text(localizedPrayerName(next.id)).font(.caption2).lineLimit(1).minimumScaleFactor(0.7); Text(time(next.atMs)).font(.caption.bold()).minimumScaleFactor(0.65) }
+        .accessibilityElement(children: .ignore).accessibilityLabel(accessibilityLabel(next, location: snapshot.locationLabel))
+    } else { unavailable }
+  }
+
+  @available(iOSApplicationExtension 16.0, *)
+  @ViewBuilder private func rectangular(_ snapshot: PrayerSnapshot) -> some View {
+    if let next = snapshot.nextPrayer {
+      VStack(alignment: .leading, spacing: 2) { Text(snapshot.locationLabel ?? String(localized: "PrayerWidgetTitle", table: "Localizable")).font(.caption2).foregroundStyle(.secondary).lineLimit(1); Text("\(localizedPrayerName(next.id))  \(time(next.atMs))").font(.headline).minimumScaleFactor(0.75) }
+        .accessibilityElement(children: .ignore).accessibilityLabel(accessibilityLabel(next, location: snapshot.locationLabel))
+    } else { unavailable }
+  }
+
+  @ViewBuilder private func homeScreen(_ snapshot: PrayerSnapshot) -> some View {
     switch family {
-    case .accessoryCircular:
-      if let next = snapshot.nextPrayer {
-        VStack(spacing: 1) { Text(localizedPrayerName(next.id)).font(.caption2).lineLimit(1).minimumScaleFactor(0.7); Text(time(next.atMs)).font(.caption.bold()).minimumScaleFactor(0.65) }
-          .accessibilityElement(children: .ignore).accessibilityLabel(accessibilityLabel(next, location: snapshot.locationLabel))
-      } else { unavailable }
-    case .accessoryRectangular:
-      if let next = snapshot.nextPrayer {
-        VStack(alignment: .leading, spacing: 2) { Text(snapshot.locationLabel ?? String(localized: "PrayerWidgetTitle", table: "Localizable")).font(.caption2).foregroundStyle(.secondary).lineLimit(1); Text("\(localizedPrayerName(next.id))  \(time(next.atMs))").font(.headline).minimumScaleFactor(0.75) }
-          .accessibilityElement(children: .ignore).accessibilityLabel(accessibilityLabel(next, location: snapshot.locationLabel))
-      } else { unavailable }
     case .systemLarge:
       VStack(alignment: .leading, spacing: 10) {
         header(snapshot)
-        let visible = Array(snapshot.prayers.prefix(6))
-        ForEach(visible) { prayer in
-          HStack { Text(localizedPrayerName(prayer.id)).font(.body.weight(.medium)); Spacer(); Text(time(prayer.atMs)).font(.body.monospacedDigit()) }
-            .accessibilityElement(children: .ignore).accessibilityLabel(accessibilityLabel(prayer, location: nil))
-        }
+        ForEach(Array(snapshot.prayers.prefix(6))) { prayer in HStack { Text(localizedPrayerName(prayer.id)).font(.body.weight(.medium)); Spacer(); Text(time(prayer.atMs)).font(.body.monospacedDigit()) }.accessibilityElement(children: .ignore).accessibilityLabel(accessibilityLabel(prayer, location: nil)) }
         Spacer(minLength: 0)
       }
     case .systemExtraLarge:
       VStack(alignment: .leading, spacing: 12) {
         header(snapshot)
         let visible = Array(snapshot.prayers.prefix(8))
-        ViewThatFits(in: .horizontal) {
-          HStack(alignment: .top, spacing: 24) { prayerColumn(Array(visible.prefix(4))); prayerColumn(Array(visible.dropFirst(4))) }
-          prayerColumn(visible)
-        }
+        ViewThatFits(in: .horizontal) { HStack(alignment: .top, spacing: 24) { prayerColumn(Array(visible.prefix(4))); prayerColumn(Array(visible.dropFirst(4))) }; prayerColumn(visible) }
         Spacer(minLength: 0)
       }
     default:
@@ -110,19 +101,22 @@ private struct PrayerWidgetView: View {
   private func accessibilityLabel(_ prayer: PrayerSnapshot.Prayer, location: String?) -> String { [location, localizedPrayerName(prayer.id), time(prayer.atMs)].compactMap { value in guard let value, !value.isEmpty else { return nil }; return value }.joined(separator: ", ") }
 
   @ViewBuilder private func widgetBackground<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-    if #available(iOS 17.0, *) {
-      content().containerBackground(for: .widget) { Color(uiColor: .secondarySystemBackground) }.padding()
-    } else {
-      content().padding().background(Color(uiColor: .secondarySystemBackground))
-    }
+    if #available(iOS 17.0, *) { content().containerBackground(for: .widget) { Color(uiColor: .secondarySystemBackground) }.padding() }
+    else { content().padding().background(Color(uiColor: .secondarySystemBackground)) }
   }
 }
 
 @main struct PrayerTimesWidget: Widget {
+  private var supportedFamilies: [WidgetFamily] {
+    var families: [WidgetFamily] = [.systemSmall, .systemMedium, .systemLarge, .systemExtraLarge]
+    if #available(iOSApplicationExtension 16.0, *) { families.append(contentsOf: [.accessoryCircular, .accessoryRectangular]) }
+    return families
+  }
+
   var body: some WidgetConfiguration {
     StaticConfiguration(kind: "PrayerTimesWidget", provider: PrayerProvider()) { entry in PrayerWidgetView(entry: entry) }
       .configurationDisplayName(String(localized: "PrayerWidgetTitle", table: "Localizable"))
       .description(String(localized: "PrayerWidgetDescription", table: "Localizable"))
-      .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .systemExtraLarge, .accessoryCircular, .accessoryRectangular])
+      .supportedFamilies(supportedFamilies)
   }
 }
