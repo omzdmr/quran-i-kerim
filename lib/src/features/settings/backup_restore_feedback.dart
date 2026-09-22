@@ -21,7 +21,7 @@ class BackupRestoreFeedback {
     messenger.hideCurrentSnackBar();
 
     var undone = false;
-    final controller = ScaffoldFeatureController<SnackBar, SnackBarClosedReason>(
+    final controller = messenger.showSnackBar(
       SnackBar(
         content: Semantics(
           liveRegion: true,
@@ -63,10 +63,7 @@ class BackupRestoreFeedback {
           },
         ),
       ),
-      messenger.hideCurrentSnackBar,
-      messenger.removeCurrentSnackBar,
     );
-    messenger.showSnackBar(controller._snackBar);
     await controller.closed;
     return undone;
   }
