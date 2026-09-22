@@ -49,21 +49,15 @@ class BackupImportPlanner {
         final hasCurrent = current.containsKey(key);
         final hasIncoming = incoming.containsKey(key);
         if (hasCurrent && hasIncoming) {
-          if (!_equivalent(current[key], incoming[key])) {
-            conflictingRecords++;
-            sectionConflicts++;
-          }
+          if (!_equivalent(current[key], incoming[key])) { conflictingRecords++; sectionConflicts++; }
         } else if (hasIncoming) {
-          incomingOnlyRecords++;
-          sectionIncomingOnly++;
+          incomingOnlyRecords++; sectionIncomingOnly++;
         } else {
-          localOnlyRecords++;
-          sectionLocalOnly++;
+          localOnlyRecords++; sectionLocalOnly++;
         }
       }
       impacts.add(BackupSectionImpact(section: section, incomingRecords: incoming.length, localRecords: current.length, conflictingRecords: sectionConflicts, incomingOnlyRecords: sectionIncomingOnly, localOnlyRecords: sectionLocalOnly));
     }
-
     return BackupImportPlan(incomingRecords: incomingRecords, localRecords: localRecords, conflictingRecords: conflictingRecords, incomingOnlyRecords: incomingOnlyRecords, localOnlyRecords: localOnlyRecords, sectionImpacts: List<BackupSectionImpact>.unmodifiable(impacts));
   }
 
@@ -71,25 +65,25 @@ class BackupImportPlanner {
     if (section == 'bookmarks' && currentValue is Map && incomingValue is Map) {
       final currentBookmarks = _stringListRecords(currentValue['bookmarks']);
       final incomingBookmarks = _stringListRecords(incomingValue['bookmarks']);
-      if (currentBookmarks != null && incomingBookmarks != null) {
-        return _RecordPair(currentBookmarks, incomingBookmarks);
-      }
+      if (currentBookmarks != null && incomingBookmarks != null) return _RecordPair(currentBookmarks, incomingBookmarks);
     }
-    return _RecordPair(_records(section, currentValue), _records(section, incomingValue));
+    if (section == 'fasting' && currentValue is Map && incomingValue is Map) {
+      final currentFasting = _fastingRecords(currentValue);
+      final incomingFasting = _fastingRecords(incomingValue);
+      if (currentFasting != null && incomingFasting != null) return _RecordPair(currentFasting, incomingFasting);
+    }
+    return _RecordPair(_genericRecords(currentValue), _genericRecords(incomingValue));
   }
 
-  Map<String, Object?> _records(String section, Object? value) {
-    if (section == 'fasting' && value is Map) {
-      final expanded = _qadaRecords(value['qada_fasting_ledger_v1']);
-      if (expanded != null) {
-        return <String, Object?>{
-          for (final entry in value.entries)
-            if (entry.key is String && entry.key != 'qada_fasting_ledger_v1') 'pref:${entry.key}': entry.value,
-          for (final entry in expanded.entries) 'qada:${entry.key}': entry.value,
-        };
-      }
-    }
-    return _genericRecords(value);
+  Map<String, Object?>? _fastingRecords(Map value) {
+    final expanded = _qadaRecords(value['qada_fasting_ledger_v1']);
+    if (value.containsKey('qada_fasting_ledger_v1') && expanded == null) return null;
+    return <String, Object?>{
+      for (final entry in value.entries)
+        if (entry.key is String && entry.key != 'qada_fasting_ledger_v1') 'pref:${entry.key}': entry.value,
+      if (expanded != null)
+        for (final entry in expanded.entries) 'qada:${entry.key}': entry.value,
+    };
   }
 
   Map<String, Object?> _genericRecords(Object? value) {
@@ -109,6 +103,7 @@ class BackupImportPlanner {
   }
 
   Map<String, Object?>? _qadaRecords(Object? encoded) {
+    if (encoded == null) return const <String, Object?>{};
     if (encoded is! String) return null;
     try {
       final document = jsonDecode(encoded);
