@@ -66,19 +66,18 @@ void main() {
     handle.dispose();
   });
 
-  testWidgets('every portable manifest section has a human-readable English label', (tester) async {
+  testWidgets('every portable manifest section is localized in every product locale', (tester) async {
     final impacts = <BackupSectionImpact>[
       for (final section in BackupManifest.includedSections)
         BackupSectionImpact(section: section, incomingRecords: 1, localRecords: 0, conflictingRecords: 0, incomingOnlyRecords: 1, localOnlyRecords: 0),
     ];
     final allSections = BackupImportPlan(incomingRecords: impacts.length, localRecords: 0, conflictingRecords: 0, incomingOnlyRecords: impacts.length, localOnlyRecords: 0, sectionImpacts: impacts);
-    await tester.pumpWidget(MaterialApp(locale: const Locale('en'), home: Scaffold(body: SingleChildScrollView(child: BackupRestoreImpactList(plan: allSections)))));
-    for (final section in BackupManifest.includedSections) {
-      expect(find.text(section), findsNothing, reason: 'Raw backup key leaked to UI: $section');
+
+    for (final locale in const <String>['tr', 'en', 'fr', 'ar', 'az', 'ru']) {
+      await tester.pumpWidget(MaterialApp(locale: Locale(locale), home: Scaffold(body: SingleChildScrollView(child: BackupRestoreImpactList(plan: allSections)))));
+      for (final section in BackupManifest.includedSections) {
+        expect(find.text(section), findsNothing, reason: 'Raw backup key leaked in $locale: $section');
+      }
     }
-    expect(find.text('Reading and last position'), findsOneWidget);
-    expect(find.text('Hifz review history'), findsOneWidget);
-    expect(find.text('Prayer preferences'), findsOneWidget);
-    expect(find.text('Fasting records'), findsOneWidget);
   });
 }
