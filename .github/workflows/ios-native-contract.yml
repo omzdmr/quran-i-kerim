@@ -51,10 +51,20 @@ jobs:
           grep -q '\.allowBluetooth' ios/Runner/MicrophoneRecordingChannel.swift
           grep -q 'protectedDataAvailability": true' ios/Runner/NativeLifecycleStateChannel.swift
           grep -q 'protectedDataDidBecomeAvailableNotification' ios/Runner/NativeLifecycleStateChannel.swift
+          grep -q 'targetedWidgetReload": true' ios/Runner/NativeLifecycleStateChannel.swift
+          grep -q 'reloadTimelines(ofKind: Self.prayerWidgetKind)' ios/Runner/NativeLifecycleStateChannel.swift
           grep -q 'ownsNowPlayingInfo' ios/Runner/AudioSessionCoordinator.swift
           grep -q 'CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements' ios/Runner.xcodeproj/project.pbxproj
           grep -q 'corruptPayloadQuarantine": true' ios/Runner/WidgetSnapshotChannel.swift
           grep -q 'invalidationDiagnostics": true' ios/Runner/WidgetSnapshotChannel.swift
+          grep -q 'targetedTimelineReload": true' ios/Runner/WidgetSnapshotChannel.swift
+          grep -q 'reloadTimelines(ofKind: Self.widgetKind)' ios/Runner/WidgetSnapshotChannel.swift
+          grep -q 'maxShareFileBytes: Int64 = 64' ios/Runner/NativeShareChannel.swift
+          grep -q 'copyOnShare": true' ios/Runner/NativeShareChannel.swift
+          grep -q 'backupExcludedStaging": true' ios/Runner/NativeShareChannel.swift
+          grep -q 'FileProtectionType.completeUntilFirstUserAuthentication' ios/Runner/NativeShareChannel.swift
+          grep -q 'isExcludedFromBackup = true' ios/Runner/NativeShareChannel.swift
+          grep -q 'cleanupStagedShare' ios/Runner/NativeShareChannel.swift
           grep -q 'case .systemLarge:' ios/PrayerWidget/PrayerWidget.swift
           grep -q 'case .systemExtraLarge:' ios/PrayerWidget/PrayerWidget.swift
           grep -q '\.systemExtraLarge' ios/PrayerWidget/PrayerWidget.swift
