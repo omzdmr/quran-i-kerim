@@ -75,10 +75,6 @@ class BackupFileService {
     return backupService.planImportJson(encoded);
   }
 
-  /// Reads a user-selected file once and binds its preview + import plan to the
-  /// exact bytes that will later be restored. An external provider changing the
-  /// file while the confirmation dialog is open can no longer make the app
-  /// restore content different from what the user reviewed.
   Future<BackupPreparedImport> prepareFile(File file) async {
     final encoded = await _readImport(file);
     final preview = backupService.previewJson(encoded);
@@ -143,10 +139,7 @@ class BackupFileService {
     try {
       final afterRestore = await backupService.exportJson(now: restoredAt);
       postRestoreSignature = _dataSignature(afterRestore);
-    } catch (_) {
-      // Restore already succeeded. Fingerprinting is an extra stale-undo guard,
-      // never a reason to discard the safety snapshot or report false failure.
-    }
+    } catch (_) {}
     return BackupRestoreReceipt(
       mode: mode,
       safetySnapshot: safetySnapshot,
@@ -160,8 +153,7 @@ class BackupFileService {
     final managedDirectory = await _backupDirectory(create: false);
     final managedPath = managedDirectory.absolute.path;
     final snapshotPath = snapshot.absolute.path;
-    final separator = Platform.pathSeparator;
-    if (!snapshotPath.startsWith('$managedPath$separator') ||
+    if (snapshot.parent.absolute.path != managedPath ||
         !_fileName(snapshotPath).startsWith('quran-safety-before-restore-')) {
       throw const FormatException('Restore receipt does not reference a managed safety snapshot.');
     }
