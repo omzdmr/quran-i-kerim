@@ -6,10 +6,14 @@ import 'prayer_schedule_health_card.dart';
 import 'prayer_schedule_repair_receipt_card.dart';
 
 class PrayerScheduleHealthPanel extends StatelessWidget {
-  const PrayerScheduleHealthPanel({super.key});
+  const PrayerScheduleHealthPanel({
+    this.refresher = const PrayerNotificationScheduleHealthRefresher(),
+    this.receiptStore = const PrayerScheduleRepairReceiptStore(),
+    super.key,
+  });
 
-  static const _refresher = PrayerNotificationScheduleHealthRefresher();
-  static const _receiptStore = PrayerScheduleRepairReceiptStore();
+  final PrayerNotificationScheduleHealthRefresher refresher;
+  final PrayerScheduleRepairReceiptStore receiptStore;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -17,12 +21,12 @@ class PrayerScheduleHealthPanel extends StatelessWidget {
         children: [
           PrayerScheduleHealthCard(
             onResync: () async {
-              final refreshed = await _refresher.resync();
+              final refreshed = await refresher.resync();
               // A successful explicit retry supersedes an older automatic
               // failure. Clearing the receipt also notifies the open panel so
               // contradictory "healthy" + "auto repair failed" cards cannot
               // remain on screen together.
-              if (refreshed != null) await _receiptStore.clear();
+              if (refreshed != null) await receiptStore.clear();
             },
           ),
           const SizedBox(height: 8),
