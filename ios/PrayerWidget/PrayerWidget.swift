@@ -49,9 +49,7 @@ private struct PrayerWidgetView: View {
       if family == .accessoryCircular { circular(snapshot) }
       else if family == .accessoryRectangular { rectangular(snapshot) }
       else { homeScreen(snapshot) }
-    } else {
-      homeScreen(snapshot)
-    }
+    } else { homeScreen(snapshot) }
   }
 
   @available(iOSApplicationExtension 16.0, *)
@@ -65,7 +63,7 @@ private struct PrayerWidgetView: View {
   @available(iOSApplicationExtension 16.0, *)
   @ViewBuilder private func rectangular(_ snapshot: PrayerSnapshot) -> some View {
     if let next = snapshot.nextPrayer {
-      VStack(alignment: .leading, spacing: 2) { Text(snapshot.locationLabel ?? String(localized: "PrayerWidgetTitle", table: "Localizable")).font(.caption2).foregroundStyle(.secondary).lineLimit(1); Text("\(localizedPrayerName(next.id))  \(time(next.atMs))").font(.headline).minimumScaleFactor(0.75) }
+      VStack(alignment: .leading, spacing: 2) { Text(snapshot.locationLabel ?? String(localized: "Prayer Times", table: "Localizable")).font(.caption2).foregroundStyle(.secondary).lineLimit(1); Text("\(localizedPrayerName(next.id))  \(time(next.atMs))").font(.headline).minimumScaleFactor(0.75) }
         .accessibilityElement(children: .ignore).accessibilityLabel(accessibilityLabel(next, location: snapshot.locationLabel))
     } else { unavailable }
   }
@@ -73,18 +71,9 @@ private struct PrayerWidgetView: View {
   @ViewBuilder private func homeScreen(_ snapshot: PrayerSnapshot) -> some View {
     switch family {
     case .systemLarge:
-      VStack(alignment: .leading, spacing: 10) {
-        header(snapshot)
-        ForEach(Array(snapshot.prayers.prefix(6))) { prayer in HStack { Text(localizedPrayerName(prayer.id)).font(.body.weight(.medium)); Spacer(); Text(time(prayer.atMs)).font(.body.monospacedDigit()) }.accessibilityElement(children: .ignore).accessibilityLabel(accessibilityLabel(prayer, location: nil)) }
-        Spacer(minLength: 0)
-      }
+      VStack(alignment: .leading, spacing: 10) { header(snapshot); ForEach(Array(snapshot.prayers.prefix(6))) { prayer in HStack { Text(localizedPrayerName(prayer.id)).font(.body.weight(.medium)); Spacer(); Text(time(prayer.atMs)).font(.body.monospacedDigit()) }.accessibilityElement(children: .ignore).accessibilityLabel(accessibilityLabel(prayer, location: nil)) }; Spacer(minLength: 0) }
     case .systemExtraLarge:
-      VStack(alignment: .leading, spacing: 12) {
-        header(snapshot)
-        let visible = Array(snapshot.prayers.prefix(8))
-        ViewThatFits(in: .horizontal) { HStack(alignment: .top, spacing: 24) { prayerColumn(Array(visible.prefix(4))); prayerColumn(Array(visible.dropFirst(4))) }; prayerColumn(visible) }
-        Spacer(minLength: 0)
-      }
+      VStack(alignment: .leading, spacing: 12) { header(snapshot); let visible = Array(snapshot.prayers.prefix(8)); ViewThatFits(in: .horizontal) { HStack(alignment: .top, spacing: 24) { prayerColumn(Array(visible.prefix(4))); prayerColumn(Array(visible.dropFirst(4))) }; prayerColumn(visible) }; Spacer(minLength: 0) }
     default:
       if let next = snapshot.nextPrayer {
         VStack(alignment: .leading, spacing: 6) { header(snapshot); Spacer(minLength: 2); Text(localizedPrayerName(next.id)).font(.headline); Text(time(next.atMs)).font(.title2.bold().monospacedDigit()).minimumScaleFactor(0.7) }
@@ -93,11 +82,24 @@ private struct PrayerWidgetView: View {
     }
   }
 
-  private func header(_ snapshot: PrayerSnapshot) -> some View { VStack(alignment: .leading, spacing: 2) { Text(String(localized: "PrayerWidgetTitle", table: "Localizable")).font(.caption).foregroundStyle(.secondary); if let label = snapshot.locationLabel, !label.isEmpty { Text(label).font(.headline).lineLimit(1) } } }
+  private func header(_ snapshot: PrayerSnapshot) -> some View { VStack(alignment: .leading, spacing: 2) { Text(String(localized: "Prayer Times", table: "Localizable")).font(.caption).foregroundStyle(.secondary); if let label = snapshot.locationLabel, !label.isEmpty { Text(label).font(.headline).lineLimit(1) } } }
   private func prayerColumn(_ prayers: [PrayerSnapshot.Prayer]) -> some View { VStack(spacing: 8) { ForEach(prayers) { prayer in HStack { Text(localizedPrayerName(prayer.id)).lineLimit(1); Spacer(); Text(time(prayer.atMs)).monospacedDigit() }.accessibilityElement(children: .ignore).accessibilityLabel(accessibilityLabel(prayer, location: nil)) } } }
-  private var unavailable: some View { VStack(alignment: .leading, spacing: 4) { Text(String(localized: "PrayerWidgetTitle", table: "Localizable")).font(.headline); Text(String(localized: "PrayerWidgetOpenApp", table: "Localizable")).font(.caption).foregroundStyle(.secondary) }.accessibilityElement(children: .combine) }
+  private var unavailable: some View { VStack(alignment: .leading, spacing: 4) { Text(String(localized: "Prayer Times", table: "Localizable")).font(.headline); Text(String(localized: "Open app to refresh", table: "Localizable")).font(.caption).foregroundStyle(.secondary) }.accessibilityElement(children: .combine) }
   private func time(_ milliseconds: Int64) -> String { let formatter = DateFormatter(); formatter.locale = .autoupdatingCurrent; formatter.timeZone = .autoupdatingCurrent; formatter.timeStyle = .short; formatter.dateStyle = .none; return formatter.string(from: Date(timeIntervalSince1970: Double(milliseconds) / 1000)) }
-  private func localizedPrayerName(_ id: String) -> String { let normalized = id.trimmingCharacters(in: .whitespacesAndNewlines).lowercased().replacingOccurrences(of: "_", with: "").replacingOccurrences(of: "-", with: ""); let key: String; switch normalized { case "fajr": key = "PrayerNameFajr"; case "sunrise", "shuruq": key = "PrayerNameSunrise"; case "dhuhr", "zuhr": key = "PrayerNameDhuhr"; case "asr": key = "PrayerNameAsr"; case "maghrib": key = "PrayerNameMaghrib"; case "isha": key = "PrayerNameIsha"; case "imsak": key = "PrayerNameImsak"; default: key = "PrayerNameGeneric" }; return String(localized: String.LocalizationValue(key), table: "Localizable") }
+  private func localizedPrayerName(_ id: String) -> String {
+    let normalized = id.trimmingCharacters(in: .whitespacesAndNewlines).lowercased().replacingOccurrences(of: "_", with: "").replacingOccurrences(of: "-", with: "")
+    let key: String
+    switch normalized {
+    case "fajr", "imsak": key = "Fajr"
+    case "sunrise", "shuruq", "shurooq": key = "Sunrise"
+    case "dhuhr", "zuhr", "noon": key = "Dhuhr"
+    case "asr": key = "Asr"
+    case "maghrib", "sunset": key = "Maghrib"
+    case "isha", "ishaa": key = "Isha"
+    default: return String(localized: "Prayer", table: "Localizable")
+    }
+    return String(localized: String.LocalizationValue(key), table: "Localizable")
+  }
   private func accessibilityLabel(_ prayer: PrayerSnapshot.Prayer, location: String?) -> String { [location, localizedPrayerName(prayer.id), time(prayer.atMs)].compactMap { value in guard let value, !value.isEmpty else { return nil }; return value }.joined(separator: ", ") }
 
   @ViewBuilder private func widgetBackground<Content: View>(@ViewBuilder content: () -> Content) -> some View {
@@ -112,11 +114,10 @@ private struct PrayerWidgetView: View {
     if #available(iOSApplicationExtension 16.0, *) { families.append(contentsOf: [.accessoryCircular, .accessoryRectangular]) }
     return families
   }
-
   var body: some WidgetConfiguration {
     StaticConfiguration(kind: "PrayerTimesWidget", provider: PrayerProvider()) { entry in PrayerWidgetView(entry: entry) }
-      .configurationDisplayName(String(localized: "PrayerWidgetTitle", table: "Localizable"))
-      .description(String(localized: "PrayerWidgetDescription", table: "Localizable"))
+      .configurationDisplayName(String(localized: "Prayer Times", table: "Localizable"))
+      .description(String(localized: "Shows the next prayer from your on-device schedule.", table: "Localizable"))
       .supportedFamilies(supportedFamilies)
   }
 }
