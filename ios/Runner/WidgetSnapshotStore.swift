@@ -61,6 +61,7 @@ struct WidgetPrayerSnapshot: Codable, Equatable {
       && TimeZone(identifier: timeZoneIdentifier) != nil
       && !calculationFingerprint.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
       && hasPrayerID == hasPrayerTime
+      && (privacyMode == .redacted || hasPrayerID)
       && prayerTimeIsPlausible
   }
 
