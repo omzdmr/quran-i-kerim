@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'backup_cloud_connector.dart';
 import 'backup_cloud_coordinator.dart';
 import 'backup_cloud_store.dart';
+import 'backup_file_service.dart';
 
 typedef BackupCloudCoordinatorFactory = BackupCloudCoordinator Function(
   BackupCloudStore store,
@@ -62,18 +63,20 @@ class BackupCloudController extends ChangeNotifier {
     });
   }
 
-  Future<void> restoreRemote() async {
-    if (_busy) return;
+  Future<BackupRestoreReceipt?> restoreRemote() async {
+    if (_busy) return null;
     final coordinator = _requireCoordinator();
+    BackupRestoreReceipt? receipt;
     await _run(() async {
       // Read the remote again before applying it. A different device may have
       // created a newer snapshot after the confirmation UI was first shown.
       final fresh = await coordinator.inspect();
       _inspection = fresh;
       notifyListeners();
-      await coordinator.restoreRemote(fresh);
+      receipt = await coordinator.restoreRemote(fresh);
       await _refreshInspection();
     });
+    return receipt;
   }
 
   Future<void> signOut() async {
