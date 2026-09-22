@@ -4,6 +4,7 @@ import re
 
 root = Path(__file__).resolve().parents[1]
 widget = (root / "PrayerWidget" / "PrayerWidget.swift").read_text(encoding="utf-8")
+store = (root / "Runner" / "WidgetSnapshotStore.swift").read_text(encoding="utf-8")
 locales = ("en", "tr", "ar", "az", "ru", "fr")
 required = {"Prayer", "Fajr", "Sunrise", "Dhuhr", "Asr", "Maghrib", "Isha"}
 
@@ -34,4 +35,21 @@ if 'default: return String(localized: "Prayer", table: "Localizable")' not in wi
 if 'String(localized: String.LocalizationValue(key), table: "Localizable")' not in widget:
     raise SystemExit("canonical prayer names must resolve through the native localization table")
 
-print("Widget canonical prayer-name contract OK")
+# Producer and WidgetKit consumer must read the same App Group key and schema fields.
+store_key = re.search(r'snapshotKey\s*=\s*"([^"]+)"', store)
+widget_key = re.search(r'payloadKey\s*=\s*"([^"]+)"', widget)
+if not store_key or not widget_key or store_key.group(1) != widget_key.group(1):
+    raise SystemExit("Runner/WidgetKit snapshot keys diverged")
+for field in ("version", "generatedAt", "validUntil", "timeZoneIdentifier", "calculationFingerprint", "nextPrayerID", "nextPrayerAt", "displayName", "privacyMode"):
+    if re.search(rf'\blet\s+{field}\s*:', widget) is None:
+        raise SystemExit(f"WidgetKit snapshot decoder missing producer field: {field}")
+if 'dateEncodingStrategy = .millisecondsSince1970' not in store:
+    raise SystemExit("Runner snapshot date encoding contract changed")
+if 'let generatedAt: Double' not in widget or 'let validUntil: Double' not in widget or 'let nextPrayerAt: Double?' not in widget:
+    raise SystemExit("WidgetKit must decode persisted millisecond dates as numeric values")
+if 'timeZoneIdentifier == TimeZone.autoupdatingCurrent.identifier' not in widget:
+    raise SystemExit("WidgetKit must reject snapshots from another time zone")
+if 'snapshot.isRedacted' not in widget:
+    raise SystemExit("WidgetKit must honor the persisted privacy redaction mode")
+
+print("Widget canonical prayer-name and persisted snapshot bridge contract OK")
