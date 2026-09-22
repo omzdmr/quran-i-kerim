@@ -14,7 +14,7 @@ void main() {
     expect(loaded?.confirmedAt, when);
   });
 
-  test('recent user verification is fresh but old success expires', () {
+  test('recent verification is fresh but old success expires', () {
     final now = DateTime.utc(2026, 9, 22, 4);
     final recent = PrayerNotificationProbeRecord(outcome: PrayerNotificationProbeOutcome.received, confirmedAt: now.subtract(const Duration(days: 10)));
     final old = PrayerNotificationProbeRecord(outcome: PrayerNotificationProbeOutcome.received, confirmedAt: now.subtract(const Duration(days: 31)));
@@ -22,10 +22,20 @@ void main() {
     expect(old.isFreshAt(now), isFalse);
   });
 
+  test('fresh verification stops being current when app or system permission is off', () {
+    final now = DateTime.utc(2026, 9, 22, 4);
+    final record = PrayerNotificationProbeRecord(outcome: PrayerNotificationProbeOutcome.received, confirmedAt: now.subtract(const Duration(days: 1)));
+    expect(record.isCurrentAt(now, notificationsEnabled: true, systemPermissionGranted: true), isTrue);
+    expect(record.isCurrentAt(now, notificationsEnabled: true, systemPermissionGranted: null), isTrue);
+    expect(record.isCurrentAt(now, notificationsEnabled: false, systemPermissionGranted: true), isFalse);
+    expect(record.isCurrentAt(now, notificationsEnabled: true, systemPermissionGranted: false), isFalse);
+  });
+
   test('future timestamp never becomes trusted verification', () {
     final now = DateTime.utc(2026, 9, 22, 4);
     final future = PrayerNotificationProbeRecord(outcome: PrayerNotificationProbeOutcome.received, confirmedAt: now.add(const Duration(minutes: 1)));
     expect(future.isFreshAt(now), isFalse);
+    expect(future.isCurrentAt(now, notificationsEnabled: true, systemPermissionGranted: true), isFalse);
   });
 
   test('freshness boundary is inclusive and can be overridden', () {
