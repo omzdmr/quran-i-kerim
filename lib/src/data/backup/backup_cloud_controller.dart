@@ -69,8 +69,6 @@ class BackupCloudController extends ChangeNotifier {
     return preparation;
   }
 
-  /// Applies only a cloud revision that was explicitly prepared/reviewed by
-  /// the caller. There is deliberately no unprepared controller restore path.
   Future<BackupRestoreReceipt?> restoreRemote({
     required BackupCloudRestorePreparation preparation,
     BackupRestoreMode mode = BackupRestoreMode.replace,
@@ -82,16 +80,14 @@ class BackupCloudController extends ChangeNotifier {
       final fresh = await coordinator.inspect();
       _inspection = fresh;
       notifyListeners();
-      if (fresh.remote?.revision != preparation.remoteRevision) {
+      if (fresh.remote?.revision != preparation.remoteRevision ||
+          fresh.localDataSignature != preparation.localDataSignature) {
         throw const BackupCloudConflictException();
       }
       receipt = await coordinator.restoreRemote(fresh, mode: mode);
       try {
         await _refreshInspection();
-      } catch (_) {
-        // Local restore is already committed and receipt is the rollback
-        // handle. A status refresh cannot retroactively turn it into failure.
-      }
+      } catch (_) {}
     });
     return receipt;
   }
@@ -106,9 +102,7 @@ class BackupCloudController extends ChangeNotifier {
 
   BackupCloudCoordinator _requireCoordinator() {
     final coordinator = _coordinator;
-    if (coordinator == null) {
-      throw StateError('Cloud backup is not connected.');
-    }
+    if (coordinator == null) throw StateError('Cloud backup is not connected.');
     return coordinator;
   }
 
