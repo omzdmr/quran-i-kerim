@@ -30,6 +30,7 @@ final class NativeLifecycleStateChannel {
   private let previousCleanTermination: Bool
   private let previousLifecycleState: String?
   private let launchedAt = Date()
+  private var restoreAcknowledged = false
 
   init(binaryMessenger: FlutterBinaryMessenger, defaults: UserDefaults = .standard, notificationCenter: NotificationCenter = .default) {
     channel = FlutterMethodChannel(name: Self.channelName, binaryMessenger: binaryMessenger)
@@ -61,15 +62,18 @@ final class NativeLifecycleStateChannel {
   private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
     case "snapshot": result(snapshot())
-    case "acknowledgeRestore": defaults.removeObject(forKey: Key.lastBackgroundAt); result(nil)
-    case "capabilities": result(["coldLaunchDetection": true, "firstLaunchDistinction": true, "backgroundGap": true, "lifecycleEvents": true, "persistent": true, "timeZoneEvents": true, "systemLocaleEvents": true, "significantTimeChange": true, "widgetStaleReconciliation": true, "protectedDataAvailability": true, "targetedWidgetReload": true, "widgetKind": Self.prayerWidgetKind, "backgroundEvictionDetection": true, "previousLifecycleState": true])
+    case "acknowledgeRestore":
+      restoreAcknowledged = true
+      defaults.removeObject(forKey: Key.lastBackgroundAt)
+      result(nil)
+    case "capabilities": result(["coldLaunchDetection": true, "firstLaunchDistinction": true, "backgroundGap": true, "lifecycleEvents": true, "persistent": true, "timeZoneEvents": true, "systemLocaleEvents": true, "significantTimeChange": true, "widgetStaleReconciliation": true, "protectedDataAvailability": true, "targetedWidgetReload": true, "widgetKind": Self.prayerWidgetKind, "backgroundEvictionDetection": true, "previousLifecycleState": true, "restoreAcknowledgement": true])
     default: result(FlutterMethodNotImplemented)
     }
   }
 
   private func snapshot() -> [String: Any] {
-    let likelyBackgroundEviction = hadPreviousSession && !previousCleanTermination && previousLifecycleState == "background"
-    var payload: [String: Any] = ["launchedAtMs": milliseconds(launchedAt), "launchCount": defaults.integer(forKey: Key.launchCount), "hadPreviousSession": hadPreviousSession, "previousCleanTermination": previousCleanTermination, "likelyBackgroundEviction": likelyBackgroundEviction, "applicationState": stateName(UIApplication.shared.applicationState), "timeZone": TimeZone.current.identifier, "systemLocale": Locale.autoupdatingCurrent.identifier, "protectedDataAvailable": UIApplication.shared.isProtectedDataAvailable]
+    let likelyBackgroundEviction = !restoreAcknowledged && hadPreviousSession && !previousCleanTermination && previousLifecycleState == "background"
+    var payload: [String: Any] = ["launchedAtMs": milliseconds(launchedAt), "launchCount": defaults.integer(forKey: Key.launchCount), "hadPreviousSession": hadPreviousSession, "previousCleanTermination": previousCleanTermination, "likelyBackgroundEviction": likelyBackgroundEviction, "restoreAcknowledged": restoreAcknowledged, "applicationState": stateName(UIApplication.shared.applicationState), "timeZone": TimeZone.current.identifier, "systemLocale": Locale.autoupdatingCurrent.identifier, "protectedDataAvailable": UIApplication.shared.isProtectedDataAvailable]
     if let previousLifecycleState { payload["previousLifecycleState"] = previousLifecycleState }
     if let date = defaults.object(forKey: Key.lastBackgroundAt) as? Date { payload["lastBackgroundAtMs"] = milliseconds(date); payload["backgroundGapMs"] = max(0, milliseconds(Date()) - milliseconds(date)) }
     if let date = defaults.object(forKey: Key.lastForegroundAt) as? Date { payload["lastForegroundAtMs"] = milliseconds(date) }
