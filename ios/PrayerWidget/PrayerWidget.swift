@@ -46,12 +46,9 @@ private struct PrayerProvider: TimelineProvider {
   func getTimeline(in context: Context, completion: @escaping (Timeline<PrayerEntry>) -> Void) {
     let now = Date(), result = SnapshotReader.read(now: now), current = PrayerEntry(date: now, snapshot: result.snapshot, freshness: result.freshness)
     guard let snapshot = result.snapshot else { completion(Timeline(entries: [current], policy: .after(now.addingTimeInterval(result.freshness == nil ? 15 * 60 : 5 * 60)))); return }
-    var boundaries: [(Date, PrayerSnapshot.Freshness)] = [
-      (Date(timeIntervalSince1970: snapshot.validUntil / 1000), .expired),
-      (Date(timeIntervalSince1970: (snapshot.generatedAt + PrayerSnapshot.maximumAgeMilliseconds) / 1000), .generatedTooOld)
-    ]
+    var boundaries: [(Date, PrayerSnapshot.Freshness)] = [(Date(timeIntervalSince1970: snapshot.validUntil / 1000), .expired), (Date(timeIntervalSince1970: (snapshot.generatedAt + PrayerSnapshot.maximumAgeMilliseconds) / 1000), .generatedTooOld)]
     if let next = snapshot.nextPrayerAt { boundaries.append((Date(timeIntervalSince1970: next / 1000), .prayerBoundaryPassed)) }
-    guard let boundary = boundaries.filter({ $0.0 > now }).min(by: { $0.0.0 < $1.0.0 }) else { completion(Timeline(entries: [current], policy: .after(now.addingTimeInterval(5 * 60)))); return }
+    guard let boundary = boundaries.filter({ $0.0 > now }).min(by: { $0.0 < $1.0 }) else { completion(Timeline(entries: [current], policy: .after(now.addingTimeInterval(5 * 60)))); return }
     let failClosed = PrayerEntry(date: boundary.0, snapshot: nil, freshness: boundary.1)
     completion(Timeline(entries: [current, failClosed], policy: .after(boundary.0.addingTimeInterval(5 * 60))))
   }
