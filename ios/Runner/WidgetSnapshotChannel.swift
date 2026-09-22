@@ -28,7 +28,7 @@ final class WidgetSnapshotChannel {
 
   private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
-    case "capabilities": result(["schemaVersion": WidgetPrayerSnapshot.schemaVersion, "appGroup": store != nil, "freshnessRequired": true, "freshnessReason": true, "privacyRedaction": true, "stalePurge": true, "corruptPayloadQuarantine": true, "invalidationDiagnostics": true, "policyInvalidation": true, "systemTimeInvalidation": true, "timeZoneInvalidation": true, "localeInvalidation": true, "foregroundRevalidation": true, "targetedTimelineReload": true, "widgetKind": Self.widgetKind])
+    case "capabilities": result(["schemaVersion": WidgetPrayerSnapshot.schemaVersion, "appGroup": store != nil, "freshnessRequired": true, "freshnessReason": true, "maximumSnapshotAgeSeconds": Int(WidgetPrayerSnapshot.maximumAge), "privacyRedaction": true, "stalePurge": true, "corruptPayloadQuarantine": true, "invalidationDiagnostics": true, "policyInvalidation": true, "systemTimeInvalidation": true, "timeZoneInvalidation": true, "localeInvalidation": true, "foregroundRevalidation": true, "targetedTimelineReload": true, "widgetKind": Self.widgetKind])
     case "publish": publish(call.arguments, result: result)
     case "clear": store?.clear(); reloadWidgets(); result(nil)
     case "purgeIfStale": let purged = store?.purgeIfStale() ?? false; if purged { reloadWidgets() }; result(invalidationPayload(purged: purged))
@@ -51,7 +51,7 @@ final class WidgetSnapshotChannel {
     guard let store else { return ["available": false, "hasSnapshot": false, "fresh": false, "freshness": "missing"] }
     guard let snapshot = store.validatedLoad() else { var payload: [String: Any] = ["available": true, "hasSnapshot": false, "fresh": false, "freshness": "missing"]; if let reason = store.lastInvalidationReason() { payload["lastInvalidationReason"] = reason; if reason == WidgetSnapshotStore.InvalidationReason.corruptPayload.rawValue { reloadWidgets() } }; return payload }
     let now = Date(), freshness = snapshot.freshness(at: now)
-    return ["available": true, "hasSnapshot": true, "fresh": freshness == .fresh, "freshness": freshness.rawValue, "generatedAtMs": Int64(snapshot.generatedAt.timeIntervalSince1970 * 1000), "validUntilMs": Int64(snapshot.validUntil.timeIntervalSince1970 * 1000), "timeZone": snapshot.timeZoneIdentifier, "locale": snapshot.localeIdentifier, "privacyMode": snapshot.privacyMode.rawValue, "calculationFingerprint": snapshot.calculationFingerprint]
+    return ["available": true, "hasSnapshot": true, "fresh": freshness == .fresh, "freshness": freshness.rawValue, "ageSeconds": max(0, Int(now.timeIntervalSince(snapshot.generatedAt))), "maximumAgeSeconds": Int(WidgetPrayerSnapshot.maximumAge), "generatedAtMs": Int64(snapshot.generatedAt.timeIntervalSince1970 * 1000), "validUntilMs": Int64(snapshot.validUntil.timeIntervalSince1970 * 1000), "timeZone": snapshot.timeZoneIdentifier, "locale": snapshot.localeIdentifier, "privacyMode": snapshot.privacyMode.rawValue, "calculationFingerprint": snapshot.calculationFingerprint]
   }
   private func number(_ value: Any?) -> Double? { if let number = value as? NSNumber { return number.doubleValue }; if let value = value as? Double { return value }; if let value = value as? Int64 { return Double(value) }; if let value = value as? Int { return Double(value) }; return nil }
   private func reloadWidgets() {
