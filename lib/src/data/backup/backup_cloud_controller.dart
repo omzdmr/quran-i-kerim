@@ -18,7 +18,6 @@ class BackupCloudController extends ChangeNotifier {
 
   final BackupCloudConnector connector;
   final BackupCloudCoordinatorFactory _coordinatorFactory;
-
   BackupCloudConnection? _connection;
   BackupCloudCoordinator? _coordinator;
   BackupCloudInspection? _inspection;
@@ -52,10 +51,7 @@ class BackupCloudController extends ChangeNotifier {
       final fresh = await coordinator.inspect();
       _inspection = fresh;
       notifyListeners();
-      await coordinator.uploadLocal(
-        fresh,
-        allowOverwrite: allowOverwrite,
-      );
+      await coordinator.uploadLocal(fresh, allowOverwrite: allowOverwrite);
       await _refreshInspection();
     });
   }
@@ -73,34 +69,28 @@ class BackupCloudController extends ChangeNotifier {
     return preparation;
   }
 
+  /// Applies only a cloud revision that was explicitly prepared/reviewed by
+  /// the caller. There is deliberately no unprepared controller restore path.
   Future<BackupRestoreReceipt?> restoreRemote({
-    BackupCloudRestorePreparation? preparation,
+    required BackupCloudRestorePreparation preparation,
     BackupRestoreMode mode = BackupRestoreMode.replace,
   }) async {
     if (_busy) return null;
     final coordinator = _requireCoordinator();
     BackupRestoreReceipt? receipt;
     await _run(() async {
-      // Read the remote again immediately before applying it. If the user
-      // reviewed a preview, never restore a different revision under that
-      // confirmation just because another device uploaded in the meantime.
       final fresh = await coordinator.inspect();
       _inspection = fresh;
       notifyListeners();
-      final expectedRevision = preparation?.remoteRevision;
-      if (expectedRevision != null && fresh.remote?.revision != expectedRevision) {
+      if (fresh.remote?.revision != preparation.remoteRevision) {
         throw const BackupCloudConflictException();
       }
       receipt = await coordinator.restoreRemote(fresh, mode: mode);
-
-      // The restore is already committed locally and the receipt is now the
-      // user's rollback handle. A transient second cloud read must never turn
-      // that successful restore into an apparent failure or discard Undo.
       try {
         await _refreshInspection();
       } catch (_) {
-        // Keep the last fresh remote inspection. Manual refresh remains
-        // available and local restore/rollback correctness is unaffected.
+        // Local restore is already committed and receipt is the rollback
+        // handle. A status refresh cannot retroactively turn it into failure.
       }
     });
     return receipt;
