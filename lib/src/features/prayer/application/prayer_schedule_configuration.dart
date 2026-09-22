@@ -14,6 +14,7 @@ class PrayerScheduleConfiguration {
   static String fingerprint({
     required PrayerResolvedLocation resolved,
     required PrayerSettingsSnapshot settings,
+    String localeTag = '',
   }) {
     final preferences = settings.preferencesFor(resolved.defaultMethod);
     final enabledPrayerIds = settings.notificationPrayerIds.toList()..sort();
@@ -30,6 +31,7 @@ class PrayerScheduleConfiguration {
       '${a.fajr},${a.sunrise},${a.dhuhr},${a.asr},${a.maghrib},${a.isha}',
       settings.notificationProfile.name,
       enabledPrayerIds.join(','),
+      localeTag.trim().toLowerCase(),
     ].join('|');
     return 'v2-${sha256.convert(utf8.encode(canonical))}';
   }
