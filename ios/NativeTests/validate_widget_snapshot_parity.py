@@ -31,5 +31,11 @@ for needle in (
     'Image(systemName: "arrow.clockwise")', "private var isAccessoryFamily: Bool",
 ):
     if needle not in widget: failed.append(f"Lock Screen accessory/RTL contract missing {needle!r}")
+for key in (
+    "Prayer times need refresh after a time zone change",
+    "Prayer information is out of date. Open the app to refresh",
+    "Prayer information cannot be shown safely. Open the app to refresh",
+):
+    if f'String(localized: "{key}"' not in widget: failed.append(f"stale-state explanation missing {key!r}")
 if failed: raise SystemExit("Widget snapshot parity validation failed:\n- " + "\n- ".join(failed))
 print("Widget snapshot parity validation passed")
