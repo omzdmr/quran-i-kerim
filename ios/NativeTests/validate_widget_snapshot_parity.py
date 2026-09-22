@@ -30,7 +30,7 @@ for name, (needle, first, second) in checks.items():
     if needle not in first or (second is not None and needle not in second): failed.append(f"{name}: missing {needle!r}")
 if "privacyMode == .redacted || hasPrayerID" not in runner: failed.append("Runner must reject empty standard prayer projections")
 if 'privacyMode == "redacted" || hasPrayerID' not in widget: failed.append("WidgetKit must reject empty standard prayer projections")
-for needle in ("result.freshness != nil", "5 * 60", "freshness == .fresh ? snapshot : nil", 'privacyMode == "standard" || privacyMode == "redacted"', "ageLimit"):
+for needle in ("5 * 60", "freshness == .fresh ? snapshot : nil", 'privacyMode == "standard" || privacyMode == "redacted"', "var boundaries", "let failClosed", "entries: [current, failClosed]", ".generatedTooOld", ".prayerBoundaryPassed", ".expired"):
     if needle not in widget: failed.append(f"extension retry/fail-closed contract missing {needle!r}")
 for needle in ("maximumSnapshotAgeSeconds", "maximumAgeSeconds", "ageSeconds"):
     if needle not in channel: failed.append(f"Runner freshness diagnostics missing {needle!r}")
