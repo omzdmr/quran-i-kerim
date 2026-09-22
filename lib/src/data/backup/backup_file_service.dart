@@ -98,17 +98,25 @@ class BackupFileService {
 
     try {
       await backupService.restoreJson(encoded, mode: mode);
-      final afterRestore = await backupService.exportJson(now: restoredAt);
-      return BackupRestoreReceipt(
-        mode: mode,
-        safetySnapshot: safetySnapshot,
-        restoredAt: restoredAt,
-        postRestoreSignature: _dataSignature(afterRestore),
-      );
     } catch (_) {
       if (await safetySnapshot.exists()) await safetySnapshot.delete();
       rethrow;
     }
+
+    String? postRestoreSignature;
+    try {
+      final afterRestore = await backupService.exportJson(now: restoredAt);
+      postRestoreSignature = _dataSignature(afterRestore);
+    } catch (_) {
+      // Restore already succeeded. Fingerprinting is an extra stale-undo guard,
+      // never a reason to discard the safety snapshot or report false failure.
+    }
+    return BackupRestoreReceipt(
+      mode: mode,
+      safetySnapshot: safetySnapshot,
+      restoredAt: restoredAt,
+      postRestoreSignature: postRestoreSignature,
+    );
   }
 
   /// Undo is intentionally conditional: once the user has changed data after
