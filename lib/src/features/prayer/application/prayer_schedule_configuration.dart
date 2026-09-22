@@ -19,7 +19,7 @@ class PrayerScheduleConfiguration {
     final preferences = settings.preferencesFor(resolved.defaultMethod);
     final enabledPrayerIds = settings.notificationPrayerIds.toList()..sort();
     final a = preferences.adjustments;
-    final canonical = <String>[
+    final canonical = jsonEncode(<Object>[
       'v2',
       resolved.label,
       resolved.location.latitude.toStringAsFixed(5),
@@ -28,11 +28,11 @@ class PrayerScheduleConfiguration {
       preferences.calculationMethod.name,
       preferences.asrMethod.name,
       preferences.highLatitudeMethod.name,
-      '${a.fajr},${a.sunrise},${a.dhuhr},${a.asr},${a.maghrib},${a.isha}',
+      <int>[a.fajr, a.sunrise, a.dhuhr, a.asr, a.maghrib, a.isha],
       settings.notificationProfile.name,
-      enabledPrayerIds.join(','),
+      enabledPrayerIds,
       localeTag.trim().toLowerCase(),
-    ].join('|');
+    ]);
     return 'v2-${sha256.convert(utf8.encode(canonical))}';
   }
 }
