@@ -7,6 +7,8 @@ import UIKit
 final class NativeShareChannel: NSObject, UIAdaptivePresentationControllerDelegate {
   static let channelName = "app.quranikerim/native_share"
   static let maxShareFileBytes: Int64 = 64 * 1024 * 1024
+  private static let stagingDirectoryName = "quran-native-share"
+  private static let orphanLifetime: TimeInterval = 24 * 60 * 60
 
   private let channel: FlutterMethodChannel
   private weak var presenter: UIViewController?
@@ -17,38 +19,21 @@ final class NativeShareChannel: NSObject, UIAdaptivePresentationControllerDelega
     channel = FlutterMethodChannel(name: Self.channelName, binaryMessenger: binaryMessenger)
     self.presenter = presenter
     super.init()
+    cleanupOrphanedStaging()
     channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) }
   }
 
-  func detach() {
-    finish(["status": "dismissed"])
-    channel.setMethodCallHandler(nil)
-  }
+  func detach() { finish(["status": "dismissed"]); channel.setMethodCallHandler(nil) }
 
   private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
     case "capabilities":
-      result([
-        "text": true,
-        "file": true,
-        "ipadPopoverSafe": true,
-        "completionStatus": true,
-        "presentedHierarchyAware": true,
-        "copyOnShare": true,
-        "fileProtection": true,
-        "backupExcludedStaging": true,
-        "maxShareFileBytes": Self.maxShareFileBytes,
-        "automaticCleanup": true,
-      ])
+      result(["text": true, "file": true, "ipadPopoverSafe": true, "completionStatus": true, "presentedHierarchyAware": true, "copyOnShare": true, "fileProtection": true, "backupExcludedStaging": true, "maxShareFileBytes": Self.maxShareFileBytes, "automaticCleanup": true, "orphanCleanup": true])
     case "shareText":
-      guard let args = call.arguments as? [String: Any], let text = args["text"] as? String, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-        result(FlutterError(code: "invalid_share_text", message: "shareText requires non-empty text.", details: nil)); return
-      }
+      guard let args = call.arguments as? [String: Any], let text = args["text"] as? String, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { result(FlutterError(code: "invalid_share_text", message: "shareText requires non-empty text.", details: nil)); return }
       present(items: [text], result: result)
-    case "shareFile":
-      shareFile(call.arguments, result: result)
-    default:
-      result(FlutterMethodNotImplemented)
+    case "shareFile": shareFile(call.arguments, result: result)
+    default: result(FlutterMethodNotImplemented)
     }
   }
 
@@ -70,8 +55,10 @@ final class NativeShareChannel: NSObject, UIAdaptivePresentationControllerDelega
     }
   }
 
+  private func stagingDirectory() -> URL { FileManager.default.temporaryDirectory.appendingPathComponent(Self.stagingDirectoryName, isDirectory: true) }
+
   private func stageForShare(source: URL, preferredFilename: String?) throws -> URL {
-    let directory = FileManager.default.temporaryDirectory.appendingPathComponent("quran-native-share", isDirectory: true)
+    let directory = stagingDirectory()
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     try FileManager.default.setAttributes([.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication], ofItemAtPath: directory.path)
     var directoryValues = URLResourceValues(); directoryValues.isExcludedFromBackup = true; var mutableDirectory = directory; try mutableDirectory.setResourceValues(directoryValues)
@@ -81,12 +68,22 @@ final class NativeShareChannel: NSObject, UIAdaptivePresentationControllerDelega
     do {
       try FileManager.default.setAttributes([.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication], ofItemAtPath: destination.path)
       var values = URLResourceValues(); values.isExcludedFromBackup = true; var mutable = destination; try mutable.setResourceValues(values)
-      let copiedSize = ((try FileManager.default.attributesOfItem(atPath: destination.path)[.size]) as? NSNumber)?.int64Value ?? 0
-      guard copiedSize <= Self.maxShareFileBytes else { throw CocoaError(.fileWriteOutOfSpace) }
+      let attributes = try FileManager.default.attributesOfItem(atPath: destination.path)
+      let copiedSize = (attributes[.size] as? NSNumber)?.int64Value ?? 0
+      guard copiedSize >= 0 && copiedSize <= Self.maxShareFileBytes else { throw CocoaError(.fileWriteOutOfSpace) }
       return destination
     } catch {
       try? FileManager.default.removeItem(at: destination)
       throw error
+    }
+  }
+
+  private func cleanupOrphanedStaging(now: Date = Date()) {
+    let directory = stagingDirectory()
+    guard let urls = try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.contentModificationDateKey, .isRegularFileKey], options: [.skipsHiddenFiles]) else { return }
+    for url in urls {
+      guard url != stagedShareURL, let values = try? url.resourceValues(forKeys: [.contentModificationDateKey, .isRegularFileKey]), values.isRegularFile == true, let modified = values.contentModificationDate, now.timeIntervalSince(modified) >= Self.orphanLifetime else { continue }
+      try? FileManager.default.removeItem(at: url)
     }
   }
 
@@ -114,12 +111,7 @@ final class NativeShareChannel: NSObject, UIAdaptivePresentationControllerDelega
     return root
   }
 
-  private func sanitizedFilename(_ value: String?) -> String? {
-    guard let value else { return nil }
-    let leaf = URL(fileURLWithPath: value).lastPathComponent.trimmingCharacters(in: .whitespacesAndNewlines)
-    return (!leaf.isEmpty && leaf != "." && leaf != "..") ? leaf : nil
-  }
-
+  private func sanitizedFilename(_ value: String?) -> String? { guard let value else { return nil }; let leaf = URL(fileURLWithPath: value).lastPathComponent.trimmingCharacters(in: .whitespacesAndNewlines); return (!leaf.isEmpty && leaf != "." && leaf != "..") ? leaf : nil }
   private func finish(_ payload: Any?) { guard let result = pendingResult else { cleanupStagedShare(); return }; pendingResult = nil; cleanupStagedShare(); result(payload) }
   private func finish(error: FlutterError) { guard let result = pendingResult else { cleanupStagedShare(); return }; pendingResult = nil; cleanupStagedShare(); result(error) }
   private func cleanupStagedShare() { if let stagedShareURL { try? FileManager.default.removeItem(at: stagedShareURL) }; stagedShareURL = nil }
