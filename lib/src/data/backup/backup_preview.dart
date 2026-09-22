@@ -32,13 +32,16 @@ class BackupPreviewParser {
         if (versionSupported && !supportedSections.contains(section)) { issues.add(BackupPreviewIssue.unsupportedData); continue; }
         final value = entry.value;
         if (value is Map) {
-          if (versionSupported) {
-            for (final rawKey in value.keys) {
-              if (rawKey is! String) {
-                issues.add(BackupPreviewIssue.invalidData);
-              } else if (!BackupSchemaKeyPolicy.supportsKey(section, rawKey, parsedVersion!)) {
-                issues.add(BackupPreviewIssue.unsupportedData);
-              }
+          for (final rawEntry in value.entries) {
+            if (rawEntry.key is! String) {
+              issues.add(BackupPreviewIssue.invalidData);
+              continue;
+            }
+            if (versionSupported && !BackupSchemaKeyPolicy.supportsKey(section, rawEntry.key as String, parsedVersion!)) {
+              issues.add(BackupPreviewIssue.unsupportedData);
+            }
+            if (!_supportedPreferenceValue(rawEntry.value)) {
+              issues.add(BackupPreviewIssue.invalidData);
             }
           }
           final count = _sectionRecordCount(section, value);
@@ -57,6 +60,9 @@ class BackupPreviewParser {
     }
     return BackupPreview(version: parsedVersion, createdAt: createdAt, recordCounts: Map<String, int>.unmodifiable(counts), issues: Set<BackupPreviewIssue>.unmodifiable(issues), integrityVerified: integrityVerified);
   }
+
+  bool _supportedPreferenceValue(Object? value) =>
+      value == null || value is String || value is bool || value is int || value is double || (value is List && value.every((item) => item is String));
 
   int? _sectionRecordCount(String section, Map value) {
     if (section != 'fasting') return value.length;
