@@ -79,6 +79,7 @@ jobs:
           grep -q "app.quranikerim/native_recording" ios/Runner/MicrophoneRecordingChannel.swift
           grep -q "app.quranikerim/native_share" ios/Runner/NativeShareChannel.swift
           grep -q "app.quranikerim/native_keyboard" ios/Runner/NativeFlutterViewController.swift
+          grep -q "app.quranikerim/native_pencil" ios/Runner/NativeFlutterViewController.swift
           grep -q 'customClass="NativeFlutterViewController"' ios/Runner/Base.lproj/Main.storyboard
           grep -q 'case "scheduleNotificationSelfTest"' ios/Runner/BackupExclusionChannel.swift
           grep -q 'case "getNotificationDiagnostics"' ios/Runner/BackupExclusionChannel.swift
