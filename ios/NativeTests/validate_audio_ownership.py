@@ -2,6 +2,8 @@
 from pathlib import Path
 source = Path("ios/Runner/AudioSessionCoordinator.swift").read_text()
 required = {
+    "service ownership marker": "MPNowPlayingInfoPropertyServiceIdentifier",
+    "service identity guard": "Self.serviceIdentifier && dictionariesEqual",
     "ownership snapshot": "previousInfo = infoCenter.nowPlayingInfo",
     "published identity": "lastPublishedInfo = info",
     "external replacement guard": "dictionariesEqual(infoCenter.nowPlayingInfo, lastPublishedInfo)",
