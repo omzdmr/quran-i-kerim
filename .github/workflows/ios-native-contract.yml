@@ -29,6 +29,7 @@ jobs:
           python3 ios/NativeTests/validate_document_handoff.py
           python3 ios/NativeTests/validate_recording_storage.py
           python3 ios/NativeTests/validate_native_handoff.py
+          python3 ios/NativeTests/validate_icloud_foundation.py
           grep -q 'iCloud.com.omzdmr.quranIKerim' ios/Runner/Runner.entitlements
           grep -q 'CloudDocuments' ios/Runner/Runner.entitlements
           grep -q 'CloudBackupFoundation.swift in Sources' ios/Runner.xcodeproj/project.pbxproj
