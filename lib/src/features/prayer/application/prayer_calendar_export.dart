@@ -33,8 +33,8 @@ class PrayerCalendarIcsExporter {
           'BEGIN:VEVENT',
           'UID:${row.id}-$date@quran-i-kerim.local',
           'DTSTAMP:$stamp',
-          'DTSTART;TZID=${_escape(timeZoneId)}:${_localStamp(start)}',
-          'DTEND;TZID=${_escape(timeZoneId)}:${_localStamp(end)}',
+          'DTSTART:${_utcStamp(start)}',
+          'DTEND:${_utcStamp(end)}',
           'SUMMARY:${_escape(prayerLabel(row.id))}',
           'END:VEVENT',
         ]);

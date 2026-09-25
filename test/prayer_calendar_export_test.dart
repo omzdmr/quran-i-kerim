@@ -29,7 +29,7 @@ void main() {
 
     expect(ics, contains('X-WR-TIMEZONE:Asia/Shanghai'));
     expect(ics, contains('X-WR-CALNAME:Prayer Times\\, Shanghai'));
-    expect(ics, contains('DTSTART;TZID=Asia/Shanghai:20260926T051200'));
+    expect(ics, contains('DTSTART:20260926T051200Z'));
     expect(ics, contains('SUMMARY:FAJR'));
     expect(ics, contains('DTSTAMP:20260925T200000Z'));
     expect(RegExp('BEGIN:VEVENT').allMatches(ics), hasLength(5));
