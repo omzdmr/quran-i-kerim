@@ -73,6 +73,35 @@ class AudioDownloadQueueController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void cancelItem(String storageKey, int surah) {
+    final id = '$storageKey|$surah';
+    _pending.removeWhere((item) => item.id == id);
+    _known.remove(id);
+    final active = _active;
+    if (active != null && active.id == id) {
+      _manager.cancelDownload(storageKey, surah);
+    } else if (_pending.isEmpty && _active == null) {
+      _status = AudioQueueStatus.idle;
+    }
+    notifyListeners();
+  }
+
+  void cancelSource(String storageKey) {
+    final removedIds = _pending
+        .where((item) => item.storageKey == storageKey)
+        .map((item) => item.id)
+        .toList(growable: false);
+    _pending.removeWhere((item) => item.storageKey == storageKey);
+    _known.removeAll(removedIds);
+    final active = _active;
+    if (active != null && active.storageKey == storageKey) {
+      _manager.cancelDownload(active.storageKey, active.surah);
+    } else if (_pending.isEmpty && _active == null) {
+      _status = AudioQueueStatus.idle;
+    }
+    notifyListeners();
+  }
+
   Future<void> start({
     Future<bool> Function(AudioQueueItem item)? canStart,
   }) async {

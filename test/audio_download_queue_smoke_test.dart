@@ -30,6 +30,31 @@ void main() {
     expect(queue.status, AudioQueueStatus.idle);
   });
 
+  test('source cancellation removes only matching pending packs', () {
+    final queue = AudioDownloadQueueController();
+    queue.enqueueAll([
+      item(1),
+      item(2),
+      AudioQueueItem(
+        storageKey: 'other',
+        surah: 3,
+        verseCount: 7,
+        audioInfo: audio,
+      ),
+    ]);
+    queue.cancelSource(audio.id);
+    expect(queue.pending, hasLength(1));
+    expect(queue.pending.single.storageKey, 'other');
+    expect(queue.pending.single.surah, 3);
+  });
+
+  test('single pack cancellation keeps unrelated work queued', () {
+    final queue = AudioDownloadQueueController();
+    queue.enqueueAll([item(1), item(2)]);
+    queue.cancelItem(audio.id, 1);
+    expect(queue.pending.map((entry) => entry.surah), [2]);
+  });
+
   test('preflight can pause before dequeuing when policy changes', () async {
     final queue = AudioDownloadQueueController();
     queue.enqueueAll([item(1), item(2)]);

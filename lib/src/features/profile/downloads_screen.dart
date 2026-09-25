@@ -478,6 +478,11 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                                         ),
                                       IconButton(
                                         onPressed: () async {
+                                          AudioDownloadQueueController.instance
+                                              .cancelItem(
+                                                item.storageKey,
+                                                item.surah,
+                                              );
                                           await OfflineAudioManager.instance
                                               .deleteSurah(
                                                 item.storageKey,
@@ -504,6 +509,8 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                                   ),
                                   child: TextButton.icon(
                                     onPressed: () async {
+                                      AudioDownloadQueueController.instance
+                                          .cancelSource(entry.key);
                                       await OfflineAudioManager.instance
                                           .deleteSource(entry.key);
                                       await _refresh();
