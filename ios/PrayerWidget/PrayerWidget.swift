@@ -83,10 +83,13 @@ struct PrayerTimesWidget: Widget {
 @available(iOS 16.1, *)
 private struct PrayerLiveActivityView: View {
   let state: PrayerActivityAttributes.ContentState
+  let isStale: Bool
 
   var body: some View {
     Group {
-      if state.isRedacted {
+      if isStale {
+        Label(String(localized: "Open app to refresh", table: "Localizable"), systemImage: "arrow.clockwise")
+      } else if state.isRedacted {
         Label(String(localized: "Prayer times hidden", table: "Localizable"), systemImage: "lock.fill")
       } else {
         VStack(alignment: .leading, spacing: 4) {
@@ -106,35 +109,37 @@ private struct PrayerLiveActivityView: View {
 struct PrayerLiveActivityWidget: Widget {
   var body: some WidgetConfiguration {
     ActivityConfiguration(for: PrayerActivityAttributes.self) { context in
-      PrayerLiveActivityView(state: context.state)
+      PrayerLiveActivityView(state: context.state, isStale: context.isStale)
         .padding()
         .activityBackgroundTint(Color(uiColor: .secondarySystemBackground))
     } dynamicIsland: { context in
       DynamicIsland {
         DynamicIslandExpandedRegion(.leading) {
-          Image(systemName: context.state.isRedacted ? "lock.fill" : "moon.stars.fill")
-            .accessibilityLabel(context.state.isRedacted ? String(localized: "Prayer times hidden", table: "Localizable") : context.state.displayName)
+          Image(systemName: context.isStale ? "arrow.clockwise" : (context.state.isRedacted ? "lock.fill" : "moon.stars.fill"))
+            .accessibilityLabel(context.isStale ? String(localized: "Open app to refresh", table: "Localizable") : (context.state.isRedacted ? String(localized: "Prayer times hidden", table: "Localizable") : context.state.displayName))
         }
         DynamicIslandExpandedRegion(.trailing) {
-          if !context.state.isRedacted {
+          if !context.isStale && !context.state.isRedacted {
             Text(Date(timeIntervalSince1970: context.state.prayerAtMilliseconds / 1000), style: .timer).monospacedDigit()
           }
         }
         DynamicIslandExpandedRegion(.bottom) {
-          Text(context.state.isRedacted ? String(localized: "Prayer times hidden", table: "Localizable") : context.state.displayName)
+          Text(context.isStale ? String(localized: "Open app to refresh", table: "Localizable") : (context.state.isRedacted ? String(localized: "Prayer times hidden", table: "Localizable") : context.state.displayName))
         }
       } compactLeading: {
-        Image(systemName: context.state.isRedacted ? "lock.fill" : "moon.stars.fill")
-          .accessibilityLabel(context.state.isRedacted ? String(localized: "Prayer times hidden", table: "Localizable") : context.state.displayName)
+        Image(systemName: context.isStale ? "arrow.clockwise" : (context.state.isRedacted ? "lock.fill" : "moon.stars.fill"))
+          .accessibilityLabel(context.isStale ? String(localized: "Open app to refresh", table: "Localizable") : (context.state.isRedacted ? String(localized: "Prayer times hidden", table: "Localizable") : context.state.displayName))
       } compactTrailing: {
-        if context.state.isRedacted {
+        if context.isStale {
+          Image(systemName: "arrow.clockwise").accessibilityLabel(String(localized: "Open app to refresh", table: "Localizable"))
+        } else if context.state.isRedacted {
           Image(systemName: "lock.fill")
         } else {
           Text(Date(timeIntervalSince1970: context.state.prayerAtMilliseconds / 1000), style: .timer).monospacedDigit()
         }
       } minimal: {
-        Image(systemName: context.state.isRedacted ? "lock.fill" : "moon.stars.fill")
-          .accessibilityLabel(context.state.isRedacted ? String(localized: "Prayer times hidden", table: "Localizable") : context.state.displayName)
+        Image(systemName: context.isStale ? "arrow.clockwise" : (context.state.isRedacted ? "lock.fill" : "moon.stars.fill"))
+          .accessibilityLabel(context.isStale ? String(localized: "Open app to refresh", table: "Localizable") : (context.state.isRedacted ? String(localized: "Prayer times hidden", table: "Localizable") : context.state.displayName))
       }
       .widgetURL(URL(string: "quranikerim://prayer"))
     }
