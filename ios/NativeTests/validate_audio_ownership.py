@@ -3,10 +3,10 @@ from pathlib import Path
 source = Path("ios/Runner/AudioSessionCoordinator.swift").read_text()
 required = {
     "service ownership marker": "MPNowPlayingInfoPropertyServiceIdentifier",
-    "service identity guard": "Self.serviceIdentifier && dictionariesEqual",
+    "service identity guard": "== Self.serviceIdentifier && dictionariesEqual",
     "ownership snapshot": "previousInfo = infoCenter.nowPlayingInfo",
     "published identity": "lastPublishedInfo = info",
-    "external replacement guard": "dictionariesEqual(infoCenter.nowPlayingInfo, lastPublishedInfo)",
+    "external replacement guard": "dictionariesEqual(currentInfo, lastPublishedInfo)",
     "prior metadata restore": "infoCenter.nowPlayingInfo = previousInfo",
     "prior command state": "previousCommandStates",
     "prior playback state": "previousPlaybackState",
