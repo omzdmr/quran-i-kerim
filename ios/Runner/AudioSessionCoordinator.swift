@@ -21,6 +21,7 @@ final class AudioSessionCoordinator {
 }
 
 final class NowPlayingCoordinator {
+  static let serviceIdentifier = "com.omzdmr.quranIKerim.native-now-playing"
   enum RemoteCommand: String { case play, pause, next, previous, seek }
   struct Metadata {
     let title: String, subtitle: String?, albumTitle: String?
@@ -50,7 +51,7 @@ final class NowPlayingCoordinator {
     acquireOwnershipIfNeeded()
     installCommandTargetsIfNeeded()
     let duration = metadata.duration.flatMap { $0.isFinite && $0 > 0 ? $0 : nil }, elapsed = duration.map { min(max(0, metadata.elapsed), $0) } ?? max(0, metadata.elapsed)
-    var info: [String: Any] = [MPMediaItemPropertyTitle: metadata.title, MPMediaItemPropertyMediaType: MPMediaType.anyAudio.rawValue, MPNowPlayingInfoPropertyElapsedPlaybackTime: elapsed, MPNowPlayingInfoPropertyPlaybackRate: metadata.playbackRate, MPNowPlayingInfoPropertyDefaultPlaybackRate: 1.0]
+    var info: [String: Any] = [MPNowPlayingInfoPropertyServiceIdentifier: Self.serviceIdentifier, MPMediaItemPropertyTitle: metadata.title, MPMediaItemPropertyMediaType: MPMediaType.anyAudio.rawValue, MPNowPlayingInfoPropertyElapsedPlaybackTime: elapsed, MPNowPlayingInfoPropertyPlaybackRate: metadata.playbackRate, MPNowPlayingInfoPropertyDefaultPlaybackRate: 1.0]
     if let subtitle = metadata.subtitle, !subtitle.isEmpty { info[MPMediaItemPropertyArtist] = subtitle }; if let albumTitle = metadata.albumTitle, !albumTitle.isEmpty { info[MPMediaItemPropertyAlbumTitle] = albumTitle }; if let duration { info[MPMediaItemPropertyPlaybackDuration] = duration }
     ownsNowPlayingInfo = true; commandCenter.playCommand.isEnabled = true; commandCenter.pauseCommand.isEnabled = true; commandCenter.changePlaybackPositionCommand.isEnabled = duration != nil; commandCenter.nextTrackCommand.isEnabled = metadata.canGoNext; commandCenter.previousTrackCommand.isEnabled = metadata.canGoPrevious; infoCenter.nowPlayingInfo = info
     lastPublishedInfo = info
@@ -58,7 +59,8 @@ final class NowPlayingCoordinator {
   }
   func clear() {
     guard ownsNowPlayingInfo else { return }
-    let stillOwnsPublishedInfo = dictionariesEqual(infoCenter.nowPlayingInfo, lastPublishedInfo)
+    let currentInfo = infoCenter.nowPlayingInfo
+    let stillOwnsPublishedInfo = currentInfo?[MPNowPlayingInfoPropertyServiceIdentifier] as? String == Self.serviceIdentifier && dictionariesEqual(currentInfo, lastPublishedInfo)
     if stillOwnsPublishedInfo {
       infoCenter.nowPlayingInfo = previousInfo
       restoreCommandStates()
