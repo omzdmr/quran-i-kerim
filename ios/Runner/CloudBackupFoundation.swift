@@ -82,13 +82,26 @@ final class CloudBackupFileOperator {
     let parent = destination.deletingLastPathComponent()
     try fm.createDirectory(at: parent, withIntermediateDirectories: true)
     let replacement = parent.appendingPathComponent(".replace-\(UUID().uuidString)")
-    do {
-      try fm.copyItem(at: staged, to: replacement)
-      if fm.fileExists(atPath: destination.path) { _ = try fm.replaceItemAt(destination, withItemAt: replacement) }
-      else { try fm.moveItem(at: replacement, to: destination) }
-    } catch {
+    try fm.copyItem(at: staged, to: replacement)
+
+    var coordinationError: NSError?
+    var operationError: Error?
+    let coordinator = NSFileCoordinator(filePresenter: nil)
+    coordinator.coordinate(writingItemAt: destination, options: .forReplacing, error: &coordinationError) { coordinatedURL in
+      do {
+        if fm.fileExists(atPath: coordinatedURL.path) { _ = try fm.replaceItemAt(coordinatedURL, withItemAt: replacement) }
+        else { try fm.moveItem(at: replacement, to: coordinatedURL) }
+      } catch {
+        operationError = error
+      }
+    }
+    if let operationError {
       try? fm.removeItem(at: replacement)
-      throw error
+      throw operationError
+    }
+    if let coordinationError {
+      try? fm.removeItem(at: replacement)
+      throw coordinationError
     }
   }
 
