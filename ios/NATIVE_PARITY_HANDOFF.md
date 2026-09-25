@@ -87,3 +87,11 @@ Notification health now reports permission state plus pending/delivered counts a
 CI now adds an unsigned Release iphoneos build and verifies arm64 Runner/PrayerWidget binaries, bundle IDs and privacy manifests. This is not a signed IPA. Signed-device and signed archive/export verification remain pending Apple provisioning and final product readiness.
 
 No persistent user data was added, so backup registry and iCloud archive scope are unchanged. Next: close current CI, then continue hardware-keyboard/Pencil native foundations without inventing shared product semantics.
+
+
+### iPad hardware keyboard and Pencil foundation
+Runner now uses `NativeFlutterViewController`. Hardware shortcuts are opt-in and preserve Flutter's existing responder commands: after shared calls `app.quranikerim/native_keyboard.setEnabled(true)`, Command-F emits `search` and Command-1...5 emit zero-based `selectTab` actions matching the fixed five-tab product shell. Disabled is the default so native code does not steal shortcuts before shared routing adopts them.
+
+The same controller exposes an opt-in `app.quranikerim/native_pencil` foundation. Apple Pencil double-tap is surfaced as a gesture event only after explicit enablement. Native code does not create note anchors, mutate Quran content or invent Pencil semantics; shared Reader/Study Canvas remains owner of anchored notes. Squeeze is explicitly reported unsupported in this foundation rather than being faked.
+
+Both adapters are non-persistent and do not change backup/iCloud scope. Shared handoff: wire these channels only when the corresponding shared navigation/Reader actions are ready, then add end-to-end iPad interaction tests. Physical keyboard/Pencil behavior still needs signed-device verification.
