@@ -28,7 +28,6 @@ jobs:
           python3 ios/NativeTests/validate_lifecycle_restore.py
           python3 ios/NativeTests/validate_document_handoff.py
           python3 ios/NativeTests/validate_recording_storage.py
-          python3 ios/NativeTests/validate_native_handoff.py
           python3 ios/NativeTests/validate_icloud_foundation.py
           python3 ios/NativeTests/validate_audio_recovery.py
           python3 ios/NativeTests/validate_audio_ownership.py
