@@ -83,6 +83,27 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
     return int.tryParse(key.substring(audio.id.length + 1)) ?? audio.bitrate;
   }
 
+  AudioDownloadProgress? _progressFor(OfflineAudioSurah item) =>
+      OfflineAudioManager.instance.progressFor(item.storageKey, item.surah);
+
+  bool _recoveryActive(OfflineAudioSurah item) {
+    final status = _progressFor(item)?.status;
+    return status == AudioDownloadStatus.downloading ||
+        status == AudioDownloadStatus.verifying;
+  }
+
+  String _packStatusText(OfflineAudioSurah item, _DownloadsCopy copy) {
+    final progress = _progressFor(item);
+    if (progress == null) return copy.packStatus(item.readiness);
+    return switch (progress.status) {
+      AudioDownloadStatus.downloading => copy.downloading,
+      AudioDownloadStatus.paused => copy.paused,
+      AudioDownloadStatus.verifying => copy.verifying,
+      AudioDownloadStatus.completed => copy.packStatus(item.readiness),
+      AudioDownloadStatus.failed => copy.failed,
+    };
+  }
+
   Future<void> _resumeOrRepair(
     OfflineAudioSurah item,
     QuranAudioInfo audioInfo,
@@ -284,7 +305,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                                   ),
                                   title: Text(surahByNumber(item.surah).nameTr),
                                   subtitle: Text(
-                                    '${item.downloadedAyahs}/${item.verseCount} ${copy.verse} · ${_formatBytes(item.bytes)}\n${copy.packStatus(item.readiness)}',
+                                    '${item.downloadedAyahs}/${item.verseCount} ${copy.verse} · ${_formatBytes(item.bytes)}\n${_packStatusText(item, copy)}',
                                   ),
                                   isThreeLine: true,
                                   trailing: Row(
@@ -294,19 +315,33 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                                               OfflineAudioPackReadiness.ready &&
                                           audioInfo != null)
                                         IconButton(
-                                          onPressed: () => _resumeOrRepair(
-                                            item,
-                                            audioInfo,
-                                            bitrate,
-                                            copy,
-                                          ),
-                                          tooltip: item.readiness ==
-                                                  OfflineAudioPackReadiness.needsRepair
+                                          onPressed: () {
+                                            if (_recoveryActive(item)) {
+                                              OfflineAudioManager.instance
+                                                  .pauseDownload(
+                                                    item.storageKey,
+                                                    item.surah,
+                                                  );
+                                              return;
+                                            }
+                                            _resumeOrRepair(
+                                              item,
+                                              audioInfo,
+                                              bitrate,
+                                              copy,
+                                            );
+                                          },
+                                          tooltip: _recoveryActive(item)
+                                              ? copy.pause
+                                              : item.readiness ==
+                                                    OfflineAudioPackReadiness.needsRepair
                                               ? copy.repair
                                               : copy.resume,
                                           icon: Icon(
-                                            item.readiness ==
-                                                    OfflineAudioPackReadiness.needsRepair
+                                            _recoveryActive(item)
+                                                ? Icons.pause_circle_outline_rounded
+                                                : item.readiness ==
+                                                      OfflineAudioPackReadiness.needsRepair
                                                 ? Icons.build_circle_outlined
                                                 : Icons.download_for_offline_outlined,
                                           ),
@@ -632,6 +667,11 @@ class _DownloadsCopy {
       'En attente d’un nouveau téléchargement',
     ),
   };
+  String get downloading => _pick('İndiriliyor', 'Downloading', 'جارٍ التنزيل', 'Endirilir', 'Загрузка', 'Téléchargement');
+  String get paused => _pick('Duraklatıldı', 'Paused', 'متوقف مؤقتًا', 'Dayandırılıb', 'Приостановлено', 'En pause');
+  String get verifying => _pick('Doğrulanıyor', 'Verifying', 'جارٍ التحقق', 'Yoxlanılır', 'Проверка', 'Vérification');
+  String get failed => _pick('İndirme başarısız', 'Download failed', 'فشل التنزيل', 'Endirmə alınmadı', 'Ошибка загрузки', 'Échec du téléchargement');
+  String get pause => _pick('Duraklat', 'Pause download', 'إيقاف مؤقت', 'Endirməni dayandır', 'Приостановить загрузку', 'Mettre en pause');
   String get resume => _pick('Devam et', 'Resume download', 'متابعة التنزيل', 'Endirməyə davam et', 'Продолжить загрузку', 'Reprendre');
   String get repair => _pick('Onar', 'Repair download', 'إصلاح التنزيل', 'Endirməni bərpa et', 'Исправить загрузку', 'Réparer');
   String get noConnection => _pick('İnternet bağlantısı yok.', 'No internet connection.', 'لا يوجد اتصال بالإنترنت.', 'İnternet bağlantısı yoxdur.', 'Нет подключения к интернету.', 'Pas de connexion Internet.');
