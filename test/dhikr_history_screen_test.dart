@@ -53,4 +53,34 @@ void main() {
 
     expect(find.text('There are no saved dhikr days yet.'), findsOneWidget);
   });
+
+  testWidgets('history remains usable at large text scale', (tester) async {
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(textScaler: TextScaler.linear(2.0)),
+        child: MaterialApp(
+          locale: const Locale('fr'),
+          localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
+            AppLocalizations.delegate,
+            DefaultWidgetsLocalizations.delegate,
+            DefaultMaterialLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const DhikrHistoryScreen(
+            records: <DhikrDailyHistoryRecord>[
+              DhikrDailyHistoryRecord(
+                dateKey: '2026-09-25',
+                counts: <String, int>{'subhanallah': 1234},
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Historique du dhikr'), findsOneWidget);
+    expect(find.text('Total du jour: 1234'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
 }

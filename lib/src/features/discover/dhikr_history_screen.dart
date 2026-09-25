@@ -66,19 +66,14 @@ class DhikrHistoryScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  record.dateKey,
-                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-                                ),
-                              ),
-                              Text(
-                                '${l10n.text('dhikrHistoryTotal')}: ${record.total}',
-                                style: TextStyle(color: scheme.primary, fontWeight: FontWeight.w800),
-                              ),
-                            ],
+                          Text(
+                            record.dateKey,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${l10n.text('dhikrHistoryTotal')}: ${record.total}',
+                            style: TextStyle(color: scheme.primary, fontWeight: FontWeight.w800),
                           ),
                           const SizedBox(height: 10),
                           for (final item in items)
