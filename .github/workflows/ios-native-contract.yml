@@ -33,6 +33,7 @@ jobs:
           python3 ios/NativeTests/validate_audio_recovery.py
           python3 ios/NativeTests/validate_audio_ownership.py
           python3 ios/NativeTests/validate_multiscene_lifecycle.py
+          python3 ios/NativeTests/validate_ipad_presentation.py
           python3 ios/NativeTests/validate_storage_capacity.py
           grep -q 'iCloud.com.omzdmr.quranIKerim' ios/Runner/Runner.entitlements
           grep -q 'CloudDocuments' ios/Runner/Runner.entitlements

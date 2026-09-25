@@ -1,6 +1,57 @@
 import Flutter
 import UIKit
 
+/// Shared scene-aware presenter resolution for iPad, Stage Manager and multi-window handoffs.
+enum NativePresentationResolver {
+  static func activePresenter(originatingFrom origin: UIViewController?) -> UIViewController? {
+    if let origin,
+       let window = origin.viewIfLoaded?.window,
+       let scene = window.windowScene,
+       scene.activationState == .foregroundActive,
+       !origin.isBeingDismissed {
+      return topPresenter(from: origin)
+    }
+    let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+      .filter { $0.activationState == .foregroundActive }
+    for scene in scenes {
+      let window = scene.windows.first(where: { $0.isKeyWindow && !$0.isHidden })
+        ?? scene.windows.first(where: { !$0.isHidden && $0.windowLevel == .normal })
+      if let root = window?.rootViewController, !root.isBeingDismissed {
+        return topPresenter(from: root)
+      }
+    }
+    return nil
+  }
+
+  static func topPresenter(from root: UIViewController) -> UIViewController {
+    if let presented = root.presentedViewController,
+       !presented.isBeingDismissed,
+       presented.viewIfLoaded?.window != nil {
+      return topPresenter(from: presented)
+    }
+    if let navigation = root as? UINavigationController, let visible = navigation.visibleViewController {
+      return topPresenter(from: visible)
+    }
+    if let tab = root as? UITabBarController, let selected = tab.selectedViewController {
+      return topPresenter(from: selected)
+    }
+    if let split = root as? UISplitViewController {
+      for controller in split.viewControllers.reversed() where controller.viewIfLoaded?.window != nil {
+        return topPresenter(from: controller)
+      }
+    }
+    return root
+  }
+
+  static func isPresentationReady(_ controller: UIViewController?) -> Bool {
+    guard let controller,
+          let scene = controller.viewIfLoaded?.window?.windowScene,
+          !controller.isBeingDismissed else { return false }
+    return scene.activationState == .foregroundActive
+  }
+}
+
+
 /// Native share sheet bridge with iPad-safe presentation and lifecycle-owned file staging.
 /// Each share uses a private session directory so the user-visible filename stays clean while
 /// concurrent/repeated exports cannot collide. Staging is protected, backup-excluded and pruned.
@@ -57,22 +108,14 @@ final class NativeShareChannel: NSObject, UIAdaptivePresentationControllerDelega
 
   private func present(items: [Any], result: @escaping FlutterResult) {
     guard pendingResult == nil else { cleanupStagedShare(); result(FlutterError(code: "share_busy", message: "A share sheet is already being presented.", details: nil)); return }
-    guard let presenter = activePresenter(), presenter.viewIfLoaded?.window != nil, !presenter.isBeingDismissed else { cleanupStagedShare(); result(FlutterError(code: "share_presenter_unavailable", message: "The active iOS scene is not ready to present a share sheet.", details: nil)); return }
+    guard let presenter = activePresenter(), NativePresentationResolver.isPresentationReady(presenter) else { cleanupStagedShare(); result(FlutterError(code: "share_presenter_unavailable", message: "The active iOS scene is not ready to present a share sheet.", details: nil)); return }
     pendingResult = result; let controller = UIActivityViewController(activityItems: items, applicationActivities: nil); presentedShareController = controller
     controller.completionWithItemsHandler = { [weak self] activity, completed, _, error in guard let self else { return }; if let error { self.finish(error: FlutterError(code: "share_failed", message: error.localizedDescription, details: nil)); return }; var payload: [String: Any] = ["status": completed ? "completed" : "cancelled"]; if let activity { payload["activityType"] = activity.rawValue }; self.finish(payload) }
     if let popover = controller.popoverPresentationController { popover.sourceView = presenter.view; popover.sourceRect = CGRect(x: presenter.view.bounds.midX, y: presenter.view.bounds.midY, width: 1, height: 1); popover.permittedArrowDirections = [] }
     presenter.present(controller, animated: true) { [weak self, weak controller] in controller?.presentationController?.delegate = self; self?.presentedShareController = controller }
   }
 
-  private func activePresenter() -> UIViewController? {
-    // A Flutter method call belongs to this controller's window. On iPad with multiple foreground
-    // scenes, prefer that exact scene instead of whichever key window UIKit happens to enumerate first.
-    if let presenter, let scene = presenter.viewIfLoaded?.window?.windowScene, scene.activationState == .foregroundActive { return topPresenter(from: presenter) }
-    let activeScenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.filter { $0.activationState == .foregroundActive }
-    for scene in activeScenes { if let root = scene.windows.first(where: { $0.isKeyWindow })?.rootViewController { return topPresenter(from: root) } }
-    guard let presenter else { return nil }; return topPresenter(from: presenter)
-  }
-  private func topPresenter(from root: UIViewController) -> UIViewController? { if let presented = root.presentedViewController, !presented.isBeingDismissed { return topPresenter(from: presented) }; if let navigation = root as? UINavigationController, let visible = navigation.visibleViewController { return topPresenter(from: visible) }; if let tab = root as? UITabBarController, let selected = tab.selectedViewController { return topPresenter(from: selected) }; if let split = root as? UISplitViewController, let last = split.viewControllers.last { return topPresenter(from: last) }; return root }
+  private func activePresenter() -> UIViewController? { NativePresentationResolver.activePresenter(originatingFrom: presenter) }
   private func sanitizedFilename(_ value: String?) -> String? { guard let value else { return nil }; let leaf = URL(fileURLWithPath: value).lastPathComponent.trimmingCharacters(in: .whitespacesAndNewlines); return (!leaf.isEmpty && leaf != "." && leaf != "..") ? leaf : nil }
   private func finish(_ payload: Any?) { presentedShareController = nil; guard let result = pendingResult else { cleanupStagedShare(); return }; pendingResult = nil; cleanupStagedShare(); result(payload) }
   private func finish(error: FlutterError) { presentedShareController = nil; guard let result = pendingResult else { cleanupStagedShare(); return }; pendingResult = nil; cleanupStagedShare(); result(error) }
