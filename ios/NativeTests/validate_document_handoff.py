@@ -2,6 +2,7 @@
 from pathlib import Path
 
 source = Path("ios/Runner/AppDelegate.swift").read_text()
+presentation = Path("ios/Runner/NativeShareChannel.swift").read_text()
 required = {
     "64 MiB import cap": "maxImportBytes: Int64 = 64 * 1024 * 1024",
     "64 MiB export cap": "maxExportBytes: Int64 = 64 * 1024 * 1024",
@@ -13,9 +14,12 @@ required = {
     "post-copy export size": "exportTooLargeAfterCopy",
     "post-copy capability": '"postCopySizeValidation": true',
     "explicit imported-file cleanup": 'case "deleteImportedFile"',
-    "active scene": "foregroundActive",
+    "shared scene resolver": "NativePresentationResolver.activePresenter(originatingFrom: presenter)",
+    "presentation readiness": "NativePresentationResolver.isPresentationReady(presenter)",
 }
 missing = [f"{name}: {needle}" for name, needle in required.items() if needle not in source]
+if "scene.activationState == .foregroundActive" not in presentation:
+    missing.append("active scene resolver: foregroundActive")
 if missing:
     raise SystemExit("Document handoff validation failed:\n- " + "\n- ".join(missing))
 print("Document handoff validation passed")
