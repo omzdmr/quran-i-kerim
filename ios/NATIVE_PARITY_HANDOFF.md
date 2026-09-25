@@ -52,3 +52,7 @@ This is foundation only, not the final iCloud provider. Runner declares Cloud Do
 `CloudBackupFoundation` distinguishes no-account, unavailable-container and available states and reports account identity changes. `CloudBackupFileOperator` provides file-protected, device-backup-excluded temporary staging and atomic destination replacement so partial copies are never presented as complete archives. Cache and re-downloadable data remain outside this foundation.
 
 Shared handoff: Feature Development can consume `status` for readiness UI. The final provider must later consume one complete shared archive and prove restore/round-trip for every registered persistent type. Signed-device verification remains mandatory because simulator CI cannot prove Apple account/container provisioning.
+
+
+### Shared archive follow-up
+The integration backup manifest currently leaves Hifz voice-recording files outside portable/cloud archives, while the product Hifz requirements include recording backup/restore. Native recording files are treated as user-created data, but final iCloud round-trip must follow one shared registry. Feature Development must define the archive policy and migration for those recordings before the native iCloud provider is finalized; native code must not create a parallel list of user data.
