@@ -106,7 +106,7 @@ jobs:
 
       - name: Type-check WidgetKit consumer
         run: |
-          xcrun --sdk iphonesimulator swiftc -parse-as-library -target arm64-apple-ios17.0-simulator -typecheck ios/PrayerWidget/PrayerWidget.swift
+          xcrun --sdk iphonesimulator swiftc -parse-as-library -target arm64-apple-ios17.0-simulator -typecheck ios/PrayerWidget/PrayerActivityAttributes.swift ios/PrayerWidget/PrayerWidget.swift
 
       - name: Validate native backup exclusion boundary
         run: |

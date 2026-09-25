@@ -5,13 +5,19 @@ import Foundation
 final class PrayerLiveActivityChannel {
   static let channelName = "app.quranikerim/native_prayer_live_activity"
   private let channel: FlutterMethodChannel
+  private var foregroundObserver: NSObjectProtocol?
 
   init(binaryMessenger: FlutterBinaryMessenger) {
     channel = FlutterMethodChannel(name: Self.channelName, binaryMessenger: binaryMessenger)
     channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) }
+    foregroundObserver = NotificationCenter.default.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in self?.purgeExpiredActivities() }
+    purgeExpiredActivities()
   }
 
-  func detach() { channel.setMethodCallHandler(nil) }
+  func detach() {
+    if let foregroundObserver { NotificationCenter.default.removeObserver(foregroundObserver); self.foregroundObserver = nil }
+    channel.setMethodCallHandler(nil)
+  }
 
   private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     guard #available(iOS 16.1, *) else {
@@ -21,9 +27,9 @@ final class PrayerLiveActivityChannel {
     }
     switch call.method {
     case "capabilities":
-      result(["supported": true, "activitiesEnabled": ActivityAuthorizationInfo().areActivitiesEnabled, "dynamicIsland": true, "privacyRedaction": true, "finalProvider": false])
+      result(["supported": true, "activitiesEnabled": ActivityAuthorizationInfo().areActivitiesEnabled, "dynamicIsland": true, "privacyRedaction": true, "expiredAutoCleanup": true, "finalProvider": false])
     case "status":
-      result(["activitiesEnabled": ActivityAuthorizationInfo().areActivitiesEnabled, "activeIDs": Activity<PrayerActivityAttributes>.activities.map(\.id)])
+      let activities = Activity<PrayerActivityAttributes>.activities; result(["activitiesEnabled": ActivityAuthorizationInfo().areActivitiesEnabled, "activeCount": activities.count, "activeIDs": activities.map(\.id)])
     case "start":
       start(call.arguments, result: result)
     case "update":
@@ -37,11 +43,20 @@ final class PrayerLiveActivityChannel {
     }
   }
 
+  private func purgeExpiredActivities() {
+    guard #available(iOS 16.1, *) else { return }
+    let now = Date().timeIntervalSince1970 * 1000
+    let expired = Activity<PrayerActivityAttributes>.activities.filter { $0.contentState.prayerAtMilliseconds <= now }
+    guard !expired.isEmpty else { return }
+    Task { for activity in expired { await activity.end(dismissalPolicy: .immediate) } }
+  }
+
   @available(iOS 16.1, *)
   private func start(_ arguments: Any?, result: @escaping FlutterResult) {
     guard ActivityAuthorizationInfo().areActivitiesEnabled else {
       result(FlutterError(code: "live_activity_disabled", message: "Live Activities are disabled for this app.", details: nil)); return
     }
+    if let existing = Activity<PrayerActivityAttributes>.activities.first { result(["id": existing.id, "started": false, "alreadyActive": true]); return }
     do {
       let state = try parseState(arguments)
       let attributes = PrayerActivityAttributes(createdAtMilliseconds: Date().timeIntervalSince1970 * 1000)

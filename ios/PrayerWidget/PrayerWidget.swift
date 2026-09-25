@@ -80,7 +80,7 @@ struct PrayerTimesWidget: Widget {
 }
 
 
-@available(iOSApplicationExtension 16.1, *)
+@available(iOS 16.1, *)
 private struct PrayerLiveActivityView: View {
   let state: PrayerActivityAttributes.ContentState
 
@@ -101,7 +101,7 @@ private struct PrayerLiveActivityView: View {
   }
 }
 
-@available(iOSApplicationExtension 16.1, *)
+@available(iOS 16.1, *)
 struct PrayerLiveActivityWidget: Widget {
   var body: some WidgetConfiguration {
     ActivityConfiguration(for: PrayerActivityAttributes.self) { context in
@@ -142,7 +142,7 @@ struct QuranWidgetBundle: WidgetBundle {
   @WidgetBundleBuilder
   var body: some Widget {
     PrayerTimesWidget()
-    if #available(iOSApplicationExtension 16.1, *) {
+    if #available(iOS 16.1, *) {
       PrayerLiveActivityWidget()
     }
   }

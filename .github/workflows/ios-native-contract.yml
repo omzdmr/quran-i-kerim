@@ -107,7 +107,7 @@ jobs:
           grep -q 'family == .systemExtraLarge' ios/PrayerWidget/PrayerWidget.swift
           grep -q '\.systemExtraLarge' ios/PrayerWidget/PrayerWidget.swift
       - name: Type-check WidgetKit iOS 16 surface
-        run: xcrun --sdk iphonesimulator swiftc -parse-as-library -target arm64-apple-ios16.0-simulator -typecheck ios/PrayerWidget/PrayerWidget.swift
+        run: xcrun --sdk iphonesimulator swiftc -parse-as-library -target arm64-apple-ios16.0-simulator -typecheck ios/PrayerWidget/PrayerActivityAttributes.swift ios/PrayerWidget/PrayerWidget.swift
       - name: Build and inspect standalone WidgetKit extension
         run: |
           rm -rf /tmp/quran-widget-build
