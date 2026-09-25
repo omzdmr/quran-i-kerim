@@ -37,15 +37,145 @@ final class AudioLifecycleChannel {
 }
 
 final class NotificationPermissionChannel {
-  static let name = "com.omzdmr.quran_i_kerim/notification_permission", selfTestIdentifier = "quran.notification.self-test"; private let center: UNUserNotificationCenter; private let channel: FlutterMethodChannel
-  init(binaryMessenger: FlutterBinaryMessenger, center: UNUserNotificationCenter = .current()) { self.center = center; channel = FlutterMethodChannel(name: Self.name, binaryMessenger: binaryMessenger); channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) } }
+  static let name = "com.omzdmr.quran_i_kerim/notification_permission"
+  static let selfTestIdentifier = "quran.notification.self-test"
+  private let center: UNUserNotificationCenter
+  private let channel: FlutterMethodChannel
+
+  init(binaryMessenger: FlutterBinaryMessenger, center: UNUserNotificationCenter = .current()) {
+    self.center = center
+    channel = FlutterMethodChannel(name: Self.name, binaryMessenger: binaryMessenger)
+    channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) }
+  }
+
   func detach() { channel.setMethodCallHandler(nil) }
-  private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) { switch call.method { case "getNotificationPermissionStatus": center.getNotificationSettings { settings in DispatchQueue.main.async { result(Self.statusName(settings.authorizationStatus)) } }; case "getNotificationDiagnostics": center.getNotificationSettings { settings in DispatchQueue.main.async { result(Self.diagnostics(settings)) } }; case "requestNotificationPermission": center.requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in DispatchQueue.main.async { if let error { result(FlutterError(code: "notification_permission_failed", message: error.localizedDescription, details: nil)) } else { result(["granted": granted]) } } }; case "scheduleNotificationSelfTest": scheduleSelfTest(result: result); case "cancelNotificationSelfTest": center.removePendingNotificationRequests(withIdentifiers: [Self.selfTestIdentifier]); result(nil); default: result(FlutterMethodNotImplemented) } }
-  private func scheduleSelfTest(result: @escaping FlutterResult) { center.getNotificationSettings { [weak self] settings in guard let self else { return }; guard Self.canDeliver(settings.authorizationStatus) else { DispatchQueue.main.async { result(FlutterError(code: "notification_not_authorized", message: "Notifications are not authorized for an end-to-end self-test.", details: Self.diagnostics(settings))) }; return }; let content = UNMutableNotificationContent(); content.title = Bundle.main.localizedString(forKey: "NotificationSelfTestTitle", value: "Notification test", table: "InfoPlist"); content.body = Bundle.main.localizedString(forKey: "NotificationSelfTestBody", value: "If you can see this, local notifications can reach this device.", table: "InfoPlist"); content.sound = .default; content.userInfo = ["kind": "diagnostic-self-test"]; let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 3, repeats: false), request = UNNotificationRequest(identifier: Self.selfTestIdentifier, content: content, trigger: trigger); center.removePendingNotificationRequests(withIdentifiers: [Self.selfTestIdentifier]); center.add(request) { error in DispatchQueue.main.async { if let error { result(FlutterError(code: "notification_self_test_failed", message: error.localizedDescription, details: Self.diagnostics(settings))) } else { result(["scheduled": true, "firesAfterSeconds": 3, "settings": Self.diagnostics(settings)]) } } } } }
-  private static func canDeliver(_ status: UNAuthorizationStatus) -> Bool { status == .authorized || status == .provisional || status == .ephemeral }
-  private static func diagnostics(_ settings: UNNotificationSettings) -> [String: Any] { ["authorizationStatus": statusName(settings.authorizationStatus), "alertSetting": settingName(settings.alertSetting), "soundSetting": settingName(settings.soundSetting), "badgeSetting": settingName(settings.badgeSetting), "lockScreenSetting": settingName(settings.lockScreenSetting), "notificationCenterSetting": settingName(settings.notificationCenterSetting), "timeSensitiveSetting": settingName(settings.timeSensitiveSetting), "scheduledDeliverySetting": settingName(settings.scheduledDeliverySetting)] }
-  private static func settingName(_ setting: UNNotificationSetting) -> String { switch setting { case .notSupported: return "notSupported"; case .disabled: return "disabled"; case .enabled: return "enabled"; @unknown default: return "unknown" } }
-  private static func statusName(_ status: UNAuthorizationStatus) -> String { switch status { case .notDetermined: return "notDetermined"; case .denied: return "denied"; case .authorized: return "authorized"; case .provisional: return "provisional"; case .ephemeral: return "ephemeral"; @unknown default: return "unknown" } }
+
+  private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    switch call.method {
+    case "getNotificationPermissionStatus":
+      center.getNotificationSettings { settings in
+        DispatchQueue.main.async { result(Self.statusName(settings.authorizationStatus)) }
+      }
+    case "getNotificationDiagnostics":
+      notificationDiagnostics(result: result)
+    case "requestNotificationPermission":
+      center.requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
+        DispatchQueue.main.async {
+          if let error { result(FlutterError(code: "notification_permission_failed", message: error.localizedDescription, details: nil)) }
+          else { result(["granted": granted]) }
+        }
+      }
+    case "openNotificationSettings":
+      openNotificationSettings(result: result)
+    case "scheduleNotificationSelfTest":
+      scheduleSelfTest(result: result)
+    case "cancelNotificationSelfTest":
+      center.removePendingNotificationRequests(withIdentifiers: [Self.selfTestIdentifier])
+      result(nil)
+    default:
+      result(FlutterMethodNotImplemented)
+    }
+  }
+
+  private func notificationDiagnostics(result: @escaping FlutterResult) {
+    center.getNotificationSettings { [weak self] settings in
+      guard let self else { return }
+      self.center.getPendingNotificationRequests { pending in
+        self.center.getDeliveredNotifications { delivered in
+          var payload = Self.diagnostics(settings)
+          payload["canDeliver"] = Self.canDeliver(settings.authorizationStatus)
+          payload["pendingRequestCount"] = pending.count
+          payload["deliveredNotificationCount"] = delivered.count
+          payload["selfTestPending"] = pending.contains { $0.identifier == Self.selfTestIdentifier }
+          payload["pendingPrayerRequestCount"] = pending.reduce(into: 0) { count, request in
+            if request.identifier != Self.selfTestIdentifier { count += 1 }
+          }
+          DispatchQueue.main.async { result(payload) }
+        }
+      }
+    }
+  }
+
+  private func openNotificationSettings(result: @escaping FlutterResult) {
+    let application = UIApplication.shared
+    let url: URL?
+    if #available(iOS 16.0, *) {
+      url = URL(string: UIApplication.openNotificationSettingsURLString)
+    } else {
+      url = URL(string: UIApplication.openSettingsURLString)
+    }
+    guard let url else {
+      result(FlutterError(code: "notification_settings_unavailable", message: "Notification settings are unavailable.", details: nil))
+      return
+    }
+    application.open(url, options: [:]) { opened in
+      DispatchQueue.main.async {
+        if opened { result(["opened": true]) }
+        else { result(FlutterError(code: "notification_settings_open_failed", message: "iOS could not open notification settings.", details: nil)) }
+      }
+    }
+  }
+
+  private func scheduleSelfTest(result: @escaping FlutterResult) {
+    center.getNotificationSettings { [weak self] settings in
+      guard let self else { return }
+      guard Self.canDeliver(settings.authorizationStatus) else {
+        DispatchQueue.main.async { result(FlutterError(code: "notification_not_authorized", message: "Notifications are not authorized for an end-to-end self-test.", details: Self.diagnostics(settings))) }
+        return
+      }
+      let content = UNMutableNotificationContent()
+      content.title = Bundle.main.localizedString(forKey: "NotificationSelfTestTitle", value: "Notification test", table: "InfoPlist")
+      content.body = Bundle.main.localizedString(forKey: "NotificationSelfTestBody", value: "If you can see this, local notifications can reach this device.", table: "InfoPlist")
+      content.sound = .default
+      content.userInfo = ["kind": "diagnostic-self-test"]
+      let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 3, repeats: false)
+      let request = UNNotificationRequest(identifier: Self.selfTestIdentifier, content: content, trigger: trigger)
+      center.removePendingNotificationRequests(withIdentifiers: [Self.selfTestIdentifier])
+      center.add(request) { error in
+        DispatchQueue.main.async {
+          if let error { result(FlutterError(code: "notification_self_test_failed", message: error.localizedDescription, details: Self.diagnostics(settings))) }
+          else { result(["scheduled": true, "firesAfterSeconds": 3, "settings": Self.diagnostics(settings)]) }
+        }
+      }
+    }
+  }
+
+  private static func canDeliver(_ status: UNAuthorizationStatus) -> Bool {
+    status == .authorized || status == .provisional || status == .ephemeral
+  }
+
+  private static func diagnostics(_ settings: UNNotificationSettings) -> [String: Any] {
+    [
+      "authorizationStatus": statusName(settings.authorizationStatus),
+      "alertSetting": settingName(settings.alertSetting),
+      "soundSetting": settingName(settings.soundSetting),
+      "badgeSetting": settingName(settings.badgeSetting),
+      "lockScreenSetting": settingName(settings.lockScreenSetting),
+      "notificationCenterSetting": settingName(settings.notificationCenterSetting),
+      "timeSensitiveSetting": settingName(settings.timeSensitiveSetting),
+      "scheduledDeliverySetting": settingName(settings.scheduledDeliverySetting)
+    ]
+  }
+
+  private static func settingName(_ setting: UNNotificationSetting) -> String {
+    switch setting {
+    case .notSupported: return "notSupported"
+    case .disabled: return "disabled"
+    case .enabled: return "enabled"
+    @unknown default: return "unknown"
+    }
+  }
+
+  private static func statusName(_ status: UNAuthorizationStatus) -> String {
+    switch status {
+    case .notDetermined: return "notDetermined"
+    case .denied: return "denied"
+    case .authorized: return "authorized"
+    case .provisional: return "provisional"
+    case .ephemeral: return "ephemeral"
+    @unknown default: return "unknown"
+    }
+  }
 }
 
 final class LocationHeadingChannel: NSObject, CLLocationManagerDelegate {
