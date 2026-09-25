@@ -71,7 +71,9 @@ class DhikrCounterDocument {
 class DhikrCounterDocumentCodec {
   const DhikrCounterDocumentCodec();
 
-  static const maxHistoryRecords = 20000;
+  // Defensive parser ceiling, not a product retention window: this is over
+  // two centuries of one record per day and prevents hostile restore payloads.
+  static const maxHistoryRecords = 100000;
 
   DhikrCounterDocument decode(String? raw) {
     if (raw == null || raw.trim().isEmpty) {
@@ -134,7 +136,7 @@ class DhikrCounterDocumentCodec {
       'counts': sanitizedCounts,
       'soundEnabled': soundEnabled,
       'history': [
-        for (final record in ordered) record.toJson(),
+        for (final record in ordered.take(maxHistoryRecords)) record.toJson(),
       ],
     });
   }
