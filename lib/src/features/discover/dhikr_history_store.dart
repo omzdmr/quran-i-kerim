@@ -69,7 +69,7 @@ class DhikrCounterDocument {
 class DhikrCounterDocumentCodec {
   const DhikrCounterDocumentCodec();
 
-  static const maxHistoryDays = 366;
+  static const maxHistoryRecords = 20000;
 
   DhikrCounterDocument decode(String? raw) {
     if (raw == null || raw.trim().isEmpty) {
@@ -81,7 +81,7 @@ class DhikrCounterDocumentCodec {
       if (decoded['formatVersion'] == 2) {
         final counts = _decodeCounts(decoded['counts']);
         final historyRaw = decoded['history'];
-        if (counts == null || historyRaw is! List || historyRaw.length > maxHistoryDays) {
+        if (counts == null || historyRaw is! List || historyRaw.length > maxHistoryRecords) {
           return const DhikrCounterDocument(counts: <String, int>{}, history: <DhikrDailyHistoryRecord>[]);
         }
         final history = <DhikrDailyHistoryRecord>[];
@@ -125,7 +125,7 @@ class DhikrCounterDocumentCodec {
       'formatVersion': 2,
       'counts': sanitizedCounts,
       'history': [
-        for (final record in ordered.take(maxHistoryDays)) record.toJson(),
+        for (final record in ordered) record.toJson(),
       ],
     });
   }
@@ -158,7 +158,7 @@ class DhikrCounterDocumentCodec {
     final result = byDate.values.toList()
       ..sort((a, b) => b.dateKey.compareTo(a.dateKey));
     return List<DhikrDailyHistoryRecord>.unmodifiable(
-      result.take(maxHistoryDays),
+      result,
     );
   }
 

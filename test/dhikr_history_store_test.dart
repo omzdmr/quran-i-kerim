@@ -52,7 +52,7 @@ void main() {
     expect(document.history, isEmpty);
   });
 
-  test('history retention is bounded to 366 days', () {
+  test('history does not silently discard older user days', () {
     var history = const <DhikrDailyHistoryRecord>[];
     for (var index = 0; index < 370; index++) {
       final date = DateTime.utc(2025, 1, 1).add(Duration(days: index));
@@ -63,6 +63,6 @@ void main() {
         counts: const <String, int>{'subhanallah': 1},
       );
     }
-    expect(history, hasLength(DhikrCounterDocumentCodec.maxHistoryDays));
+    expect(history, hasLength(370));
   });
 }
