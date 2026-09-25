@@ -95,3 +95,13 @@ Runner now uses `NativeFlutterViewController`. Hardware shortcuts are opt-in and
 The same controller exposes an opt-in `app.quranikerim/native_pencil` foundation. Apple Pencil double-tap is surfaced as a gesture event only after explicit enablement. Native code does not create note anchors, mutate Quran content or invent Pencil semantics; shared Reader/Study Canvas remains owner of anchored notes. Squeeze is explicitly reported unsupported in this foundation rather than being faked.
 
 Both adapters are non-persistent and do not change backup/iCloud scope. Shared handoff: wire these channels only when the corresponding shared navigation/Reader actions are ready, then add end-to-end iPad interaction tests. Physical keyboard/Pencil behavior still needs signed-device verification.
+
+
+### Prayer Live Activity / Dynamic Island foundation
+Prayer Live Activity now has a native ActivityKit foundation without moving prayer calculation into Swift. Shared code supplies the canonical prayer ID/display label, future prayer timestamp, timezone, locale, calculation fingerprint and explicit privacy-redaction state. Runner validates that payload before requesting/updating ActivityKit. The Widget extension renders Lock Screen and Dynamic Island surfaces and deep-links to `quranikerim://prayer`.
+
+Native lifecycle prevents duplicate future prayer activities and prunes expired prayer activities on foreground. Redacted state never renders the prayer label/time. The app declares Live Activity support and Runner/Widget compile the same `PrayerActivityAttributes` contract; CI asserts the two copies remain byte-identical.
+
+Shared handoff: use `app.quranikerim/native_prayer_live_activity` only after shared prayer schedule/privacy state is ready. Methods are `capabilities`, `status`, `start`, `update`, `end`, `endAll`. Shared remains owner of schedule changes (timezone/DST/location/method/offset) and must update or end/restart the activity when its calculation fingerprint changes. Native code does not calculate prayer times.
+
+This is not signed-device completion. ActivityKit authorization, Dynamic Island behavior, lock-screen privacy and deep-link behavior still require physical signed-device verification.

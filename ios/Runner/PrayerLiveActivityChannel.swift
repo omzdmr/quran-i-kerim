@@ -56,7 +56,8 @@ final class PrayerLiveActivityChannel {
     guard ActivityAuthorizationInfo().areActivitiesEnabled else {
       result(FlutterError(code: "live_activity_disabled", message: "Live Activities are disabled for this app.", details: nil)); return
     }
-    if let existing = Activity<PrayerActivityAttributes>.activities.first { result(["id": existing.id, "started": false, "alreadyActive": true]); return }
+    let now = Date().timeIntervalSince1970 * 1000
+    if let existing = Activity<PrayerActivityAttributes>.activities.first(where: { $0.contentState.prayerAtMilliseconds > now }) { result(["id": existing.id, "started": false, "alreadyActive": true]); return }
     do {
       let state = try parseState(arguments)
       let attributes = PrayerActivityAttributes(createdAtMilliseconds: Date().timeIntervalSince1970 * 1000)

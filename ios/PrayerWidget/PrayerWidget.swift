@@ -97,6 +97,7 @@ private struct PrayerLiveActivityView: View {
       }
     }
     .accessibilityElement(children: .combine)
+    .privacySensitive()
     .widgetURL(URL(string: "quranikerim://prayer"))
   }
 }
