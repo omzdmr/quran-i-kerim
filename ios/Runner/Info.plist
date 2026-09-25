@@ -41,6 +41,8 @@
 	<string>Konumunuz namaz vakitleri ve kıble yönünü hesaplamak için yalnızca izin verdiğinizde kullanılır.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Mikrofon yalnızca kendi ezber kaydınızı oluşturmak istediğinizde kullanılır.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

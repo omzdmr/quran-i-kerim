@@ -1,3 +1,4 @@
+import ActivityKit
 import Foundation
 import SwiftUI
 import WidgetKit
@@ -73,7 +74,76 @@ private struct PrayerWidgetView: View {
   @ViewBuilder private func widgetBackground<Content: View>(@ViewBuilder content: () -> Content) -> some View { if isAccessoryFamily { content() } else if #available(iOS 17.0, *) { content().containerBackground(for: .widget) { Color(uiColor: .secondarySystemBackground) }.padding() } else { content().padding().background(Color(uiColor: .secondarySystemBackground)) } }
 }
 
-@main struct PrayerTimesWidget: Widget {
+struct PrayerTimesWidget: Widget {
   private var supportedFamilies: [WidgetFamily] { var families: [WidgetFamily] = [.systemSmall, .systemMedium, .systemLarge, .systemExtraLarge]; if #available(iOSApplicationExtension 16.0, *) { families.append(contentsOf: [.accessoryInline, .accessoryCircular, .accessoryRectangular]) }; return families }
   var body: some WidgetConfiguration { StaticConfiguration(kind: "PrayerTimesWidget", provider: PrayerProvider()) { entry in PrayerWidgetView(entry: entry) }.configurationDisplayName(String(localized: "Prayer Times", table: "Localizable")).description(String(localized: "Shows the next prayer from your on-device schedule.", table: "Localizable")).supportedFamilies(supportedFamilies) }
+}
+
+
+@available(iOSApplicationExtension 16.1, *)
+private struct PrayerLiveActivityView: View {
+  let state: PrayerActivityAttributes.ContentState
+
+  var body: some View {
+    Group {
+      if state.isRedacted {
+        Label(String(localized: "Prayer times hidden", table: "Localizable"), systemImage: "lock.fill")
+      } else {
+        VStack(alignment: .leading, spacing: 4) {
+          Text(state.displayName).font(.headline)
+          Text(Date(timeIntervalSince1970: state.prayerAtMilliseconds / 1000), style: .timer)
+            .monospacedDigit()
+        }
+      }
+    }
+    .accessibilityElement(children: .combine)
+    .widgetURL(URL(string: "quranikerim://prayer"))
+  }
+}
+
+@available(iOSApplicationExtension 16.1, *)
+struct PrayerLiveActivityWidget: Widget {
+  var body: some WidgetConfiguration {
+    ActivityConfiguration(for: PrayerActivityAttributes.self) { context in
+      PrayerLiveActivityView(state: context.state)
+        .padding()
+        .activityBackgroundTint(Color(uiColor: .secondarySystemBackground))
+    } dynamicIsland: { context in
+      DynamicIsland {
+        DynamicIslandExpandedRegion(.leading) {
+          Image(systemName: context.state.isRedacted ? "lock.fill" : "moon.stars.fill")
+        }
+        DynamicIslandExpandedRegion(.trailing) {
+          if !context.state.isRedacted {
+            Text(Date(timeIntervalSince1970: context.state.prayerAtMilliseconds / 1000), style: .timer).monospacedDigit()
+          }
+        }
+        DynamicIslandExpandedRegion(.bottom) {
+          Text(context.state.isRedacted ? String(localized: "Prayer times hidden", table: "Localizable") : context.state.displayName)
+        }
+      } compactLeading: {
+        Image(systemName: context.state.isRedacted ? "lock.fill" : "moon.stars.fill")
+      } compactTrailing: {
+        if context.state.isRedacted {
+          Image(systemName: "lock.fill")
+        } else {
+          Text(Date(timeIntervalSince1970: context.state.prayerAtMilliseconds / 1000), style: .timer).monospacedDigit()
+        }
+      } minimal: {
+        Image(systemName: context.state.isRedacted ? "lock.fill" : "moon.stars.fill")
+      }
+      .widgetURL(URL(string: "quranikerim://prayer"))
+    }
+  }
+}
+
+@main
+struct QuranWidgetBundle: WidgetBundle {
+  @WidgetBundleBuilder
+  var body: some Widget {
+    PrayerTimesWidget()
+    if #available(iOSApplicationExtension 16.1, *) {
+      PrayerLiveActivityWidget()
+    }
+  }
 }

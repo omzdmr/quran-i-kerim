@@ -36,6 +36,7 @@ jobs:
           python3 ios/NativeTests/validate_notification_diagnostics.py
           python3 ios/NativeTests/validate_hardware_keyboard.py
           python3 ios/NativeTests/validate_pencil_foundation.py
+          python3 ios/NativeTests/validate_live_activity_foundation.py
           python3 ios/NativeTests/validate_storage_capacity.py
           grep -q 'iCloud.com.omzdmr.quranIKerim' ios/Runner/Runner.entitlements
           grep -q 'CloudDocuments' ios/Runner/Runner.entitlements
@@ -99,7 +100,7 @@ jobs:
           grep -q 'FileProtectionType.completeUntilFirstUserAuthentication' ios/Runner/NativeShareChannel.swift
           grep -q 'isExcludedFromBackup = true' ios/Runner/NativeShareChannel.swift
           grep -q 'removeItem(at: stagedShareURL.deletingLastPathComponent())' ios/Runner/NativeShareChannel.swift
-          grep -q 'payloadKey = "widget.prayer.snapshot.v1"' ios/PrayerWidget/PrayerWidget.swift
+          grep -q 'payloadKey = "widget.prayer.snapshot.v1"' ios/PrayerWidget/PrayerActivityAttributes.swift ios/PrayerWidget/PrayerWidget.swift
           grep -q 'timeZoneIdentifier == currentTimeZone.identifier' ios/PrayerWidget/PrayerWidget.swift
           grep -q 'snapshot.isRedacted' ios/PrayerWidget/PrayerWidget.swift
           grep -q 'family == .systemLarge' ios/PrayerWidget/PrayerWidget.swift
