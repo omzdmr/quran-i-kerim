@@ -14,6 +14,8 @@ required = {
     "post-copy export size": "exportTooLargeAfterCopy",
     "post-copy capability": '"postCopySizeValidation": true',
     "explicit imported-file cleanup": 'case "deleteImportedFile"',
+    "picker lifecycle ownership": "presentedDocumentPicker = picker",
+    "picker detach cleanup": "presentedDocumentPicker?.dismiss(animated: false)",
     "shared scene resolver": "NativePresentationResolver.activePresenter(originatingFrom: presenter)",
     "presentation readiness": "NativePresentationResolver.isPresentationReady(presenter)",
 }

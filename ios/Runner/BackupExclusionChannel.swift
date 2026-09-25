@@ -87,7 +87,7 @@ final class NotificationPermissionChannel {
           payload["pendingRequestCount"] = pending.count
           payload["deliveredNotificationCount"] = delivered.count
           payload["selfTestPending"] = pending.contains { $0.identifier == Self.selfTestIdentifier }
-          payload["pendingPrayerRequestCount"] = pending.reduce(into: 0) { count, request in
+          payload["pendingNonSelfTestRequestCount"] = pending.reduce(into: 0) { count, request in
             if request.identifier != Self.selfTestIdentifier { count += 1 }
           }
           DispatchQueue.main.async { result(payload) }

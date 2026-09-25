@@ -4,11 +4,8 @@ import UIKit
 /// Shared scene-aware presenter resolution for iPad, Stage Manager and multi-window handoffs.
 enum NativePresentationResolver {
   static func activePresenter(originatingFrom origin: UIViewController?) -> UIViewController? {
-    if let origin,
-       let window = origin.viewIfLoaded?.window,
-       let scene = window.windowScene,
-       scene.activationState == .foregroundActive,
-       !origin.isBeingDismissed {
+    if let origin, let window = origin.viewIfLoaded?.window, let scene = window.windowScene {
+      guard scene.activationState == .foregroundActive, !origin.isBeingDismissed else { return nil }
       return topPresenter(from: origin)
     }
     let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }

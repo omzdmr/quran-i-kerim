@@ -6,7 +6,7 @@ assert 'getPendingNotificationRequests' in source
 assert 'getDeliveredNotifications' in source
 assert 'pendingRequestCount' in source
 assert 'deliveredNotificationCount' in source
-assert 'pendingPrayerRequestCount' in source
+assert 'pendingNonSelfTestRequestCount' in source
 assert 'selfTestPending' in source
 assert 'request.identifier != Self.selfTestIdentifier' in source
 assert 'case "openNotificationSettings"' in source

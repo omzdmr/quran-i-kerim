@@ -5,6 +5,7 @@ app = Path("ios/Runner/AppDelegate.swift").read_text()
 
 assert "enum NativePresentationResolver" in share
 assert "scene.activationState == .foregroundActive" in share
+assert "guard scene.activationState == .foregroundActive, !origin.isBeingDismissed else { return nil }" in share
 assert "originatingFrom: presenter" in share
 assert "window.windowScene" in share
 assert "isKeyWindow && !$0.isHidden" in share
