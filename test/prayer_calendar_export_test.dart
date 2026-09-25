@@ -85,4 +85,21 @@ void main() {
     expect(second, contains('UID:ankara-fajr-20260926@quran-i-kerim.local'));
   });
 
+
+  test('calendar identity is safe when a manual location id has separators', () {
+    final ics = exporter.build(
+      schedules: <PrayerDaySchedule>[_day()],
+      timeZoneId: 'Asia/Shanghai',
+      calendarName: 'Prayer Times',
+      calendarId: 'manual location/1',
+      prayerLabel: (id) => id,
+      generatedAt: DateTime.utc(2026, 9, 25, 20),
+    );
+
+    expect(
+      ics,
+      contains('UID:manual%20location%2F1-fajr-20260926@quran-i-kerim.local'),
+    );
+  });
+
 }

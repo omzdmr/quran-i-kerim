@@ -32,7 +32,7 @@ class PrayerCalendarIcsExporter {
         final date = _date(start);
         lines.addAll(<String>[
           'BEGIN:VEVENT',
-          'UID:${calendarId.replaceAll(' ', '-')}-${row.id}-$date@quran-i-kerim.local',
+          'UID:${Uri.encodeComponent(calendarId)}-${row.id}-$date@quran-i-kerim.local',
           'DTSTAMP:$stamp',
           'DTSTART:${_utcStamp(start)}',
           'DTEND:${_utcStamp(end)}',
