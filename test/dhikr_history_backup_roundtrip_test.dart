@@ -54,4 +54,24 @@ void main() {
     expect(restored.counts['subhanallah'], 99);
     expect(restored.history, isEmpty);
   });
+
+  test('custom dhikr identity label target and count restore together', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'dhikr_v2_selected': 'custom_1',
+      'dhikr_v2_counts': '{"custom_1":5}',
+      'dhikr_v2_targets': '{"custom_1":25}',
+      'dhikr_v2_custom': '[{"id":"custom_1","label":"Evening"}]',
+    });
+    final sections = await adapter.captureSections();
+
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    await adapter.restoreSections(sections);
+
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('dhikr_v2_selected'), 'custom_1');
+    expect(prefs.getString('dhikr_v2_counts'), '{"custom_1":5}');
+    expect(prefs.getString('dhikr_v2_targets'), '{"custom_1":25}');
+    expect(prefs.getString('dhikr_v2_custom'), contains('Evening'));
+  });
+
 }

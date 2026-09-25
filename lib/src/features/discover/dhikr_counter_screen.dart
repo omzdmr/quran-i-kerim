@@ -515,6 +515,85 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
     await _persist();
   }
 
+  Future<void> _editSelectedCustom() async {
+    final entry = _selectedEntry;
+    if (!entry.custom) return;
+    final l10n = context.l10n;
+    final nameController = TextEditingController(text: entry.label);
+    final targetController = TextEditingController(
+      text: _target > 0 ? '$_target' : '',
+    );
+    final result = await showDialog<(String, int)?>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.text('editDhikr')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              autofocus: true,
+              maxLength: 50,
+              decoration: InputDecoration(labelText: l10n.text('dhikrName')),
+            ),
+            TextField(
+              controller: targetController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: l10n.text('optionalTarget'),
+                hintText: l10n.text('example100'),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(l10n.text('cancel')),
+          ),
+          FilledButton(
+            onPressed: () {
+              final name = nameController.text.trim();
+              if (name.isEmpty) return;
+              final duplicate = _entries.any(
+                (candidate) =>
+                    candidate.id != entry.id &&
+                    _displayLabel(candidate).toLowerCase() == name.toLowerCase(),
+              );
+              if (duplicate) return;
+              final rawTarget = targetController.text.trim();
+              final target = rawTarget.isEmpty ? 0 : int.tryParse(rawTarget);
+              if (target == null || target < 0 || target > 9999) return;
+              Navigator.pop(dialogContext, (name, target));
+            },
+            child: Text(l10n.text('apply')),
+          ),
+        ],
+      ),
+    );
+    nameController.dispose();
+    targetController.dispose();
+    if (result == null || !mounted) return;
+
+    setState(() {
+      _customEntries = [
+        for (final candidate in _customEntries)
+          if (candidate.id == entry.id)
+            _DhikrEntry(id: candidate.id, label: result.$1, custom: true)
+          else
+            candidate,
+      ];
+      _targets[entry.id] = result.$2;
+      _lastIncrementedId = null;
+    });
+    HapticFeedback.lightImpact();
+    await _persist();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.text('editDhikrSaved'))),
+    );
+  }
+
   Future<void> _removeSelectedCustom() async {
     final entry = _selectedEntry;
     if (!entry.custom) return;
@@ -628,10 +707,20 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
                     ),
                     Expanded(
                       child: _selectedEntry.custom
-                          ? IconButton(
-                              onPressed: _removeSelectedCustom,
-                              icon: const Icon(Icons.delete_outline_rounded),
-                              tooltip: l10n.text('removeDhikr'),
+                          ? Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                IconButton(
+                                  onPressed: _editSelectedCustom,
+                                  icon: const Icon(Icons.edit_outlined),
+                                  tooltip: l10n.text('editDhikr'),
+                                ),
+                                IconButton(
+                                  onPressed: _removeSelectedCustom,
+                                  icon: const Icon(Icons.delete_outline_rounded),
+                                  tooltip: l10n.text('removeDhikr'),
+                                ),
+                              ],
                             )
                           : const SizedBox.shrink(),
                     ),
