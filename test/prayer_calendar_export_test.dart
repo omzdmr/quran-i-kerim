@@ -5,13 +5,13 @@ import 'package:quran_i_kerim/src/features/prayer/application/prayer_calendar_ex
 import 'package:quran_i_kerim/src/features/prayer/domain/prayer_models.dart';
 
 PrayerDaySchedule _day() => PrayerDaySchedule(
-      localDate: DateTime(2026, 9, 26),
-      fajr: DateTime(2026, 9, 26, 5, 12),
-      sunrise: DateTime(2026, 9, 26, 6, 31),
-      dhuhr: DateTime(2026, 9, 26, 12, 3),
-      asr: DateTime(2026, 9, 26, 15, 19),
-      maghrib: DateTime(2026, 9, 26, 18, 2),
-      isha: DateTime(2026, 9, 26, 19, 21),
+      localDate: DateTime.utc(2026, 9, 26),
+      fajr: DateTime.utc(2026, 9, 26, 5, 12),
+      sunrise: DateTime.utc(2026, 9, 26, 6, 31),
+      dhuhr: DateTime.utc(2026, 9, 26, 12, 3),
+      asr: DateTime.utc(2026, 9, 26, 15, 19),
+      maghrib: DateTime.utc(2026, 9, 26, 18, 2),
+      isha: DateTime.utc(2026, 9, 26, 19, 21),
       qiblaDegrees: 240,
     );
 
