@@ -47,7 +47,17 @@ final class NativeLifecycleStateChannel {
 
   private func observeLifecycle() {
     observers = [
-      center.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in self?.record(Key.lastBackgroundAt); self?.recordLifecycleState("background"); self?.emit("background") },
+      center.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in
+        guard let self else { return }
+        let scenes = self.sceneActivitySnapshot()
+        guard scenes.foregroundCount == 0 else {
+          self.emit("sceneBackgrounded", extras: ["foregroundSceneCount": scenes.foregroundCount, "connectedSceneCount": scenes.connectedCount])
+          return
+        }
+        self.record(Key.lastBackgroundAt)
+        self.recordLifecycleState("background")
+        self.emit("background", extras: ["foregroundSceneCount": 0, "connectedSceneCount": scenes.connectedCount])
+      },
       center.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in self?.record(Key.lastForegroundAt); self?.recordLifecycleState("foreground"); self?.reconcilePrayerProjection(reason: "foreground"); self?.emit("foreground") },
       center.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in self?.recordLifecycleState("active"); self?.reconcilePrayerProjection(reason: "active"); self?.emit("active", extras: ["protectedDataAvailable": UIApplication.shared.isProtectedDataAvailable]) },
       center.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: .main) { [weak self] _ in self?.recordLifecycleState("inactive"); self?.emit("inactive") },
@@ -66,19 +76,28 @@ final class NativeLifecycleStateChannel {
       restoreAcknowledged = true
       defaults.removeObject(forKey: Key.lastBackgroundAt)
       result(nil)
-    case "capabilities": result(["coldLaunchDetection": true, "firstLaunchDistinction": true, "backgroundGap": true, "lifecycleEvents": true, "persistent": true, "timeZoneEvents": true, "systemLocaleEvents": true, "significantTimeChange": true, "widgetStaleReconciliation": true, "protectedDataAvailability": true, "targetedWidgetReload": true, "widgetKind": Self.prayerWidgetKind, "backgroundEvictionDetection": true, "previousLifecycleState": true, "restoreAcknowledgement": true])
+    case "capabilities": result(["coldLaunchDetection": true, "firstLaunchDistinction": true, "backgroundGap": true, "lifecycleEvents": true, "persistent": true, "timeZoneEvents": true, "systemLocaleEvents": true, "significantTimeChange": true, "widgetStaleReconciliation": true, "protectedDataAvailability": true, "targetedWidgetReload": true, "widgetKind": Self.prayerWidgetKind, "backgroundEvictionDetection": true, "previousLifecycleState": true, "restoreAcknowledgement": true, "multiSceneAwareBackground": true])
     default: result(FlutterMethodNotImplemented)
     }
   }
 
   private func snapshot() -> [String: Any] {
     let likelyBackgroundEviction = !restoreAcknowledged && hadPreviousSession && !previousCleanTermination && previousLifecycleState == "background"
-    var payload: [String: Any] = ["launchedAtMs": milliseconds(launchedAt), "launchCount": defaults.integer(forKey: Key.launchCount), "hadPreviousSession": hadPreviousSession, "previousCleanTermination": previousCleanTermination, "likelyBackgroundEviction": likelyBackgroundEviction, "restoreAcknowledged": restoreAcknowledged, "applicationState": stateName(UIApplication.shared.applicationState), "timeZone": TimeZone.current.identifier, "systemLocale": Locale.autoupdatingCurrent.identifier, "protectedDataAvailable": UIApplication.shared.isProtectedDataAvailable]
+    let scenes = sceneActivitySnapshot()
+    var payload: [String: Any] = ["foregroundSceneCount": scenes.foregroundCount, "connectedSceneCount": scenes.connectedCount, "launchedAtMs": milliseconds(launchedAt), "launchCount": defaults.integer(forKey: Key.launchCount), "hadPreviousSession": hadPreviousSession, "previousCleanTermination": previousCleanTermination, "likelyBackgroundEviction": likelyBackgroundEviction, "restoreAcknowledged": restoreAcknowledged, "applicationState": stateName(UIApplication.shared.applicationState), "timeZone": TimeZone.current.identifier, "systemLocale": Locale.autoupdatingCurrent.identifier, "protectedDataAvailable": UIApplication.shared.isProtectedDataAvailable]
     if let previousLifecycleState { payload["previousLifecycleState"] = previousLifecycleState }
     if let date = defaults.object(forKey: Key.lastBackgroundAt) as? Date { payload["lastBackgroundAtMs"] = milliseconds(date); payload["backgroundGapMs"] = max(0, milliseconds(Date()) - milliseconds(date)) }
     if let date = defaults.object(forKey: Key.lastForegroundAt) as? Date { payload["lastForegroundAtMs"] = milliseconds(date) }
     if let date = defaults.object(forKey: Key.lastProtectedDataAvailableAt) as? Date { payload["lastProtectedDataAvailableAtMs"] = milliseconds(date) }
     return payload
+  }
+
+  private func sceneActivitySnapshot() -> (foregroundCount: Int, connectedCount: Int) {
+    let scenes = UIApplication.shared.connectedScenes
+    let foregroundCount = scenes.reduce(into: 0) { count, scene in
+      if scene.activationState == .foregroundActive || scene.activationState == .foregroundInactive { count += 1 }
+    }
+    return (foregroundCount, scenes.count)
   }
 
   private func protectedDataBecameAvailable() { record(Key.lastProtectedDataAvailableAt); reconcilePrayerProjection(reason: "protectedDataAvailable"); emit("protectedDataAvailable", extras: ["protectedDataAvailable": true]) }
