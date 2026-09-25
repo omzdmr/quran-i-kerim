@@ -6,6 +6,8 @@ const dhikrHistoryStrings = <String, Map<String, String>>{
     'dhikrHistoryTotal': 'Günlük toplam',
     'editDhikr': 'Zikri düzenle',
     'editDhikrSaved': 'Zikir güncellendi',
+    'dhikrSound': 'Dokunma sesi',
+    'dhikrSoundHint': 'Sayaç düğmesine basınca kısa bir sistem sesi çal.',
   },
   'en': <String, String>{
     'dhikrHistory': 'Dhikr history',
@@ -14,6 +16,8 @@ const dhikrHistoryStrings = <String, Map<String, String>>{
     'dhikrHistoryTotal': 'Daily total',
     'editDhikr': 'Edit dhikr',
     'editDhikrSaved': 'Dhikr updated',
+    'dhikrSound': 'Tap sound',
+    'dhikrSoundHint': 'Play a short system sound when you tap the counter.',
   },
   'fr': <String, String>{
     'dhikrHistory': 'Historique du dhikr',
@@ -22,6 +26,8 @@ const dhikrHistoryStrings = <String, Map<String, String>>{
     'dhikrHistoryTotal': 'Total du jour',
     'editDhikr': 'Modifier le dhikr',
     'editDhikrSaved': 'Dhikr mis à jour',
+    'dhikrSound': 'Son au toucher',
+    'dhikrSoundHint': 'Jouer un bref son système lorsque vous touchez le compteur.',
   },
   'ar': <String, String>{
     'dhikrHistory': 'سجل الذكر',
@@ -30,6 +36,8 @@ const dhikrHistoryStrings = <String, Map<String, String>>{
     'dhikrHistoryTotal': 'مجموع اليوم',
     'editDhikr': 'تعديل الذكر',
     'editDhikrSaved': 'تم تحديث الذكر',
+    'dhikrSound': 'صوت اللمس',
+    'dhikrSoundHint': 'تشغيل صوت نظام قصير عند الضغط على العداد.',
   },
   'az': <String, String>{
     'dhikrHistory': 'Zikr tarixçəsi',
@@ -38,6 +46,8 @@ const dhikrHistoryStrings = <String, Map<String, String>>{
     'dhikrHistoryTotal': 'Günlük cəm',
     'editDhikr': 'Zikri redaktə et',
     'editDhikrSaved': 'Zikr yeniləndi',
+    'dhikrSound': 'Toxunma səsi',
+    'dhikrSoundHint': 'Sayğaca toxunanda qısa sistem səsi səsləndir.',
   },
   'ru': <String, String>{
     'dhikrHistory': 'История зикра',
@@ -46,5 +56,7 @@ const dhikrHistoryStrings = <String, Map<String, String>>{
     'dhikrHistoryTotal': 'Итого за день',
     'editDhikr': 'Изменить зикр',
     'editDhikrSaved': 'Зикр обновлён',
+    'dhikrSound': 'Звук нажатия',
+    'dhikrSoundHint': 'Воспроизводить короткий системный звук при нажатии на счётчик.',
   },
 };

@@ -83,6 +83,7 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
   String? _dailyDateKeyInMemory;
   List<_DhikrEntry> _customEntries = <_DhikrEntry>[];
   List<DhikrDailyHistoryRecord> _history = <DhikrDailyHistoryRecord>[];
+  bool _soundEnabled = false;
   String? _lastIncrementedId;
 
   List<_DhikrEntry> get _entries => <_DhikrEntry>[
@@ -280,7 +281,11 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
       await prefs.setString(_dailyDateKey, today);
       await prefs.setString(
         _countsKey,
-        _documentCodec.encode(counts: counts, history: history),
+        _documentCodec.encode(
+          counts: counts,
+          history: history,
+          soundEnabled: document.soundEnabled,
+        ),
       );
     }
     await prefs.setString(_dailyCountsKey, jsonEncode(daily));
@@ -298,6 +303,7 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
       _customEntries = custom;
       _counts = counts;
       _history = history;
+      _soundEnabled = document.soundEnabled;
       _targets = targets;
       _dailyCounts = daily;
       _dailyDateKeyInMemory = today;
@@ -312,7 +318,11 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
       prefs.setString(_selectedKey, _selectedId),
       prefs.setString(
         _countsKey,
-        _documentCodec.encode(counts: _counts, history: _history),
+        _documentCodec.encode(
+          counts: _counts,
+          history: _history,
+          soundEnabled: _soundEnabled,
+        ),
       ),
       prefs.setString(_targetsKey, jsonEncode(_targets)),
       prefs.setString(
@@ -353,6 +363,9 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
     } else {
       HapticFeedback.selectionClick();
     }
+    if (_soundEnabled) {
+      await SystemSound.play(SystemSoundType.click);
+    }
     await _persist();
   }
 
@@ -371,6 +384,13 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
       _lastIncrementedId = null;
     });
     HapticFeedback.lightImpact();
+    await _persist();
+  }
+
+  Future<void> _setSoundEnabled(bool enabled) async {
+    if (_soundEnabled == enabled) return;
+    setState(() => _soundEnabled = enabled);
+    HapticFeedback.selectionClick();
     await _persist();
   }
 
@@ -757,7 +777,19 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
           ),
           const SizedBox(height: 18),
           SizedBox(height: 210, child: _CounterButton(onPressed: _increment)),
-          const SizedBox(height: 22),
+          const SizedBox(height: 18),
+          SwitchListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+            value: _soundEnabled,
+            onChanged: _setSoundEnabled,
+            title: Text(
+              l10n.text('dhikrSound'),
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+            subtitle: Text(l10n.text('dhikrSoundHint')),
+            secondary: const Icon(Icons.volume_up_outlined),
+          ),
+          const SizedBox(height: 14),
           Row(
             children: [
               Expanded(

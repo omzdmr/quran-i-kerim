@@ -20,10 +20,12 @@ void main() {
     final encoded = codec.encode(
       counts: const <String, int>{'subhanallah': 40},
       history: history,
+      soundEnabled: true,
     );
     final restored = codec.decode(encoded);
 
     expect(restored.counts['subhanallah'], 40);
+    expect(restored.soundEnabled, isTrue);
     expect(restored.history, hasLength(1));
     expect(restored.history.single.total, 40);
     expect(restored.history.single.customLabels['custom_1'], 'Private reminder');

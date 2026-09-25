@@ -60,10 +60,12 @@ class DhikrCounterDocument {
   const DhikrCounterDocument({
     required this.counts,
     required this.history,
+    this.soundEnabled = false,
   });
 
   final Map<String, int> counts;
   final List<DhikrDailyHistoryRecord> history;
+  final bool soundEnabled;
 }
 
 class DhikrCounterDocumentCodec {
@@ -94,9 +96,14 @@ class DhikrCounterDocumentCodec {
           history.add(record);
         }
         history.sort((a, b) => b.dateKey.compareTo(a.dateKey));
+        final soundEnabled = decoded['soundEnabled'];
+        if (soundEnabled != null && soundEnabled is! bool) {
+          return const DhikrCounterDocument(counts: <String, int>{}, history: <DhikrDailyHistoryRecord>[]);
+        }
         return DhikrCounterDocument(
           counts: Map<String, int>.unmodifiable(counts),
           history: List<DhikrDailyHistoryRecord>.unmodifiable(history),
+          soundEnabled: soundEnabled as bool? ?? false,
         );
       }
 
@@ -113,6 +120,7 @@ class DhikrCounterDocumentCodec {
   String encode({
     required Map<String, int> counts,
     required List<DhikrDailyHistoryRecord> history,
+    bool soundEnabled = false,
   }) {
     final sanitizedCounts = <String, int>{
       for (final entry in counts.entries)
@@ -124,6 +132,7 @@ class DhikrCounterDocumentCodec {
     return jsonEncode(<String, Object?>{
       'formatVersion': 2,
       'counts': sanitizedCounts,
+      'soundEnabled': soundEnabled,
       'history': [
         for (final record in ordered) record.toJson(),
       ],

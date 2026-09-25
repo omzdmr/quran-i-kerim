@@ -45,10 +45,14 @@ void main() {
     expect(find.text('Evening'), findsWidgets);
     expect(find.textContaining('Target 25'), findsOneWidget);
 
+    await tester.tap(find.byType(Switch));
+    await tester.pumpAndSettle();
+
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getString('dhikr_v2_custom'), contains('Evening'));
     expect(prefs.getString('dhikr_v2_targets'), contains('"custom_1":25'));
     final countDocument = prefs.getString('dhikr_v2_counts')!;
     expect(countDocument, contains('"custom_1":5'));
+    expect(countDocument, contains('"soundEnabled":true'));
   });
 }

@@ -14,6 +14,7 @@ void main() {
   test('dhikr count document carries history through backup restore', () async {
     final encoded = codec.encode(
       counts: const <String, int>{'subhanallah': 40},
+      soundEnabled: true,
       history: const <DhikrDailyHistoryRecord>[
         DhikrDailyHistoryRecord(
           dateKey: '2026-09-25',
@@ -36,6 +37,7 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     final restored = codec.decode(prefs.getString('dhikr_v2_counts'));
     expect(restored.counts['subhanallah'], 40);
+    expect(restored.soundEnabled, isTrue);
     expect(restored.history.single.dateKey, '2026-09-25');
     expect(restored.history.single.total, 33);
   });
