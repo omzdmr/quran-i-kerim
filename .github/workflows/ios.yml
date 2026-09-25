@@ -85,6 +85,8 @@ jobs:
           grep -q "MicrophoneRecordingChannel(binaryMessenger: messenger)" ios/Runner/AppDelegate.swift
           grep -q "NativeShareChannel(binaryMessenger: messenger" ios/Runner/AppDelegate.swift
           grep -q "CloudBackupFoundationChannel(binaryMessenger: messenger)" ios/Runner/AppDelegate.swift
+          grep -q "app.quranikerim/native_storage_capacity" ios/Runner/AppDelegate.swift
+          grep -q "volumeAvailableCapacityForImportantUsageKey" ios/Runner/AppDelegate.swift
           grep -q "app.quranikerim/native_document_handoff" ios/Runner/AppDelegate.swift
           grep -q "UIDocumentPickerViewController(forExporting:" ios/Runner/AppDelegate.swift
           grep -q "UIDocumentPickerViewController(forOpeningContentTypes:" ios/Runner/AppDelegate.swift
