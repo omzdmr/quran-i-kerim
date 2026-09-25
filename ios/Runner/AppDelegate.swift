@@ -76,7 +76,7 @@ final class StorageCapacityChannel {
   private func status() throws -> [String: Any] {
     let base = try fileManager.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
     let values = try base.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey, .volumeAvailableCapacityForOpportunisticUsageKey, .volumeTotalCapacityKey])
-    var payload: [String: Any] = ["path": base.path]
+    var payload: [String: Any] = [:]
     if let value = values.volumeAvailableCapacityForImportantUsage { payload["availableForImportantUsageBytes"] = value }
     if let value = values.volumeAvailableCapacityForOpportunisticUsage { payload["availableForOpportunisticUsageBytes"] = value }
     if let value = values.volumeTotalCapacity { payload["volumeTotalCapacityBytes"] = value }
