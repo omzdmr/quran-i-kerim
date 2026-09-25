@@ -509,6 +509,7 @@ class _MonthlyPrayerTimesScreenState extends State<MonthlyPrayerTimesScreen> {
   final PrayerCalculator _calculator = PrayerCalculator();
   late DateTime _month;
   String _filter = 'all';
+  bool _exporting = false;
 
   @override
   void initState() {
@@ -533,7 +534,9 @@ class _MonthlyPrayerTimesScreenState extends State<MonthlyPrayerTimesScreen> {
   }
 
   Future<void> _exportMonth() async {
+    if (_exporting) return;
     final l10n = context.l10n;
+    setState(() => _exporting = true);
     try {
       final file = await const PrayerCalendarExportFileService().createFile(
         schedules: _schedulesForMonth(),
@@ -561,6 +564,8 @@ class _MonthlyPrayerTimesScreenState extends State<MonthlyPrayerTimesScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.text('prayerCalendarExportFailed'))),
       );
+    } finally {
+      if (mounted) setState(() => _exporting = false);
     }
   }
 
@@ -574,8 +579,14 @@ class _MonthlyPrayerTimesScreenState extends State<MonthlyPrayerTimesScreen> {
         title: Text(l10n.text('monthlyPrayerTimes')),
         actions: [
           IconButton(
-            onPressed: _exportMonth,
-            icon: const Icon(Icons.ios_share_rounded),
+            onPressed: _exporting ? null : _exportMonth,
+            icon: _exporting
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.ios_share_rounded),
             tooltip: l10n.text('exportPrayerCalendarHint'),
           ),
         ],
