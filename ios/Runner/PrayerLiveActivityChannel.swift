@@ -32,7 +32,7 @@ final class PrayerLiveActivityChannel {
     }
     switch call.method {
     case "capabilities":
-      result(["supported": true, "activitiesEnabled": ActivityAuthorizationInfo().areActivitiesEnabled, "dynamicIsland": true, "privacyRedaction": true, "expiredAutoCleanup": true, "finalProvider": false])
+      result(["supported": true, "activitiesEnabled": ActivityAuthorizationInfo().areActivitiesEnabled, "lockScreen": true, "dynamicIslandConfiguration": true, "privacyRedaction": true, "expiredAutoCleanup": true, "finalProvider": false])
     case "status":
       let activities = Activity<PrayerActivityAttributes>.activities; result(["activitiesEnabled": ActivityAuthorizationInfo().areActivitiesEnabled, "activeCount": activities.count, "activeIDs": activities.map(\.id)])
     case "start":
