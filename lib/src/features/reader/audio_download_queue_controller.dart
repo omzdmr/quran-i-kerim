@@ -51,6 +51,9 @@ class AudioDownloadQueueController extends ChangeNotifier {
       List<AudioQueueItem>.unmodifiable(_pending);
 
   void enqueueAll(Iterable<AudioQueueItem> items) {
+    if (!hasWork && _status == AudioQueueStatus.idle) {
+      _completedThisRun = 0;
+    }
     for (final item in items) {
       if (_known.add(item.id)) _pending.add(item);
     }

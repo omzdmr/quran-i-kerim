@@ -68,6 +68,23 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
     return items;
   }
 
+  int _recoverableEstimatedBytes() {
+    var bytes = 0;
+    for (final pack in _audio) {
+      if (pack.readiness == OfflineAudioPackReadiness.ready) continue;
+      final info = _audioForStorageKey(pack.storageKey);
+      if (info == null || pack.verseCount <= 0) continue;
+      final bitrate = _bitrateForStorageKey(pack.storageKey, info);
+      final estimated = OfflineAudioManager.instance.estimateSurahBytes(
+        verseCount: pack.verseCount,
+        bitrate: bitrate,
+      );
+      final remaining = estimated - pack.bytes;
+      if (remaining > 0) bytes += remaining;
+    }
+    return bytes;
+  }
+
   Future<void> _startRecoveryQueue(_DownloadsCopy copy) async {
     final items = _recoverableQueueItems();
     if (items.isEmpty) return;
@@ -348,6 +365,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                   _AudioRecoveryQueueCard(
                     queue: AudioDownloadQueueController.instance,
                     recoverableCount: _recoverableQueueItems().length,
+                    estimatedRemainingBytes: _recoverableEstimatedBytes(),
                     copy: copy,
                     onStart: () => _startRecoveryQueue(copy),
                   ),
@@ -561,12 +579,14 @@ class _AudioRecoveryQueueCard extends StatelessWidget {
   const _AudioRecoveryQueueCard({
     required this.queue,
     required this.recoverableCount,
+    required this.estimatedRemainingBytes,
     required this.copy,
     required this.onStart,
   });
 
   final AudioDownloadQueueController queue;
   final int recoverableCount;
+  final int estimatedRemainingBytes;
   final _DownloadsCopy copy;
   final VoidCallback onStart;
 
@@ -591,6 +611,15 @@ class _AudioRecoveryQueueCard extends StatelessWidget {
                     ? copy.queueRunning(count)
                     : copy.queueReady(recoverableCount),
               ),
+              if (estimatedRemainingBytes > 0) ...[
+                const SizedBox(height: 4),
+                Text(
+                  copy.estimatedRemaining(_formatBytes(estimatedRemainingBytes)),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
@@ -869,6 +898,7 @@ class _DownloadsCopy {
     'Bu səsi tam sil',
     'Удалить весь этот голос',
   );
+  String estimatedRemaining(String size) => _pick('Tahmini kalan indirme: $size', 'Estimated remaining download: $size', 'التنزيل المتبقي تقديريًا: $size', 'Təxmini qalan endirmə: $size', 'Примерно осталось скачать: $size', 'Téléchargement restant estimé : $size');
   String get recoveryQueueTitle => _pick('Ses kurtarma kuyruğu', 'Audio recovery queue', 'قائمة استعادة الصوت', 'Səs bərpa növbəsi', 'Очередь восстановления аудио', 'File de récupération audio');
   String get resumeAll => _pick('Tümüne devam et', 'Resume all', 'متابعة الكل', 'Hamısına davam et', 'Продолжить все', 'Tout reprendre');
   String get pauseAll => _pick('Kuyruğu duraklat', 'Pause queue', 'إيقاف القائمة مؤقتًا', 'Növbəni dayandır', 'Приостановить очередь', 'Mettre la file en pause');
