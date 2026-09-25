@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../l10n/app_localizations.dart';
 import 'dhikr_daily_rollover.dart';
 import 'dhikr_history_screen.dart';
+import 'dhikr_labels.dart';
 import 'dhikr_history_store.dart';
 
 class DhikrCounterScreen extends StatefulWidget {
@@ -38,41 +39,6 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
     _DhikrEntry(id: 'allahu_akbar', label: 'Allahu Akbar'),
     _DhikrEntry(id: 'salawat', label: 'Salawat'),
   ];
-
-  static const _builtInLabels = <String, Map<String, String>>{
-    'subhanallah': {
-      'tr': 'Sübhanallah',
-      'en': 'SubhanAllah',
-      'fr': 'SubhanAllah',
-      'ar': 'سبحان الله',
-      'az': 'Sübhanallah',
-      'ru': 'Субханаллах',
-    },
-    'alhamdulillah': {
-      'tr': 'Elhamdülillah',
-      'en': 'Alhamdulillah',
-      'fr': 'Alhamdulillah',
-      'ar': 'الحمد لله',
-      'az': 'Əlhəmdülillah',
-      'ru': 'Альхамдулиллях',
-    },
-    'allahu_akbar': {
-      'tr': 'Allahu Ekber',
-      'en': 'Allahu Akbar',
-      'fr': 'Allahu Akbar',
-      'ar': 'الله أكبر',
-      'az': 'Allahu Əkbər',
-      'ru': 'Аллаху Акбар',
-    },
-    'salawat': {
-      'tr': 'Salavat',
-      'en': 'Salawat',
-      'fr': 'Salawat',
-      'ar': 'الصلاة على النبي',
-      'az': 'Salavat',
-      'ru': 'Салават',
-    },
-  };
 
   String _selectedId = _builtIns.first.id;
   Map<String, int> _counts = <String, int>{};
@@ -140,9 +106,7 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
     if (entry.custom) return entry.label;
     final language =
         languageCode ?? Localizations.localeOf(context).languageCode;
-    return _builtInLabels[entry.id]?[language] ??
-        _builtInLabels[entry.id]?['en'] ??
-        entry.label;
+    return dhikrBuiltInLabel(entry.id, language, fallback: entry.label);
   }
 
   _DhikrEntry? _entryById(String id) {
@@ -192,7 +156,7 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
     for (final entry in _builtIns) {
       if (entry.label.toLowerCase() == normalized) return entry.id;
       for (final translated
-          in _builtInLabels[entry.id]?.values ?? const <String>[]) {
+          in dhikrBuiltInLabels[entry.id]?.values ?? const <String>[]) {
         if (translated.toLowerCase() == normalized) return entry.id;
       }
     }
