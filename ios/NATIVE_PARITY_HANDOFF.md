@@ -60,3 +60,13 @@ The integration backup manifest currently leaves Hifz voice-recording files outs
 
 ### Audio route/recovery follow-up
 Native audio lifecycle marks an unavailable previous output with `shouldPause: true`, so the shared player can stop immediately when a wired or routed output disappears. Media-services reset emits `mediaServicesReset` with configuration status and `republishNowPlaying: true`; shared playback should rebuild current Now Playing metadata after receiving it. Native code still does not choose or advance Quran content.
+
+
+## 2026-09-26 native media + iPad lifecycle slice
+Now Playing ownership is now non-destructive across multiple playback stacks. Before the native Quran channel takes ownership it snapshots existing MediaPlayer metadata, playback state and command enabled states. On clear/detach it restores that prior state only when the process-global Now Playing payload is still the exact payload last published by this native coordinator. If another stack replaced metadata in the meantime, native cleanup removes only its own command targets and leaves the newer global state untouched. This closes the prior failure mode where clearing Quran metadata could blank or disable another playback stack.
+
+Lifecycle restore is now scene-aware for iPad/Stage Manager diagnostics. Background persistence is only committed when there are no foreground-active or foreground-inactive connected scenes; otherwise the channel emits a sceneBackgrounded event without classifying the whole app as backgrounded. Snapshots expose foregroundSceneCount/connectedSceneCount and capabilities advertise multiSceneAwareBackground. This prevents a single-window transition from poisoning later background-eviction restore decisions.
+
+Executable contract gates: validate_audio_ownership.py and validate_multiscene_lifecycle.py are wired into ios-native-contract.yml alongside the existing MediaPlayer type-check. Shared Flutter/Dart remains unchanged. No new persistent user data was introduced, so the shared backup registry/iCloud archive contract is unchanged.
+
+Next native work: verify the new contract on macOS CI, then continue iPad keyboard/Stage Manager presentation and release/archive parity. Real signed-device behavior still requires Apple provisioning; simulator CI cannot prove multi-window scene transitions or Control Center coexistence on physical hardware.
