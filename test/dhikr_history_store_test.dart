@@ -48,7 +48,7 @@ void main() {
 
   test('malformed history fails closed without corrupting app state', () {
     final document = codec.decode(
-      '{"formatVersion":2,"counts":{"subhanallah":2},"history":[{"date":"bad","counts":{"subhanallah":1}}]}',
+      '{"formatVersion":2,"counts":{"subhanallah":2},"history":[{"date":"2026-09-25T12:00:00Z","counts":{"subhanallah":1}}]}',
     );
     expect(document.counts, isEmpty);
     expect(document.history, isEmpty);

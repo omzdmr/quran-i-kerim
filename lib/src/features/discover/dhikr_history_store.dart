@@ -23,7 +23,7 @@ class DhikrDailyHistoryRecord {
     if (raw is! Map) return null;
     final date = raw['date'];
     final countsRaw = raw['counts'];
-    if (date is! String || DateTime.tryParse(date) == null || countsRaw is! Map) {
+    if (date is! String || !_isDateKey(date) || countsRaw is! Map) {
       return null;
     }
     final counts = <String, int>{};
@@ -54,6 +54,17 @@ class DhikrDailyHistoryRecord {
       customLabels: Map<String, String>.unmodifiable(labels),
     );
   }
+
+  static bool _isDateKey(String value) {
+    if (value.length != 10 ||
+        value.codeUnitAt(4) != 45 ||
+        value.codeUnitAt(7) != 45) {
+      return false;
+    }
+    final parsed = DateTime.tryParse(value);
+    return parsed != null && parsed.toIso8601String().startsWith(value);
+  }
+
 }
 
 class DhikrCounterDocument {
