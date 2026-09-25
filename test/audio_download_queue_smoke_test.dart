@@ -29,4 +29,13 @@ void main() {
     expect(queue.pending, isEmpty);
     expect(queue.status, AudioQueueStatus.idle);
   });
+
+  test('preflight can pause before dequeuing when policy changes', () async {
+    final queue = AudioDownloadQueueController();
+    queue.enqueueAll([item(1), item(2)]);
+    await queue.start(canStart: (_) async => false);
+    expect(queue.status, AudioQueueStatus.paused);
+    expect(queue.pending.map((entry) => entry.surah), [1, 2]);
+    expect(queue.active, isNull);
+  });
 }

@@ -70,12 +70,20 @@ class AudioDownloadQueueController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> start() async {
+  Future<void> start({
+    Future<bool> Function(AudioQueueItem item)? canStart,
+  }) async {
     if (_status == AudioQueueStatus.running) return;
     _status = AudioQueueStatus.running;
     notifyListeners();
 
     while (_status == AudioQueueStatus.running && _pending.isNotEmpty) {
+      final next = _pending.first;
+      if (canStart != null && !await canStart(next)) {
+        _status = AudioQueueStatus.paused;
+        notifyListeners();
+        break;
+      }
       final item = _pending.removeFirst();
       _active = item;
       notifyListeners();

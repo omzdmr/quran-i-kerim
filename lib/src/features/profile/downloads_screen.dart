@@ -72,6 +72,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
     final items = _recoverableQueueItems();
     if (items.isEmpty) return;
     final settings = AppSettingsScope.of(context);
+    var allowMobileForRun = false;
     final network = await OfflineAudioManager.instance.currentNetworkKind();
     if (!mounted) return;
     if (network == AudioNetworkKind.offline) {
@@ -107,10 +108,25 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
         ),
       );
       if (accepted != true || !mounted) return;
+      allowMobileForRun = true;
     }
     final queue = AudioDownloadQueueController.instance;
     queue.enqueueAll(items);
-    await queue.start();
+    await queue.start(
+      canStart: (_) async {
+        final current = await OfflineAudioManager.instance.currentNetworkKind();
+        if (current == AudioNetworkKind.offline) return false;
+        if (settings.audioDownloadWifiOnly) {
+          return current == AudioNetworkKind.wifi;
+        }
+        if (settings.audioDownloadAskOnMobile &&
+            current == AudioNetworkKind.mobile &&
+            !allowMobileForRun) {
+          return false;
+        }
+        return true;
+      },
+    );
     if (mounted) await _refresh();
   }
 
