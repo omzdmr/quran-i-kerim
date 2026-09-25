@@ -156,6 +156,26 @@ jobs:
         continue-on-error: true
         run: flutter build ios --simulator --debug
 
+      - name: Build unsigned ARM64 iOS release for archive parity
+        if: steps.ios_pods.outcome == 'success'
+        id: ios_release_build
+        continue-on-error: true
+        run: flutter build ios --release --no-codesign
+
+      - name: Verify unsigned ARM64 release payload
+        if: steps.ios_release_build.outcome == 'success'
+        run: |
+          app=build/ios/iphoneos/Runner.app
+          widget="$app/PlugIns/PrayerWidget.appex"
+          test -d "$app"; test -d "$widget"
+          test -f "$app/Runner"; test -f "$widget/PrayerWidget"
+          lipo -info "$app/Runner" | grep -q arm64
+          lipo -info "$widget/PrayerWidget" | grep -q arm64
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$app/Info.plist" | grep -qx com.omzdmr.quranIKerim
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$widget/Info.plist" | grep -qx com.omzdmr.quranIKerim.PrayerWidget
+          test -f "$app/PrivacyInfo.xcprivacy"
+          test -f "$widget/PrivacyInfo.xcprivacy"
+
       - name: Verify simulator app and widget output
         if: steps.ios_build.outcome == 'success'
         run: |
@@ -189,4 +209,5 @@ jobs:
           if [[ "${{ steps.ios_pods.outcome }}" != "success" ]]; then echo "::error::CocoaPods could not integrate the committed Runner project."; failed=1; fi
           if [[ "${{ steps.shared_tests.outcome }}" != "success" ]]; then echo "::error::Shared Flutter tests failed on this staging snapshot."; failed=1; fi
           if [[ "${{ steps.ios_build.outcome }}" != "success" ]]; then echo "::error::iOS simulator build failed."; failed=1; fi
+          if [[ "${{ steps.ios_release_build.outcome }}" != "success" ]]; then echo "::error::Unsigned ARM64 iOS release build failed."; failed=1; fi
           exit "$failed"
