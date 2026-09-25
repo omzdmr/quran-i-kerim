@@ -23,6 +23,7 @@ void main() {
       schedules: <PrayerDaySchedule>[_day()],
       timeZoneId: 'Asia/Shanghai',
       calendarName: 'Prayer Times, Shanghai',
+      calendarId: 'shanghai',
       prayerLabel: (id) => id.toUpperCase(),
       generatedAt: DateTime.utc(2026, 9, 25, 20),
     );
@@ -30,6 +31,7 @@ void main() {
     expect(ics, contains('X-WR-TIMEZONE:Asia/Shanghai'));
     expect(ics, contains('X-WR-CALNAME:Prayer Times\\, Shanghai'));
     expect(ics, contains('DTSTART:20260926T051200Z'));
+    expect(ics, contains('UID:shanghai-fajr-20260926@quran-i-kerim.local'));
     expect(ics, contains('SUMMARY:FAJR'));
     expect(RegExp('TRANSP:TRANSPARENT').allMatches(ics), hasLength(5));
     expect(ics, contains('DTSTAMP:20260925T200000Z'));
@@ -48,6 +50,7 @@ void main() {
       schedules: <PrayerDaySchedule>[_day()],
       timeZoneId: 'Asia/Shanghai',
       calendarName: 'Monthly Prayer Times',
+      calendarId: 'shanghai',
       prayerLabel: (id) => id,
       month: DateTime(2026, 9),
     );

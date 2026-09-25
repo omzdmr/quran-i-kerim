@@ -11,6 +11,7 @@ class PrayerCalendarIcsExporter {
     required List<PrayerDaySchedule> schedules,
     required String timeZoneId,
     required String calendarName,
+    required String calendarId,
     required String Function(String prayerId) prayerLabel,
     DateTime? generatedAt,
   }) {
@@ -31,7 +32,7 @@ class PrayerCalendarIcsExporter {
         final date = _date(start);
         lines.addAll(<String>[
           'BEGIN:VEVENT',
-          'UID:${row.id}-$date@quran-i-kerim.local',
+          'UID:${calendarId.replaceAll(' ', '-')}-${row.id}-$date@quran-i-kerim.local',
           'DTSTAMP:$stamp',
           'DTSTART:${_utcStamp(start)}',
           'DTEND:${_utcStamp(end)}',
@@ -74,6 +75,7 @@ class PrayerCalendarExportFileService {
     required List<PrayerDaySchedule> schedules,
     required String timeZoneId,
     required String calendarName,
+    required String calendarId,
     required String Function(String prayerId) prayerLabel,
     required DateTime month,
   }) async {
@@ -85,6 +87,7 @@ class PrayerCalendarExportFileService {
       schedules: schedules,
       timeZoneId: timeZoneId,
       calendarName: calendarName,
+      calendarId: calendarId,
       prayerLabel: prayerLabel,
     );
     return file.writeAsString(content, flush: true);

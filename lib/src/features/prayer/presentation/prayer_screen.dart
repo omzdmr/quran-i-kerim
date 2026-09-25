@@ -540,6 +540,7 @@ class _MonthlyPrayerTimesScreenState extends State<MonthlyPrayerTimesScreen> {
         timeZoneId: widget.city.location.timeZoneId,
         calendarName:
             '${l10n.text('monthlyPrayerTimes')} · ${widget.city.label}',
+        calendarId: widget.city.id,
         prayerLabel: (id) => _prayerLabel(context, id),
         month: _month,
       );
