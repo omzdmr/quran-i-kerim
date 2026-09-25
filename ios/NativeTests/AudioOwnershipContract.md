@@ -1,1 +1,2 @@
 Temporary native contract note: Now Playing ownership must not clear or disable another playback stack's process-global MediaPlayer state. Replace with executable validation in the same native slice.
+Audit note: executable gate pending.
