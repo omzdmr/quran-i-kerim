@@ -363,10 +363,15 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
     } else {
       HapticFeedback.selectionClick();
     }
-    if (_soundEnabled) {
-      await SystemSound.play(SystemSoundType.click);
-    }
     await _persist();
+    if (_soundEnabled) {
+      try {
+        await SystemSound.play(SystemSoundType.click);
+      } catch (_) {
+        // Sound is optional feedback; a platform audio failure must never
+        // roll back or lose the user's count.
+      }
+    }
   }
 
   Future<void> _undo() async {
