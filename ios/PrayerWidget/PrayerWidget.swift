@@ -113,6 +113,7 @@ struct PrayerLiveActivityWidget: Widget {
       DynamicIsland {
         DynamicIslandExpandedRegion(.leading) {
           Image(systemName: context.state.isRedacted ? "lock.fill" : "moon.stars.fill")
+            .accessibilityLabel(context.state.isRedacted ? String(localized: "Prayer times hidden", table: "Localizable") : context.state.displayName)
         }
         DynamicIslandExpandedRegion(.trailing) {
           if !context.state.isRedacted {
@@ -124,6 +125,7 @@ struct PrayerLiveActivityWidget: Widget {
         }
       } compactLeading: {
         Image(systemName: context.state.isRedacted ? "lock.fill" : "moon.stars.fill")
+          .accessibilityLabel(context.state.isRedacted ? String(localized: "Prayer times hidden", table: "Localizable") : context.state.displayName)
       } compactTrailing: {
         if context.state.isRedacted {
           Image(systemName: "lock.fill")
@@ -132,6 +134,7 @@ struct PrayerLiveActivityWidget: Widget {
         }
       } minimal: {
         Image(systemName: context.state.isRedacted ? "lock.fill" : "moon.stars.fill")
+          .accessibilityLabel(context.state.isRedacted ? String(localized: "Prayer times hidden", table: "Localizable") : context.state.displayName)
       }
       .widgetURL(URL(string: "quranikerim://prayer"))
     }

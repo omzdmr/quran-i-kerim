@@ -1,6 +1,7 @@
 import ActivityKit
 import Flutter
 import Foundation
+import UIKit
 
 final class PrayerLiveActivityChannel {
   static let channelName = "app.quranikerim/native_prayer_live_activity"
@@ -10,7 +11,11 @@ final class PrayerLiveActivityChannel {
   init(binaryMessenger: FlutterBinaryMessenger) {
     channel = FlutterMethodChannel(name: Self.channelName, binaryMessenger: binaryMessenger)
     channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) }
-    foregroundObserver = NotificationCenter.default.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in self?.purgeExpiredActivities() }
+    foregroundObserver = NotificationCenter.default.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in
+      guard let self else { return }
+      self.purgeExpiredActivities()
+      if #available(iOS 16.1, *) { self.channel.invokeMethod("authorizationChanged", arguments: ["activitiesEnabled": ActivityAuthorizationInfo().areActivitiesEnabled]) }
+    }
     purgeExpiredActivities()
   }
 
@@ -48,7 +53,7 @@ final class PrayerLiveActivityChannel {
     let now = Date().timeIntervalSince1970 * 1000
     let expired = Activity<PrayerActivityAttributes>.activities.filter { $0.contentState.prayerAtMilliseconds <= now }
     guard !expired.isEmpty else { return }
-    Task { for activity in expired { await activity.end(dismissalPolicy: .immediate) } }
+    Task { for activity in expired { await activity.end(using: activity.contentState, dismissalPolicy: .immediate) } }
   }
 
   @available(iOS 16.1, *)
@@ -61,7 +66,13 @@ final class PrayerLiveActivityChannel {
     do {
       let state = try parseState(arguments)
       let attributes = PrayerActivityAttributes(createdAtMilliseconds: Date().timeIntervalSince1970 * 1000)
-      let activity = try Activity<PrayerActivityAttributes>.request(attributes: attributes, contentState: state, pushType: nil)
+      let activity: Activity<PrayerActivityAttributes>
+      if #available(iOS 16.2, *) {
+        let content = ActivityContent(state: state, staleDate: Date(timeIntervalSince1970: state.prayerAtMilliseconds / 1000))
+        activity = try Activity<PrayerActivityAttributes>.request(attributes: attributes, content: content, pushType: nil)
+      } else {
+        activity = try Activity<PrayerActivityAttributes>.request(attributes: attributes, contentState: state, pushType: nil)
+      }
       result(["id": activity.id, "started": true])
     } catch let error as LiveActivityInputError {
       result(FlutterError(code: "invalid_live_activity", message: error.localizedDescription, details: nil))
@@ -80,7 +91,15 @@ final class PrayerLiveActivityChannel {
       guard let activity = Activity<PrayerActivityAttributes>.activities.first(where: { $0.id == id }) else {
         result(FlutterError(code: "live_activity_not_found", message: "The requested Live Activity is not active.", details: nil)); return
       }
-      Task { await activity.update(using: state); await MainActor.run { result(["updated": true, "id": id]) } }
+      Task {
+        if #available(iOS 16.2, *) {
+          let content = ActivityContent(state: state, staleDate: Date(timeIntervalSince1970: state.prayerAtMilliseconds / 1000))
+          await activity.update(content)
+        } else {
+          await activity.update(using: state)
+        }
+        await MainActor.run { result(["updated": true, "id": id]) }
+      }
     } catch {
       result(FlutterError(code: "invalid_live_activity", message: error.localizedDescription, details: nil))
     }
@@ -94,14 +113,14 @@ final class PrayerLiveActivityChannel {
     guard let activity = Activity<PrayerActivityAttributes>.activities.first(where: { $0.id == id }) else {
       result(["ended": false, "id": id]); return
     }
-    Task { await activity.end(dismissalPolicy: .immediate); await MainActor.run { result(["ended": true, "id": id]) } }
+    Task { await activity.end(using: activity.contentState, dismissalPolicy: .immediate); await MainActor.run { result(["ended": true, "id": id]) } }
   }
 
   @available(iOS 16.1, *)
   private func endAll(result: @escaping FlutterResult) {
     let activities = Activity<PrayerActivityAttributes>.activities
     Task {
-      for activity in activities { await activity.end(dismissalPolicy: .immediate) }
+      for activity in activities { await activity.end(using: activity.contentState, dismissalPolicy: .immediate) }
       await MainActor.run { result(["endedCount": activities.count]) }
     }
   }

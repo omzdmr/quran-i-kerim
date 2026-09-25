@@ -14,4 +14,5 @@ required = [
 ]
 missing = [item for item in required if item not in source]
 if missing: raise SystemExit("Apple Pencil foundation contract failed: " + ", ".join(missing))
+assert "UserDefaults" not in source and "FileManager" not in source
 print("Apple Pencil opt-in foundation contract OK")

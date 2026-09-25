@@ -7,4 +7,5 @@ missing = [item for item in required if item not in source]
 if 'customClass="NativeFlutterViewController"' not in storyboard: missing.append("storyboard controller")
 if 'NativeFlutterViewController.swift in Sources' not in project: missing.append("Xcode source membership")
 if missing: raise SystemExit("Hardware keyboard contract failed: " + ", ".join(missing))
+assert "UserDefaults" not in source and "FileManager" not in source
 print("Hardware keyboard opt-in contract OK")

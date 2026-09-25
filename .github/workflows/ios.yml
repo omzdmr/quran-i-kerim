@@ -178,6 +178,7 @@ jobs:
           lipo -info "$app/Runner" | grep -q arm64
           lipo -info "$widget/PrayerWidget" | grep -q arm64
           /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$app/Info.plist" | grep -qx com.omzdmr.quranIKerim
+          /usr/libexec/PlistBuddy -c "Print :NSSupportsLiveActivities" "$app/Info.plist" | grep -qx true
           /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$widget/Info.plist" | grep -qx com.omzdmr.quranIKerim.PrayerWidget
           test -f "$app/PrivacyInfo.xcprivacy"
           test -f "$widget/PrivacyInfo.xcprivacy"
@@ -192,6 +193,7 @@ jobs:
           /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$app/Info.plist" | grep -qx com.omzdmr.quranIKerim
           /usr/libexec/PlistBuddy -c "Print :CFBundleDisplayName" "$app/Info.plist" | grep -qx "Kur’an-ı Kerim"
           /usr/libexec/PlistBuddy -c "Print :UIBackgroundModes:0" "$app/Info.plist" | grep -qx audio
+          /usr/libexec/PlistBuddy -c "Print :NSSupportsLiveActivities" "$app/Info.plist" | grep -qx true
           /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$widget/Info.plist" | grep -qx com.omzdmr.quranIKerim.PrayerWidget
           /usr/libexec/PlistBuddy -c "Print :NSExtension:NSExtensionPointIdentifier" "$widget/Info.plist" | grep -qx com.apple.widgetkit-extension
           for locale in en tr ar az ru fr; do
