@@ -6,6 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../l10n/app_localizations.dart';
 import 'dhikr_daily_rollover.dart';
+import 'dhikr_history_screen.dart';
+import 'dhikr_history_store.dart';
 
 class DhikrCounterScreen extends StatefulWidget {
   const DhikrCounterScreen({super.key});
@@ -15,6 +17,7 @@ class DhikrCounterScreen extends StatefulWidget {
 }
 
 class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
+  static const _documentCodec = DhikrCounterDocumentCodec();
   static const _selectedKey = 'dhikr_v2_selected';
   static const _countsKey = 'dhikr_v2_counts';
   static const _targetsKey = 'dhikr_v2_targets';
@@ -75,6 +78,7 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
   Map<String, int> _dailyCounts = <String, int>{};
   String? _dailyDateKeyInMemory;
   List<_DhikrEntry> _customEntries = <_DhikrEntry>[];
+  List<DhikrDailyHistoryRecord> _history = <DhikrDailyHistoryRecord>[];
   String? _lastIncrementedId;
 
   List<_DhikrEntry> get _entries => <_DhikrEntry>[
@@ -103,11 +107,22 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
     return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   }
 
-  void _rolloverDailyIfNeeded() {
+  Future<void> _rolloverDailyIfNeeded() async {
     final today = _todayKey();
     if (_dailyDateKeyInMemory == today) return;
+    final previousDate = _dailyDateKeyInMemory;
+    if (previousDate != null && _dailyCounts.isNotEmpty) {
+      _history = _documentCodec.archiveDay(
+        history: _history,
+        dateKey: previousDate,
+        counts: _dailyCounts,
+        customLabels: <String, String>{
+          for (final entry in _customEntries) entry.id: entry.label,
+        },
+      );
+    }
     final snapshot = normalizeDhikrDailySnapshot(
-      storedDateKey: _dailyDateKeyInMemory,
+      storedDateKey: previousDate,
       todayDateKey: today,
       counts: _dailyCounts,
     );
@@ -204,7 +219,9 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
     final today = _todayKey();
 
     final custom = _decodeCustom(prefs.getString(_customKey));
-    final counts = _decodeIntMap(prefs.getString(_countsKey));
+    final document = _documentCodec.decode(prefs.getString(_countsKey));
+    final counts = Map<String, int>.from(document.counts);
+    var history = document.history.toList(growable: false);
     final targets = _decodeIntMap(prefs.getString(_targetsKey));
     var selected = prefs.getString(_selectedKey);
 
@@ -235,6 +252,20 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
         custom,
       );
     } else {
+      final previousDaily = _migrateDailyKeys(
+        _decodeIntMap(prefs.getString(_dailyCountsKey)),
+        custom,
+      );
+      if (storedDailyDate != null && previousDaily.isNotEmpty) {
+        history = _documentCodec.archiveDay(
+          history: history,
+          dateKey: storedDailyDate,
+          counts: previousDaily,
+          customLabels: <String, String>{
+            for (final entry in custom) entry.id: entry.label,
+          },
+        );
+      }
       daily = <String, int>{};
       final legacyDay = prefs.getString(_legacyDailyDateKey);
       final legacyTotal = prefs.getInt(_legacyDailyTotalKey) ?? 0;
@@ -243,6 +274,10 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
         daily[legacyId] = legacyTotal;
       }
       await prefs.setString(_dailyDateKey, today);
+      await prefs.setString(
+        _countsKey,
+        _documentCodec.encode(counts: counts, history: history),
+      );
     }
     await prefs.setString(_dailyCountsKey, jsonEncode(daily));
 
@@ -258,6 +293,7 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
     setState(() {
       _customEntries = custom;
       _counts = counts;
+      _history = history;
       _targets = targets;
       _dailyCounts = daily;
       _dailyDateKeyInMemory = today;
@@ -266,11 +302,14 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
   }
 
   Future<void> _persist() async {
-    _rolloverDailyIfNeeded();
+    await _rolloverDailyIfNeeded();
     final prefs = await SharedPreferences.getInstance();
     await Future.wait([
       prefs.setString(_selectedKey, _selectedId),
-      prefs.setString(_countsKey, jsonEncode(_counts)),
+      prefs.setString(
+        _countsKey,
+        _documentCodec.encode(counts: _counts, history: _history),
+      ),
       prefs.setString(_targetsKey, jsonEncode(_targets)),
       prefs.setString(
         _customKey,
@@ -295,7 +334,7 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
   }
 
   Future<void> _increment() async {
-    _rolloverDailyIfNeeded();
+    await _rolloverDailyIfNeeded();
     final entry = _selectedEntry;
     final next = _count + 1;
     final target = _target;
@@ -314,7 +353,7 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
   }
 
   Future<void> _undo() async {
-    _rolloverDailyIfNeeded();
+    await _rolloverDailyIfNeeded();
     if (_lastIncrementedId != _selectedId || _count <= 0) return;
     final entry = _selectedEntry;
     setState(() {
@@ -475,7 +514,7 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
   Future<void> _removeSelectedCustom() async {
     final entry = _selectedEntry;
     if (!entry.custom) return;
-    _rolloverDailyIfNeeded();
+    await _rolloverDailyIfNeeded();
     setState(() {
       _customEntries = _customEntries
           .where((item) => item.id != entry.id)
@@ -507,6 +546,19 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
       appBar: AppBar(
         title: Text(l10n.text('dhikrCounter')),
         actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => DhikrHistoryScreen(
+                    records: List<DhikrDailyHistoryRecord>.unmodifiable(_history),
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.history_rounded),
+            tooltip: l10n.text('dhikrHistory'),
+          ),
           IconButton(
             onPressed: _lastIncrementedId == _selectedId ? _undo : null,
             icon: const Icon(Icons.undo_rounded),
