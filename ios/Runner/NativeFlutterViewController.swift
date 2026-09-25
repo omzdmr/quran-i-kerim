@@ -3,15 +3,19 @@ import UIKit
 
 /// Opt-in hardware-keyboard bridge for iPad. Commands stay disabled until shared UI explicitly
 /// adopts the contract, so native parity never steals shortcuts from text fields prematurely.
-final class NativeFlutterViewController: FlutterViewController {
+final class NativeFlutterViewController: FlutterViewController, UIPencilInteractionDelegate {
   static let keyboardChannelName = "app.quranikerim/native_keyboard"
   private var keyboardChannel: FlutterMethodChannel?
+  private var pencilChannel: FlutterMethodChannel?
+  private var pencilInteraction: UIPencilInteraction?
   private var keyboardBridgeEnabled = false
+  private var pencilBridgeEnabled = false
 
   override func viewDidLoad() {
     super.viewDidLoad()
     let channel = FlutterMethodChannel(name: Self.keyboardChannelName, binaryMessenger: binaryMessenger)
     keyboardChannel = channel
+    configurePencilBridge()
     channel.setMethodCallHandler { [weak self] call, result in
       guard let self else { return }
       switch call.method {
@@ -39,7 +43,42 @@ final class NativeFlutterViewController: FlutterViewController {
     }
   }
 
-  deinit { keyboardChannel?.setMethodCallHandler(nil) }
+  private func configurePencilBridge() {
+    let channel = FlutterMethodChannel(name: "app.quranikerim/native_pencil", binaryMessenger: binaryMessenger)
+    pencilChannel = channel
+    channel.setMethodCallHandler { [weak self] call, result in
+      guard let self else { return }
+      switch call.method {
+      case "capabilities":
+        result(["applePencil": true, "doubleTap": true, "squeeze": false, "optIn": true, "anchoredNotesOwnedByShared": true])
+      case "setEnabled":
+        guard let args = call.arguments as? [String: Any], let enabled = args["enabled"] as? Bool else {
+          result(FlutterError(code: "invalid_pencil_state", message: "setEnabled requires an enabled boolean.", details: nil))
+          return
+        }
+        pencilBridgeEnabled = enabled
+        result(["enabled": enabled])
+      case "status":
+        result(["enabled": pencilBridgeEnabled])
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+    let interaction = UIPencilInteraction()
+    interaction.delegate = self
+    view.addInteraction(interaction)
+    pencilInteraction = interaction
+  }
+
+  func pencilInteractionDidTap(_ interaction: UIPencilInteraction) {
+    guard pencilBridgeEnabled else { return }
+    pencilChannel?.invokeMethod("gesture", arguments: ["action": "doubleTap"])
+  }
+
+  deinit {
+    keyboardChannel?.setMethodCallHandler(nil)
+    pencilChannel?.setMethodCallHandler(nil)
+  }
 
   override var keyCommands: [UIKeyCommand]? {
     guard keyboardBridgeEnabled else { return [] }
