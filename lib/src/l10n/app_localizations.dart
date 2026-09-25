@@ -8,6 +8,7 @@ import 'strings/home_quick_action_strings.dart';
 import 'strings/home_recent_reading_strings.dart';
 import 'strings/home_verse_strings.dart';
 import 'strings/plan_strings.dart';
+import 'strings/prayer_calendar_strings.dart';
 import 'strings/prayer_notification_diagnostics_strings.dart';
 import 'strings/prayer_notification_strings.dart';
 import 'strings/reader_audio_transport_strings.dart';
@@ -60,6 +61,7 @@ class AppLocalizations {
       homeRecentReadingStrings[locale.languageCode]?[key] ??
       homeVerseStrings[locale.languageCode]?[key] ??
       planStrings[locale.languageCode]?[key] ??
+      prayerCalendarStrings[locale.languageCode]?[key] ??
       prayerNotificationDiagnosticsStrings[locale.languageCode]?[key] ??
       readerAudioTransportStrings[locale.languageCode]?[key] ??
       readerMediaStrings[locale.languageCode]?[key] ??
@@ -72,6 +74,7 @@ class AppLocalizations {
       homeRecentReadingStrings['en']?[key] ??
       homeVerseStrings['en']?[key] ??
       planStrings['en']?[key] ??
+      prayerCalendarStrings['en']?[key] ??
       prayerNotificationDiagnosticsStrings['en']?[key] ??
       readerAudioTransportStrings['en']?[key] ??
       readerMediaStrings['en']?[key] ??
@@ -84,6 +87,7 @@ class AppLocalizations {
       homeRecentReadingStrings['tr']?[key] ??
       homeVerseStrings['tr']?[key] ??
       planStrings['tr']?[key] ??
+      prayerCalendarStrings['tr']?[key] ??
       prayerNotificationDiagnosticsStrings['tr']?[key] ??
       readerAudioTransportStrings['tr']?[key] ??
       readerMediaStrings['tr']?[key] ??
