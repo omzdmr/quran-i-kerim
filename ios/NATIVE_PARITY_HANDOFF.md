@@ -56,3 +56,7 @@ Shared handoff: Feature Development can consume `status` for readiness UI. The f
 
 ### Shared archive follow-up
 The integration backup manifest currently leaves Hifz voice-recording files outside portable/cloud archives, while the product Hifz requirements include recording backup/restore. Native recording files are treated as user-created data, but final iCloud round-trip must follow one shared registry. Feature Development must define the archive policy and migration for those recordings before the native iCloud provider is finalized; native code must not create a parallel list of user data.
+
+
+### Audio route/recovery follow-up
+Native audio lifecycle marks an unavailable previous output with `shouldPause: true`, so the shared player can stop immediately when a wired or routed output disappears. Media-services reset emits `mediaServicesReset` with configuration status and `republishNowPlaying: true`; shared playback should rebuild current Now Playing metadata after receiving it. Native code still does not choose or advance Quran content.
