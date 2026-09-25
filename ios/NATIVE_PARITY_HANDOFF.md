@@ -70,3 +70,9 @@ Lifecycle restore is now scene-aware for iPad/Stage Manager diagnostics. Backgro
 Executable contract gates: validate_audio_ownership.py and validate_multiscene_lifecycle.py are wired into ios-native-contract.yml alongside the existing MediaPlayer type-check. Shared Flutter/Dart remains unchanged. No new persistent user data was introduced, so the shared backup registry/iCloud archive contract is unchanged.
 
 Next native work: verify the new contract on macOS CI, then continue iPad keyboard/Stage Manager presentation and release/archive parity. Real signed-device behavior still requires Apple provisioning; simulator CI cannot prove multi-window scene transitions or Control Center coexistence on physical hardware.
+
+
+### Storage capacity bridge
+Native channel `app.quranikerim/native_storage_capacity` reports Application Support volume capacity for important/opportunistic usage plus total capacity when iOS provides those values. It is read-only and persists nothing.
+
+Shared handoff: Download Manager should compare its verified pack byte size and product headroom against `availableForImportantUsageBytes` before starting each queued pack. A missing field means unknown capacity. Shared code owns the policy; native code does not estimate pack sizes. Backup/iCloud scope is unchanged.
