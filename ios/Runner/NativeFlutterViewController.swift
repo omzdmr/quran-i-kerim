@@ -81,10 +81,11 @@ final class NativeFlutterViewController: FlutterViewController, UIPencilInteract
   }
 
   override var keyCommands: [UIKeyCommand]? {
-    guard keyboardBridgeEnabled else { return [] }
-    var commands: [UIKeyCommand] = [
+    guard keyboardBridgeEnabled else { return super.keyCommands }
+    var commands: [UIKeyCommand] = super.keyCommands ?? []
+    commands.append(contentsOf: [
       UIKeyCommand(input: "f", modifierFlags: .command, action: #selector(handleSearchShortcut))
-    ]
+    ])
     for index in 1...5 {
       commands.append(UIKeyCommand(input: String(index), modifierFlags: .command, action: #selector(handleTabShortcut(_:))))
     }
