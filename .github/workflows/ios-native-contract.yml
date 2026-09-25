@@ -29,6 +29,10 @@ jobs:
           python3 ios/NativeTests/validate_document_handoff.py
           python3 ios/NativeTests/validate_recording_storage.py
           python3 ios/NativeTests/validate_native_handoff.py
+          grep -q 'iCloud.com.omzdmr.quranIKerim' ios/Runner/Runner.entitlements
+          grep -q 'CloudDocuments' ios/Runner/Runner.entitlements
+          grep -q 'CloudBackupFoundation.swift in Sources' ios/Runner.xcodeproj/project.pbxproj
+          grep -q 'CloudBackupFoundationChannel.swift in Sources' ios/Runner.xcodeproj/project.pbxproj
           plutil -lint ios/Runner/Info.plist
           plutil -lint ios/Runner/PrivacyInfo.xcprivacy
           plutil -lint ios/PrayerWidget/Info.plist
@@ -117,3 +121,8 @@ jobs:
         run: |
           swiftc ios/Runner/WidgetSnapshotStore.swift ios/NativeTests/WidgetSnapshotValidation.swift -o /tmp/widget-snapshot-validation
           /tmp/widget-snapshot-validation
+
+      - name: Validate iCloud backup foundation
+        run: |
+          swiftc ios/Runner/CloudBackupFoundation.swift ios/NativeTests/CloudBackupFoundationValidation.swift -o /tmp/cloud-backup-foundation-validation
+          /tmp/cloud-backup-foundation-validation
