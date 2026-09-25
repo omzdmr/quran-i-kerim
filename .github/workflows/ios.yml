@@ -36,7 +36,7 @@ jobs:
           test -f ios/Runner.xcodeproj/project.pbxproj
           test -f ios/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme
           test -f ios/Runner.xcworkspace/contents.xcworkspacedata
-          for file in AppDelegate.swift AudioSessionCoordinator.swift BackupExclusionCoordinator.swift BackupExclusionChannel.swift WidgetSnapshotStore.swift WidgetSnapshotChannel.swift NativeLifecycleStateChannel.swift MicrophoneRecordingChannel.swift NativeShareChannel.swift CloudBackupFoundation.swift CloudBackupFoundationChannel.swift Runner.entitlements; do test -f "ios/Runner/$file"; done
+          for file in AppDelegate.swift AudioSessionCoordinator.swift BackupExclusionCoordinator.swift BackupExclusionChannel.swift WidgetSnapshotStore.swift WidgetSnapshotChannel.swift NativeLifecycleStateChannel.swift MicrophoneRecordingChannel.swift NativeShareChannel.swift NativeFlutterViewController.swift CloudBackupFoundation.swift CloudBackupFoundationChannel.swift Runner.entitlements; do test -f "ios/Runner/$file"; done
           test -f ios/NativeTests/BackupExclusionCoordinatorValidation.swift
           test -f ios/NativeTests/WidgetSnapshotValidation.swift
           test -f ios/PrayerWidget/PrayerWidget.swift
@@ -65,7 +65,7 @@ jobs:
           done
           ruby -c ios/Podfile
           grep -q "PRODUCT_BUNDLE_IDENTIFIER = com.omzdmr.quranIKerim" ios/Runner.xcodeproj/project.pbxproj
-          for source in AudioSessionCoordinator BackupExclusionCoordinator BackupExclusionChannel WidgetSnapshotStore WidgetSnapshotChannel NativeLifecycleStateChannel MicrophoneRecordingChannel NativeShareChannel CloudBackupFoundation CloudBackupFoundationChannel; do grep -q "${source}.swift in Sources" ios/Runner.xcodeproj/project.pbxproj; done
+          for source in AudioSessionCoordinator BackupExclusionCoordinator BackupExclusionChannel WidgetSnapshotStore WidgetSnapshotChannel NativeLifecycleStateChannel MicrophoneRecordingChannel NativeShareChannel NativeFlutterViewController CloudBackupFoundation CloudBackupFoundationChannel; do grep -q "${source}.swift in Sources" ios/Runner.xcodeproj/project.pbxproj; done
           grep -q "PrayerWidget.appex in Embed App Extensions" ios/Runner.xcodeproj/project.pbxproj
           grep -q "com.omzdmr.quranIKerim.PrayerWidget" ios/Runner.xcodeproj/project.pbxproj
           grep -q "group.app.quranikerim.shared" ios/Runner/Runner.entitlements
@@ -78,6 +78,8 @@ jobs:
           grep -q "app.quranikerim/native_lifecycle_state" ios/Runner/NativeLifecycleStateChannel.swift
           grep -q "app.quranikerim/native_recording" ios/Runner/MicrophoneRecordingChannel.swift
           grep -q "app.quranikerim/native_share" ios/Runner/NativeShareChannel.swift
+          grep -q "app.quranikerim/native_keyboard" ios/Runner/NativeFlutterViewController.swift
+          grep -q 'customClass="NativeFlutterViewController"' ios/Runner/Base.lproj/Main.storyboard
           grep -q 'case "scheduleNotificationSelfTest"' ios/Runner/BackupExclusionChannel.swift
           grep -q 'case "getNotificationDiagnostics"' ios/Runner/BackupExclusionChannel.swift
           grep -q "WidgetSnapshotChannel(binaryMessenger: messenger)" ios/Runner/AppDelegate.swift
