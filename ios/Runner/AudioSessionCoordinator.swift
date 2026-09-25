@@ -33,6 +33,10 @@ final class NowPlayingCoordinator {
   private let commandCenter: MPRemoteCommandCenter
   private var commandTargets: [(MPRemoteCommand, Any)] = []
   private var ownsNowPlayingInfo = false
+  private var lastPublishedInfo: [String: Any]?
+  private var previousInfo: [String: Any]?
+  private var previousPlaybackState: MPNowPlayingPlaybackState?
+  private var previousCommandStates: [ObjectIdentifier: Bool] = [:]
   private var isStarted = false
   init(infoCenter: MPNowPlayingInfoCenter = .default(), commandCenter: MPRemoteCommandCenter = .shared()) { self.infoCenter = infoCenter; self.commandCenter = commandCenter }
 
@@ -43,14 +47,46 @@ final class NowPlayingCoordinator {
 
   func update(_ metadata: Metadata) {
     guard isStarted else { return }
+    acquireOwnershipIfNeeded()
     installCommandTargetsIfNeeded()
     let duration = metadata.duration.flatMap { $0.isFinite && $0 > 0 ? $0 : nil }, elapsed = duration.map { min(max(0, metadata.elapsed), $0) } ?? max(0, metadata.elapsed)
     var info: [String: Any] = [MPMediaItemPropertyTitle: metadata.title, MPMediaItemPropertyMediaType: MPMediaType.anyAudio.rawValue, MPNowPlayingInfoPropertyElapsedPlaybackTime: elapsed, MPNowPlayingInfoPropertyPlaybackRate: metadata.playbackRate, MPNowPlayingInfoPropertyDefaultPlaybackRate: 1.0]
     if let subtitle = metadata.subtitle, !subtitle.isEmpty { info[MPMediaItemPropertyArtist] = subtitle }; if let albumTitle = metadata.albumTitle, !albumTitle.isEmpty { info[MPMediaItemPropertyAlbumTitle] = albumTitle }; if let duration { info[MPMediaItemPropertyPlaybackDuration] = duration }
     ownsNowPlayingInfo = true; commandCenter.playCommand.isEnabled = true; commandCenter.pauseCommand.isEnabled = true; commandCenter.changePlaybackPositionCommand.isEnabled = duration != nil; commandCenter.nextTrackCommand.isEnabled = metadata.canGoNext; commandCenter.previousTrackCommand.isEnabled = metadata.canGoPrevious; infoCenter.nowPlayingInfo = info
+    lastPublishedInfo = info
     if #available(iOS 13.0, *) { infoCenter.playbackState = metadata.playbackRate > 0 ? .playing : .paused }
   }
-  func clear() { guard ownsNowPlayingInfo else { return }; infoCenter.nowPlayingInfo = nil; disablePlaybackCommands(); ownsNowPlayingInfo = false; removeCommandTargets(); if #available(iOS 13.0, *) { infoCenter.playbackState = .stopped } }
+  func clear() {
+    guard ownsNowPlayingInfo else { return }
+    let stillOwnsPublishedInfo = dictionariesEqual(infoCenter.nowPlayingInfo, lastPublishedInfo)
+    if stillOwnsPublishedInfo {
+      infoCenter.nowPlayingInfo = previousInfo
+      restoreCommandStates()
+      if #available(iOS 13.0, *), let previousPlaybackState { infoCenter.playbackState = previousPlaybackState }
+    }
+    ownsNowPlayingInfo = false; lastPublishedInfo = nil; previousInfo = nil; previousPlaybackState = nil; previousCommandStates.removeAll()
+    removeCommandTargets()
+  }
+  private func acquireOwnershipIfNeeded() {
+    guard !ownsNowPlayingInfo else { return }
+    previousInfo = infoCenter.nowPlayingInfo
+    if #available(iOS 13.0, *) { previousPlaybackState = infoCenter.playbackState }
+    previousCommandStates = [
+      ObjectIdentifier(commandCenter.playCommand): commandCenter.playCommand.isEnabled,
+      ObjectIdentifier(commandCenter.pauseCommand): commandCenter.pauseCommand.isEnabled,
+      ObjectIdentifier(commandCenter.nextTrackCommand): commandCenter.nextTrackCommand.isEnabled,
+      ObjectIdentifier(commandCenter.previousTrackCommand): commandCenter.previousTrackCommand.isEnabled,
+      ObjectIdentifier(commandCenter.changePlaybackPositionCommand): commandCenter.changePlaybackPositionCommand.isEnabled,
+    ]
+  }
+  private func dictionariesEqual(_ lhs: [String: Any]?, _ rhs: [String: Any]?) -> Bool {
+    switch (lhs, rhs) { case (nil, nil): return true; case let (lhs?, rhs?): return NSDictionary(dictionary: lhs).isEqual(to: rhs); default: return false }
+  }
+  private func restoreCommandStates() {
+    for command in [commandCenter.playCommand, commandCenter.pauseCommand, commandCenter.nextTrackCommand, commandCenter.previousTrackCommand, commandCenter.changePlaybackPositionCommand] {
+      if let enabled = previousCommandStates[ObjectIdentifier(command)] { command.isEnabled = enabled }
+    }
+  }
   private func installCommandTargetsIfNeeded() { guard commandTargets.isEmpty else { return }; register(commandCenter.playCommand, command: .play); register(commandCenter.pauseCommand, command: .pause); register(commandCenter.nextTrackCommand, command: .next); register(commandCenter.previousTrackCommand, command: .previous); let seekTarget = commandCenter.changePlaybackPositionCommand.addTarget { [weak self] event in guard let self, self.ownsNowPlayingInfo, self.commandCenter.changePlaybackPositionCommand.isEnabled, let seekEvent = event as? MPChangePlaybackPositionCommandEvent, self.onRemoteCommand != nil else { return .commandFailed }; self.onRemoteCommand?(.seek, seekEvent.positionTime); return .success }; commandTargets.append((commandCenter.changePlaybackPositionCommand, seekTarget)) }
   private func removeCommandTargets() { for (command, target) in commandTargets { command.removeTarget(target) }; commandTargets.removeAll() }
   private func disablePlaybackCommands() { commandCenter.playCommand.isEnabled = false; commandCenter.pauseCommand.isEnabled = false; commandCenter.nextTrackCommand.isEnabled = false; commandCenter.previousTrackCommand.isEnabled = false; commandCenter.changePlaybackPositionCommand.isEnabled = false }
