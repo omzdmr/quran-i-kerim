@@ -62,4 +62,27 @@ void main() {
     expect(text, isNot(contains('latitude')));
     expect(text, isNot(contains('longitude')));
   });
+
+  test('location identity keeps imports from different cities distinct', () {
+    final first = exporter.build(
+      schedules: <PrayerDaySchedule>[_day()],
+      timeZoneId: 'Europe/Istanbul',
+      calendarName: 'Prayer Times',
+      calendarId: 'istanbul',
+      prayerLabel: (id) => id,
+      generatedAt: DateTime.utc(2026, 9, 25, 20),
+    );
+    final second = exporter.build(
+      schedules: <PrayerDaySchedule>[_day()],
+      timeZoneId: 'Europe/Istanbul',
+      calendarName: 'Prayer Times',
+      calendarId: 'ankara',
+      prayerLabel: (id) => id,
+      generatedAt: DateTime.utc(2026, 9, 25, 20),
+    );
+
+    expect(first, contains('UID:istanbul-fajr-20260926@quran-i-kerim.local'));
+    expect(second, contains('UID:ankara-fajr-20260926@quran-i-kerim.local'));
+  });
+
 }
