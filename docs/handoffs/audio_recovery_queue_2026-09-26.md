@@ -21,3 +21,10 @@ so formatter/analyzer/widget validation is still required before integration.
 
 Next: real platform free-space probe, conservative reserved-headroom preflight,
 actionable insufficient-space UI, then queue widget coverage.
+
+
+Follow-up commits `ced1ffe` and `4be89c8` add an estimated remaining-download
+workload and deletion/queue coherence. Deleting a pack or an entire voice removes
+matching pending queue work and cancels matching active work, preventing deleted media
+from being recreated by an old queue entry. Per-item network preflight remains
+fail-closed when connectivity policy changes.
