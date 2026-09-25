@@ -6,12 +6,12 @@ import UserNotifications
 @main
 @objc class AppDelegate: FlutterAppDelegate {
   private let audioSessionCoordinator = AudioSessionCoordinator.shared
-  private var backupExclusionChannel: BackupExclusionChannel?, nowPlayingChannel: NowPlayingChannel?, audioLifecycleChannel: AudioLifecycleChannel?, notificationPermissionChannel: NotificationPermissionChannel?, locationHeadingChannel: LocationHeadingChannel?, documentHandoffChannel: DocumentHandoffChannel?, widgetSnapshotChannel: WidgetSnapshotChannel?, nativeLifecycleStateChannel: NativeLifecycleStateChannel?, microphoneRecordingChannel: MicrophoneRecordingChannel?, nativeShareChannel: NativeShareChannel?, deepLinkChannel: DeepLinkChannel?, cloudBackupFoundationChannel: CloudBackupFoundationChannel?
+  private var backupExclusionChannel: BackupExclusionChannel?, nowPlayingChannel: NowPlayingChannel?, audioLifecycleChannel: AudioLifecycleChannel?, notificationPermissionChannel: NotificationPermissionChannel?, locationHeadingChannel: LocationHeadingChannel?, documentHandoffChannel: DocumentHandoffChannel?, widgetSnapshotChannel: WidgetSnapshotChannel?, nativeLifecycleStateChannel: NativeLifecycleStateChannel?, microphoneRecordingChannel: MicrophoneRecordingChannel?, nativeShareChannel: NativeShareChannel?, deepLinkChannel: DeepLinkChannel?, cloudBackupFoundationChannel: CloudBackupFoundationChannel?, storageCapacityChannel: StorageCapacityChannel?
   override func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool { audioSessionCoordinator.start(); GeneratedPluginRegistrant.register(with: self); UNUserNotificationCenter.current().delegate = self; configureNativeChannels(); if let url = launchOptions?[.url] as? URL { _ = deepLinkChannel?.receive(url) }; return super.application(application, didFinishLaunchingWithOptions: launchOptions) }
   override func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool { let accepted = deepLinkChannel?.receive(url) ?? false; return super.application(app, open: url, options: options) || accepted }
   override func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) { if notification.request.identifier == NotificationPermissionChannel.selfTestIdentifier { completionHandler([.banner, .sound]); return }; super.userNotificationCenter(center, willPresent: notification, withCompletionHandler: completionHandler) }
-  override func applicationWillTerminate(_ application: UIApplication) { cloudBackupFoundationChannel?.detach(); deepLinkChannel?.detach(); nativeShareChannel?.detach(); microphoneRecordingChannel?.detach(); nativeLifecycleStateChannel?.markCleanTermination(); nativeLifecycleStateChannel?.detach(); widgetSnapshotChannel?.detach(); documentHandoffChannel?.detach(); locationHeadingChannel?.detach(); notificationPermissionChannel?.detach(); audioLifecycleChannel?.detach(); nowPlayingChannel?.detach(); backupExclusionChannel?.detach(); audioSessionCoordinator.stop(); super.applicationWillTerminate(application) }
-  private func configureNativeChannels() { guard let controller = window?.rootViewController as? FlutterViewController else { NSLog("Unable to install native channels: Flutter view controller unavailable."); return }; let messenger = controller.binaryMessenger; backupExclusionChannel = BackupExclusionChannel(binaryMessenger: messenger); nowPlayingChannel = NowPlayingChannel(binaryMessenger: messenger); audioLifecycleChannel = AudioLifecycleChannel(binaryMessenger: messenger); notificationPermissionChannel = NotificationPermissionChannel(binaryMessenger: messenger); locationHeadingChannel = LocationHeadingChannel(binaryMessenger: messenger); documentHandoffChannel = DocumentHandoffChannel(binaryMessenger: messenger, presenter: controller); widgetSnapshotChannel = WidgetSnapshotChannel(binaryMessenger: messenger); nativeLifecycleStateChannel = NativeLifecycleStateChannel(binaryMessenger: messenger); microphoneRecordingChannel = MicrophoneRecordingChannel(binaryMessenger: messenger); nativeShareChannel = NativeShareChannel(binaryMessenger: messenger, presenter: controller); deepLinkChannel = DeepLinkChannel(binaryMessenger: messenger); cloudBackupFoundationChannel = CloudBackupFoundationChannel(binaryMessenger: messenger) }
+  override func applicationWillTerminate(_ application: UIApplication) { storageCapacityChannel?.detach(); cloudBackupFoundationChannel?.detach(); deepLinkChannel?.detach(); nativeShareChannel?.detach(); microphoneRecordingChannel?.detach(); nativeLifecycleStateChannel?.markCleanTermination(); nativeLifecycleStateChannel?.detach(); widgetSnapshotChannel?.detach(); documentHandoffChannel?.detach(); locationHeadingChannel?.detach(); notificationPermissionChannel?.detach(); audioLifecycleChannel?.detach(); nowPlayingChannel?.detach(); backupExclusionChannel?.detach(); audioSessionCoordinator.stop(); super.applicationWillTerminate(application) }
+  private func configureNativeChannels() { guard let controller = window?.rootViewController as? FlutterViewController else { NSLog("Unable to install native channels: Flutter view controller unavailable."); return }; let messenger = controller.binaryMessenger; backupExclusionChannel = BackupExclusionChannel(binaryMessenger: messenger); nowPlayingChannel = NowPlayingChannel(binaryMessenger: messenger); audioLifecycleChannel = AudioLifecycleChannel(binaryMessenger: messenger); notificationPermissionChannel = NotificationPermissionChannel(binaryMessenger: messenger); locationHeadingChannel = LocationHeadingChannel(binaryMessenger: messenger); documentHandoffChannel = DocumentHandoffChannel(binaryMessenger: messenger, presenter: controller); widgetSnapshotChannel = WidgetSnapshotChannel(binaryMessenger: messenger); nativeLifecycleStateChannel = NativeLifecycleStateChannel(binaryMessenger: messenger); microphoneRecordingChannel = MicrophoneRecordingChannel(binaryMessenger: messenger); nativeShareChannel = NativeShareChannel(binaryMessenger: messenger, presenter: controller); deepLinkChannel = DeepLinkChannel(binaryMessenger: messenger); cloudBackupFoundationChannel = CloudBackupFoundationChannel(binaryMessenger: messenger); storageCapacityChannel = StorageCapacityChannel(binaryMessenger: messenger) }
 }
 
 final class DeepLinkChannel {
@@ -50,4 +50,36 @@ final class DocumentHandoffChannel: NSObject, UIDocumentPickerDelegate {
   private func finish(error: FlutterError) { guard let result = pendingResult else { cleanupExport(); return }; pendingResult = nil; cleanupExport(); result(error) }
   private func cleanupExport() { if let temporaryExportURL { try? FileManager.default.removeItem(at: temporaryExportURL.deletingLastPathComponent()) }; temporaryExportURL = nil }
   private enum DocumentHandoffError: LocalizedError { case exportTooLargeAfterCopy(size: Int64); var errorDescription: String? { switch self { case .exportTooLargeAfterCopy: return "The staged export exceeds the portable-backup size limit." } } }
+}
+
+
+final class StorageCapacityChannel {
+  static let channelName = "app.quranikerim/native_storage_capacity"
+  private let channel: FlutterMethodChannel
+  private let fileManager: FileManager
+  init(binaryMessenger: FlutterBinaryMessenger, fileManager: FileManager = .default) {
+    channel = FlutterMethodChannel(name: Self.channelName, binaryMessenger: binaryMessenger)
+    self.fileManager = fileManager
+    channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) }
+  }
+  func detach() { channel.setMethodCallHandler(nil) }
+  private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    switch call.method {
+    case "status":
+      do { result(try status()) }
+      catch { result(FlutterError(code: "storage_capacity_unavailable", message: error.localizedDescription, details: nil)) }
+    case "capabilities":
+      result(["importantUsageCapacity": true, "opportunisticCapacity": true, "readOnly": true, "policyOwnedByShared": true])
+    default: result(FlutterMethodNotImplemented)
+    }
+  }
+  private func status() throws -> [String: Any] {
+    let base = try fileManager.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+    let values = try base.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey, .volumeAvailableCapacityForOpportunisticUsageKey, .volumeTotalCapacityKey])
+    var payload: [String: Any] = ["path": base.path]
+    if let value = values.volumeAvailableCapacityForImportantUsage { payload["availableForImportantUsageBytes"] = value }
+    if let value = values.volumeAvailableCapacityForOpportunisticUsage { payload["availableForOpportunisticUsageBytes"] = value }
+    if let value = values.volumeTotalCapacity { payload["volumeTotalCapacityBytes"] = value }
+    return payload
+  }
 }
