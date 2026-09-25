@@ -8,6 +8,7 @@ import '../../navigation/app_navigation.dart';
 import '../../settings/app_settings.dart';
 import '../reader/offline_audio_manager.dart';
 import '../reader/reader_audio_cache.dart';
+import '../reader/quran_audio_download_url.dart';
 
 class DownloadsScreen extends StatefulWidget {
   const DownloadsScreen({super.key});
@@ -22,14 +23,27 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
   List<OfflineAudioSurah> _audio = const [];
   int _temporaryBytes = 0;
   int _offlineBytes = 0;
+  int _refreshGeneration = 0;
 
   @override
   void initState() {
     super.initState();
+    OfflineAudioManager.instance.addListener(_handleAudioChanged);
     _refresh();
   }
 
+  @override
+  void dispose() {
+    OfflineAudioManager.instance.removeListener(_handleAudioChanged);
+    super.dispose();
+  }
+
+  void _handleAudioChanged() {
+    if (mounted) _refresh();
+  }
+
   Future<void> _refresh() async {
+    final generation = ++_refreshGeneration;
     final translations = <_TranslationDownload>[];
     for (final info in translationCatalog) {
       if (info.bundled ||
@@ -47,7 +61,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
     final audio = await OfflineAudioManager.instance.downloadedSurahs();
     final temporary = await ReaderAudioCache.instance.temporaryCacheBytes();
     final offline = audio.fold<int>(0, (sum, item) => sum + item.bytes);
-    if (!mounted) return;
+    if (!mounted || generation != _refreshGeneration) return;
     setState(() {
       _translations = translations;
       _audio = audio;
@@ -67,6 +81,60 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
   int? _bitrateForStorageKey(String key, QuranAudioInfo? audio) {
     if (audio == null || key == audio.id) return audio?.bitrate;
     return int.tryParse(key.substring(audio.id.length + 1)) ?? audio.bitrate;
+  }
+
+  Future<void> _resumeOrRepair(
+    OfflineAudioSurah item,
+    QuranAudioInfo audioInfo,
+    int? bitrate,
+    _DownloadsCopy copy,
+  ) async {
+    final settings = AppSettingsScope.of(context);
+    final network = await OfflineAudioManager.instance.currentNetworkKind();
+    if (!mounted) return;
+    if (network == AudioNetworkKind.offline) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(copy.noConnection)),
+      );
+      return;
+    }
+    if (settings.audioDownloadWifiOnly && network != AudioNetworkKind.wifi) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(copy.wifiRequired)),
+      );
+      return;
+    }
+    if (!settings.audioDownloadWifiOnly &&
+        settings.audioDownloadAskOnMobile &&
+        network == AudioNetworkKind.mobile) {
+      final accepted = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(copy.mobileDataTitle),
+          content: Text(copy.mobileDataBody),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(copy.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(copy.continueDownload),
+            ),
+          ],
+        ),
+      );
+      if (accepted != true || !mounted) return;
+    }
+
+    final resolver = QuranAudioDownloadUrlResolver(audioInfo, bitrate: bitrate);
+    await OfflineAudioManager.instance.downloadSurah(
+      storageKey: item.storageKey,
+      surah: item.surah,
+      verseCount: item.verseCount,
+      urlForAyah: (ayah) => resolver.urlForVerse(item.surah, ayah),
+    );
+    if (mounted) await _refresh();
   }
 
   @override
@@ -222,6 +290,27 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                                   trailing: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
+                                      if (item.readiness !=
+                                              OfflineAudioPackReadiness.ready &&
+                                          audioInfo != null)
+                                        IconButton(
+                                          onPressed: () => _resumeOrRepair(
+                                            item,
+                                            audioInfo,
+                                            bitrate,
+                                            copy,
+                                          ),
+                                          tooltip: item.readiness ==
+                                                  OfflineAudioPackReadiness.needsRepair
+                                              ? copy.repair
+                                              : copy.resume,
+                                          icon: Icon(
+                                            item.readiness ==
+                                                    OfflineAudioPackReadiness.needsRepair
+                                                ? Icons.build_circle_outlined
+                                                : Icons.download_for_offline_outlined,
+                                          ),
+                                        ),
                                       if (item.readiness !=
                                           OfflineAudioPackReadiness.ready)
                                         IconButton(
@@ -543,6 +632,14 @@ class _DownloadsCopy {
       'En attente d’un nouveau téléchargement',
     ),
   };
+  String get resume => _pick('Devam et', 'Resume download', 'متابعة التنزيل', 'Endirməyə davam et', 'Продолжить загрузку', 'Reprendre');
+  String get repair => _pick('Onar', 'Repair download', 'إصلاح التنزيل', 'Endirməni bərpa et', 'Исправить загрузку', 'Réparer');
+  String get noConnection => _pick('İnternet bağlantısı yok.', 'No internet connection.', 'لا يوجد اتصال بالإنترنت.', 'İnternet bağlantısı yoxdur.', 'Нет подключения к интернету.', 'Pas de connexion Internet.');
+  String get wifiRequired => _pick('Bu indirme için Wi‑Fi gerekli.', 'Wi‑Fi is required for this download.', 'يلزم اتصال Wi‑Fi لهذا التنزيل.', 'Bu endirmə üçün Wi‑Fi lazımdır.', 'Для этой загрузки требуется Wi‑Fi.', 'Le Wi‑Fi est requis pour ce téléchargement.');
+  String get mobileDataTitle => _pick('Mobil veri kullanılsın mı?', 'Use mobile data?', 'استخدام بيانات الهاتف؟', 'Mobil data istifadə edilsin?', 'Использовать мобильные данные?', 'Utiliser les données mobiles ?');
+  String get mobileDataBody => _pick('Ses indirmesi mobil veri kullanabilir.', 'Audio download may use mobile data.', 'قد يستخدم تنزيل الصوت بيانات الهاتف.', 'Səs endirməsi mobil data istifadə edə bilər.', 'Загрузка аудио может использовать мобильный интернет.', 'Le téléchargement audio peut utiliser les données mobiles.');
+  String get continueDownload => _pick('İndir', 'Download', 'تنزيل', 'Endir', 'Загрузить', 'Télécharger');
+  String get cancel => _pick('Vazgeç', 'Cancel', 'إلغاء', 'Ləğv et', 'Отмена', 'Annuler');
   String get openReader => _pick(
     'Reader’da aç ve onar',
     'Open Reader to repair',
