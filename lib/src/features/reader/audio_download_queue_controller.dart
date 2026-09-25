@@ -27,10 +27,13 @@ class AudioQueueItem {
 }
 
 class AudioDownloadQueueController extends ChangeNotifier {
-  AudioDownloadQueueController._();
+  AudioDownloadQueueController({OfflineAudioManager? manager})
+      : _manager = manager ?? OfflineAudioManager.instance;
 
   static final AudioDownloadQueueController instance =
-      AudioDownloadQueueController._();
+      AudioDownloadQueueController();
+
+  final OfflineAudioManager _manager;
 
   final Queue<AudioQueueItem> _pending = Queue<AudioQueueItem>();
   final Set<String> _known = <String>{};
@@ -80,13 +83,13 @@ class AudioDownloadQueueController extends ChangeNotifier {
         item.audioInfo,
         bitrate: item.bitrate,
       );
-      await OfflineAudioManager.instance.downloadSurah(
+      await _manager.downloadSurah(
         storageKey: item.storageKey,
         surah: item.surah,
         verseCount: item.verseCount,
         urlForAyah: (ayah) => resolver.urlForVerse(item.surah, ayah),
       );
-      final progress = OfflineAudioManager.instance.progressFor(
+      final progress = _manager.progressFor(
         item.storageKey,
         item.surah,
       );
@@ -117,7 +120,7 @@ class AudioDownloadQueueController extends ChangeNotifier {
     _status = AudioQueueStatus.paused;
     final item = _active;
     if (item != null) {
-      OfflineAudioManager.instance.pauseDownload(item.storageKey, item.surah);
+      _manager.pauseDownload(item.storageKey, item.surah);
     }
     notifyListeners();
   }

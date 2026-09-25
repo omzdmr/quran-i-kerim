@@ -6,6 +6,7 @@ import '../../data/translation_catalog.dart';
 import '../../data/translation_repository.dart';
 import '../../navigation/app_navigation.dart';
 import '../../settings/app_settings.dart';
+import '../reader/audio_download_queue_controller.dart';
 import '../reader/offline_audio_manager.dart';
 import '../reader/reader_audio_cache.dart';
 import '../reader/quran_audio_download_url.dart';
@@ -29,17 +30,88 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
   void initState() {
     super.initState();
     OfflineAudioManager.instance.addListener(_handleAudioChanged);
+    AudioDownloadQueueController.instance.addListener(_handleQueueChanged);
     _refresh();
   }
 
   @override
   void dispose() {
     OfflineAudioManager.instance.removeListener(_handleAudioChanged);
+    AudioDownloadQueueController.instance.removeListener(_handleQueueChanged);
     super.dispose();
   }
 
   void _handleAudioChanged() {
     if (mounted) _refresh();
+  }
+
+  void _handleQueueChanged() {
+    if (mounted) setState(() {});
+  }
+
+  List<AudioQueueItem> _recoverableQueueItems() {
+    final items = <AudioQueueItem>[];
+    for (final pack in _audio) {
+      if (pack.readiness == OfflineAudioPackReadiness.ready) continue;
+      final info = _audioForStorageKey(pack.storageKey);
+      if (info == null || pack.verseCount <= 0) continue;
+      items.add(
+        AudioQueueItem(
+          storageKey: pack.storageKey,
+          surah: pack.surah,
+          verseCount: pack.verseCount,
+          audioInfo: info,
+          bitrate: _bitrateForStorageKey(pack.storageKey, info),
+        ),
+      );
+    }
+    return items;
+  }
+
+  Future<void> _startRecoveryQueue(_DownloadsCopy copy) async {
+    final items = _recoverableQueueItems();
+    if (items.isEmpty) return;
+    final settings = AppSettingsScope.of(context);
+    final network = await OfflineAudioManager.instance.currentNetworkKind();
+    if (!mounted) return;
+    if (network == AudioNetworkKind.offline) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(copy.noConnection)),
+      );
+      return;
+    }
+    if (settings.audioDownloadWifiOnly && network != AudioNetworkKind.wifi) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(copy.wifiRequired)),
+      );
+      return;
+    }
+    if (!settings.audioDownloadWifiOnly &&
+        settings.audioDownloadAskOnMobile &&
+        network == AudioNetworkKind.mobile) {
+      final accepted = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(copy.mobileDataTitle),
+          content: Text(copy.bulkMobileDataBody(items.length)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(copy.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(copy.continueDownload),
+            ),
+          ],
+        ),
+      );
+      if (accepted != true || !mounted) return;
+    }
+    final queue = AudioDownloadQueueController.instance;
+    queue.enqueueAll(items);
+    await queue.start();
+    if (mounted) await _refresh();
   }
 
   Future<void> _refresh() async {
@@ -255,6 +327,17 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 8),
+                if (_recoverableQueueItems().isNotEmpty ||
+                    AudioDownloadQueueController.instance.hasWork)
+                  _AudioRecoveryQueueCard(
+                    queue: AudioDownloadQueueController.instance,
+                    recoverableCount: _recoverableQueueItems().length,
+                    copy: copy,
+                    onStart: () => _startRecoveryQueue(copy),
+                  ),
+                if (_recoverableQueueItems().isNotEmpty ||
+                    AudioDownloadQueueController.instance.hasWork)
+                  const SizedBox(height: 10),
                 if (groupedAudio.isEmpty)
                   _EmptyCard(text: copy.noAudio)
                 else
@@ -454,6 +537,73 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                 ),
               ],
             ),
+    );
+  }
+}
+
+class _AudioRecoveryQueueCard extends StatelessWidget {
+  const _AudioRecoveryQueueCard({
+    required this.queue,
+    required this.recoverableCount,
+    required this.copy,
+    required this.onStart,
+  });
+
+  final AudioDownloadQueueController queue;
+  final int recoverableCount;
+  final _DownloadsCopy copy;
+  final VoidCallback onStart;
+
+  @override
+  Widget build(BuildContext context) {
+    final running = queue.status == AudioQueueStatus.running;
+    final count = queue.pendingCount + (queue.active == null ? 0 : 1);
+    return Semantics(
+      container: true,
+      label: copy.queueSemantics(running ? count : recoverableCount),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(copy.recoveryQueueTitle,
+                  style: const TextStyle(fontWeight: FontWeight.w900)),
+              const SizedBox(height: 4),
+              Text(
+                running
+                    ? copy.queueRunning(count)
+                    : copy.queueReady(recoverableCount),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  FilledButton.icon(
+                    onPressed: running ? null : onStart,
+                    icon: Icon(running
+                        ? Icons.downloading_rounded
+                        : Icons.play_arrow_rounded),
+                    label: Text(running ? copy.queueRunningShort : copy.resumeAll),
+                  ),
+                  if (running)
+                    OutlinedButton.icon(
+                      onPressed: queue.pause,
+                      icon: const Icon(Icons.pause_rounded),
+                      label: Text(copy.pauseAll),
+                    ),
+                  if (!running && queue.pendingCount > 0)
+                    TextButton(
+                      onPressed: queue.clearPending,
+                      child: Text(copy.clearQueue),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -703,5 +853,14 @@ class _DownloadsCopy {
     'Bu səsi tam sil',
     'Удалить весь этот голос',
   );
+  String get recoveryQueueTitle => _pick('Ses kurtarma kuyruğu', 'Audio recovery queue', 'قائمة استعادة الصوت', 'Səs bərpa növbəsi', 'Очередь восстановления аудио', 'File de récupération audio');
+  String get resumeAll => _pick('Tümüne devam et', 'Resume all', 'متابعة الكل', 'Hamısına davam et', 'Продолжить все', 'Tout reprendre');
+  String get pauseAll => _pick('Kuyruğu duraklat', 'Pause queue', 'إيقاف القائمة مؤقتًا', 'Növbəni dayandır', 'Приостановить очередь', 'Mettre la file en pause');
+  String get clearQueue => _pick('Kuyruğu temizle', 'Clear queue', 'مسح القائمة', 'Növbəni təmizlə', 'Очистить очередь', 'Vider la file');
+  String get queueRunningShort => _pick('İndiriliyor', 'Downloading', 'جارٍ التنزيل', 'Endirilir', 'Загрузка', 'Téléchargement');
+  String queueReady(int count) => _pick('$count paket devam etmeye veya onarıma hazır.', '$count packs are ready to resume or repair.', '$count حزمة جاهزة للمتابعة أو الإصلاح.', '$count paket davam etməyə və ya bərpaya hazırdır.', '$count пак. готовы к продолжению или исправлению.', '$count packs prêts à reprendre ou réparer.');
+  String queueRunning(int count) => _pick('$count paket kuyrukta veya işleniyor.', '$count packs queued or in progress.', '$count حزمة في القائمة أو قيد المعالجة.', '$count paket növbədədir və ya işlənir.', '$count пак. в очереди или обрабатываются.', '$count packs en file ou en cours.');
+  String queueSemantics(int count) => _pick('Ses kurtarma kuyruğu, $count paket', 'Audio recovery queue, $count packs', 'قائمة استعادة الصوت، $count حزمة', 'Səs bərpa növbəsi, $count paket', 'Очередь восстановления аудио, $count пак.', 'File de récupération audio, $count packs');
+  String bulkMobileDataBody(int count) => _pick('$count ses paketi mobil veri kullanabilir.', '$count audio packs may use mobile data.', 'قد تستخدم $count حزمة صوت بيانات الهاتف.', '$count səs paketi mobil data istifadə edə bilər.', '$count аудиопакетов могут использовать мобильный интернет.', '$count packs audio peuvent utiliser les données mobiles.');
   String get limit => _pick('sınır', 'limit', 'حد', 'limit', 'лимит');
 }
