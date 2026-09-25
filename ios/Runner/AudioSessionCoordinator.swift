@@ -80,7 +80,7 @@ final class NowPlayingCoordinator {
     ]
   }
   private func dictionariesEqual(_ lhs: [String: Any]?, _ rhs: [String: Any]?) -> Bool {
-    switch (lhs, rhs) { case (nil, nil): return true; case let (lhs?, rhs?): return NSDictionary(dictionary: lhs).isEqual(to: rhs); default: return false }
+    switch (lhs, rhs) { case (nil, nil): return true; case let (lhs?, rhs?): return NSDictionary(dictionary: lhs).isEqual(NSDictionary(dictionary: rhs)); default: return false }
   }
   private func restoreCommandStates() {
     for command in [commandCenter.playCommand, commandCenter.pauseCommand, commandCenter.nextTrackCommand, commandCenter.previousTrackCommand, commandCenter.changePlaybackPositionCommand] {
