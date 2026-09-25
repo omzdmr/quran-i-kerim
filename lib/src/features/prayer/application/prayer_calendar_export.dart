@@ -36,6 +36,8 @@ class PrayerCalendarIcsExporter {
           'DTSTART:${_utcStamp(start)}',
           'DTEND:${_utcStamp(end)}',
           'SUMMARY:${_escape(prayerLabel(row.id))}',
+          'TRANSP:TRANSPARENT',
+          'STATUS:CONFIRMED',
           'END:VEVENT',
         ]);
       }
