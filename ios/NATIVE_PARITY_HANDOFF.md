@@ -76,3 +76,14 @@ Next native work: verify the new contract on macOS CI, then continue iPad keyboa
 Native channel `app.quranikerim/native_storage_capacity` reports Application Support volume capacity for important/opportunistic usage plus total capacity when iOS provides those values. It is read-only and persists nothing.
 
 Shared handoff: Download Manager should compare its verified pack byte size and product headroom against `availableForImportantUsageBytes` before starting each queued pack. A missing field means unknown capacity. Shared code owns the policy; native code does not estimate pack sizes. Backup/iCloud scope is unchanged.
+
+
+## 2026-09-26 iPad and release parity
+
+Stage Manager presentation now uses one scene-aware resolver for document handoff and native sharing. It prefers the Flutter window's foreground scene, walks presented/navigation/tab/split containers, ignores hidden windows, and only falls back to another foreground scene when needed. Focused native contract tests cover this behavior.
+
+Notification health now reports permission state plus pending/delivered counts and native self-test state, and can open the relevant iOS settings page. Shared code still owns prayer schedule identity and semantics; a raw pending count is diagnostic only.
+
+CI now adds an unsigned Release iphoneos build and verifies arm64 Runner/PrayerWidget binaries, bundle IDs and privacy manifests. This is not a signed IPA. Signed-device and signed archive/export verification remain pending Apple provisioning and final product readiness.
+
+No persistent user data was added, so backup registry and iCloud archive scope are unchanged. Next: close current CI, then continue hardware-keyboard/Pencil native foundations without inventing shared product semantics.
