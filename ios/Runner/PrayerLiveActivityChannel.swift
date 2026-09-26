@@ -186,7 +186,6 @@ final class PrayerLiveActivityChannel {
   private func parseState(_ arguments: Any?) throws -> PrayerActivityAttributes.ContentState {
     guard let args = arguments as? [String: Any],
           let prayerID = nonBlank(args["prayerID"] as? String),
-          let displayName = nonBlank(args["displayName"] as? String),
           let prayerAt = (args["prayerAtMilliseconds"] as? NSNumber)?.doubleValue,
           let timeZone = nonBlank(args["timeZoneIdentifier"] as? String),
           TimeZone(identifier: timeZone) != nil,
@@ -194,6 +193,13 @@ final class PrayerLiveActivityChannel {
           let fingerprint = nonBlank(args["calculationFingerprint"] as? String),
           let redacted = args["isRedacted"] as? Bool,
           prayerAt > Date().timeIntervalSince1970 * 1000 else { throw LiveActivityInputError.invalidState }
+    let displayName: String
+    if redacted {
+      displayName = ""
+    } else {
+      guard let visibleName = nonBlank(args["displayName"] as? String) else { throw LiveActivityInputError.invalidState }
+      displayName = visibleName
+    }
     return PrayerActivityAttributes.ContentState(prayerID: prayerID, displayName: displayName, prayerAtMilliseconds: prayerAt, timeZoneIdentifier: timeZone, localeIdentifier: locale, calculationFingerprint: fingerprint, isRedacted: redacted)
   }
 
