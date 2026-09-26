@@ -113,3 +113,6 @@ Prayer Live Activity start is now identity-aware instead of treating any future 
 The native status response now includes per-activity identity diagnostics so shared prayer state can compare ActivityKit state without persisting a second schedule. The bridge remains local-only and ephemeral; no new persistent user data or iCloud/backup registry entry is introduced. Native contract rejects regression to arbitrary-future-activity reuse and checks replacement/diagnostic behavior.
 
 Shared handoff: when prayer configuration changes, shared may call start with the new canonical state and rely on native identity reconciliation, or update/end explicitly. Shared remains the only owner of prayer calculations. Signed-device verification is still required for real Dynamic Island/Lock Screen behavior.
+
+
+Follow-up hardening: iOS 16.1 no longer depends on the iOS 16.2 ActivityKit stale flag to hide an elapsed prayer. The widget compares the canonical prayer boundary with the current clock and fails closed when the boundary has passed, preventing a countdown from turning into an accidental count-up on older supported systems. Redacted Live Activity input also discards the display label natively and no longer requires shared code to provide it, reducing sensitive prayer-label retention while preserving the canonical identity fields needed for reconciliation.
