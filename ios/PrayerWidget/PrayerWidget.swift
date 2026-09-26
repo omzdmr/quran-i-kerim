@@ -121,7 +121,7 @@ struct PrayerLiveActivityWidget: Widget {
         .activityBackgroundTint(Color(uiColor: .secondarySystemBackground))
     } dynamicIsland: { context in
       let stale = prayerActivityIsStale(context)
-      DynamicIsland {
+      return DynamicIsland {
         DynamicIslandExpandedRegion(.leading) {
           Image(systemName: stale ? "arrow.clockwise" : (context.state.isRedacted ? "lock.fill" : "moon.stars.fill"))
             .accessibilityLabel(stale ? String(localized: "Open app to refresh", table: "Localizable") : (context.state.isRedacted ? String(localized: "Prayer times hidden", table: "Localizable") : context.state.displayName))
