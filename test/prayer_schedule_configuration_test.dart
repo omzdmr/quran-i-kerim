@@ -1,0 +1,70 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:quran_i_kerim/src/features/prayer/application/prayer_preferences_store.dart';
+import 'package:quran_i_kerim/src/features/prayer/application/prayer_saved_location_resolver.dart';
+import 'package:quran_i_kerim/src/features/prayer/application/prayer_schedule_configuration.dart';
+import 'package:quran_i_kerim/src/features/prayer/domain/prayer_models.dart';
+
+void main() {
+  const shanghai = PrayerResolvedLocation(
+    label: 'Shanghai',
+    location: PrayerLocation(latitude: 31.2304, longitude: 121.4737, timeZoneId: 'Asia/Shanghai'),
+    defaultMethod: PrayerCalculationMethod.muslimWorldLeague,
+  );
+
+  String fingerprint({
+    PrayerResolvedLocation resolved = shanghai,
+    PrayerAsrMethod asr = PrayerAsrMethod.standard,
+    PrayerNotificationProfile profile = PrayerNotificationProfile.fullSound,
+    PrayerMinuteAdjustments adjustments = const PrayerMinuteAdjustments(),
+    Set<String> prayerIds = defaultPrayerNotificationIds,
+    String localeTag = 'tr',
+  }) => PrayerScheduleConfiguration.fingerprint(
+        resolved: resolved,
+        settings: PrayerSettingsSnapshot(
+          notificationsEnabled: true,
+          asrMethod: asr,
+          notificationProfile: profile,
+          adjustments: adjustments,
+          notificationPrayerIds: prayerIds,
+        ),
+        localeTag: localeTag,
+      );
+
+  test('same prayer inputs produce a stable opaque fingerprint', () {
+    expect(fingerprint(), fingerprint());
+    expect(fingerprint(), startsWith('v2-'));
+    expect(fingerprint(), hasLength(67));
+    expect(fingerprint(), isNot(contains('Shanghai')));
+  });
+
+  test('travel location and timezone changes invalidate schedule identity', () {
+    const tokyo = PrayerResolvedLocation(
+      label: 'Tokyo',
+      location: PrayerLocation(latitude: 35.6762, longitude: 139.6503, timeZoneId: 'Asia/Tokyo'),
+      defaultMethod: PrayerCalculationMethod.muslimWorldLeague,
+    );
+    expect(fingerprint(resolved: tokyo), isNot(fingerprint()));
+  });
+
+  test('calculation-affecting preferences invalidate schedule identity', () {
+    expect(fingerprint(asr: PrayerAsrMethod.hanafi), isNot(fingerprint()));
+    expect(fingerprint(adjustments: const PrayerMinuteAdjustments(fajr: 2)), isNot(fingerprint()));
+  });
+
+  test('notification delivery inputs invalidate identity but set order does not', () {
+    expect(fingerprint(profile: PrayerNotificationProfile.discreet), isNot(fingerprint()));
+    expect(
+      fingerprint(prayerIds: const {'fajr', 'isha'}),
+      fingerprint(prayerIds: const {'isha', 'fajr'}),
+    );
+    expect(
+      fingerprint(prayerIds: const {'fajr'}),
+      isNot(fingerprint(prayerIds: const {'fajr', 'isha'})),
+    );
+  });
+
+  test('changing app language invalidates already scheduled notification copy', () {
+    expect(fingerprint(localeTag: 'fr'), isNot(fingerprint(localeTag: 'tr')));
+    expect(fingerprint(localeTag: 'AR'), fingerprint(localeTag: 'ar'));
+  });
+}

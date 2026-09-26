@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'backup_cloud_connector.dart';
 import 'backup_cloud_coordinator.dart';
 import 'backup_cloud_store.dart';
+import 'backup_file_service.dart';
 
 typedef BackupCloudCoordinatorFactory = BackupCloudCoordinator Function(
   BackupCloudStore store,
@@ -17,7 +18,6 @@ class BackupCloudController extends ChangeNotifier {
 
   final BackupCloudConnector connector;
   final BackupCloudCoordinatorFactory _coordinatorFactory;
-
   BackupCloudConnection? _connection;
   BackupCloudCoordinator? _coordinator;
   BackupCloudInspection? _inspection;
@@ -48,32 +48,48 @@ class BackupCloudController extends ChangeNotifier {
     if (_busy) return;
     final coordinator = _requireCoordinator();
     await _run(() async {
-      // Re-inspect immediately before upload so the local JSON and expected
-      // remote revision are never stale just because the settings screen sat
-      // open while the user changed data elsewhere in the app.
       final fresh = await coordinator.inspect();
       _inspection = fresh;
       notifyListeners();
-      await coordinator.uploadLocal(
-        fresh,
-        allowOverwrite: allowOverwrite,
-      );
+      await coordinator.uploadLocal(fresh, allowOverwrite: allowOverwrite);
       await _refreshInspection();
     });
   }
 
-  Future<void> restoreRemote() async {
-    if (_busy) return;
+  Future<BackupCloudRestorePreparation?> prepareRemoteRestore() async {
+    if (_busy) return null;
     final coordinator = _requireCoordinator();
+    BackupCloudRestorePreparation? preparation;
     await _run(() async {
-      // Read the remote again before applying it. A different device may have
-      // created a newer snapshot after the confirmation UI was first shown.
       final fresh = await coordinator.inspect();
       _inspection = fresh;
       notifyListeners();
-      await coordinator.restoreRemote(fresh);
-      await _refreshInspection();
+      preparation = await coordinator.prepareRemoteRestore(fresh);
     });
+    return preparation;
+  }
+
+  Future<BackupRestoreReceipt?> restoreRemote({
+    required BackupCloudRestorePreparation preparation,
+    BackupRestoreMode mode = BackupRestoreMode.replace,
+  }) async {
+    if (_busy) return null;
+    final coordinator = _requireCoordinator();
+    BackupRestoreReceipt? receipt;
+    await _run(() async {
+      final fresh = await coordinator.inspect();
+      _inspection = fresh;
+      notifyListeners();
+      if (fresh.remote?.revision != preparation.remoteRevision ||
+          fresh.localDataSignature != preparation.localDataSignature) {
+        throw const BackupCloudConflictException();
+      }
+      receipt = await coordinator.restoreRemote(fresh, mode: mode);
+      try {
+        await _refreshInspection();
+      } catch (_) {}
+    });
+    return receipt;
   }
 
   Future<void> signOut() async {
@@ -86,9 +102,7 @@ class BackupCloudController extends ChangeNotifier {
 
   BackupCloudCoordinator _requireCoordinator() {
     final coordinator = _coordinator;
-    if (coordinator == null) {
-      throw StateError('Cloud backup is not connected.');
-    }
+    if (coordinator == null) throw StateError('Cloud backup is not connected.');
     return coordinator;
   }
 

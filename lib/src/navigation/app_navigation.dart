@@ -25,14 +25,43 @@ class AppNavigation {
   static const int quranTabIndex = 1;
   static const int plansTabIndex = 2;
   static const int discoverTabIndex = 3;
+  static const int profileTabIndex = 4;
+  static const int quranReadSectionIndex = 0;
 
   static final AppNavigation instance = AppNavigation._();
 
   final ValueNotifier<int?> tabRequest = ValueNotifier<int?>(null);
+  final ValueNotifier<int> activeTabIndex =
+      ValueNotifier<int>(homeTabIndex);
+  final ValueNotifier<int> quranSectionIndex =
+      ValueNotifier<int>(quranReadSectionIndex);
+  final ValueNotifier<bool> readerVisible = ValueNotifier<bool>(false);
   final ValueNotifier<ReaderTarget?> readerRequest =
       ValueNotifier<ReaderTarget?>(null);
   final ValueNotifier<int> quranReadRequest = ValueNotifier<int>(0);
+  final ValueNotifier<int> readerFocusRequest = ValueNotifier<int>(0);
   final ValueNotifier<bool> readerSelectionActive = ValueNotifier<bool>(false);
+  final ValueNotifier<bool> readerFullScreenActive =
+      ValueNotifier<bool>(false);
+
+  void reportActiveTab(int index) {
+    final safe = index.clamp(homeTabIndex, profileTabIndex).toInt();
+    if (activeTabIndex.value != safe) activeTabIndex.value = safe;
+    _syncReaderVisibility();
+  }
+
+  void reportQuranSection(int index) {
+    final safe = index.clamp(0, 2).toInt();
+    if (quranSectionIndex.value != safe) quranSectionIndex.value = safe;
+    _syncReaderVisibility();
+  }
+
+  void _syncReaderVisibility() {
+    final visible =
+        activeTabIndex.value == quranTabIndex &&
+        quranSectionIndex.value == quranReadSectionIndex;
+    if (readerVisible.value != visible) readerVisible.value = visible;
+  }
 
   void openReader({
     required int surah,
@@ -54,6 +83,13 @@ class AppNavigation {
     tabRequest.value = quranTabIndex;
   }
 
+  void openReaderFocusControls() {
+    readerSelectionActive.value = false;
+    quranReadRequest.value++;
+    tabRequest.value = quranTabIndex;
+    readerFocusRequest.value++;
+  }
+
   void openPlans() {
     readerSelectionActive.value = false;
     tabRequest.value = plansTabIndex;
@@ -67,6 +103,11 @@ class AppNavigation {
   void setReaderSelectionActive(bool active) {
     if (readerSelectionActive.value == active) return;
     readerSelectionActive.value = active;
+  }
+
+  void setReaderFullScreenActive(bool active) {
+    if (readerFullScreenActive.value == active) return;
+    readerFullScreenActive.value = active;
   }
 
   void consumeTabRequest() => tabRequest.value = null;

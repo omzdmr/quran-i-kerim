@@ -37,6 +37,7 @@ class _AppShellState extends State<AppShell> {
   void initState() {
     super.initState();
     AppNavigation.instance.tabRequest.addListener(_handleTabRequest);
+    AppNavigation.instance.reportActiveTab(_index);
   }
 
   @override
@@ -57,6 +58,7 @@ class _AppShellState extends State<AppShell> {
     if (safe == _index) return;
     AppNavigation.instance.setReaderSelectionActive(false);
     setState(() => _index = safe);
+    AppNavigation.instance.reportActiveTab(safe);
     if (haptic) HapticFeedback.selectionClick();
   }
 
@@ -110,6 +112,9 @@ class _AppShellState extends State<AppShell> {
       _navigationDragDx = null;
       _draggingNavigation = false;
     });
+    if (target != null) {
+      AppNavigation.instance.reportActiveTab(target);
+    }
   }
 
   void _cancelNavigationDrag() {
@@ -132,10 +137,16 @@ class _AppShellState extends State<AppShell> {
       bottomNavigationBar: ValueListenableBuilder<bool>(
         valueListenable: AppNavigation.instance.readerSelectionActive,
         builder: (context, selectionActive, _) {
-          if (_index == 1 && selectionActive) {
-            return const SizedBox.shrink();
-          }
-          return _buildBottomNavigation(context);
+          return ValueListenableBuilder<bool>(
+            valueListenable: AppNavigation.instance.readerFullScreenActive,
+            builder: (context, fullScreenActive, _) {
+              if (_index == AppNavigation.quranTabIndex &&
+                  (selectionActive || fullScreenActive)) {
+                return const SizedBox.shrink();
+              }
+              return _buildBottomNavigation(context);
+            },
+          );
         },
       ),
     );

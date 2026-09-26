@@ -6,6 +6,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../l10n/app_localizations.dart';
 import 'dhikr_daily_rollover.dart';
+import 'dhikr_history_screen.dart';
+import 'dhikr_labels.dart';
+import 'dhikr_history_store.dart';
 
 class DhikrCounterScreen extends StatefulWidget {
   const DhikrCounterScreen({super.key});
@@ -15,6 +18,7 @@ class DhikrCounterScreen extends StatefulWidget {
 }
 
 class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
+  static const _documentCodec = DhikrCounterDocumentCodec();
   static const _selectedKey = 'dhikr_v2_selected';
   static const _countsKey = 'dhikr_v2_counts';
   static const _targetsKey = 'dhikr_v2_targets';
@@ -36,37 +40,6 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
     _DhikrEntry(id: 'salawat', label: 'Salawat'),
   ];
 
-  static const _builtInLabels = <String, Map<String, String>>{
-    'subhanallah': {
-      'tr': 'Sübhanallah',
-      'en': 'SubhanAllah',
-      'ar': 'سبحان الله',
-      'az': 'Sübhanallah',
-      'ru': 'Субханаллах',
-    },
-    'alhamdulillah': {
-      'tr': 'Elhamdülillah',
-      'en': 'Alhamdulillah',
-      'ar': 'الحمد لله',
-      'az': 'Əlhəmdülillah',
-      'ru': 'Альхамдулиллях',
-    },
-    'allahu_akbar': {
-      'tr': 'Allahu Ekber',
-      'en': 'Allahu Akbar',
-      'ar': 'الله أكبر',
-      'az': 'Allahu Əkbər',
-      'ru': 'Аллаху Акбар',
-    },
-    'salawat': {
-      'tr': 'Salavat',
-      'en': 'Salawat',
-      'ar': 'الصلاة على النبي',
-      'az': 'Salavat',
-      'ru': 'Салават',
-    },
-  };
-
   String _selectedId = _builtIns.first.id;
   Map<String, int> _counts = <String, int>{};
   Map<String, int> _targets = <String, int>{
@@ -75,6 +48,8 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
   Map<String, int> _dailyCounts = <String, int>{};
   String? _dailyDateKeyInMemory;
   List<_DhikrEntry> _customEntries = <_DhikrEntry>[];
+  List<DhikrDailyHistoryRecord> _history = <DhikrDailyHistoryRecord>[];
+  bool _soundEnabled = false;
   String? _lastIncrementedId;
 
   List<_DhikrEntry> get _entries => <_DhikrEntry>[
@@ -103,11 +78,22 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
     return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   }
 
-  void _rolloverDailyIfNeeded() {
+  Future<void> _rolloverDailyIfNeeded() async {
     final today = _todayKey();
     if (_dailyDateKeyInMemory == today) return;
+    final previousDate = _dailyDateKeyInMemory;
+    if (previousDate != null && _dailyCounts.isNotEmpty) {
+      _history = _documentCodec.archiveDay(
+        history: _history,
+        dateKey: previousDate,
+        counts: _dailyCounts,
+        customLabels: <String, String>{
+          for (final entry in _customEntries) entry.id: entry.label,
+        },
+      );
+    }
     final snapshot = normalizeDhikrDailySnapshot(
-      storedDateKey: _dailyDateKeyInMemory,
+      storedDateKey: previousDate,
       todayDateKey: today,
       counts: _dailyCounts,
     );
@@ -120,9 +106,7 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
     if (entry.custom) return entry.label;
     final language =
         languageCode ?? Localizations.localeOf(context).languageCode;
-    return _builtInLabels[entry.id]?[language] ??
-        _builtInLabels[entry.id]?['en'] ??
-        entry.label;
+    return dhikrBuiltInLabel(entry.id, language, fallback: entry.label);
   }
 
   _DhikrEntry? _entryById(String id) {
@@ -172,7 +156,7 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
     for (final entry in _builtIns) {
       if (entry.label.toLowerCase() == normalized) return entry.id;
       for (final translated
-          in _builtInLabels[entry.id]?.values ?? const <String>[]) {
+          in dhikrBuiltInLabels[entry.id]?.values ?? const <String>[]) {
         if (translated.toLowerCase() == normalized) return entry.id;
       }
     }
@@ -204,7 +188,9 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
     final today = _todayKey();
 
     final custom = _decodeCustom(prefs.getString(_customKey));
-    final counts = _decodeIntMap(prefs.getString(_countsKey));
+    final document = _documentCodec.decode(prefs.getString(_countsKey));
+    final counts = Map<String, int>.from(document.counts);
+    var history = document.history.toList(growable: false);
     final targets = _decodeIntMap(prefs.getString(_targetsKey));
     var selected = prefs.getString(_selectedKey);
 
@@ -235,6 +221,20 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
         custom,
       );
     } else {
+      final previousDaily = _migrateDailyKeys(
+        _decodeIntMap(prefs.getString(_dailyCountsKey)),
+        custom,
+      );
+      if (storedDailyDate != null && previousDaily.isNotEmpty) {
+        history = _documentCodec.archiveDay(
+          history: history,
+          dateKey: storedDailyDate,
+          counts: previousDaily,
+          customLabels: <String, String>{
+            for (final entry in custom) entry.id: entry.label,
+          },
+        );
+      }
       daily = <String, int>{};
       final legacyDay = prefs.getString(_legacyDailyDateKey);
       final legacyTotal = prefs.getInt(_legacyDailyTotalKey) ?? 0;
@@ -243,6 +243,14 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
         daily[legacyId] = legacyTotal;
       }
       await prefs.setString(_dailyDateKey, today);
+      await prefs.setString(
+        _countsKey,
+        _documentCodec.encode(
+          counts: counts,
+          history: history,
+          soundEnabled: document.soundEnabled,
+        ),
+      );
     }
     await prefs.setString(_dailyCountsKey, jsonEncode(daily));
 
@@ -258,6 +266,8 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
     setState(() {
       _customEntries = custom;
       _counts = counts;
+      _history = history;
+      _soundEnabled = document.soundEnabled;
       _targets = targets;
       _dailyCounts = daily;
       _dailyDateKeyInMemory = today;
@@ -266,11 +276,18 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
   }
 
   Future<void> _persist() async {
-    _rolloverDailyIfNeeded();
+    await _rolloverDailyIfNeeded();
     final prefs = await SharedPreferences.getInstance();
     await Future.wait([
       prefs.setString(_selectedKey, _selectedId),
-      prefs.setString(_countsKey, jsonEncode(_counts)),
+      prefs.setString(
+        _countsKey,
+        _documentCodec.encode(
+          counts: _counts,
+          history: _history,
+          soundEnabled: _soundEnabled,
+        ),
+      ),
       prefs.setString(_targetsKey, jsonEncode(_targets)),
       prefs.setString(
         _customKey,
@@ -295,7 +312,7 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
   }
 
   Future<void> _increment() async {
-    _rolloverDailyIfNeeded();
+    await _rolloverDailyIfNeeded();
     final entry = _selectedEntry;
     final next = _count + 1;
     final target = _target;
@@ -311,10 +328,18 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
       HapticFeedback.selectionClick();
     }
     await _persist();
+    if (_soundEnabled) {
+      try {
+        await SystemSound.play(SystemSoundType.click);
+      } catch (_) {
+        // Sound is optional feedback; a platform audio failure must never
+        // roll back or lose the user's count.
+      }
+    }
   }
 
   Future<void> _undo() async {
-    _rolloverDailyIfNeeded();
+    await _rolloverDailyIfNeeded();
     if (_lastIncrementedId != _selectedId || _count <= 0) return;
     final entry = _selectedEntry;
     setState(() {
@@ -328,6 +353,13 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
       _lastIncrementedId = null;
     });
     HapticFeedback.lightImpact();
+    await _persist();
+  }
+
+  Future<void> _setSoundEnabled(bool enabled) async {
+    if (_soundEnabled == enabled) return;
+    setState(() => _soundEnabled = enabled);
+    HapticFeedback.selectionClick();
     await _persist();
   }
 
@@ -472,10 +504,89 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
     await _persist();
   }
 
+  Future<void> _editSelectedCustom() async {
+    final entry = _selectedEntry;
+    if (!entry.custom) return;
+    final l10n = context.l10n;
+    final nameController = TextEditingController(text: entry.label);
+    final targetController = TextEditingController(
+      text: _target > 0 ? '$_target' : '',
+    );
+    final result = await showDialog<(String, int)?>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.text('editDhikr')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              autofocus: true,
+              maxLength: 50,
+              decoration: InputDecoration(labelText: l10n.text('dhikrName')),
+            ),
+            TextField(
+              controller: targetController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: l10n.text('optionalTarget'),
+                hintText: l10n.text('example100'),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(l10n.text('cancel')),
+          ),
+          FilledButton(
+            onPressed: () {
+              final name = nameController.text.trim();
+              if (name.isEmpty) return;
+              final duplicate = _entries.any(
+                (candidate) =>
+                    candidate.id != entry.id &&
+                    _displayLabel(candidate).toLowerCase() == name.toLowerCase(),
+              );
+              if (duplicate) return;
+              final rawTarget = targetController.text.trim();
+              final target = rawTarget.isEmpty ? 0 : int.tryParse(rawTarget);
+              if (target == null || target < 0 || target > 9999) return;
+              Navigator.pop(dialogContext, (name, target));
+            },
+            child: Text(l10n.text('apply')),
+          ),
+        ],
+      ),
+    );
+    nameController.dispose();
+    targetController.dispose();
+    if (result == null || !mounted) return;
+
+    setState(() {
+      _customEntries = [
+        for (final candidate in _customEntries)
+          if (candidate.id == entry.id)
+            _DhikrEntry(id: candidate.id, label: result.$1, custom: true)
+          else
+            candidate,
+      ];
+      _targets[entry.id] = result.$2;
+      _lastIncrementedId = null;
+    });
+    HapticFeedback.lightImpact();
+    await _persist();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.text('editDhikrSaved'))),
+    );
+  }
+
   Future<void> _removeSelectedCustom() async {
     final entry = _selectedEntry;
     if (!entry.custom) return;
-    _rolloverDailyIfNeeded();
+    await _rolloverDailyIfNeeded();
     setState(() {
       _customEntries = _customEntries
           .where((item) => item.id != entry.id)
@@ -507,6 +618,19 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
       appBar: AppBar(
         title: Text(l10n.text('dhikrCounter')),
         actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => DhikrHistoryScreen(
+                    records: List<DhikrDailyHistoryRecord>.unmodifiable(_history),
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.history_rounded),
+            tooltip: l10n.text('dhikrHistory'),
+          ),
           IconButton(
             onPressed: _lastIncrementedId == _selectedId ? _undo : null,
             icon: const Icon(Icons.undo_rounded),
@@ -572,10 +696,20 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
                     ),
                     Expanded(
                       child: _selectedEntry.custom
-                          ? IconButton(
-                              onPressed: _removeSelectedCustom,
-                              icon: const Icon(Icons.delete_outline_rounded),
-                              tooltip: l10n.text('removeDhikr'),
+                          ? Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                IconButton(
+                                  onPressed: _editSelectedCustom,
+                                  icon: const Icon(Icons.edit_outlined),
+                                  tooltip: l10n.text('editDhikr'),
+                                ),
+                                IconButton(
+                                  onPressed: _removeSelectedCustom,
+                                  icon: const Icon(Icons.delete_outline_rounded),
+                                  tooltip: l10n.text('removeDhikr'),
+                                ),
+                              ],
                             )
                           : const SizedBox.shrink(),
                     ),
@@ -612,7 +746,19 @@ class _DhikrCounterScreenState extends State<DhikrCounterScreen> {
           ),
           const SizedBox(height: 18),
           SizedBox(height: 210, child: _CounterButton(onPressed: _increment)),
-          const SizedBox(height: 22),
+          const SizedBox(height: 18),
+          SwitchListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+            value: _soundEnabled,
+            onChanged: _setSoundEnabled,
+            title: Text(
+              l10n.text('dhikrSound'),
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+            subtitle: Text(l10n.text('dhikrSoundHint')),
+            secondary: const Icon(Icons.volume_up_outlined),
+          ),
+          const SizedBox(height: 14),
           Row(
             children: [
               Expanded(

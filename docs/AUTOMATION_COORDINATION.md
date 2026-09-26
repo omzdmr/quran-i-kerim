@@ -9,6 +9,67 @@ their ownership and handoff rules for possible future reactivation, but no
 automation should be assumed active. Current contributors must read
 `docs/PROJECT_HANDOFF.md` and the latest repository/CI state before working.
 
+## Active Feature Development handoff — Essential Reader
+
+- Draft PR #3 on `automation/feature-roadmap` implements the adopted P1
+  Essential/Senior Reader slice: reversible persisted preference, user-owned
+  backup/restore, larger interface and Reader typography/spacing, bounded line
+  measure, simplified first-layer Reader/search/selection controls, plus
+  session-safe focus reading controls for true fullscreen (including app
+  chrome), dimming, line focus/reading ruler, screen wake lock and resumable
+  three-speed auto-scroll. The selected speed persists and participates in
+  user-owned backup/restore; manual scrolling pauses auto-scroll. Navigation
+  visibility handling releases all platform state when leaving either the Quran
+  tab or its Read section, while lifecycle handling safely releases/reapplies
+  state around backgrounding. Settings search deep-links to the focus controls.
+- The slice is not landed on `feature/localization-v01` yet. The integration
+  workflow only runs for the feature branch; run #560 was cancelled during
+  analysis after two hours, without reaching tests or APK build. Do not
+  duplicate or merge this implementation without Flutter analyzer/tests/APK
+  validation, including the new `wakelock_plus` platform dependency.
+- After validation, land PR #3 (or reapply it onto a newer feature HEAD without
+  force-updating either branch). Validate the added `wakelock_plus` dependency,
+  fullscreen system UI restoration, tab/Read-section cleanup, auto-scroll at all
+  three speeds and 200%+ text on physical Android/iOS devices.
+
+## Active Feature Development handoff — Atomic offline audio packs
+
+- The same draft PR #3 now also contains the adopted P1 offline-audio
+  reliability slice. A surah pack is marked offline-ready only after every ayah
+  payload is present, SHA-256 verified, and an atomic versioned manifest has
+  been published. Partial, changed and corrupt packs remain playable per
+  available ayah but are surfaced as pending/repair-required, never as complete.
+- Download intent is persisted separately from reproducible media bytes and is
+  included in user-owned backup schema v8. Restore therefore remembers which
+  reciter/quality/surah packs the user selected, while audio payloads remain
+  excluded from backup; Downloads shows the re-download state and links back to
+  the exact surah in Reader. Delete removes both payload and intent.
+- Existing pre-manifest downloads upgrade in place after a successful integrity
+  pass. Interrupted work retains resumable partials, while cancel/delete removes
+  the selection. Validate pause/resume, checksum repair, legacy upgrade,
+  backup/restore and large-surah performance before landing. Full Flutter and
+  platform CI are still unavailable for the staging branch, so PR #3 remains
+  draft.
+
+## Active Feature Development handoff — Private qada fasting ledger
+
+- Draft PR #3 also contains the adopted private qada-fasting ledger. Users can
+  append a known or estimated debt with an optional source Ramadan year and
+  private note, explicitly record completed fasts, and correct the current
+  balance without rewriting history. The remaining balance and source-Ramadan
+  groups are derived locally; the app does not infer religious rulings.
+- The append-only ledger fails closed on malformed, duplicate, overdrawn or
+  future-format records. Its local preference participates in user-owned backup
+  schema v9; restoring schema v8 or older preserves newer qada data rather than
+  deleting it. The UI states clearly that a user-created backup includes it.
+- The ledger also has a date calendar with previous/next recorded-day
+  navigation and a user-owned CSV export. Export excludes private notes by
+  default; notes require explicit opt-in and formula-like user text is escaped
+  before spreadsheet use. Domain, file, persistence, six-locale parity, backup
+  compatibility and widget-flow tests are present, but Flutter tests/analyzer
+  have not run in this worker. Keep the PR draft until full validation, then
+  land without force-updating the feature branch.
+
 ## Shared source of truth
 Every automation must read these before acting:
 1. `docs/PRODUCT_MASTER_SPEC.md` — product requirements and non-negotiable decisions.

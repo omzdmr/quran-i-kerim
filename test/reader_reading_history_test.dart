@@ -37,6 +37,18 @@ void main() {
     expect(ReaderReadingHistoryRepository.changes.value, before + 1);
   });
 
+  test('empty source identity is not persisted or announced', () async {
+    final before = ReaderReadingHistoryRepository.changes.value;
+    await ReaderReadingHistoryRepository.instance.record(
+      surah: 18,
+      ayah: 10,
+      sourceId: '   ',
+    );
+
+    expect(await ReaderReadingHistoryRepository.instance.load(), isEmpty);
+    expect(ReaderReadingHistoryRepository.changes.value, before);
+  });
+
   test('recent contexts skip current position and nearby duplicates', () {
     const entries = <ReaderHistoryEntry>[
       ReaderHistoryEntry(
@@ -108,7 +120,7 @@ void main() {
         <String, Object>{
           'surah': 2,
           'ayah': 255,
-          'sourceId': 'tr_rwwad',
+          'sourceId': ' tr_rwwad ',
           'updatedAt': 1234,
         },
         <String, Object>{
@@ -121,6 +133,12 @@ void main() {
           'surah': 3,
           'ayah': 0,
           'sourceId': 'invalid_ayah',
+          'updatedAt': 1234,
+        },
+        <String, Object>{
+          'surah': 36,
+          'ayah': 1,
+          'sourceId': '   ',
           'updatedAt': 1234,
         },
         'not-an-entry',

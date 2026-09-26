@@ -182,3 +182,23 @@ Next manual development should:
    review is completed.
 5. Continue to separate UI-locale availability from Quran
    meaning/audio/source-rights availability.
+
+
+## Staging progress — offline audio recovery (2026-09-26)
+
+Commits 1f9017d0 and a071e4b2 add central recovery for incomplete audio packs in
+Profile > Downloads. Users can resume, repair and pause a pack there while the
+screen reflects live downloading, paused, verifying and failed state. Existing
+Wi-Fi-only and mobile confirmation preferences remain enforced.
+
+Permanent audio files remain device-local re-downloadable data and are not
+placed in portable backup. The existing offline-audio pack intent preference
+keeps its established schema behavior; no audio bytes, cache or secrets were
+added to backup.
+
+Focused URL-resolution tests were added for both existing provider address
+formats. This worker could not run Flutter locally, so keep the slice on staging
+until formatter/analyzer and the focused audio download tests are green.
+
+Next: central bulk queue/free-space controls for Downloads; do not rebuild the
+per-surah recovery path.

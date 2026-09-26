@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../data/translation_catalog.dart';
 import '../../l10n/app_localizations.dart';
+import '../../navigation/app_navigation.dart';
 import '../../settings/app_settings.dart';
 import '../profile/downloads_screen.dart';
 import 'backup_settings_screen.dart';
@@ -42,6 +43,21 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
         children: [
+          _ChoiceTile(
+            title: l10n.text('essentialReaderTitle'),
+            subtitle: l10n.text('essentialReaderSubtitle'),
+            icon: Icons.visibility_outlined,
+            selected: settings.essentialReaderEnabled,
+            onTap: () {
+              HapticFeedback.selectionClick();
+              settings.setReaderExperiencePreset(
+                settings.essentialReaderEnabled
+                    ? ReaderExperiencePreset.standard
+                    : ReaderExperiencePreset.essential,
+              );
+            },
+          ),
+          const SizedBox(height: 30),
           _SectionHeader(
             title: l10n.appearance,
             description: l10n.appearanceDescription,
@@ -289,6 +305,32 @@ class _SettingsSearchDelegate extends SearchDelegate<void> {
   final BuildContext rootContext;
 
   List<_SettingsSearchEntry> get _entries => <_SettingsSearchEntry>[
+        _SettingsSearchEntry(
+          title: l10n.text('essentialReaderTitle'),
+          subtitle: l10n.text('essentialReaderSubtitle'),
+          icon: Icons.visibility_outlined,
+          selected: settings.essentialReaderEnabled,
+          keywords: <String>[l10n.reading, l10n.appearance],
+          onTap: () => settings.setReaderExperiencePreset(
+            settings.essentialReaderEnabled
+                ? ReaderExperiencePreset.standard
+                : ReaderExperiencePreset.essential,
+          ),
+        ),
+        _SettingsSearchEntry(
+          title: l10n.text('focusReading'),
+          subtitle: l10n.text('focusReadingSubtitle'),
+          icon: Icons.center_focus_strong_rounded,
+          keywords: <String>[
+            l10n.reading,
+            l10n.text('fullScreen'),
+            l10n.text('dimScreen'),
+            l10n.text('lineFocus'),
+            l10n.text('keepScreenAwake'),
+            l10n.text('autoScroll'),
+          ],
+          onTap: AppNavigation.instance.openReaderFocusControls,
+        ),
         _SettingsSearchEntry(
           title: l10n.useDeviceTheme,
           subtitle: l10n.useDeviceThemeDescription,
@@ -610,7 +652,13 @@ class _ChoiceTile extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: Material(
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label: title,
+        hint: subtitle,
+        excludeSemantics: true,
+        child: Material(
         color: selected ? scheme.primaryContainer : scheme.surfaceContainer,
         borderRadius: BorderRadius.circular(20),
         child: InkWell(
@@ -676,6 +724,7 @@ class _ChoiceTile extends StatelessWidget {
             ),
           ),
         ),
+      ),
       ),
     );
   }

@@ -1,0 +1,79 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:quran_i_kerim/src/features/discover/qada_fasting_ledger.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+void main() {
+  final created = DateTime.utc(2026, 9, 21, 6);
+
+  test('ledger preserves debt, completion and explicit correction history', () {
+    final ledger = QadaFastingLedger().addDebt(days: 7, occurredOn: DateTime(2026, 3, 20), createdAt: created, sourceRamadanYear: 1447, id: 'debt-1').complete(occurredOn: DateTime(2026, 9, 20), createdAt: created.add(const Duration(minutes: 1)), id: 'done-1').correctBalance(targetDays: 4, occurredOn: DateTime(2026, 9, 21), createdAt: created.add(const Duration(minutes: 2)), note: 'Earlier paper record', id: 'fix-1');
+    expect(ledger.recordedDebtDays, 7); expect(ledger.completedDays, 1); expect(ledger.remainingDays, 4); expect(ledger.entries, hasLength(3)); expect(ledger.entries.last.kind, QadaFastingEntryKind.correction); expect(ledger.entries.last.days, -2); expect(ledger.debtByRamadan[1447], 7);
+  });
+
+  test('completion can preserve the Ramadan debt it paid down', () {
+    final ledger = QadaFastingLedger().addDebt(days: 4, occurredOn: DateTime(2025, 3, 1), createdAt: created, sourceRamadanYear: 1446, id: '1446-debt').addDebt(days: 3, occurredOn: DateTime(2026, 3, 1), createdAt: created.add(const Duration(minutes: 1)), sourceRamadanYear: 1447, id: '1447-debt').complete(days: 2, occurredOn: DateTime(2026, 9, 21), createdAt: created.add(const Duration(minutes: 2)), sourceRamadanYear: 1446, id: '1446-done');
+    expect(ledger.remainingDays, 5); expect(ledger.remainingForRamadan(1446), 2); expect(ledger.remainingForRamadan(1447), 3); expect(ledger.attributedCompletionsByRamadan[1446], 2); expect(ledger.openRamadanYears, <int>[1447, 1446]);
+    final restored = QadaFastingLedger.decode(ledger.encode()); expect(restored.entries.last.sourceRamadanYear, 1446); expect(restored.remainingForRamadan(1446), 2);
+  });
+
+  test('completion cannot overdraw one attributed Ramadan', () {
+    final ledger = QadaFastingLedger().addDebt(days: 1, occurredOn: DateTime(2025, 3, 1), createdAt: created, sourceRamadanYear: 1446, id: '1446').addDebt(days: 5, occurredOn: DateTime(2026, 3, 1), createdAt: created.add(const Duration(minutes: 1)), sourceRamadanYear: 1447, id: '1447');
+    expect(() => ledger.complete(days: 2, occurredOn: DateTime(2026, 9, 21), createdAt: created.add(const Duration(minutes: 2)), sourceRamadanYear: 1446), throwsStateError);
+  });
+
+  test('decoder keeps coherent cross-device history even when completion was recorded first', () {
+    final restored = QadaFastingLedger.decode('{"formatVersion":1,"entries":['
+      '{"id":"done","kind":"completion","days":1,"occurredOn":"2026-09-01","createdAt":"2026-01-01T00:00:00Z","sourceRamadanYear":1447},'
+      '{"id":"debt","kind":"debt","days":2,"occurredOn":"2026-03-01","createdAt":"2026-03-01T00:00:00Z","sourceRamadanYear":1447}'
+      ']}');
+    expect(restored.entries, hasLength(2));
+    expect(restored.remainingDays, 1);
+    expect(restored.remainingForRamadan(1447), 1);
+  });
+
+  test('decoder still salvages coherent records from an overdrawn set', () {
+    final restored = QadaFastingLedger.decode('{"formatVersion":1,"entries":['
+      '{"id":"debt","kind":"debt","days":2,"occurredOn":"2026-03-01","createdAt":"2026-01-01T00:00:00Z","sourceRamadanYear":1447},'
+      '{"id":"bad","kind":"completion","days":3,"occurredOn":"2026-09-01","createdAt":"2026-02-01T00:00:00Z","sourceRamadanYear":1447}'
+      ']}');
+    expect(restored.entries, hasLength(1));
+    expect(restored.entries.single.id, 'debt');
+    expect(restored.remainingDays, 2);
+  });
+
+  test('unknown historical source remains explicitly estimated', () {
+    final ledger = QadaFastingLedger().addDebt(days: 12, occurredOn: DateTime(2026, 1, 1), createdAt: created, id: 'estimated');
+    expect(ledger.entries.single.sourceRamadanYear, isNull); expect(ledger.entries.single.estimatedSource, isTrue); expect(ledger.remainingDays, 12);
+  });
+
+  test('completion cannot silently make the balance negative', () {
+    final ledger = QadaFastingLedger().addDebt(days: 1, occurredOn: DateTime(2026, 1, 1), createdAt: created, id: 'debt');
+    expect(() => ledger.complete(days: 2, occurredOn: DateTime(2026, 9, 21), createdAt: created.add(const Duration(minutes: 1))), throwsStateError);
+  });
+
+  test('round trip keeps optional private provenance without invention', () {
+    final original = QadaFastingLedger().addDebt(days: 3, occurredOn: DateTime(2026, 3, 1), createdAt: created, sourceRamadanYear: 1446, estimatedSource: true, note: 'Estimated from my own paper notes', id: 'debt');
+    final restored = QadaFastingLedger.decode(original.encode());
+    expect(restored.remainingDays, 3); expect(restored.entries.single.sourceRamadanYear, 1446); expect(restored.entries.single.estimatedSource, isTrue); expect(restored.entries.single.note, 'Estimated from my own paper notes');
+  });
+
+  test('corrupt, duplicate and overdrawn events fail closed', () {
+    final restored = QadaFastingLedger.decode('{"formatVersion":1,"entries":['
+      '{"id":"a","kind":"debt","days":2,"occurredOn":"2026-01-01","createdAt":"2026-01-01T00:00:00Z"},'
+      '{"id":"a","kind":"debt","days":99,"occurredOn":"2026-01-01","createdAt":"2026-01-01T00:00:01Z"},'
+      '{"id":"b","kind":"completion","days":3,"occurredOn":"2026-01-02","createdAt":"2026-01-02T00:00:00Z"}'
+      ']}');
+    expect(restored.remainingDays, 2); expect(restored.entries, hasLength(1)); expect(QadaFastingLedger.decode('{broken').entries, isEmpty);
+  });
+
+  test('calendar projection groups entries by their local worship date', () {
+    final ledger = QadaFastingLedger().addDebt(days: 2, occurredOn: DateTime(2025, 3, 5, 23, 30), createdAt: created, id: 'old').complete(occurredOn: DateTime(2026, 9, 21, 8), createdAt: created.add(const Duration(minutes: 1)), id: 'done');
+    expect(ledger.earliestOccurredOn, DateTime(2025, 3, 5)); expect(ledger.latestOccurredOn, DateTime(2026, 9, 21)); expect(ledger.entriesOn(DateTime(2026, 9, 21, 22)), hasLength(1)); expect(ledger.entriesOn(DateTime(2026, 9, 20)), isEmpty); expect(ledger.recordedDates, <DateTime>[DateTime(2025, 3, 5), DateTime(2026, 9, 21)]); expect(ledger.previousRecordedDate(DateTime(2026, 9, 21)), DateTime(2025, 3, 5)); expect(ledger.nextRecordedDate(DateTime(2025, 3, 5)), DateTime(2026, 9, 21));
+  });
+
+  test('store persists across process-style reload', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{}); const store = QadaFastingStore();
+    final ledger = QadaFastingLedger().addDebt(days: 5, occurredOn: DateTime(2026, 3, 1), createdAt: created, sourceRamadanYear: 1447, id: 'persistent');
+    await store.save(ledger); final restored = await store.load(); expect(restored.remainingDays, 5); expect(restored.debtByRamadan[1447], 5);
+  });
+}

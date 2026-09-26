@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../data/surah_catalog.dart';
+
 class ReaderHistoryEntry {
   const ReaderHistoryEntry({
     required this.surah,
@@ -29,14 +31,26 @@ class ReaderHistoryEntry {
     final ayah = value['ayah'];
     final sourceId = value['sourceId'];
     final updatedAt = value['updatedAt'];
-    if (surah is! num || ayah is! num || sourceId is! String || updatedAt is! num) {
+    if (surah is! num ||
+        ayah is! num ||
+        sourceId is! String ||
+        updatedAt is! num) {
       return null;
     }
-    if (surah < 1 || surah > 114 || ayah < 1) return null;
+    final safeSurah = surah.toInt();
+    final safeAyah = ayah.toInt();
+    final normalizedSourceId = sourceId.trim();
+    if (safeSurah < 1 ||
+        safeSurah > surahCatalog.length ||
+        safeAyah < 1 ||
+        safeAyah > surahCatalog[safeSurah - 1].verseCount ||
+        normalizedSourceId.isEmpty) {
+      return null;
+    }
     return ReaderHistoryEntry(
-      surah: surah.toInt(),
-      ayah: ayah.toInt(),
-      sourceId: sourceId,
+      surah: safeSurah,
+      ayah: safeAyah,
+      sourceId: normalizedSourceId,
       updatedAt: updatedAt.toInt(),
     );
   }
@@ -59,10 +73,15 @@ class ReaderReadingHistoryRepository {
     try {
       final decoded = jsonDecode(raw);
       if (decoded is! List) return const <ReaderHistoryEntry>[];
-      return decoded
+      final entries = decoded
           .map(ReaderHistoryEntry.fromJson)
           .whereType<ReaderHistoryEntry>()
-          .toList(growable: false);
+          .toList(growable: true)
+        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      if (entries.length > maxEntries) {
+        entries.removeRange(maxEntries, entries.length);
+      }
+      return List<ReaderHistoryEntry>.unmodifiable(entries);
     } catch (_) {
       return const <ReaderHistoryEntry>[];
     }
@@ -73,8 +92,10 @@ class ReaderReadingHistoryRepository {
     required int ayah,
     required String sourceId,
   }) async {
-    final safeSurah = surah.clamp(1, 114).toInt();
-    final safeAyah = ayah < 1 ? 1 : ayah;
+    final safeSourceId = sourceId.trim();
+    if (safeSourceId.isEmpty) return;
+    final safeSurah = surah.clamp(1, surahCatalog.length).toInt();
+    final safeAyah = ayah.clamp(1, surahCatalog[safeSurah - 1].verseCount).toInt();
     final items = (await load()).toList(growable: true);
     items.removeWhere(
       (entry) => entry.surah == safeSurah && entry.ayah == safeAyah,
@@ -84,7 +105,7 @@ class ReaderReadingHistoryRepository {
       ReaderHistoryEntry(
         surah: safeSurah,
         ayah: safeAyah,
-        sourceId: sourceId,
+        sourceId: safeSourceId,
         updatedAt: DateTime.now().millisecondsSinceEpoch,
       ),
     );
@@ -106,9 +127,6 @@ class ReaderReadingHistoryRepository {
   }
 }
 
-/// Picks useful resume points instead of showing several neighbouring ayahs
-/// from the same reading session. A translation/source is part of the context,
-/// so the same surah can appear again when it was read with another source.
 List<ReaderHistoryEntry> selectRecentReadingContexts(
   Iterable<ReaderHistoryEntry> entries, {
   required int currentSurah,

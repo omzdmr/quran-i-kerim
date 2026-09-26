@@ -1,0 +1,52 @@
+import 'dart:convert';
+
+import 'package:shared_preferences/shared_preferences.dart';
+
+enum PrayerNotificationProbeOutcome { received, notReceived }
+
+class PrayerNotificationProbeRecord {
+  const PrayerNotificationProbeRecord({required this.outcome, required this.confirmedAt});
+  final PrayerNotificationProbeOutcome outcome;
+  final DateTime confirmedAt;
+
+  bool isFreshAt(DateTime now, {Duration maxAge = const Duration(days: 30)}) {
+    final age = now.toUtc().difference(confirmedAt.toUtc());
+    return !age.isNegative && age <= maxAge;
+  }
+
+  bool isCurrentAt(DateTime now, {required bool notificationsEnabled, required bool? systemPermissionGranted, Duration maxAge = const Duration(days: 30)}) {
+    return notificationsEnabled && systemPermissionGranted != false && isFreshAt(now, maxAge: maxAge);
+  }
+}
+
+class PrayerNotificationSelfTestStore {
+  const PrayerNotificationSelfTestStore();
+  static const storageKey = 'prayer_notification_self_test_v1';
+
+  Future<PrayerNotificationProbeRecord?> load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final encoded = prefs.getString(storageKey);
+    if (encoded == null) return null;
+    try {
+      final raw = jsonDecode(encoded);
+      if (raw is! Map) return null;
+      final outcome = raw['outcome'];
+      final confirmedAt = raw['confirmedAt'];
+      if (outcome is! String || confirmedAt is! String) return null;
+      final parsed = DateTime.tryParse(confirmedAt);
+      PrayerNotificationProbeOutcome? parsedOutcome;
+      for (final value in PrayerNotificationProbeOutcome.values) {
+        if (value.name == outcome) { parsedOutcome = value; break; }
+      }
+      if (parsed == null || parsedOutcome == null) return null;
+      return PrayerNotificationProbeRecord(outcome: parsedOutcome, confirmedAt: parsed.toLocal());
+    } on FormatException {
+      return null;
+    }
+  }
+
+  Future<void> save(PrayerNotificationProbeOutcome outcome, {DateTime? now}) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(storageKey, jsonEncode(<String, Object>{'outcome': outcome.name, 'confirmedAt': (now ?? DateTime.now()).toUtc().toIso8601String()}));
+  }
+}

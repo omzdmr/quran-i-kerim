@@ -55,6 +55,9 @@ class SharedPreferencesBackupAdapter {
     'audio_download_ask_mobile_v1',
     'audio_after_surah_v1',
     'home_quick_actions_v1',
+    'reader_experience_preset_v1',
+    'reader_auto_scroll_speed_v1',
+    'offline_audio_pack_intents_v1',
   };
 
   static const Set<String> dhikrKeys = <String>{
@@ -68,6 +71,12 @@ class SharedPreferencesBackupAdapter {
 
   static const Set<String> readingPlanKeys = <String>{
     'reading_plan_state_v1',
+  };
+
+  /// Private, user-entered qada fasting history. This is user-created data,
+  /// not a religious ruling or an inferred obligation.
+  static const Set<String> fastingKeys = <String>{
+    'qada_fasting_ledger_v1',
   };
 
   /// Prayer behavior that is useful across devices but does not reveal an
@@ -119,6 +128,7 @@ class SharedPreferencesBackupAdapter {
         'dhikr': dhikrKeys,
         'prayerPreferences': prayerPreferenceKeys,
         'readingPlans': readingPlanKeys,
+        'fasting': fastingKeys,
       };
 
   static const Map<String, Set<String>> dynamicPrefixesBySection =
@@ -137,6 +147,7 @@ class SharedPreferencesBackupAdapter {
     ...dhikrKeys,
     ...prayerPreferenceKeys,
     ...readingPlanKeys,
+    ...fastingKeys,
   };
 
   Future<Map<String, Object?>> capture() async {
@@ -246,6 +257,21 @@ class SharedPreferencesBackupAdapter {
     }
     if (schemaVersion <= 4 && section == 'preferences') {
       keys = keys.where((key) => key != 'home_quick_actions_v1').toSet();
+    }
+    if (schemaVersion <= 5 && section == 'preferences') {
+      keys = keys
+          .where((key) => key != 'reader_experience_preset_v1')
+          .toSet();
+    }
+    if (schemaVersion <= 6 && section == 'preferences') {
+      keys = keys
+          .where((key) => key != 'reader_auto_scroll_speed_v1')
+          .toSet();
+    }
+    if (schemaVersion <= 7 && section == 'preferences') {
+      keys = keys
+          .where((key) => key != 'offline_audio_pack_intents_v1')
+          .toSet();
     }
     return keys;
   }

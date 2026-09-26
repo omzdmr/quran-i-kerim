@@ -4,10 +4,12 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 import '../../../l10n/app_localizations.dart';
 import '../application/prayer_calculator.dart';
+import '../application/prayer_calendar_export.dart';
 import '../application/prayer_location_service.dart';
 import '../application/prayer_notification_service.dart';
 import '../application/prayer_preferences_store.dart';
@@ -507,6 +509,7 @@ class _MonthlyPrayerTimesScreenState extends State<MonthlyPrayerTimesScreen> {
   final PrayerCalculator _calculator = PrayerCalculator();
   late DateTime _month;
   String _filter = 'all';
+  bool _exporting = false;
 
   @override
   void initState() {
@@ -516,11 +519,9 @@ class _MonthlyPrayerTimesScreenState extends State<MonthlyPrayerTimesScreen> {
     _month = DateTime(now.year, now.month);
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
+  List<PrayerDaySchedule> _schedulesForMonth() {
     final days = DateUtils.getDaysInMonth(_month.year, _month.month);
-    final schedules = [
+    return [
       for (var day = 1; day <= days; day++)
         _calculator.calculate(
           location: widget.city.location,
@@ -530,9 +531,66 @@ class _MonthlyPrayerTimesScreenState extends State<MonthlyPrayerTimesScreen> {
           ),
         ),
     ];
+  }
+
+  Future<void> _exportMonth() async {
+    if (_exporting) return;
+    final l10n = context.l10n;
+    setState(() => _exporting = true);
+    try {
+      final file = await const PrayerCalendarExportFileService().createFile(
+        schedules: _schedulesForMonth(),
+        timeZoneId: widget.city.location.timeZoneId,
+        calendarName:
+            '${l10n.text('monthlyPrayerTimes')} · ${widget.city.label}',
+        calendarId: widget.city.id,
+        prayerLabel: (id) => _prayerLabel(context, id),
+        month: _month,
+      );
+      if (!mounted) return;
+      final box = context.findRenderObject() as RenderBox?;
+      await SharePlus.instance.share(
+        ShareParams(
+          files: <XFile>[XFile(file.path, mimeType: 'text/calendar')],
+          title: l10n.text('exportPrayerCalendar'),
+          text: l10n.text('prayerCalendarShareText'),
+          sharePositionOrigin: box == null
+              ? null
+              : box.localToGlobal(Offset.zero) & box.size,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.text('prayerCalendarExportFailed'))),
+      );
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final schedules = _schedulesForMonth();
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.text('monthlyPrayerTimes'))),
+      appBar: AppBar(
+        title: Text(l10n.text('monthlyPrayerTimes')),
+        actions: [
+          IconButton(
+            onPressed: _exporting ? null : _exportMonth,
+            icon: _exporting
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.ios_share_rounded),
+            tooltip: l10n.text('exportPrayerCalendarHint'),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           Padding(

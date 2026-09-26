@@ -1,0 +1,129 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:quran_i_kerim/src/features/prayer/application/prayer_notification_schedule_health_store.dart';
+import 'package:quran_i_kerim/src/features/prayer/application/prayer_pending_schedule_probe.dart';
+import 'package:quran_i_kerim/src/features/prayer/application/prayer_preferences_store.dart';
+import 'package:quran_i_kerim/src/features/prayer/application/prayer_saved_location_resolver.dart';
+import 'package:quran_i_kerim/src/features/prayer/application/prayer_schedule_configuration.dart';
+import 'package:quran_i_kerim/src/features/prayer/domain/prayer_models.dart';
+import 'package:quran_i_kerim/src/features/prayer/presentation/prayer_schedule_health_card.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class _FixedPendingProbe implements PrayerPendingScheduleProbe {
+  const _FixedPendingProbe(this.value);
+  final int? value;
+  @override
+  Future<int?> pendingCount() async => value;
+}
+
+void main() {
+  const store = PrayerNotificationScheduleHealthStore();
+  final now = DateTime.utc(2026, 9, 22, 3);
+
+  Widget app({Locale locale = const Locale('tr'), required Future<void> Function() onResync, PrayerPendingScheduleProbe? pendingProbe}) => MaterialApp(
+        locale: locale,
+        supportedLocales: const [Locale('tr'), Locale('en'), Locale('fr'), Locale('ar'), Locale('az'), Locale('ru')],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        home: Scaffold(body: PrayerScheduleHealthCard(now: now, onResync: onResync, pendingProbe: pendingProbe)),
+      );
+
+  setUp(() => SharedPreferences.setMockInitialValues(<String, Object>{}));
+
+  testWidgets('missing schedulable configuration never claims notifications are healthy', (tester) async {
+    var resyncs = 0;
+    await tester.pumpWidget(app(onResync: () async => resyncs++));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('geçerli konum veya namaz seçimi yok'), findsOneWidget);
+    expect(find.text('Bildirimleri yeniden eşitle'), findsOneWidget);
+    await tester.tap(find.text('Bildirimleri yeniden eşitle'));
+    await tester.pumpAndSettle();
+    expect(resyncs, 1);
+  });
+
+  Future<void> seedFreshSchedule() async {
+    SharedPreferences.setMockInitialValues(<String, Object>{'app_locale': 'tr'});
+    const settings = PrayerSettingsSnapshot(notificationsEnabled: true, notificationPrayerIds: {'fajr', 'dhuhr'});
+    const manual = PrayerManualLocationSnapshot(
+      sourceId: 'manual:shanghai', label: 'Shanghai', country: 'China',
+      location: PrayerLocation(latitude: 31.2304, longitude: 121.4737, timeZoneId: 'Asia/Shanghai', label: 'Shanghai'),
+      defaultMethod: PrayerCalculationMethod.muslimWorldLeague, regionCode: 'CN',
+    );
+    await PrayerPreferencesStore.save(settings);
+    await PrayerPreferencesStore.saveManualLocation(manual);
+    final resolved = await const PrayerSavedLocationResolver().resolve();
+    final fingerprint = PrayerScheduleConfiguration.fingerprint(resolved: resolved!, settings: settings, localeTag: 'tr');
+    await store.save(PrayerNotificationScheduleHealth(
+      scheduledAt: DateTime.utc(2026, 9, 22, 2), nextPrayerId: 'dhuhr', nextScheduledAt: DateTime.utc(2026, 9, 22, 4, 30),
+      timeZoneId: 'Asia/Shanghai', locationLabel: 'Shanghai', calculationMethodId: 'muslimWorldLeague', pendingCount: 20,
+      configurationFingerprint: fingerprint,
+    ));
+  }
+
+  testWidgets('matching current inputs are required before UI claims schedule is fresh', (tester) async {
+    await seedFreshSchedule();
+    await tester.pumpWidget(app(onResync: () async {}, pendingProbe: const _FixedPendingProbe(18)));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('güncel bir zamanlamaya sahip'), findsOneWidget);
+    expect(find.text('Bildirimleri yeniden eşitle'), findsNothing);
+    expect(find.textContaining('Son güncelleme'), findsOneWidget);
+  });
+
+  testWidgets('fresh local evidence is rejected when OS has dropped all reminders', (tester) async {
+    await seedFreshSchedule();
+    await tester.pumpWidget(app(onResync: () async {}, pendingProbe: const _FixedPendingProbe(0)));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Cihazda bekleyen namaz bildirimi kalmamış'), findsOneWidget);
+    expect(find.text('Bildirimleri yeniden eşitle'), findsOneWidget);
+    expect(find.textContaining('Planlanan: 0'), findsOneWidget);
+  });
+
+  testWidgets('failed resync stays stale, explains failure and remains retryable', (tester) async {
+    var attempts = 0;
+    await tester.pumpWidget(app(onResync: () async {
+      attempts++;
+      throw StateError('platform scheduler unavailable');
+    }));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bildirimleri yeniden eşitle'));
+    await tester.pumpAndSettle();
+    expect(attempts, 1);
+    expect(find.textContaining('Yeniden eşitleme tamamlanamadı'), findsOneWidget);
+    expect(find.text('Bildirimleri yeniden eşitle'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('legacy schedule is identified instead of silently trusted', (tester) async {
+    await seedFreshSchedule();
+    await store.save(PrayerNotificationScheduleHealth(
+      scheduledAt: DateTime.utc(2026, 9, 22, 2), nextPrayerId: 'dhuhr', nextScheduledAt: DateTime.utc(2026, 9, 22, 4, 30),
+      timeZoneId: 'Asia/Shanghai', locationLabel: 'Shanghai', calculationMethodId: 'muslimWorldLeague', pendingCount: 42,
+    ));
+    await tester.pumpWidget(app(onResync: () async {}, pendingProbe: const _FixedPendingProbe(18)));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('eski sürümden kaldı'), findsOneWidget);
+    expect(find.textContaining('Öğle'), findsOneWidget);
+    expect(find.textContaining('Shanghai'), findsOneWidget);
+    expect(find.textContaining('Asia/Shanghai'), findsOneWidget);
+    expect(find.textContaining('muslimWorldLeague'), findsOneWidget);
+    expect(find.text('Bildirimleri yeniden eşitle'), findsOneWidget);
+  });
+
+  test('all product locales have complete stale/configuration copy', () {
+    for (final code in const ['tr', 'en', 'fr', 'ar', 'az', 'ru']) {
+      final copy = PrayerScheduleHealthCopy.forLocale(Locale(code));
+      expect(copy.title, isNotEmpty, reason: code);
+      expect(copy.needsResync, isNotEmpty, reason: code);
+      expect(copy.configurationIncomplete, isNotEmpty, reason: code);
+      expect(copy.configurationChanged, isNotEmpty, reason: code);
+      expect(copy.legacySchedule, isNotEmpty, reason: code);
+      expect(copy.platformScheduleMissing, isNotEmpty, reason: code);
+      expect(copy.resyncFailed, isNotEmpty, reason: code);
+      expect(copy.updated, isNotEmpty, reason: code);
+      expect(copy.resync, isNotEmpty, reason: code);
+      for (final id in const ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']) {
+        expect(copy.prayerName(id), isNot(id), reason: '$code/$id');
+      }
+    }
+  });
+}

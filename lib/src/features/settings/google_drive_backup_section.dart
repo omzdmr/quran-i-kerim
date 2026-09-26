@@ -2,18 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../data/backup/backup_build_config.dart';
+import '../../data/backup/backup_cloud_connector.dart';
 import '../../data/backup/backup_cloud_controller.dart';
 import '../../data/backup/backup_cloud_coordinator.dart';
+import '../../data/backup/backup_cloud_store.dart';
+import '../../data/backup/backup_file_service.dart';
 import '../../data/backup/google_drive_backup_auth.dart';
 import '../../l10n/app_localizations.dart';
+import 'backup_restore_dialog.dart';
+import 'backup_restore_feedback.dart';
 
 class GoogleDriveBackupSection extends StatefulWidget {
   const GoogleDriveBackupSection({
     required this.onRestored,
+    this.connector,
+    this.restoreSafetyService,
+    this.enabledOverride,
     super.key,
   });
 
   final Future<void> Function() onRestored;
+  final BackupCloudConnector? connector;
+  final BackupFileService? restoreSafetyService;
+  final bool? enabledOverride;
 
   @override
   State<GoogleDriveBackupSection> createState() =>
@@ -21,13 +32,20 @@ class GoogleDriveBackupSection extends StatefulWidget {
 }
 
 class _GoogleDriveBackupSectionState extends State<GoogleDriveBackupSection> {
+  late final BackupFileService _restoreSafetyService;
   late final BackupCloudController _controller;
 
   @override
   void initState() {
     super.initState();
-    _controller = BackupCloudController(connector: GoogleDriveBackupAuth())
-      ..addListener(_onChanged);
+    _restoreSafetyService = widget.restoreSafetyService ?? BackupFileService();
+    _controller = BackupCloudController(
+      connector: widget.connector ?? GoogleDriveBackupAuth(),
+      coordinatorFactory: (store) => BackupCloudCoordinator(
+        store: store,
+        restoreFileService: _restoreSafetyService,
+      ),
+    )..addListener(_onChanged);
   }
 
   void _onChanged() {
@@ -84,22 +102,41 @@ class _GoogleDriveBackupSectionState extends State<GoogleDriveBackupSection> {
 
   Future<void> _restore() async {
     HapticFeedback.selectionClick();
-    if (!await _confirm(
-      titleKey: 'backupCloudRestoreConfirmTitle',
-      bodyKey: 'backupCloudRestoreConfirmBody',
-      actionKey: 'backupCloudRestore',
-    )) {
-      return;
-    }
-    var restored = false;
+    BackupCloudRestorePreparation? preparation;
     await _guard(() async {
-      await _controller.restoreRemote();
-      restored = true;
+      preparation = await _controller.prepareRemoteRestore();
+    });
+    if (!mounted || preparation == null) return;
+    final reviewed = preparation!;
+
+    final mode = await showDialog<BackupRestoreMode>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => BackupRestoreDialog(
+        preview: reviewed.preview,
+        plan: reviewed.plan,
+      ),
+    );
+    if (!mounted || mode == null) return;
+
+    BackupRestoreReceipt? receipt;
+    await _guard(() async {
+      receipt = await _controller.restoreRemote(
+        preparation: reviewed,
+        mode: mode,
+      );
+      if (receipt == null) return;
       await widget.onRestored();
     });
-    if (restored && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.l10n.text('backupRestored'))),
+    if (receipt != null && mounted) {
+      await BackupRestoreFeedback.show(
+        context: context,
+        service: _restoreSafetyService,
+        receipt: receipt!,
+        afterUndo: () async {
+          await widget.onRestored();
+          await _controller.refresh();
+        },
       );
     }
   }
@@ -115,6 +152,24 @@ class _GoogleDriveBackupSectionState extends State<GoogleDriveBackupSection> {
   }) async {
     try {
       await action();
+    } on BackupCloudConflictException {
+      if (refreshOnFailure && _controller.connected) {
+        try {
+          await _controller.refresh();
+        } catch (_) {}
+      }
+      if (!mounted) return;
+      final message =
+          '${context.l10n.text('backupCloudDiverged')} ${context.l10n.text('backupCloudRefresh')}';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Semantics(
+            liveRegion: true,
+            label: message,
+            child: Text(message),
+          ),
+        ),
+      );
     } catch (_) {
       if (refreshOnFailure && _controller.connected) {
         try {
@@ -122,8 +177,15 @@ class _GoogleDriveBackupSectionState extends State<GoogleDriveBackupSection> {
         } catch (_) {}
       }
       if (!mounted) return;
+      final message = context.l10n.text('backupCloudFailed');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.l10n.text('backupCloudFailed'))),
+        SnackBar(
+          content: Semantics(
+            liveRegion: true,
+            label: message,
+            child: Text(message),
+          ),
+        ),
       );
     }
   }
@@ -158,7 +220,7 @@ class _GoogleDriveBackupSectionState extends State<GoogleDriveBackupSection> {
 
   @override
   Widget build(BuildContext context) {
-    if (!BackupBuildConfig.googleDriveEnabled) {
+    if (!(widget.enabledOverride ?? BackupBuildConfig.googleDriveEnabled)) {
       return const SizedBox.shrink();
     }
 

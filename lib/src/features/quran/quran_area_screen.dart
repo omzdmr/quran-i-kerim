@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 
 import '../../l10n/generated/generated_app_localizations.dart';
 import '../../navigation/app_navigation.dart';
+import '../../settings/app_settings.dart';
 import '../reader/quran_reader_screen.dart';
+import '../reader/reader_archive_screen.dart';
 import 'quran_learn_overview.dart';
 import 'quran_progress_overview.dart';
 
@@ -22,6 +24,7 @@ class _QuranAreaScreenState extends State<QuranAreaScreen> {
     super.initState();
     AppNavigation.instance.readerRequest.addListener(_handleReaderRequest);
     AppNavigation.instance.quranReadRequest.addListener(_handleQuranReadRequest);
+    AppNavigation.instance.reportQuranSection(_section);
   }
 
   @override
@@ -44,19 +47,47 @@ class _QuranAreaScreenState extends State<QuranAreaScreen> {
   }
 
   void _showReadSection() {
-    if (_section == 0) return;
+    if (_section == 0) {
+      AppNavigation.instance.reportQuranSection(_section);
+      return;
+    }
     setState(() => _section = 0);
+    AppNavigation.instance.reportQuranSection(_section);
   }
 
   void _selectSection(int index) {
     if (_section == index) return;
     HapticFeedback.selectionClick();
     setState(() => _section = index);
+    AppNavigation.instance.reportQuranSection(index);
+  }
+
+  Future<void> _openSavedActivity() async {
+    HapticFeedback.selectionClick();
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(builder: (_) => const ReaderArchiveScreen()),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = GeneratedAppLocalizations.of(context)!;
+    final settings = AppSettingsScope.of(context);
+    final languageCode = Localizations.localeOf(context).languageCode;
+    final savedLabel = switch (languageCode) {
+      'tr' => 'Kaydedilenler',
+      'fr' => 'Éléments enregistrés',
+      'ar' => 'المحفوظات',
+      'az' => 'Yadda saxlanılanlar',
+      'ru' => 'Сохранённое',
+      _ => 'Saved activity',
+    };
+    final savedCount = settings.bookmarkKeys.length +
+        settings.noteEntries.length +
+        settings.highlightEntries.length;
+    final savedTooltip = savedCount == 0
+        ? savedLabel
+        : '$savedLabel, $savedCount';
 
     return SafeArea(
       child: Column(
@@ -70,15 +101,33 @@ class _QuranAreaScreenState extends State<QuranAreaScreen> {
                 child: AbsorbPointer(
                   absorbing: selectionActive,
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(18, 12, 18, 8),
-                    child: _SectionSwitcher(
-                      selectedIndex: _section,
-                      labels: [
-                        l10n.quranTabRead,
-                        l10n.quranTabLearn,
-                        l10n.quranTabProgress,
+                    padding: const EdgeInsets.fromLTRB(18, 12, 12, 8),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _SectionSwitcher(
+                            selectedIndex: _section,
+                            labels: [
+                              l10n.quranTabRead,
+                              l10n.quranTabLearn,
+                              l10n.quranTabProgress,
+                            ],
+                            onSelected: _selectSection,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Badge(
+                          isLabelVisible: savedCount > 0,
+                          label: ExcludeSemantics(
+                            child: Text(savedCount > 99 ? '99+' : '$savedCount'),
+                          ),
+                          child: IconButton(
+                            onPressed: _openSavedActivity,
+                            tooltip: savedTooltip,
+                            icon: const Icon(Icons.bookmarks_outlined),
+                          ),
+                        ),
                       ],
-                      onSelected: _selectSection,
                     ),
                   ),
                 ),

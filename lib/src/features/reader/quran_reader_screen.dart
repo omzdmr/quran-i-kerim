@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
@@ -6,6 +7,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:quran/quran.dart' as quran;
 import 'package:share_plus/share_plus.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../data/quran_audio_catalog.dart';
 import '../../data/quran_verse_metadata.dart';
@@ -20,6 +22,9 @@ import '../../navigation/app_navigation.dart';
 import '../../settings/app_settings.dart';
 import '../settings/quran_translation_catalog_screen.dart';
 import 'reader_audio_sheet.dart';
+import 'reader_focus_controller.dart';
+import 'reader_focus_controls.dart';
+import 'reader_focus_preferences.dart';
 import 'reader_navigation.dart';
 import 'reader_mixed_verse_list.dart';
 import 'reader_note_sheet.dart';
@@ -32,7 +37,8 @@ class QuranReaderScreen extends StatefulWidget {
   State<QuranReaderScreen> createState() => _QuranReaderScreenState();
 }
 
-class _QuranReaderScreenState extends State<QuranReaderScreen> {
+class _QuranReaderScreenState extends State<QuranReaderScreen>
+    with WidgetsBindingObserver {
   int _surahNumber = 1;
   int _anchorAyah = 1;
   bool _didRestorePosition = false;
@@ -45,6 +51,9 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   bool _audioFollowEnabled = true;
   bool _manualReaderScroll = false;
   late final ReaderAudioController _audioController;
+  late final ReaderFocusController _focusController;
+  late final ReaderFocusPreferencesStore _focusPreferences;
+  Timer? _autoScrollTimer;
   final Set<int> _selectedAyahs = <int>{};
   final ScrollController _scrollController = ScrollController();
   final GlobalKey<_ContinuousVerseTextState> _textKey =
@@ -57,9 +66,69 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _audioController = ReaderAudioController();
     _audioController.addListener(_handleAudioChanged);
+    _focusPreferences = const ReaderFocusPreferencesStore();
+    _focusController = ReaderFocusController()
+      ..addListener(_handleFocusChanged);
+    unawaited(_restoreFocusPreferences());
     AppNavigation.instance.readerRequest.addListener(_handleReaderRequest);
+    AppNavigation.instance.readerFocusRequest.addListener(
+      _handleReaderFocusRequest,
+    );
+    AppNavigation.instance.readerVisible.addListener(_handleReaderVisibilityChanged);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (_focusController.keepAwake) {
+        unawaited(_setReaderKeepAwake(true));
+      }
+      if (_focusController.fullScreen) {
+        unawaited(_setReaderFullScreen(true));
+      }
+      _syncAutoScrollTimer();
+      return;
+    }
+    _autoScrollTimer?.cancel();
+    _autoScrollTimer = null;
+    _saveVisibleReadingPosition();
+    if (_focusController.keepAwake) {
+      unawaited(_releaseWakeLockSafely());
+    }
+  }
+
+  Future<void> _releaseWakeLockSafely() async {
+    try {
+      await WakelockPlus.disable();
+    } catch (_) {
+      // Best effort during lifecycle cleanup; the OS also releases it.
+    }
+  }
+
+  Future<void> _restoreSystemUiSafely() async {
+    try {
+      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    } catch (_) {
+      // Best effort while leaving Reader or disposing the widget.
+    }
+  }
+
+  void _handleReaderVisibilityChanged() {
+    if (AppNavigation.instance.readerVisible.value) return;
+    _autoScrollTimer?.cancel();
+    _autoScrollTimer = null;
+    _saveVisibleReadingPosition();
+    final release = _focusController.leaveSession();
+    AppNavigation.instance.setReaderFullScreenActive(false);
+    if (release.releaseWakeLock) {
+      unawaited(_releaseWakeLockSafely());
+    }
+    if (release.exitFullScreen) {
+      unawaited(_restoreSystemUiSafely());
+    }
   }
 
   void _handleAudioChanged() {
@@ -87,8 +156,25 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _autoScrollTimer?.cancel();
+    _focusController.removeListener(_handleFocusChanged);
+    if (_focusController.keepAwake) {
+      unawaited(_releaseWakeLockSafely());
+    }
+    if (_focusController.fullScreen) {
+      unawaited(_restoreSystemUiSafely());
+    }
+    _focusController.dispose();
+    AppNavigation.instance.setReaderFullScreenActive(false);
     AppNavigation.instance.setReaderSelectionActive(false);
     AppNavigation.instance.readerRequest.removeListener(_handleReaderRequest);
+    AppNavigation.instance.readerFocusRequest.removeListener(
+      _handleReaderFocusRequest,
+    );
+    AppNavigation.instance.readerVisible.removeListener(
+      _handleReaderVisibilityChanged,
+    );
     _audioController.removeListener(_handleAudioChanged);
     _audioController.dispose();
     _scrollController.dispose();
@@ -131,6 +217,14 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
   void _invalidateTranslationFuture() {
     _cachedSourceId = null;
     _cachedTranslationFuture = null;
+  }
+
+  void _handleReaderFocusRequest() {
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !AppNavigation.instance.readerVisible.value) return;
+      unawaited(_showFocusControls());
+    });
   }
 
   void _handleReaderRequest() async {
@@ -225,7 +319,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
         _scrollController.animateTo(
           target,
           duration: attempt == 0
-              ? const Duration(milliseconds: 280)
+              ? _motionDuration(const Duration(milliseconds: 280))
               : Duration.zero,
           curve: Curves.easeOutCubic,
         );
@@ -522,6 +616,96 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     setState(() => _readerChromeVisible = visible);
   }
 
+  Duration _motionDuration(Duration duration) =>
+      MediaQuery.disableAnimationsOf(context) ? Duration.zero : duration;
+
+  Future<void> _restoreFocusPreferences() async {
+    final speed = await _focusPreferences.loadAutoScrollSpeed();
+    if (!mounted) return;
+    _focusController.setAutoScrollSpeed(speed);
+  }
+
+  void _setAutoScrollSpeed(ReaderAutoScrollSpeed speed) {
+    _focusController.setAutoScrollSpeed(speed);
+    unawaited(_focusPreferences.saveAutoScrollSpeed(speed));
+  }
+
+  void _handleFocusChanged() {
+    if (!mounted) return;
+    _syncAutoScrollTimer();
+    setState(() {});
+  }
+
+  void _syncAutoScrollTimer() {
+    if (!_focusController.autoScroll) {
+      _autoScrollTimer?.cancel();
+      _autoScrollTimer = null;
+      return;
+    }
+    if (_autoScrollTimer?.isActive ?? false) return;
+    _autoScrollTimer = Timer.periodic(const Duration(milliseconds: 50), (_) {
+      if (!mounted || !_scrollController.hasClients) return;
+      final position = _scrollController.position;
+      final next =
+          position.pixels +
+          (_focusController.autoScrollSpeed.pixelsPerSecond * .05);
+      if (next >= position.maxScrollExtent) {
+        _saveVisibleReadingPosition();
+        _focusController.setAutoScroll(false);
+        return;
+      }
+      _scrollController.jumpTo(next);
+    });
+  }
+
+  Future<void> _setReaderFullScreen(bool enabled) async {
+    try {
+      await SystemChrome.setEnabledSystemUIMode(
+        enabled ? SystemUiMode.immersiveSticky : SystemUiMode.edgeToEdge,
+      );
+      if (!mounted) return;
+      _focusController.setFullScreen(enabled);
+      AppNavigation.instance.setReaderFullScreenActive(enabled);
+      _setReaderChromeVisible(!enabled);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.text('focusControlFailed'))),
+      );
+    }
+  }
+
+  Future<void> _setReaderKeepAwake(bool enabled) async {
+    try {
+      await WakelockPlus.toggle(enable: enabled);
+      if (!mounted) return;
+      _focusController.setKeepAwake(enabled);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.text('focusControlFailed'))),
+      );
+    }
+  }
+
+  Future<void> _showFocusControls() async {
+    final l10n = context.l10n;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: ReaderFocusControls(
+          controller: _focusController,
+          text: l10n.text,
+          onFullScreenChanged: _setReaderFullScreen,
+          onKeepAwakeChanged: _setReaderKeepAwake,
+          onAutoScrollSpeedChanged: _setAutoScrollSpeed,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -536,9 +720,12 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
         audioConfig != null &&
         _audioQuickControlsVisible;
 
-    return SafeArea(
-      child: Stack(
-        children: [
+    return ReaderFullScreenBackGuard(
+      controller: _focusController,
+      onExitFullScreen: () => _setReaderFullScreen(false),
+      child: SafeArea(
+        child: Stack(
+          children: [
           Positioned.fill(
             child: FutureBuilder<TranslationPack?>(
               future: _translationFuture(settings),
@@ -556,6 +743,16 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
               },
             ),
           ),
+          if (_focusController.dimmed)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: ColoredBox(
+                  color: Colors.black.withValues(alpha: .16),
+                ),
+              ),
+            ),
+          if (_focusController.lineFocus)
+            const Positioned.fill(child: ReaderLineFocusOverlay()),
           Positioned(
             left: 0,
             right: 0,
@@ -564,11 +761,15 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
               ignoring: !showTopChrome,
               child: AnimatedSlide(
                 offset: showTopChrome ? Offset.zero : const Offset(0, -1.05),
-                duration: const Duration(milliseconds: 210),
+                duration: _motionDuration(
+                  const Duration(milliseconds: 210),
+                ),
                 curve: Curves.easeOutCubic,
                 child: AnimatedOpacity(
                   opacity: showTopChrome ? 1 : 0,
-                  duration: const Duration(milliseconds: 160),
+                  duration: _motionDuration(
+                  const Duration(milliseconds: 160),
+                ),
                   curve: Curves.easeOut,
                   child: Material(
                     color: scheme.surface,
@@ -586,25 +787,29 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
           ),
           if (audioConfig != null && _audioQuickControlsVisible)
             Positioned(
-              left: 74,
-              right: 74,
+              left: settings.essentialReaderEnabled ? 36 : 74,
+              right: settings.essentialReaderEnabled ? 36 : 74,
               bottom: 82,
               child: IgnorePointer(
                 ignoring: !showQuickAudio,
                 child: AnimatedSlide(
                   offset: showQuickAudio ? Offset.zero : const Offset(0, .85),
-                  duration: const Duration(milliseconds: 220),
+                  duration: _motionDuration(
+                  const Duration(milliseconds: 220),
+                ),
                   curve: Curves.easeOutCubic,
                   child: AnimatedOpacity(
                     opacity: showQuickAudio ? 1 : 0,
-                    duration: const Duration(milliseconds: 165),
+                    duration: _motionDuration(
+                  const Duration(milliseconds: 165),
+                ),
                     curve: Curves.easeOut,
                     child: Material(
                       elevation: showQuickAudio ? 8 : 0,
                       color: scheme.surfaceContainerHigh,
                       borderRadius: BorderRadius.circular(28),
                       child: SizedBox(
-                        height: 56,
+                        height: settings.essentialReaderEnabled ? 64 : 56,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
@@ -632,10 +837,49 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                 ),
               ),
             ),
-          if (_audioController.isPlaying && !_audioFollowEnabled)
+          if (_focusController.autoScroll ||
+              _focusController.autoScrollPaused)
             Positioned(
               right: 16,
               bottom: 150,
+              child: Semantics(
+                button: true,
+                label: l10n.text(
+                  _focusController.autoScroll
+                      ? 'pauseAutoScroll'
+                      : 'resumeAutoScroll',
+                ),
+                child: FloatingActionButton(
+                  heroTag: 'reader-auto-scroll-toggle',
+                  onPressed: () {
+                    if (_focusController.autoScroll) {
+                      _focusController.pauseAutoScrollForInteraction();
+                      _saveVisibleReadingPosition();
+                    } else {
+                      _focusController.setAutoScroll(true);
+                    }
+                  },
+                  tooltip: l10n.text(
+                    _focusController.autoScroll
+                        ? 'pauseAutoScroll'
+                        : 'resumeAutoScroll',
+                  ),
+                  child: Icon(
+                    _focusController.autoScroll
+                        ? Icons.pause_rounded
+                        : Icons.play_arrow_rounded,
+                  ),
+                ),
+              ),
+            ),
+          if (_audioController.isPlaying && !_audioFollowEnabled)
+            Positioned(
+              right: 16,
+              bottom:
+                  (_focusController.autoScroll ||
+                      _focusController.autoScrollPaused)
+                  ? 214
+                  : 150,
               child: FilledButton.tonalIcon(
                 onPressed: () {
                   setState(() {
@@ -665,15 +909,20 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                 offset: _selectedAyahs.isEmpty
                     ? const Offset(0, 1.15)
                     : Offset.zero,
-                duration: const Duration(milliseconds: 210),
+                duration: _motionDuration(
+                  const Duration(milliseconds: 210),
+                ),
                 curve: Curves.easeOutCubic,
                 child: AnimatedOpacity(
                   opacity: _selectedAyahs.isEmpty ? 0 : 1,
-                  duration: const Duration(milliseconds: 150),
+                  duration: _motionDuration(
+                  const Duration(milliseconds: 150),
+                ),
                   child: Row(
                     children: [
                       Expanded(
                         child: _SelectionTray(
+                          essential: settings.essentialReaderEnabled,
                           onHighlight: _applyHighlight,
                           onBookmark: _bookmarkSelection,
                           onNote: _editSelectionNote,
@@ -682,6 +931,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                               : () => _listenSelection(audioConfig),
                           onCopy: _copySelection,
                           onCompare: _showCompareSheet,
+                          onMore: _showEssentialSelectionActions,
                         ),
                       ),
                       const SizedBox(width: 6),
@@ -702,7 +952,87 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
               ),
             ),
           ),
-        ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showEssentialSelectionActions() async {
+    final l10n = context.l10n;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            18,
+            0,
+            18,
+            MediaQuery.viewInsetsOf(sheetContext).bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                l10n.text('moreActions'),
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                children: [
+                  for (final color in VerseHighlightColor.values)
+                    _HighlightDot(
+                      color: color,
+                      semanticLabel: l10n.text(_highlightColorLabelKey(color)),
+                      onTap: () {
+                        Navigator.pop(sheetContext);
+                        _applyHighlight(color);
+                      },
+                    ),
+                ],
+              ),
+              ListTile(
+                leading: const Icon(Icons.format_color_reset_rounded),
+                title: Text(l10n.text('removeHighlight')),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _applyHighlight(null);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.note_alt_outlined),
+                title: Text(l10n.text('note')),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _editSelectionNote();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.copy_rounded),
+                title: Text(l10n.text('copy')),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _copySelection();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.compare_arrows_rounded),
+                title: Text(l10n.text('compare')),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _showCompareSheet();
+                },
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -771,7 +1101,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                   children: [
                     Expanded(
                       child: Container(
-                        height: 48,
+                        height: settings.essentialReaderEnabled ? 56 : 48,
                         decoration: BoxDecoration(
                           color: scheme.surfaceContainer,
                           borderRadius: BorderRadius.circular(24),
@@ -808,12 +1138,13 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                         icon: const Icon(Icons.volume_up_outlined, size: 27),
                         tooltip: l10n.text('listen'),
                       ),
-                    IconButton(
-                      visualDensity: VisualDensity.compact,
-                      onPressed: _showSearch,
-                      icon: const Icon(Icons.search_rounded, size: 28),
-                      tooltip: l10n.text('readerSearchTooltip'),
-                    ),
+                    if (!settings.essentialReaderEnabled)
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        onPressed: _showSearch,
+                        icon: const Icon(Icons.search_rounded, size: 28),
+                        tooltip: l10n.text('readerSearchTooltip'),
+                      ),
                     IconButton(
                       visualDensity: VisualDensity.compact,
                       onPressed: _showReaderMenu,
@@ -838,6 +1169,9 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
     return NotificationListener<ScrollNotification>(
       onNotification: (notification) {
         if (notification is UserScrollNotification && _selectedAyahs.isEmpty) {
+          if (notification.direction != ScrollDirection.idle) {
+            _focusController.pauseAutoScrollForInteraction();
+          }
           if (notification.direction != ScrollDirection.idle &&
               _audioController.isPlaying) {
             _manualReaderScroll = true;
@@ -876,14 +1210,22 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
         child: SingleChildScrollView(
           controller: _scrollController,
           padding: EdgeInsets.fromLTRB(
-            22,
-            96,
-            22,
+            settings.essentialReaderEnabled ? 28 : 22,
+            settings.essentialReaderEnabled ? 108 : 96,
+            settings.essentialReaderEnabled ? 28 : 22,
             _selectedAyahs.isEmpty ? 118 : 78,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: settings.essentialReaderEnabled
+                    ? 720
+                    : double.infinity,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
               _surahHeader(surah, settings),
               _verseMetadataStrip(),
               if (translationError && !settings.readerUsesArabic)
@@ -901,7 +1243,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                   translations: translations,
                   footnotes: footnotes,
                   mode: settings.readerMode,
-                  textSize: settings.readerTextSize,
+                  textSize: settings.readerContentTextSize,
                   lineHeight: settings.arabicLineHeight,
                   selectedAyahs: _selectedAyahs,
                   activeAudioAyah:
@@ -951,7 +1293,9 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                     );
                   },
                 ),
-            ],
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -1100,7 +1444,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: 'serif',
-                fontSize: settings.readerTextSize,
+                fontSize: settings.readerContentTextSize,
                 height: settings.arabicLineHeight,
               ),
             ),
@@ -1168,6 +1512,15 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
+                leading: const Icon(Icons.center_focus_strong_rounded),
+                title: Text(l10n.text('focusReading')),
+                subtitle: Text(l10n.text('focusReadingSubtitle')),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _showFocusControls();
+                },
+              ),
+              ListTile(
                 leading: const Icon(Icons.text_fields_rounded),
                 title: Text(l10n.text('readerAppearanceMenu')),
                 subtitle: Text(l10n.text('readerAppearanceMenuSubtitle')),
@@ -1176,6 +1529,16 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                   _showReadingAppearance();
                 },
               ),
+              if (AppSettingsScope.of(context).essentialReaderEnabled)
+                ListTile(
+                  leading: const Icon(Icons.search_rounded),
+                  title: Text(l10n.text('readerSearchTooltip')),
+                  subtitle: Text(l10n.text('quranSearchHint')),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _showSearch();
+                  },
+                ),
               ListTile(
                 leading: const Icon(Icons.translate_rounded),
                 title: Text(l10n.text('readingText')),
@@ -1236,6 +1599,23 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                     fontSize: 26,
                     fontWeight: FontWeight.w900,
                   ),
+                ),
+                const SizedBox(height: 12),
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  secondary: const Icon(Icons.visibility_outlined),
+                  title: Text(l10n.text('essentialReaderTitle')),
+                  subtitle: Text(l10n.text('essentialReaderSubtitle')),
+                  value: settings.essentialReaderEnabled,
+                  onChanged: (enabled) async {
+                    await settings.setReaderExperiencePreset(
+                      enabled
+                          ? ReaderExperiencePreset.essential
+                          : ReaderExperiencePreset.standard,
+                    );
+                    HapticFeedback.selectionClick();
+                    setSheetState(() {});
+                  },
                 ),
                 const SizedBox(height: 18),
                 _FontSizeControl(
@@ -2056,7 +2436,7 @@ class _QuranReaderScreenState extends State<QuranReaderScreen> {
                       textAlign: arabic ? TextAlign.right : TextAlign.left,
                       style: TextStyle(
                         fontFamily: 'serif',
-                        fontSize: settings.readerTextSize,
+                        fontSize: settings.readerContentTextSize,
                         height: arabic
                             ? settings.arabicLineHeight
                             : settings.translationLineHeight,
@@ -2701,20 +3081,24 @@ class _ContinuousVerseTextState extends State<_ContinuousVerseText> {
 
 class _SelectionTray extends StatelessWidget {
   const _SelectionTray({
+    required this.essential,
     required this.onHighlight,
     required this.onBookmark,
     required this.onNote,
     required this.onListen,
     required this.onCopy,
     required this.onCompare,
+    required this.onMore,
   });
 
+  final bool essential;
   final ValueChanged<VerseHighlightColor?> onHighlight;
   final VoidCallback onBookmark;
   final VoidCallback onNote;
   final VoidCallback? onListen;
   final VoidCallback onCopy;
   final VoidCallback onCompare;
+  final VoidCallback onMore;
 
   @override
   Widget build(BuildContext context) {
@@ -2732,45 +3116,61 @@ class _SelectionTray extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
           child: Row(
             children: [
-              for (final color in VerseHighlightColor.values)
-                _HighlightDot(color: color, onTap: () => onHighlight(color)),
-              IconButton(
-                onPressed: () => onHighlight(null),
-                icon: const Icon(Icons.format_color_reset_rounded, size: 20),
-                tooltip: l10n.text('removeHighlight'),
-              ),
-              Container(
-                width: 1,
-                height: 36,
-                margin: const EdgeInsets.symmetric(horizontal: 5),
-                color: scheme.outlineVariant,
-              ),
+              if (!essential)
+                for (final color in VerseHighlightColor.values)
+                  _HighlightDot(
+                    color: color,
+                    semanticLabel: l10n.text(_highlightColorLabelKey(color)),
+                    onTap: () => onHighlight(color),
+                  ),
+              if (!essential)
+                IconButton(
+                  onPressed: () => onHighlight(null),
+                  icon: const Icon(Icons.format_color_reset_rounded, size: 20),
+                  tooltip: l10n.text('removeHighlight'),
+                ),
+              if (!essential)
+                Container(
+                  width: 1,
+                  height: 36,
+                  margin: const EdgeInsets.symmetric(horizontal: 5),
+                  color: scheme.outlineVariant,
+                ),
               _SelectionAction(
                 icon: Icons.bookmark_border_rounded,
                 label: l10n.save,
                 onTap: onBookmark,
               ),
-              _SelectionAction(
-                icon: Icons.note_alt_outlined,
-                label: l10n.text('note'),
-                onTap: onNote,
-              ),
+              if (!essential)
+                _SelectionAction(
+                  icon: Icons.note_alt_outlined,
+                  label: l10n.text('note'),
+                  onTap: onNote,
+                ),
               if (onListen != null)
                 _SelectionAction(
                   icon: Icons.headphones_rounded,
                   label: l10n.text('listen'),
                   onTap: onListen!,
                 ),
-              _SelectionAction(
-                icon: Icons.copy_rounded,
-                label: l10n.text('copy'),
-                onTap: onCopy,
-              ),
-              _SelectionAction(
-                icon: Icons.compare_arrows_rounded,
-                label: l10n.text('compare'),
-                onTap: onCompare,
-              ),
+              if (!essential)
+                _SelectionAction(
+                  icon: Icons.copy_rounded,
+                  label: l10n.text('copy'),
+                  onTap: onCopy,
+                ),
+              if (!essential)
+                _SelectionAction(
+                  icon: Icons.compare_arrows_rounded,
+                  label: l10n.text('compare'),
+                  onTap: onCompare,
+                ),
+              if (essential)
+                _SelectionAction(
+                  icon: Icons.more_horiz_rounded,
+                  label: l10n.text('moreActions'),
+                  onTap: onMore,
+                ),
             ],
           ),
         ),
@@ -2800,36 +3200,43 @@ class _SelectionActionState extends State<_SelectionAction> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapCancel: () => setState(() => _pressed = false),
-      onTapUp: (_) => setState(() => _pressed = false),
+    return Semantics(
+      button: true,
+      label: widget.label,
       onTap: widget.onTap,
-      child: AnimatedScale(
-        scale: _pressed ? .94 : 1,
-        duration: const Duration(milliseconds: 90),
-        child: Container(
-          constraints: const BoxConstraints(minWidth: 64),
-          margin: const EdgeInsets.only(right: 5),
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
-          decoration: BoxDecoration(
-            color: scheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(widget.icon, size: 20),
-              const SizedBox(height: 2),
-              Text(
-                widget.label,
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        excludeFromSemantics: true,
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapCancel: () => setState(() => _pressed = false),
+        onTapUp: (_) => setState(() => _pressed = false),
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          scale: _pressed ? .94 : 1,
+          duration: const Duration(milliseconds: 90),
+          child: Container(
+            constraints: const BoxConstraints(minWidth: 64),
+            margin: const EdgeInsets.only(right: 5),
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(widget.icon, size: 20),
+                const SizedBox(height: 2),
+                Text(
+                  widget.label,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -2850,28 +3257,48 @@ class _CompareVersion {
 }
 
 class _HighlightDot extends StatelessWidget {
-  const _HighlightDot({required this.color, required this.onTap});
+  const _HighlightDot({
+    required this.color,
+    required this.semanticLabel,
+    required this.onTap,
+  });
 
   final VerseHighlightColor color;
+  final String semanticLabel;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => InkWell(
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: semanticLabel,
     onTap: onTap,
-    customBorder: const CircleBorder(),
-    child: Padding(
-      padding: const EdgeInsets.all(3),
-      child: Container(
-        width: 32,
-        height: 32,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: _highlightMaterialColor(color),
+    excludeSemantics: true,
+    child: InkWell(
+      onTap: onTap,
+      excludeFromSemantics: true,
+      customBorder: const CircleBorder(),
+      child: Padding(
+        padding: const EdgeInsets.all(3),
+        child: Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: _highlightMaterialColor(color),
+          ),
         ),
       ),
     ),
   );
 }
+
+String _highlightColorLabelKey(VerseHighlightColor color) => switch (color) {
+  VerseHighlightColor.yellow => 'highlightYellow',
+  VerseHighlightColor.green => 'highlightGreen',
+  VerseHighlightColor.blue => 'highlightBlue',
+  VerseHighlightColor.orange => 'highlightOrange',
+  VerseHighlightColor.pink => 'highlightPink',
+};
 
 Color _highlightMaterialColor(VerseHighlightColor color) => switch (color) {
   VerseHighlightColor.yellow => const Color(0xFFFFEB00),

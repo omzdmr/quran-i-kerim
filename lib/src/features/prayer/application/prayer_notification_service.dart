@@ -23,9 +23,12 @@ class PrayerNotificationDiagnostics {
   final int pendingCount;
 }
 
+enum PrayerNotificationSelfTestResult { delivered, permissionDenied }
+
 class PrayerNotificationService {
   PrayerNotificationService._();
 
+  static const _selfTestId = 799999;
   static final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
@@ -57,9 +60,6 @@ class PrayerNotificationService {
           await android?.requestNotificationsPermission() ?? true;
       granted = granted && notificationGranted;
       if (notificationGranted) {
-        // Exact alarms are appropriate for prayer-time reminders. If the user
-        // declines the system permission, scheduling transparently falls back
-        // to inexact alarms instead of disabling reminders altogether.
         await android?.requestExactAlarmsPermission();
       }
     } else if (Platform.isIOS) {
@@ -90,12 +90,32 @@ class PrayerNotificationService {
     final cityId = await PrayerPreferencesStore.loadCityId();
     if (cityId == PrayerPreferencesStore.deviceLocationId) {
       final device = await PrayerPreferencesStore.loadDeviceLocation();
-      if (device == null) return;
+      if (device == null) {
+        await _plugin.cancelAllPendingNotifications();
+        return;
+      }
       await reschedule(
         location: device.location,
         defaultMethod: device.defaultMethod,
         settings: settings,
       );
+      return;
+    }
+    if (cityId == PrayerPreferencesStore.manualLocationId) {
+      final manual = await PrayerPreferencesStore.loadManualLocation();
+      if (manual == null) {
+        await _plugin.cancelAllPendingNotifications();
+        return;
+      }
+      await reschedule(
+        location: manual.location,
+        defaultMethod: manual.defaultMethod,
+        settings: settings,
+      );
+      return;
+    }
+    if (cityId == null || !prayerCities.any((city) => city.id == cityId)) {
+      await _plugin.cancelAllPendingNotifications();
       return;
     }
 
@@ -152,8 +172,6 @@ class PrayerNotificationService {
       ),
     );
 
-    // 12 days x 5 prayers = 60 requests, staying below iOS's common pending
-    // notification limit while still refreshing automatically on each app open.
     for (var dayOffset = 0; dayOffset < 12; dayOffset++) {
       final date = now.add(Duration(days: dayOffset));
       final schedule = calculator.calculate(
@@ -188,6 +206,44 @@ class PrayerNotificationService {
     }
   }
 
+  /// Sends a user-triggered local notification through the same channel and
+  /// sound/vibration profile as prayer reminders. It never writes prayer
+  /// completion/history state and uses a reserved ID outside scheduled prayers.
+  static Future<PrayerNotificationSelfTestResult> sendSelfTest() async {
+    await initialize();
+    final diagnostic = await diagnostics();
+    if (diagnostic.systemPermissionGranted == false) {
+      return PrayerNotificationSelfTestResult.permissionDenied;
+    }
+
+    final settings = await PrayerPreferencesStore.load();
+    final copy = AppLocalizations(await AppLocaleResolver.currentLocale());
+    final details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        settings.notificationProfile.channelId,
+        copy.prayerNotificationChannel,
+        channelDescription: copy.prayerNotificationChannelDescription,
+        importance: Importance.high,
+        priority: Priority.high,
+        category: AndroidNotificationCategory.reminder,
+        playSound: settings.notificationProfile.playSound,
+        enableVibration: settings.notificationProfile.enableVibration,
+      ),
+      iOS: DarwinNotificationDetails(
+        presentAlert: true,
+        presentSound: settings.notificationProfile.playSound,
+      ),
+    );
+    await _plugin.show(
+      id: _selfTestId,
+      title: copy.prayerNotificationChannel,
+      body: copy.prayerNotificationChannelDescription,
+      notificationDetails: details,
+      payload: 'prayer:self-test',
+    );
+    return PrayerNotificationSelfTestResult.delivered;
+  }
+
   static Future<PrayerNotificationDiagnostics> diagnostics() async {
     await initialize();
 
@@ -213,6 +269,7 @@ class PrayerNotificationService {
     final pending = await _plugin.pendingNotificationRequests();
     final prayerPendingCount = pending
         .where((request) => request.payload?.startsWith('prayer:') ?? false)
+        .where((request) => request.payload != 'prayer:self-test')
         .length;
     return PrayerNotificationDiagnostics(
       systemPermissionGranted: permissionGranted,

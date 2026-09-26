@@ -476,6 +476,8 @@ class _ReaderAudioSheetState extends State<ReaderAudioSheet> {
   }
 
   void _handleOfflineChanged() {
+    _statsKey = null;
+    _statsFuture = null;
     if (mounted) setState(() {});
   }
 
@@ -1183,7 +1185,9 @@ class _AudioOfflineSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final live = progress;
-    if (live != null && live.status == AudioDownloadStatus.downloading) {
+    if (live != null &&
+        (live.status == AudioDownloadStatus.downloading ||
+            live.status == AudioDownloadStatus.verifying)) {
       return Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
@@ -1196,23 +1200,31 @@ class _AudioOfflineSection extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    '${copy.downloading} ${live.downloadedAyahs}/${live.verseCount}',
+                    live.status == AudioDownloadStatus.verifying
+                        ? copy.verifying
+                        : '${copy.downloading} ${live.downloadedAyahs}/${live.verseCount}',
                     style: const TextStyle(fontWeight: FontWeight.w800),
                   ),
                 ),
-                IconButton(
-                  onPressed: onPause,
-                  icon: const Icon(Icons.pause_rounded),
-                  tooltip: copy.pauseDownload,
-                ),
-                IconButton(
-                  onPressed: onCancel,
-                  icon: const Icon(Icons.close_rounded),
-                  tooltip: copy.cancel,
-                ),
+                if (live.status == AudioDownloadStatus.downloading) ...[
+                  IconButton(
+                    onPressed: onPause,
+                    icon: const Icon(Icons.pause_rounded),
+                    tooltip: copy.pauseDownload,
+                  ),
+                  IconButton(
+                    onPressed: onCancel,
+                    icon: const Icon(Icons.close_rounded),
+                    tooltip: copy.cancel,
+                  ),
+                ],
               ],
             ),
-            LinearProgressIndicator(value: live.fraction.clamp(0, 1)),
+            LinearProgressIndicator(
+              value: live.status == AudioDownloadStatus.verifying
+                  ? null
+                  : live.fraction.clamp(0, 1),
+            ),
           ],
         ),
       );
@@ -1224,6 +1236,7 @@ class _AudioOfflineSection extends StatelessWidget {
         final complete =
             live?.status == AudioDownloadStatus.completed ||
             (stats?.complete ?? false);
+        final needsRepair = stats?.needsRepair ?? false;
         final partial =
             live?.status == AudioDownloadStatus.paused ||
             live?.status == AudioDownloadStatus.failed ||
@@ -1250,6 +1263,8 @@ class _AudioOfflineSection extends StatelessWidget {
                     Text(
                       complete
                           ? copy.offline
+                          : needsRepair
+                          ? copy.repairDownload
                           : partial
                           ? copy.resumeDownload
                           : copy.downloadSurah,
@@ -1258,6 +1273,8 @@ class _AudioOfflineSection extends StatelessWidget {
                     Text(
                       complete
                           ? _formatBytes(stats?.bytes ?? live?.bytes ?? 0)
+                          : needsRepair
+                          ? copy.repairHint
                           : partial
                           ? '${stats?.downloadedAyahs ?? live?.downloadedAyahs ?? 0}/${stats?.verseCount ?? live?.verseCount ?? 0} · ${copy.resumeHint}'
                           : '${copy.estimated} ${_formatBytes(estimateBytes)}',
@@ -1278,7 +1295,13 @@ class _AudioOfflineSection extends StatelessWidget {
               else
                 FilledButton.tonal(
                   onPressed: onDownload,
-                  child: Text(partial ? copy.resume : copy.download),
+                  child: Text(
+                    needsRepair
+                        ? copy.repair
+                        : partial
+                        ? copy.resume
+                        : copy.download,
+                  ),
                 ),
             ],
           ),
@@ -1360,6 +1383,15 @@ class _AudioCopy {
     'جارٍ التنزيل',
     'Endirilir',
     'Загрузка',
+    'Téléchargement',
+  );
+  String get verifying => _pick(
+    'Paket doğrulanıyor…',
+    'Verifying offline pack…',
+    'جارٍ التحقق من الحزمة…',
+    'Oflayn paket yoxlanılır…',
+    'Проверка офлайн-пакета…',
+    'Vérification du pack hors ligne…',
   );
   String get offline => _pick(
     'Offline hazır',
@@ -1383,6 +1415,31 @@ class _AudioCopy {
     'يتابع من حيث توقف',
     'qaldığı yerdən davam edir',
     'продолжит с места остановки',
+    'reprend là où il s’est arrêté',
+  );
+  String get repair => _pick(
+    'Onar',
+    'Repair',
+    'إصلاح',
+    'Bərpa et',
+    'Исправить',
+    'Réparer',
+  );
+  String get repairDownload => _pick(
+    'Çevrimdışı paketi onar',
+    'Repair offline pack',
+    'إصلاح الحزمة دون اتصال',
+    'Oflayn paketi bərpa et',
+    'Исправить офлайн-пакет',
+    'Réparer le pack hors ligne',
+  );
+  String get repairHint => _pick(
+    'Eksik veya değişmiş dosyalar yeniden indirilecek.',
+    'Missing or changed files will be downloaded again.',
+    'ستتم إعادة تنزيل الملفات الناقصة أو المتغيرة.',
+    'Çatışmayan və ya dəyişmiş fayllar yenidən endiriləcək.',
+    'Недостающие или изменённые файлы будут загружены снова.',
+    'Les fichiers manquants ou modifiés seront retéléchargés.',
   );
   String get pauseDownload => _pick(
     'İndirmeyi duraklat',
@@ -1569,12 +1626,20 @@ class _AudioCopy {
     'Не удалось открыть аудио. Проверьте соединение и попробуйте снова.',
   );
 
-  String _pick(String tr, String en, String ar, String az, String ru) =>
+  String _pick(
+    String tr,
+    String en,
+    String ar,
+    String az,
+    String ru, [
+    String? fr,
+  ]) =>
       switch (languageCode) {
         'tr' => tr,
         'ar' => ar,
         'az' => az,
         'ru' => ru,
+        'fr' => fr ?? en,
         _ => en,
       };
 }

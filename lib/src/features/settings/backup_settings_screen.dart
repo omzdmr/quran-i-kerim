@@ -13,6 +13,8 @@ import '../../settings/app_settings.dart';
 import '../learn/application/learn_progress_store.dart';
 import '../plans/reading_plan_store.dart';
 import '../prayer/application/prayer_notification_service.dart';
+import 'backup_restore_dialog.dart';
+import 'backup_restore_feedback.dart';
 import 'google_drive_backup_section.dart';
 
 class BackupSettingsScreen extends StatefulWidget {
@@ -128,9 +130,9 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
   }
 
   Future<void> _confirmAndRestore(File file) async {
-    BackupPreview preview;
+    BackupPreparedImport prepared;
     try {
-      preview = await _service.previewFile(file);
+      prepared = await _service.prepareFile(file);
     } catch (_) {
       if (!mounted) return;
       await _showInvalidBackup();
@@ -138,51 +140,32 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
     }
 
     if (!mounted) return;
-    if (!preview.canRestore) {
-      await _showInvalidBackup();
-      return;
-    }
-
-    final l10n = context.l10n;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.text('backupRestoreConfirmTitle')),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(l10n.text('backupRestoreConfirmBody')),
-            const SizedBox(height: 16),
-            _PreviewSummary(preview: preview),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(MaterialLocalizations.of(dialogContext).cancelButtonLabel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(l10n.text('backupRestore')),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-
-    setState(() => _busy = true);
     try {
-      await _service.restoreFile(file);
+      final mode = await showDialog<BackupRestoreMode>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => BackupRestoreDialog(
+          preview: prepared.preview,
+          plan: prepared.plan,
+        ),
+      );
+      if (mode == null || !mounted) return;
+
+      setState(() => _busy = true);
+      final receipt = await _service.restorePrepared(prepared, mode: mode);
       await _refreshRestoredAppState();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.l10n.text('backupRestored'))),
+      setState(() => _busy = false);
+      await BackupRestoreFeedback.show(
+        context: context,
+        service: _service,
+        receipt: receipt,
+        afterUndo: _refreshRestoredAppState,
       );
     } catch (_) {
       if (mounted) _showFailure();
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted && _busy) setState(() => _busy = false);
     }
   }
 

@@ -1,0 +1,164 @@
+import 'dart:ui' show SemanticsAction;
+
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:quran_i_kerim/src/features/learn/presentation/memorization_review_coverage_screen.dart';
+import 'package:quran_i_kerim/src/l10n/app_localizations.dart';
+import 'package:quran_i_kerim/src/l10n/generated/generated_app_localizations.dart';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  Widget app() => const MaterialApp(
+        locale: Locale('en'),
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: [
+          GeneratedAppLocalizations.delegate,
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        home: MemorizationReviewCoverageScreen(),
+      );
+
+  testWidgets('shows attention pages first and can reveal all coverage', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'memorized_pages_v1': <String>['2', '1', '3'],
+      'memorization_page_progress_v1':
+          '{"1":{"memorizedAt":"2026-08-01T00:00:00.000"},'
+          '"2":{"memorizedAt":"2026-08-01T00:00:00.000",'
+          '"lastReviewedAt":"2020-01-01T00:00:00.000",'
+          '"selfAssessment":"assisted"},'
+          '"3":{"memorizedAt":"2026-08-01T00:00:00.000",'
+          '"lastReviewedAt":"2099-01-01T00:00:00.000",'
+          '"selfAssessment":"independent"}}',
+    });
+
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.new_releases_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+
+    await tester.tap(find.byType(ChoiceChip).last);
+    await tester.pump();
+
+    expect(find.textContaining('3'), findsWidgets);
+  });
+
+  testWidgets('has tappable semantics for review page rows', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'memorized_pages_v1': <String>['5'],
+      'memorization_page_progress_v1':
+          '{"5":{"memorizedAt":"2026-08-01T00:00:00.000"}}',
+    });
+
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+
+    final row = find.bySemanticsLabel(RegExp('5,.*Not reviewed yet'));
+    expect(row, findsOneWidget);
+    final semantics = tester.getSemantics(row);
+    expect(semantics.hasAction(SemanticsAction.tap), isTrue);
+    expect(semantics.label, contains('5'));
+  });
+
+  testWidgets('hides review start when every memorized page is fresh', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'memorized_pages_v1': <String>['8'],
+      'memorization_page_progress_v1':
+          '{"8":{"memorizedAt":"2026-08-01T00:00:00.000",'
+          '"lastReviewedAt":"2099-01-01T00:00:00.000",'
+          '"selfAssessment":"independent"}}',
+    });
+
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
+    expect(find.byIcon(Icons.check_circle_outline_rounded), findsWidgets);
+  });
+
+  testWidgets('bounds a large attention backlog to a five-page session', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'memorized_pages_v1': <String>['1', '2', '3', '4', '5', '6', '7', '8'],
+      'memorization_page_progress_v1':
+          '{"1":{"memorizedAt":"2026-01-01T00:00:00.000"},'
+          '"2":{"memorizedAt":"2026-01-01T00:00:00.000"},'
+          '"3":{"memorizedAt":"2026-01-01T00:00:00.000"},'
+          '"4":{"memorizedAt":"2026-01-01T00:00:00.000"},'
+          '"5":{"memorizedAt":"2026-01-01T00:00:00.000"},'
+          '"6":{"memorizedAt":"2026-01-01T00:00:00.000"},'
+          '"7":{"memorizedAt":"2026-01-01T00:00:00.000"},'
+          '"8":{"memorizedAt":"2026-01-01T00:00:00.000"}}',
+    });
+
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+
+    expect(find.text('This review round: 5 · Remaining later: 3'), findsOneWidget);
+    expect(find.widgetWithIcon(FilledButton, Icons.play_arrow_rounded), findsOneWidget);
+    final semanticsFinder = find.bySemanticsLabel(
+      RegExp('This review round: 5.*Remaining later: 3'),
+    );
+    expect(semanticsFinder, findsOneWidget);
+    final semantics = tester.getSemantics(semanticsFinder);
+    expect(semantics.hasAction(SemanticsAction.tap), isTrue);
+  });
+
+  testWidgets('guided assessment clears the reviewed page from attention', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'memorized_pages_v1': <String>['1'],
+      'memorization_page_progress_v1':
+          '{"1":{"memorizedAt":"2026-01-01T00:00:00.000",'
+          '"lastReviewedAt":"2026-01-02T00:00:00.000"}}',
+    });
+
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.text('1/1'), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.menu_book_rounded));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.visibility_off_outlined), findsWidgets);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.check_circle_outline_rounded), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.check_circle_outline_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
+    expect(find.byIcon(Icons.check_circle_outline_rounded), findsWidgets);
+  });
+
+  testWidgets('deferring the last page keeps it in the attention queue', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'memorized_pages_v1': <String>['13'],
+      'memorization_page_progress_v1':
+          '{"13":{"memorizedAt":"2026-01-01T00:00:00.000"}}',
+    });
+
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.pumpAndSettle();
+    expect(find.text('Skip for now'), findsOneWidget);
+
+    await tester.tap(find.text('Skip for now'));
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+    final prefs = await SharedPreferences.getInstance();
+    expect(
+      prefs.getString('memorization_page_progress_v1'),
+      isNot(contains('lastReviewedAt')),
+    );
+  });
+}
