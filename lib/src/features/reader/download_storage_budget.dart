@@ -32,7 +32,11 @@ class DownloadStorageBudget {
     return DownloadStorageBudget(
       availableBytes: safeAvailable,
       requiredBytes: safeRequired,
-      reserveBytes: reserve.clamp(0, safeAvailable),
+      reserveBytes: reserve <= 0
+          ? 0
+          : reserve > safeAvailable
+          ? safeAvailable
+          : reserve,
     );
   }
 }
