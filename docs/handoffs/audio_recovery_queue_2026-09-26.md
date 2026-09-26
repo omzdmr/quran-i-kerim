@@ -28,3 +28,26 @@ workload and deletion/queue coherence. Deleting a pack or an entire voice remove
 matching pending queue work and cancels matching active work, preventing deleted media
 from being recreated by an old queue entry. Per-item network preflight remains
 fail-closed when connectivity policy changes.
+
+
+## Storage admission follow-up
+
+Staging commits `34851afc`, `b94ea656`, `ae738118`, `64b2b896` add the
+shared side of real-device storage admission. `DownloadStorageBudget` reserves
+the greater of 256 MiB or 10% of reported available space before admitting a
+large audio job, with focused boundary tests. `DeviceStorageCapacity` reads
+`availableForImportantUsageBytes` from the native
+`app.quranikerim/native_storage_capacity` contract and never fabricates a
+capacity value when the platform bridge is absent.
+
+The iOS parity branch already exposes that exact channel from
+`StorageCapacityChannel`. The common staging branch intentionally does not
+copy native iOS code across branch ownership. Android currently has no committed
+native scaffold/handler on this staging branch, so Android capacity wiring is an
+explicit remaining platform handoff rather than a fake measurement.
+
+Next product step: wire this admission result into both single-pack recovery and
+the FIFO per-item preflight, preserve the pending item when space is
+insufficient, and expose an accessible Downloads warning with required/free
+space. Capacity-unavailable must remain distinguishable from
+insufficient-storage.
