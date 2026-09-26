@@ -72,7 +72,19 @@ final class PrayerLiveActivityChannel {
       let state = try parseState(arguments)
       let activities = Activity<PrayerActivityAttributes>.activities
       if let matching = activities.first(where: { activityMatches($0, state: state) }) {
-        result(["id": matching.id, "started": false, "alreadyActive": true, "stateMatched": true])
+        let duplicates = activities.filter { $0.id != matching.id && $0.contentState.prayerAtMilliseconds > now }
+        guard !duplicates.isEmpty else {
+          result(["id": matching.id, "started": false, "alreadyActive": true, "stateMatched": true, "retiredDuplicateCount": 0])
+          return
+        }
+        Task {
+          for activity in duplicates {
+            await activity.end(using: activity.contentState, dismissalPolicy: .immediate)
+          }
+          await MainActor.run {
+            result(["id": matching.id, "started": false, "alreadyActive": true, "stateMatched": true, "retiredDuplicateCount": duplicates.count])
+          }
+        }
         return
       }
       let conflicting = activities.filter { $0.contentState.prayerAtMilliseconds > now }
