@@ -34,7 +34,13 @@ final class PrayerLiveActivityChannel {
     case "capabilities":
       result(["supported": true, "activitiesEnabled": ActivityAuthorizationInfo().areActivitiesEnabled, "lockScreen": true, "dynamicIslandConfiguration": true, "privacyRedaction": true, "expiredAutoCleanup": true, "finalProvider": false])
     case "status":
-      let activities = Activity<PrayerActivityAttributes>.activities; result(["activitiesEnabled": ActivityAuthorizationInfo().areActivitiesEnabled, "activeCount": activities.count, "activeIDs": activities.map(\.id)])
+      let activities = Activity<PrayerActivityAttributes>.activities
+      result([
+        "activitiesEnabled": ActivityAuthorizationInfo().areActivitiesEnabled,
+        "activeCount": activities.count,
+        "activeIDs": activities.map(\.id),
+        "activities": activities.map { activityStatus($0) },
+      ])
     case "start":
       start(call.arguments, result: result)
     case "update":
@@ -62,23 +68,62 @@ final class PrayerLiveActivityChannel {
       result(FlutterError(code: "live_activity_disabled", message: "Live Activities are disabled for this app.", details: nil)); return
     }
     let now = Date().timeIntervalSince1970 * 1000
-    if let existing = Activity<PrayerActivityAttributes>.activities.first(where: { $0.contentState.prayerAtMilliseconds > now }) { result(["id": existing.id, "started": false, "alreadyActive": true]); return }
     do {
       let state = try parseState(arguments)
-      let attributes = PrayerActivityAttributes(createdAtMilliseconds: Date().timeIntervalSince1970 * 1000)
-      let activity: Activity<PrayerActivityAttributes>
-      if #available(iOS 16.2, *) {
-        let content = ActivityContent(state: state, staleDate: Date(timeIntervalSince1970: state.prayerAtMilliseconds / 1000))
-        activity = try Activity<PrayerActivityAttributes>.request(attributes: attributes, content: content, pushType: nil)
-      } else {
-        activity = try Activity<PrayerActivityAttributes>.request(attributes: attributes, contentState: state, pushType: nil)
+      let activities = Activity<PrayerActivityAttributes>.activities
+      if let matching = activities.first(where: { activityMatches($0, state: state) }) {
+        result(["id": matching.id, "started": false, "alreadyActive": true, "stateMatched": true])
+        return
       }
-      result(["id": activity.id, "started": true])
+      let conflicting = activities.filter { $0.contentState.prayerAtMilliseconds > now }
+      if !conflicting.isEmpty {
+        Task {
+          for activity in conflicting {
+            await activity.end(using: activity.contentState, dismissalPolicy: .immediate)
+          }
+          do {
+            let activity = try self.requestActivity(state: state)
+            await MainActor.run { result(["id": activity.id, "started": true, "replacedCount": conflicting.count]) }
+          } catch {
+            await MainActor.run { result(FlutterError(code: "live_activity_start_failed", message: error.localizedDescription, details: nil)) }
+          }
+        }
+        return
+      }
+      let activity = try requestActivity(state: state)
+      result(["id": activity.id, "started": true, "replacedCount": 0])
     } catch let error as LiveActivityInputError {
       result(FlutterError(code: "invalid_live_activity", message: error.localizedDescription, details: nil))
     } catch {
       result(FlutterError(code: "live_activity_start_failed", message: error.localizedDescription, details: nil))
     }
+  }
+
+  @available(iOS 16.1, *)
+  private func requestActivity(state: PrayerActivityAttributes.ContentState) throws -> Activity<PrayerActivityAttributes> {
+    let attributes = PrayerActivityAttributes(createdAtMilliseconds: Date().timeIntervalSince1970 * 1000)
+    if #available(iOS 16.2, *) {
+      let content = ActivityContent(state: state, staleDate: Date(timeIntervalSince1970: state.prayerAtMilliseconds / 1000))
+      return try Activity<PrayerActivityAttributes>.request(attributes: attributes, content: content, pushType: nil)
+    }
+    return try Activity<PrayerActivityAttributes>.request(attributes: attributes, contentState: state, pushType: nil)
+  }
+
+  @available(iOS 16.1, *)
+  private func activityMatches(_ activity: Activity<PrayerActivityAttributes>, state: PrayerActivityAttributes.ContentState) -> Bool {
+    let current = activity.contentState
+    return current.prayerID == state.prayerID &&
+      current.prayerAtMilliseconds == state.prayerAtMilliseconds &&
+      current.timeZoneIdentifier == state.timeZoneIdentifier &&
+      current.localeIdentifier == state.localeIdentifier &&
+      current.calculationFingerprint == state.calculationFingerprint &&
+      current.isRedacted == state.isRedacted
+  }
+
+  @available(iOS 16.1, *)
+  private func activityStatus(_ activity: Activity<PrayerActivityAttributes>) -> [String: Any] {
+    let state = activity.contentState
+    return ["id": activity.id, "prayerID": state.prayerID, "prayerAtMilliseconds": state.prayerAtMilliseconds, "timeZoneIdentifier": state.timeZoneIdentifier, "localeIdentifier": state.localeIdentifier, "calculationFingerprint": state.calculationFingerprint, "isRedacted": state.isRedacted]
   }
 
   @available(iOS 16.1, *)
