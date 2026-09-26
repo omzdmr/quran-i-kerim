@@ -8,6 +8,8 @@ import 'quran_audio_download_url.dart';
 
 enum AudioQueueStatus { idle, running, paused }
 
+enum AudioQueueAdmission { allowed, networkBlocked, insufficientStorage, capacityUnavailable }
+
 class AudioQueueItem {
   const AudioQueueItem({
     required this.storageKey,
@@ -15,6 +17,7 @@ class AudioQueueItem {
     required this.verseCount,
     required this.audioInfo,
     this.bitrate,
+    this.estimatedRemainingBytes = 0,
   });
 
   final String storageKey;
@@ -22,6 +25,7 @@ class AudioQueueItem {
   final int verseCount;
   final QuranAudioInfo audioInfo;
   final int? bitrate;
+  final int estimatedRemainingBytes;
 
   String get id => '$storageKey|$surah';
 }
@@ -40,11 +44,13 @@ class AudioDownloadQueueController extends ChangeNotifier {
   AudioQueueItem? _active;
   AudioQueueStatus _status = AudioQueueStatus.idle;
   int _completedThisRun = 0;
+  AudioQueueAdmission? _pauseReason;
 
   AudioQueueStatus get status => _status;
   AudioQueueItem? get active => _active;
   int get pendingCount => _pending.length;
   int get completedThisRun => _completedThisRun;
+  AudioQueueAdmission? get pauseReason => _pauseReason;
   bool get hasWork => _active != null || _pending.isNotEmpty;
 
   List<AudioQueueItem> get pending =>
@@ -53,6 +59,7 @@ class AudioDownloadQueueController extends ChangeNotifier {
   void enqueueAll(Iterable<AudioQueueItem> items) {
     if (!hasWork && _status == AudioQueueStatus.idle) {
       _completedThisRun = 0;
+      _pauseReason = null;
     }
     for (final item in items) {
       if (_known.add(item.id)) _pending.add(item);
@@ -103,7 +110,7 @@ class AudioDownloadQueueController extends ChangeNotifier {
   }
 
   Future<void> start({
-    Future<bool> Function(AudioQueueItem item)? canStart,
+    Future<AudioQueueAdmission> Function(AudioQueueItem item)? canStart,
   }) async {
     if (_status == AudioQueueStatus.running) return;
     _status = AudioQueueStatus.running;
@@ -111,11 +118,16 @@ class AudioDownloadQueueController extends ChangeNotifier {
 
     while (_status == AudioQueueStatus.running && _pending.isNotEmpty) {
       final next = _pending.first;
-      if (canStart != null && !await canStart(next)) {
-        _status = AudioQueueStatus.paused;
-        notifyListeners();
-        break;
+      if (canStart != null) {
+        final admission = await canStart(next);
+        if (admission != AudioQueueAdmission.allowed) {
+          _pauseReason = admission;
+          _status = AudioQueueStatus.paused;
+          notifyListeners();
+          break;
+        }
       }
+      _pauseReason = null;
       final item = _pending.removeFirst();
       _active = item;
       notifyListeners();
@@ -158,6 +170,7 @@ class AudioDownloadQueueController extends ChangeNotifier {
   void pause() {
     if (_status != AudioQueueStatus.running) return;
     _status = AudioQueueStatus.paused;
+    _pauseReason = null;
     final item = _active;
     if (item != null) {
       _manager.pauseDownload(item.storageKey, item.surah);
@@ -170,7 +183,10 @@ class AudioDownloadQueueController extends ChangeNotifier {
       _known.remove(item.id);
     }
     _pending.clear();
-    if (_active == null) _status = AudioQueueStatus.idle;
+    if (_active == null) {
+      _status = AudioQueueStatus.idle;
+      _pauseReason = null;
+    }
     notifyListeners();
   }
 }
