@@ -106,7 +106,8 @@ private struct PrayerLiveActivityView: View {
 }
 
 @available(iOS 16.1, *)
-private func prayerActivityIsStale(_ context: ActivityViewContext<PrayerActivityAttributes>) -> Bool {
+private func prayerActivityIsStale(_ context: ActivityViewContext<PrayerActivityAttributes>, now: Date = Date()) -> Bool {
+  if context.state.prayerAtMilliseconds <= now.timeIntervalSince1970 * 1000 { return true }
   if #available(iOS 16.2, *) { return context.isStale }
   return false
 }
