@@ -105,3 +105,11 @@ Native lifecycle prevents duplicate future prayer activities and prunes expired 
 Shared handoff: use `app.quranikerim/native_prayer_live_activity` only after shared prayer schedule/privacy state is ready. Methods are `capabilities`, `status`, `start`, `update`, `end`, `endAll`. Shared remains owner of schedule changes (timezone/DST/location/method/offset) and must update or end/restart the activity when its calculation fingerprint changes. Native code does not calculate prayer times. This foundation is local-only (pushType nil): it does not create ActivityKit push tokens or add a server dependency.
 
 This is not signed-device completion. ActivityKit authorization, Dynamic Island behavior, lock-screen privacy and deep-link behavior still require physical signed-device verification.
+
+
+### Prayer Live Activity identity reconciliation
+Prayer Live Activity start is now identity-aware instead of treating any future ActivityKit instance as reusable. A reusable activity must match prayer ID/time, timezone, locale, calculation fingerprint and privacy-redaction state. A mismatched future activity is ended and replaced, preventing travel, DST/method/offset, locale or privacy changes from silently keeping stale Dynamic Island/Lock Screen state. If an exact match exists, duplicate future prayer activities are retired while the matching activity is retained.
+
+The native status response now includes per-activity identity diagnostics so shared prayer state can compare ActivityKit state without persisting a second schedule. The bridge remains local-only and ephemeral; no new persistent user data or iCloud/backup registry entry is introduced. Native contract rejects regression to arbitrary-future-activity reuse and checks replacement/diagnostic behavior.
+
+Shared handoff: when prayer configuration changes, shared may call start with the new canonical state and rely on native identity reconciliation, or update/end explicitly. Shared remains the only owner of prayer calculations. Signed-device verification is still required for real Dynamic Island/Lock Screen behavior.
